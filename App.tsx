@@ -1213,7 +1213,7 @@ function App() {
       ? 'Ana!' 
       : isLucianoUser 
         ? 'Luciano!' 
-        : 'ao LA Payroll';
+        : 'Ana!';
 
     return (
       <div className="dark min-h-screen flex bg-[#0a0d14] text-slate-200 font-sans selection:bg-violet-500/30">
