@@ -1236,12 +1236,12 @@ function App() {
           <div className="relative z-10 flex flex-col justify-between p-16 w-full">
             {/* Top Logo */}
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 backdrop-blur-md text-white font-extrabold text-2xl">
-                LA
+              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 backdrop-blur-md shadow-xl overflow-hidden group/logo">
+                <img src="/logo-LA-colapsed.png" className="w-10 h-10 object-contain transition-transform duration-500 group-hover/logo:scale-110" alt="LA" />
               </div>
               <div>
-                <h1 className="text-xl font-black tracking-tight text-white uppercase leading-none">LA Music Group</h1>
-                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Payroll Management</p>
+                <h1 className="text-2xl font-black tracking-tight text-white leading-none">LA Music Group</h1>
+                <p className="text-purple-300/80 text-sm font-medium mt-1">Sistema de Folha de Pagamento</p>
               </div>
             </div>
 
