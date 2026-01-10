@@ -529,6 +529,14 @@ function App() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
+  };
+
   const tipoLabels: Record<string, string> = {
     pj: 'PJ', clt: 'CLT', estagiario: 'Estag.', diarista: 'Diarista', pensao: 'Pensão', mensal_fixo: 'Mensal'
   };
