@@ -529,87 +529,9 @@ function App() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch {
-      // ignore
-    }
+  const tipoLabels: Record<string, string> = {
+    pj: 'PJ', clt: 'CLT', estagiario: 'Estag.', diarista: 'Diarista', pensao: 'Pensão', mensal_fixo: 'Mensal'
   };
-
-  if (authLoading) {
-    return (
-      <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center">
-        <div className="flex items-center gap-3 text-slate-400">
-          <Loader2 className="animate-spin" />
-          Carregando sessão...
-        </div>
-      </div>
-    );
-  }
-
-  if (!userEmail) {
-    return (
-      <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-slate-900/50 border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-black/40">
-          <div className="flex flex-col items-center gap-3 mb-8">
-            <img src="/logo-LA-colapsed.png" alt="LA Logo" className="w-14 h-14 object-contain drop-shadow-lg" />
-            <div className="text-center">
-              <div className="text-2xl font-black text-white tracking-tight">Folha de Pagamento</div>
-              <div className="text-xs text-slate-500 mt-1">Acesso restrito</div>
-            </div>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Email</label>
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
-                placeholder="email@lamusic..."
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Senha</label>
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
-                placeholder="••••••••"
-                required
-                autoComplete="current-password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full mt-2 px-6 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 disabled:opacity-50"
-              disabled={loginSubmitting}
-            >
-              {loginSubmitting ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
-
-          <div className="text-center text-[10px] text-slate-600 mt-6">
-            LA Music Group © 2026
-          </div>
-
-          <AlertDialog
-            isOpen={alertState.isOpen}
-            onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
-            title={alertState.title}
-            message={alertState.message}
-            variant={alertState.variant}
-          />
-        </div>
-      </div>
-    );
-  }
 
   // Initial load: Fetch colaboradores and available months
   useEffect(() => {
@@ -1143,9 +1065,80 @@ function App() {
       setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao salvar lançamento: ' + err.message, variant: 'danger' });
     }
   };
-  const tipoLabels: Record<string, string> = {
-    pj: 'PJ', clt: 'CLT', estagiario: 'Estag.', diarista: 'Diarista', pensao: 'Pensão', mensal_fixo: 'Mensal'
-  };
+
+  if (authLoading) {
+    return (
+      <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center">
+        <div className="flex items-center gap-3 text-slate-400">
+          <Loader2 className="animate-spin" />
+          Carregando sessão...
+        </div>
+      </div>
+    );
+  }
+
+  if (!userEmail) {
+    return (
+      <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-slate-900/50 border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-black/40">
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <img src="/logo-LA-colapsed.png" alt="LA Logo" className="w-14 h-14 object-contain drop-shadow-lg" />
+            <div className="text-center">
+              <div className="text-2xl font-black text-white tracking-tight">Folha de Pagamento</div>
+              <div className="text-xs text-slate-500 mt-1">Acesso restrito</div>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Email</label>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                placeholder="email@lamusic..."
+                required
+                autoComplete="email"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Senha</label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full mt-2 px-6 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 disabled:opacity-50"
+              disabled={loginSubmitting}
+            >
+              {loginSubmitting ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+
+          <div className="text-center text-[10px] text-slate-600 mt-6">
+            LA Music Group © 2026
+          </div>
+
+          <AlertDialog
+            isOpen={alertState.isOpen}
+            onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+            title={alertState.title}
+            message={alertState.message}
+            variant={alertState.variant}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-violet-500/30">
