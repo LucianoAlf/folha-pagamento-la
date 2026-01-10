@@ -1207,11 +1207,7 @@ function App() {
     const isAnaUser = isAna(loginEmail);
     const isLucianoUser = isLuciano(loginEmail);
     
-    const displayAvatar = isAnaUser 
-      ? '/Avatar_Ana.png' 
-      : isLucianoUser 
-        ? '/Avatar_Alf.png' 
-        : '/logo-LA-colapsed.png';
+    const displayAvatar = '/Avatar_Ana.png';
         
     const displayGreeting = isAnaUser 
       ? 'Ana!' 
