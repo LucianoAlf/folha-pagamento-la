@@ -59,8 +59,17 @@ export interface FolhaMensal {
   total_cg: number;
   total_rec: number;
   total_bar: number;
+  notas_rh?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface UserProfile {
+  id: string; // auth.users uuid
+  nome: string;
+  role: 'admin' | 'rh' | 'user';
+  avatar_url?: string | null;
+  created_at?: string;
 }
 
 export interface Lancamento {

@@ -1,4 +1,4 @@
-import { Colaborador, FolhaMensal, Lancamento } from '../types';
+import { Colaborador, FolhaMensal, Lancamento, UserProfile } from '../types';
 import { supabase } from './supabase';
 
 declare const __SUPABASE_URL__: string | undefined;
@@ -29,6 +29,32 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 export const api = {
+  async fetchUserProfile(userId: string): Promise<UserProfile | null> {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?select=*&id=eq.${userId}&limit=1`, { headers });
+    if (!res.ok) throw new Error('Erro ao buscar perfil do usuário');
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length ? (rows[0] as UserProfile) : null;
+  },
+
+  async upsertUserProfile(profile: Pick<UserProfile, 'id' | 'nome' | 'avatar_url' | 'role'>): Promise<UserProfile> {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?on_conflict=id`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        Prefer: 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify(profile),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Erro ao salvar perfil do usuário. ${text}`.trim());
+    }
+    const rows = await res.json();
+    return rows[0] as UserProfile;
+  },
+
   async fetchFolhaAiInsights(input: { folhaId: number; force?: boolean }): Promise<any> {
     // Usando o subdomínio .functions que é mais direto para Edge Functions
     const FUNCTIONS_URL = SUPABASE_URL.replace('https://', 'https://').replace('.supabase.co', '.functions.supabase.co');

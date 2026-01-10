@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api, formatCurrency, getMesNome } from './services/api';
 import { supabase } from './services/supabase';
-import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta } from './types';
+import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta, UserProfile } from './types';
 import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, AlertDialog, Modal, Tooltip } from './components/UI';
 import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
 import { 
@@ -9,7 +9,7 @@ import {
   Calendar, RefreshCw, Bell, BarChart3, FileText, 
   TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database,
   LineChart as LineChartIcon,
-  Copy, Plus, Search, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut
+  Copy, Plus, Search, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Settings
 } from 'lucide-react';
 import { 
   CollaboratorCard, 
@@ -21,6 +21,8 @@ import {
   CONTRACT_LABELS,
   cn
 } from './components/CollaboratorComponents';
+
+import * as Popover from '@radix-ui/react-popover';
 
 const parseBRL = (raw: string) => {
   const cleaned = (raw || '')
@@ -140,6 +142,17 @@ function App() {
   // Auth
   const [authLoading, setAuthLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  const isAna = (email?: string | null) => !!email && email.toLowerCase() === 'rh@lamusicschool.com.br';
+  const isLuciano = (email?: string | null) => !!email && email.toLowerCase() === 'lucianoalf.la@gmail.com';
+
+  const getDefaultAvatarByEmail = (email?: string | null) => {
+    if (isAna(email)) return '/Avatar_Ana.png';
+    if (isLuciano(email)) return '/Avatar_Alf.png';
+    return null;
+  };
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
@@ -490,6 +503,7 @@ function App() {
         const { data } = await supabase.auth.getSession();
         if (!mounted) return;
         setUserEmail(data.session?.user?.email ?? null);
+        setUserId(data.session?.user?.id ?? null);
       } finally {
         if (mounted) setAuthLoading(false);
       }
@@ -497,6 +511,7 @@ function App() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUserEmail(session?.user?.email ?? null);
+      setUserId(session?.user?.id ?? null);
     });
 
     return () => {
@@ -504,6 +519,23 @@ function App() {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  // Load user profile (user_profiles) after auth is ready
+  useEffect(() => {
+    if (!userId) {
+      setUserProfile(null);
+      return;
+    }
+    (async () => {
+      try {
+        const profile = await api.fetchUserProfile(userId);
+        setUserProfile(profile);
+      } catch {
+        // non-blocking; profile is optional
+        setUserProfile(null);
+      }
+    })();
+  }, [userId]);
 
   // Simple in-app login page (no router) – production will have signups disabled in Supabase.
   const [loginEmail, setLoginEmail] = useState('');
@@ -532,8 +564,62 @@ function App() {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
+      setUserProfile(null);
     } catch {
       // ignore
+    }
+  };
+
+  // Profile modal
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileAvatar, setProfileAvatar] = useState<string>('');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  const openProfile = () => {
+    setProfileName(userProfile?.nome || (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : ''));
+    setProfileAvatar(userProfile?.avatar_url || getDefaultAvatarByEmail(userEmail) || '');
+    setProfileSaved(false);
+    setIsProfileOpen(true);
+  };
+
+  const handlePickProfileAvatar = async (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setAlertState({ isOpen: true, title: 'Arquivo inválido', message: 'Selecione uma imagem (PNG/JPG/WebP).', variant: 'danger' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      setProfileAvatar(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveProfile = async () => {
+    if (!userId) return;
+    if (profileSaving) return;
+    const nome = (profileName || '').trim() || (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : 'Usuário');
+    const role: UserProfile['role'] = isAna(userEmail) ? 'rh' : isLuciano(userEmail) ? 'admin' : 'user';
+
+    setProfileSaving(true);
+    try {
+      const saved = await api.upsertUserProfile({
+        id: userId,
+        nome,
+        role,
+        avatar_url: profileAvatar || null,
+      });
+      setUserProfile(saved);
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+      setIsProfileOpen(false);
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: err?.message || 'Falha ao salvar perfil', variant: 'danger' });
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -1086,11 +1172,17 @@ function App() {
   }
 
   if (!userEmail) {
+    const loginAvatar =
+      getDefaultAvatarByEmail(loginEmail) || '/logo-LA-colapsed.png';
     return (
       <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center px-4">
         <div className="w-full max-w-md bg-slate-900/50 border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-black/40">
           <div className="flex flex-col items-center gap-3 mb-8">
-            <img src="/logo-LA-colapsed.png" alt="LA Logo" className="w-14 h-14 object-contain drop-shadow-lg" />
+            <img
+              src={loginAvatar}
+              alt="Avatar"
+              className="w-16 h-16 object-cover drop-shadow-lg rounded-2xl border border-slate-700/60 bg-slate-900/40"
+            />
             <div className="text-center">
               <div className="text-2xl font-black text-white tracking-tight">Folha de Pagamento</div>
               <div className="text-xs text-slate-500 mt-1">Acesso restrito</div>
@@ -1188,17 +1280,89 @@ function App() {
                   label: `${getMesNome(f.mes)} ${f.ano}`
                 }))}
               />
-              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-800/50 border border-slate-700 rounded-full">
-                <span className="text-xs text-slate-300 font-medium truncate max-w-[220px]">{userEmail}</span>
-                <button
-                  onClick={handleLogout}
-                  className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-                  title="Sair"
-                  aria-label="Sair"
-                >
-                  <LogOut size={14} />
-                </button>
-              </div>
+              {/* Profile menu (replaces email chip + bell) */}
+              <Popover.Root>
+                <Popover.Trigger asChild>
+                  <button
+                    className="relative w-10 h-10 rounded-2xl border border-slate-700/60 bg-slate-800/40 hover:bg-slate-800/60 transition-colors overflow-hidden"
+                    title="Perfil"
+                    aria-label="Perfil"
+                  >
+                    <img
+                      src={
+                        userProfile?.avatar_url ||
+                        getDefaultAvatarByEmail(userEmail) ||
+                        '/logo-LA-colapsed.png'
+                      }
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
+                      }}
+                    />
+                    {alertas.length > 0 && (
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-500 rounded-full ring-2 ring-slate-900" />
+                    )}
+                  </button>
+                </Popover.Trigger>
+                <Popover.Portal>
+                  <Popover.Content
+                    sideOffset={10}
+                    align="end"
+                    className="z-[9999] w-[320px] rounded-3xl border border-slate-700/60 bg-slate-950/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden"
+                  >
+                    <div className="p-4 border-b border-slate-800/70 flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden border border-slate-700/60 bg-slate-900/40 shrink-0">
+                        <img
+                          src={
+                            userProfile?.avatar_url ||
+                            getDefaultAvatarByEmail(userEmail) ||
+                            '/logo-LA-colapsed.png'
+                          }
+                          alt="Avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-black text-white truncate">
+                          {userProfile?.nome ||
+                            (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : 'Usuário')}
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate">{userEmail}</div>
+                        <div className="mt-1 text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                          {isAna(userEmail) ? 'RH' : isLuciano(userEmail) ? 'Admin' : 'User'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 space-y-2">
+                      <button
+                        onClick={openProfile}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-slate-900/40 hover:bg-slate-900/60 border border-slate-800 text-slate-200 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Settings size={16} className="text-slate-400" />
+                          <span className="text-sm font-bold">Editar perfil</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-bold">FOTO / NOME</span>
+                      </button>
+
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 text-rose-300 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <LogOut size={16} className="text-rose-300" />
+                          <span className="text-sm font-black">Sair</span>
+                        </div>
+                        <span className="text-[10px] text-rose-300/70 font-bold">LOGOUT</span>
+                      </button>
+                    </div>
+
+                    <Popover.Arrow className="fill-slate-800/80" />
+                  </Popover.Content>
+                </Popover.Portal>
+              </Popover.Root>
               
               <div className="flex items-center gap-2">
                 {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
@@ -1208,13 +1372,6 @@ function App() {
               
               <button onClick={loadData} className="p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400">
                 <RefreshCw size={18} />
-              </button>
-              
-              <button className="relative p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400">
-                <Bell size={18} />
-                {alertas.length > 0 && (
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-slate-900"></span>
-                )}
               </button>
             </div>
           </div>
@@ -1571,6 +1728,80 @@ function App() {
               message={alertState.message}
               variant={alertState.variant}
             />
+
+            {/* Profile Modal */}
+            <Modal
+              isOpen={isProfileOpen}
+              onClose={() => setIsProfileOpen(false)}
+              title="Editar perfil"
+              className="max-w-xl"
+            >
+              <div className="space-y-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-3xl overflow-hidden border border-slate-700 bg-slate-900/40 shrink-0">
+                    <img
+                      src={profileAvatar || getDefaultAvatarByEmail(userEmail) || '/logo-LA-colapsed.png'}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                        Nome
+                      </label>
+                      <input
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                        placeholder="Seu nome"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                        Foto
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handlePickProfileAvatar(e.target.files?.[0] ?? null)}
+                        className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700"
+                        disabled={profileSaving}
+                      />
+                      <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+                        <span>Imagem fica salva no seu perfil (user_profiles).</span>
+                        {profileSaving ? (
+                          <span className="text-violet-400 font-bold flex items-center gap-1">
+                            <Loader2 size={10} className="animate-spin" /> SALVANDO...
+                          </span>
+                        ) : profileSaved ? (
+                          <span className="text-emerald-400 font-bold flex items-center gap-1">
+                            <CheckCircle size={10} /> SALVO
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex-1 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all"
+                    disabled={profileSaving}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={saveProfile}
+                    className="flex-1 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20"
+                    disabled={profileSaving}
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </div>
+            </Modal>
 
             {/* Dashboard */}
             {activeTab === 'dashboard' && (
