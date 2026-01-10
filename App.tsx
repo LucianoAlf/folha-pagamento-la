@@ -138,6 +138,26 @@ const CellInput: React.FC<{
   );
 };
 
+const loginStyles = `
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(10deg); }
+  }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
+    50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.6); }
+  }
+  .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+`;
+
 function App() {
   // Auth
   const [authLoading, setAuthLoading] = useState(true);
@@ -1184,70 +1204,185 @@ function App() {
   }
 
   if (!userEmail) {
-    const loginAvatar =
-      getDefaultAvatarByEmail(loginEmail) || '/logo-LA-colapsed.png';
+    const isAnaUser = isAna(loginEmail);
+    const isLucianoUser = isLuciano(loginEmail);
+    
+    const displayAvatar = isAnaUser 
+      ? '/Avatar_Ana.png' 
+      : isLucianoUser 
+        ? '/Avatar_Alf.png' 
+        : '/logo-LA-colapsed.png';
+        
+    const displayGreeting = isAnaUser 
+      ? 'Ana!' 
+      : isLucianoUser 
+        ? 'Luciano!' 
+        : 'ao LA Payroll';
+
     return (
-      <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-slate-900/50 border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-black/40">
-          <div className="flex flex-col items-center gap-3 mb-8">
-            <img
-              src={loginAvatar}
-              alt="Avatar"
-              className="w-16 h-16 object-cover drop-shadow-lg rounded-2xl border border-slate-700/60 bg-slate-900/40"
-            />
-            <div className="text-center">
-              <div className="text-2xl font-black text-white tracking-tight">Folha de Pagamento</div>
-              <div className="text-xs text-slate-500 mt-1">Acesso restrito</div>
-            </div>
+      <div className="dark min-h-screen flex bg-[#0a0d14] text-slate-200 font-sans selection:bg-violet-500/30">
+        <style>{loginStyles}</style>
+        
+        {/* Lado Esquerdo - Branding (Oculto em mobile) */}
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950">
+          {/* Background Effects */}
+          <div className="absolute inset-0 overflow-hidden opacity-30">
+            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-violet-600/20 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] translate-x-1/2 translate-y-1/2"></div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Email</label>
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
-                placeholder="email@lamusic..."
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Senha</label>
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
-                placeholder="••••••••"
-                required
-                autoComplete="current-password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full mt-2 px-6 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 disabled:opacity-50"
-              disabled={loginSubmitting}
-            >
-              {loginSubmitting ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
-
-          <div className="text-center text-[10px] text-slate-600 mt-6">
-            LA Music Group © 2026
+          {/* Floating Notes */}
+          <div className="absolute inset-0 pointer-events-none opacity-20">
+            <Music className="absolute animate-float text-white" style={{ left: '15%', top: '25%', width: '40px', height: '40px' }} />
+            <Music className="absolute animate-float text-white" style={{ left: '75%', top: '65%', width: '30px', height: '30px', animationDelay: '2s' }} />
           </div>
 
-          <AlertDialog
-            isOpen={alertState.isOpen}
-            onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
-            title={alertState.title}
-            message={alertState.message}
-            variant={alertState.variant}
-          />
+          <div className="relative z-10 flex flex-col justify-between p-16 w-full">
+            {/* Top Logo */}
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 backdrop-blur-md text-white font-extrabold text-2xl">
+                LA
+              </div>
+              <div>
+                <h1 className="text-xl font-black tracking-tight text-white uppercase leading-none">LA Music Group</h1>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Payroll Management</p>
+              </div>
+            </div>
+
+            {/* Central Hero */}
+            <div className="flex flex-col items-center text-center">
+              <div className="relative mb-10 group">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition-opacity animate-pulse"></div>
+                <div className="relative w-40 h-40 rounded-full p-1 bg-gradient-to-br from-violet-400 via-fuchsia-500 to-indigo-400">
+                  <div className="w-full h-full rounded-full bg-[#0a0d14] p-1 overflow-hidden shadow-inner">
+                    <img src={displayAvatar} alt="User" className="w-full h-full object-cover rounded-full transition-transform duration-700 group-hover:scale-110" />
+                  </div>
+                </div>
+                <div className="absolute bottom-3 right-3 w-6 h-6 bg-emerald-500 rounded-full border-4 border-[#0a0d14]">
+                  <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-75"></div>
+                </div>
+              </div>
+              
+              <h2 className="text-5xl font-black text-white mb-4 tracking-tight">
+                Olá, {displayGreeting} <span className="inline-block animate-bounce">👋</span>
+              </h2>
+              <p className="text-slate-400 text-lg max-w-sm leading-relaxed font-medium">
+                Sua folha de pagamento inteligente está pronta para mais um dia de gestão.
+              </p>
+            </div>
+
+            {/* Bottom Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="glass rounded-[2rem] p-6 hover:bg-white/[0.05] transition-all cursor-default">
+                <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center mb-4">
+                  <Users className="w-5 h-5 text-violet-400" />
+                </div>
+                <div className="text-2xl font-black text-white">71</div>
+                <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Colaboradores</div>
+              </div>
+              <div className="glass rounded-[2rem] p-6 hover:bg-white/[0.05] transition-all cursor-default">
+                <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-4">
+                  <Sparkles className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="text-2xl font-black text-white">IA</div>
+                <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Insights Ativos</div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Lado Direito - Formulário */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#0a0d14] relative">
+          <div className="w-full max-w-md">
+            <div className="lg:hidden flex flex-col items-center mb-12">
+              <div className="w-20 h-20 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-violet-600/30 mb-6 pulse-glow text-white font-black text-3xl">
+                LA
+              </div>
+              <h1 className="text-white text-3xl font-black tracking-tight">LA Music Group</h1>
+              <p className="text-slate-500 font-bold uppercase text-xs tracking-widest mt-2">Folha de Pagamento</p>
+            </div>
+
+            <div className="bg-slate-900/40 p-10 rounded-[3rem] border border-slate-800/50 shadow-2xl backdrop-blur-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-violet-600/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-violet-600/20 transition-colors"></div>
+              
+              <div className="text-center mb-10 relative z-10">
+                <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Acesso Restrito</h2>
+                <p className="text-slate-500 font-medium">Digite suas credenciais para continuar</p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-6 relative z-10">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">E-mail Corporativo</label>
+                  <input
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="w-full px-5 py-4 bg-slate-950/50 border border-slate-800 rounded-2xl text-white placeholder-slate-600 transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none font-medium"
+                    placeholder="ana.paula@lamusic.com.br"
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Senha de Acesso</label>
+                  </div>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full px-5 py-4 bg-slate-950/50 border border-slate-800 rounded-2xl text-white placeholder-slate-600 transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none"
+                    placeholder="••••••••••••"
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loginSubmitting}
+                  className="w-full py-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black rounded-2xl shadow-xl shadow-violet-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  {loginSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin w-5 h-5" />
+                      <span>Autenticando...</span>
+                    </>
+                  ) : (
+                    <span>Acessar Dashboard</span>
+                  )}
+                </button>
+              </form>
+
+              <div className="flex items-center gap-4 my-10">
+                <div className="flex-1 h-px bg-slate-800"></div>
+                <span className="text-slate-600 text-[10px] font-black uppercase tracking-[0.2em]">Security Check</span>
+                <div className="flex-1 h-px bg-slate-800"></div>
+              </div>
+
+              <div className="text-center">
+                <p className="text-slate-500 text-xs font-medium">
+                  Apenas usuários autorizados podem acessar este ambiente.
+                </p>
+              </div>
+            </div>
+
+            <div className="text-center mt-10">
+              <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">
+                LA Music Group © 2026 • <span className="text-violet-500/80">v2.0 Premium</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <AlertDialog
+          isOpen={alertState.isOpen}
+          onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+          title={alertState.title}
+          message={alertState.message}
+          variant={alertState.variant}
+        />
       </div>
     );
   }
@@ -1277,10 +1412,6 @@ function App() {
                   <p className="text-xs text-slate-500">LA Music Group</p>
                 </div>
               </div>
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                <Database size={12} className="text-emerald-400" />
-                <span className="text-xs text-emerald-400 font-medium">Supabase</span>
-              </div>
             </div>
             
             <div className="flex items-center gap-3 sm:gap-6 self-end md:self-auto">
@@ -1306,9 +1437,6 @@ function App() {
                         }}
                       />
                     </div>
-                    {alertas.length > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-500 border-2 border-slate-950 rounded-full animate-pulse shadow-sm shadow-black/50" />
-                    )}
                   </button>
                 </Popover.Trigger>
                     <Popover.Portal>
