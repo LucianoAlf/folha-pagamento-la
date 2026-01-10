@@ -56,19 +56,17 @@ export const api = {
   },
 
   async fetchFolhaAiInsights(input: { folhaId: number; force?: boolean }): Promise<any> {
-    // Usando o subdomínio .functions que é mais direto para Edge Functions
-    const FUNCTIONS_URL = SUPABASE_URL.replace('https://', 'https://').replace('.supabase.co', '.functions.supabase.co');
-    const headers = await getAuthHeaders();
-    const res = await fetch(`${FUNCTIONS_URL}/ai-payroll-insights`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(input),
+    const { data, error } = await supabase.functions.invoke('ai-payroll-insights', {
+      body: input
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Erro ao gerar insights IA${text ? `: ${text}` : ''}`);
+
+    if (error) {
+      // Tenta extrair mensagem amigável do erro da função
+      const msg = error.message || 'Erro desconhecido';
+      throw new Error(`Erro ao gerar insights IA: ${msg}`);
     }
-    return res.json();
+
+    return data;
   },
 
   async upsertColaboradorVariacaoNota(input: { folhaId: number; colaboradorId: number; nota: string }): Promise<void> {

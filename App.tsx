@@ -1255,7 +1255,7 @@ function App() {
   return (
     <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-violet-500/30">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-full mx-auto px-4 sm:px-8 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -1284,19 +1284,11 @@ function App() {
             </div>
             
             <div className="flex items-center gap-3 sm:gap-6 self-end md:self-auto">
-              <CustomSelect 
-                value={selectedFolhaId?.toString() || ''} 
-                onValueChange={(val) => setSelectedFolhaId(Number(val))}
-                options={folhas.map(f => ({
-                  value: f.id.toString(),
-                  label: `${getMesNome(f.mes)} ${f.ano}`
-                }))}
-              />
               {/* Profile menu (replaces email chip + bell) */}
               <Popover.Root>
                 <Popover.Trigger asChild>
                   <button
-                    className="relative w-10 h-10 rounded-full border-2 border-slate-700/50 hover:border-violet-500/50 transition-all flex-shrink-0 group focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    className="relative w-12 h-12 rounded-full border-2 border-slate-700/50 hover:border-violet-500/50 transition-all flex-shrink-0 group focus:outline-none focus:ring-2 focus:ring-violet-500/40 shadow-lg shadow-black/20"
                     title="Perfil"
                     aria-label="Perfil"
                   >
@@ -1315,15 +1307,15 @@ function App() {
                       />
                     </div>
                     {alertas.length > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-500 border-2 border-slate-950 rounded-full animate-pulse shadow-sm shadow-black/50" />
+                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-500 border-2 border-slate-950 rounded-full animate-pulse shadow-sm shadow-black/50" />
                     )}
                   </button>
                 </Popover.Trigger>
-                <Popover.Portal>
+                    <Popover.Portal>
                   <Popover.Content
-                    sideOffset={10}
-                    align="end"
-                    className="z-[9999] w-[320px] rounded-[2rem] border border-slate-800 bg-slate-950/95 backdrop-blur-xl shadow-2xl shadow-black/60 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                    sideOffset={12}
+                    align="start"
+                    className="z-[999999] w-[320px] rounded-[2rem] border border-slate-800 bg-slate-950/95 backdrop-blur-xl shadow-2xl shadow-black/60 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
                   >
                     <div className="p-5 border-b border-slate-800/70 flex items-center gap-4 bg-slate-900/30">
                       <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-700/60 shadow-inner shrink-0">
@@ -1374,12 +1366,21 @@ function App() {
                   </Popover.Content>
                 </Popover.Portal>
               </Popover.Root>
-              
+
               <div className="flex items-center gap-2">
                 {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
                 {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
                 {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
               </div>
+
+              <CustomSelect 
+                value={selectedFolhaId?.toString() || ''} 
+                onValueChange={(val) => setSelectedFolhaId(Number(val))}
+                options={folhas.map(f => ({
+                  value: f.id.toString(),
+                  label: `${getMesNome(f.mes)} ${f.ano}`
+                }))}
+              />
               
             </div>
           </div>
@@ -1769,13 +1770,24 @@ function App() {
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
                         Foto
                       </label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handlePickProfileAvatar(e.target.files?.[0] ?? null)}
-                        className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700"
-                        disabled={profileSaving}
-                      />
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="profile-photo-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handlePickProfileAvatar(e.target.files?.[0] ?? null)}
+                          className="hidden"
+                          disabled={profileSaving}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('profile-photo-input')?.click()}
+                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors flex items-center gap-2 border border-slate-700"
+                          disabled={profileSaving}
+                        >
+                          <Plus size={14} /> Selecionar Imagem
+                        </button>
+                      </div>
                       <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
                         <span>Imagem fica salva no seu perfil (user_profiles).</span>
                         {profileSaving ? (

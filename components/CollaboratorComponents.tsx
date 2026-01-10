@@ -395,9 +395,10 @@ export const CollaboratorModal: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Foto</label>
                     <div className="flex items-center gap-3">
                       <input
+                        id="collab-photo-input"
                         type="file"
                         accept="image/*"
-                        className="block w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 dark:file:bg-slate-800 dark:file:text-slate-200 dark:hover:file:bg-slate-700"
+                        className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -410,6 +411,13 @@ export const CollaboratorModal: React.FC<CollaboratorModalProps> = ({ isOpen, on
                           reader.readAsDataURL(file);
                         }}
                       />
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('collab-photo-input')?.click()}
+                        className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 transition-colors flex items-center gap-2"
+                      >
+                        <Plus size={14} /> Selecionar Imagem
+                      </button>
                       {form.foto_url && (
                         <button
                           type="button"
