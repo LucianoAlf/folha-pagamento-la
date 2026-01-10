@@ -7,7 +7,7 @@ import { KPICard, DistributionChart, EvolutionChart } from './components/Dashboa
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
   Calendar, Bell, BarChart3, FileText, 
-  TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, ChevronRight, Database,
+  TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, ChevronRight, Database, ShieldCheck,
   LineChart as LineChartIcon,
   Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Settings
 } from 'lucide-react';
@@ -1267,21 +1267,38 @@ function App() {
               </p>
             </div>
 
-            {/* Bottom Stats */}
+            {/* Bottom Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="glass rounded-[2rem] p-6 hover:bg-white/[0.05] transition-all cursor-default">
-                <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center mb-4">
-                  <Users className="w-5 h-5 text-violet-400" />
+              <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
+                <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
+                  <Users className="w-5 h-5 text-cyan-400" />
                 </div>
-                <div className="text-2xl font-black text-white">71</div>
-                <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Colaboradores</div>
+                <h3 className="text-white font-bold text-base leading-tight">71 Colaboradores</h3>
+                <p className="text-purple-300/50 text-[10px] font-bold uppercase tracking-wider mt-1">Gestão centralizada</p>
               </div>
-              <div className="glass rounded-[2rem] p-6 hover:bg-white/[0.05] transition-all cursor-default">
-                <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-4">
-                  <Sparkles className="w-5 h-5 text-emerald-400" />
+              
+              <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
+                <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
+                  <TrendingUp className="w-5 h-5 text-emerald-400" />
                 </div>
-                <div className="text-2xl font-black text-white">IA</div>
-                <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Insights Ativos</div>
+                <h3 className="text-white font-bold text-base leading-tight">R$ 150k+</h3>
+                <p className="text-purple-300/50 text-[10px] font-bold uppercase tracking-wider mt-1">Folha mensal</p>
+              </div>
+              
+              <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
+                <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
+                  <ShieldCheck className="w-5 h-5 text-amber-400" />
+                </div>
+                <h3 className="text-white font-bold text-base leading-tight">100% Seguro</h3>
+                <p className="text-purple-300/50 text-[10px] font-bold uppercase tracking-wider mt-1">Dados protegidos</p>
+              </div>
+              
+              <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                </div>
+                <h3 className="text-white font-bold text-base leading-tight">IA Integrada</h3>
+                <p className="text-purple-300/50 text-[10px] font-bold uppercase tracking-wider mt-1">Insights automáticos</p>
               </div>
             </div>
           </div>
