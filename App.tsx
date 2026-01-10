@@ -610,8 +610,13 @@ function App() {
       </div>
     );
   }
-    fetchMetadata();
-  }, []);
+
+  // Initial load: Fetch colaboradores and available months
+  useEffect(() => {
+    if (userEmail) {
+      fetchMetadata();
+    }
+  }, [userEmail]);
 
   // Fetch month data when selection changes
   useEffect(() => {
