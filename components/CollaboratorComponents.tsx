@@ -438,7 +438,7 @@ export const CollaboratorModal: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       )}
                     </div>
                     <p className="mt-2 text-[11px] text-slate-500">
-                      Dica: a foto fica salva no cadastro (campo <span className="font-mono">foto_url</span>).
+                      Dica: a foto será exibida no card do colaborador e na folha.
                     </p>
                   </div>
                 </div>

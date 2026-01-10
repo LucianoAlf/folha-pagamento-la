@@ -1789,7 +1789,7 @@ function App() {
                         </button>
                       </div>
                       <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
-                        <span>Imagem fica salva no seu perfil (user_profiles).</span>
+                        <span>Sua foto será exibida no header e nos relatórios.</span>
                         {profileSaving ? (
                           <span className="text-violet-400 font-bold flex items-center gap-1">
                             <Loader2 size={10} className="animate-spin" /> SALVANDO...
