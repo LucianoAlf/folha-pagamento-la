@@ -1,0 +1,5 @@
+{
+  "name": "LA Music Payroll",
+  "description": "Sistema de gestão de folha de pagamento para LA Music Group com integração Supabase.",
+  "requestFramePermissions": []
+}

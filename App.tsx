@@ -1,0 +1,2529 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { api, formatCurrency, getMesNome } from './services/api';
+import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta } from './types';
+import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, AlertDialog, Modal, Tooltip } from './components/UI';
+import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
+import { 
+  DollarSign, Users, Building, AlertTriangle, CheckCircle, 
+  Calendar, RefreshCw, Bell, BarChart3, FileText, 
+  TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database,
+  LineChart as LineChartIcon,
+  Copy, Plus, Search, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins
+} from 'lucide-react';
+import { 
+  CollaboratorCard, 
+  CollaboratorModal, 
+  DEPARTMENT_LABELS, 
+  DEPARTMENT_COLORS,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  CONTRACT_LABELS,
+  cn
+} from './components/CollaboratorComponents';
+
+const parseBRL = (raw: string) => {
+  const cleaned = (raw || '')
+    .replace(/\s/g, '')
+    .replace(/^R\$\s?/i, '')
+    .replace(/[^\d.,-]/g, '');
+  if (!cleaned) return 0;
+  if (cleaned.includes(',')) return Number(cleaned.replace(/\./g, '').replace(',', '.')) || 0;
+  return Number(cleaned) || 0;
+};
+
+const formatBRLInput = (value: number) => {
+  const abs = Math.abs(value || 0);
+  return abs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+// Inline editable cell component (MusiClass-like)
+const CellInput: React.FC<{
+  value: number;
+  onSave: (val: number) => Promise<void>;
+  disabled?: boolean;
+  colorClass?: string;
+}> = ({ value, onSave, disabled, colorClass = 'text-slate-200' }) => {
+  const [isFocused, setIsFocused] = React.useState(false);
+  const [localValue, setLocalValue] = React.useState<string>(() => (value ? formatBRLInput(value) : ''));
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState(false);
+
+  React.useEffect(() => {
+    // Sync when external value changes (only when not editing)
+    if (!isFocused) {
+      setLocalValue(value ? formatBRLInput(value) : '');
+    }
+  }, [value, isFocused]);
+
+  const handleBlur = async () => {
+    setIsFocused(false);
+
+    const numericVal = Math.abs(parseBRL(localValue));
+    const current = Math.abs(value || 0);
+
+    if (numericVal === current) {
+      setLocalValue(current === 0 ? '' : formatBRLInput(current));
+      return;
+    }
+
+    setSaving(true);
+    setError(false);
+    try {
+      await onSave(numericVal);
+    } catch (err) {
+      console.error('Erro ao salvar célula:', err);
+      setError(true);
+      setLocalValue(current === 0 ? '' : formatBRLInput(current));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      (e.target as HTMLInputElement).blur();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      const current = Math.abs(value || 0);
+      setLocalValue(current === 0 ? '' : formatBRLInput(current));
+      (e.target as HTMLInputElement).blur();
+    }
+  };
+
+  const displayValue = Math.abs(value || 0);
+
+  return (
+    <div
+      className={[
+        'relative w-full h-full transition-all rounded-lg',
+        saving ? 'opacity-60 pointer-events-none' : '',
+        error ? 'bg-rose-500/10' : '',
+        isFocused ? 'ring-2 ring-violet-500/50 z-20' : '',
+      ].join(' ')}
+    >
+      {/* Display layer (visible when not focused) */}
+      {!isFocused && (
+        <div className="absolute inset-0 flex items-center justify-end px-3 py-2 font-mono text-xs text-slate-400 pointer-events-none">
+          {displayValue === 0 ? '—' : formatCurrency(displayValue)}
+        </div>
+      )}
+
+      <input
+        type="text"
+        className={[
+          'w-full h-full px-3 py-2 bg-transparent text-right font-bold focus:outline-none transition-all text-xs font-mono rounded-lg',
+          isFocused ? colorClass : 'text-transparent select-none',
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text hover:bg-slate-700/30',
+        ].join(' ')}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        placeholder={isFocused ? '0,00' : ''}
+        disabled={!!disabled}
+      />
+
+      {saving && (
+        <div className="absolute left-2 top-1/2 -translate-y-1/2">
+          <Loader2 size={12} className="animate-spin text-violet-400" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+function App() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
+  const [editingCollab, setEditingCollab] = useState<Colaborador | null>(null);
+  const [collabSearch, setCollabSearch] = useState('');
+  const [collabDeptFilter, setCollabDeptFilter] = useState('all');
+  const [collabStatusFilter, setCollabStatusFilter] = useState('active');
+
+  // Modal & Dialog states
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    variant?: 'danger' | 'primary';
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant?: 'danger' | 'primary';
+  }>({ isOpen: false, title: '', message: '', variant: 'primary' });
+
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [duplicateConfig, setDuplicateConfig] = useState<{ fromFolhaId: string; unidade: string }>({ 
+    fromFolhaId: '', 
+    unidade: 'todos' 
+  });
+
+  // Reset filter when changing tabs to avoid UX confusion
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    setUnidadeFiltro('todos');
+  };
+
+  const loadAiInsights = async (folhaId: number) => {
+    setAiInsightsLoading(true);
+    setAiInsightsError(null);
+    try {
+      const data = await api.fetchFolhaAiInsights({ folhaId });
+      setAiInsights(data);
+    } catch (err: any) {
+      setAiInsights(null);
+      setAiInsightsError(err?.message || 'Falha ao gerar insights');
+    } finally {
+      setAiInsightsLoading(false);
+    }
+  };
+
+  const handleSaveNote = async (colaboradorId: number) => {
+    if (!selectedFolhaId) return;
+    const nota = (noteDrafts[colaboradorId] ?? '').trim();
+    setNoteSaving((prev) => ({ ...prev, [colaboradorId]: true }));
+    try {
+      await api.upsertColaboradorVariacaoNota({ folhaId: selectedFolhaId, colaboradorId, nota });
+      setNoteSaved((prev) => ({ ...prev, [colaboradorId]: true }));
+      setTimeout(() => setNoteSaved((prev) => ({ ...prev, [colaboradorId]: false })), 2000);
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: err?.message || 'Falha ao salvar motivo', variant: 'danger' });
+    } finally {
+      setNoteSaving((prev) => ({ ...prev, [colaboradorId]: false }));
+    }
+  };
+
+  const [expandedDept, setExpandedDept] = useState<Record<string, boolean>>({ 
+    staff_rateado: false, 
+    equipe_operacional: false, 
+    professores: false 
+  });
+  const [editingLancamento, setEditingLancamento] = useState<Lancamento | null>(null);
+  const [isCreatingLancamento, setIsCreatingLancamento] = useState(false);
+  const [draftLancamento, setDraftLancamento] = useState<Partial<Lancamento>>({});
+  
+  // Data State
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [folhas, setFolhas] = useState<FolhaMensal[]>([]);
+  const [folhaAtual, setFolhaAtual] = useState<FolhaMensal | null>(null);
+  const [selectedFolhaId, setSelectedFolhaId] = useState<number | null>(null);
+  const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [lancamentosAnteriores, setLancamentosAnteriores] = useState<Lancamento[]>([]);
+  const [statusFolha, setStatusFolha] = useState<string>('rascunho');
+  const [alertsExpanded, setAlertsExpanded] = useState(false);
+
+  // IA (Comparativo)
+  const [aiInsights, setAiInsights] = useState<any | null>(null);
+  const [aiInsightsLoading, setAiInsightsLoading] = useState(false);
+  const [aiInsightsError, setAiInsightsError] = useState<string | null>(null);
+  const [anaNote, setAnaNote] = useState('');
+  const [anaNoteSaving, setAnaNoteSaving] = useState(false);
+  const [anaNoteSaved, setAnaNoteSaved] = useState(false);
+
+  // Motivos (Ana) por colaborador no mês selecionado
+  const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
+  const [noteSaving, setNoteSaving] = useState<Record<number, boolean>>({});
+  const [noteSaved, setNoteSaved] = useState<Record<number, boolean>>({});
+
+  // Alert note modal (saves into the same memory table used by IA)
+  const [alertNoteModal, setAlertNoteModal] = useState<{
+    isOpen: boolean;
+    colaboradorId: number | null;
+    titulo: string;
+    descricao: string;
+  }>({ isOpen: false, colaboradorId: null, titulo: '', descricao: '' });
+  const [alertNoteText, setAlertNoteText] = useState('');
+  const [alertNoteSaving, setAlertNoteSaving] = useState(false);
+  const [alertNoteSaved, setAlertNoteSaved] = useState(false);
+
+  // ... (dentro de handleSaveNote ou similar)
+  const handleSaveAnaNote = async () => {
+    if (!selectedFolhaId) return;
+    setAnaNoteSaving(true);
+    try {
+      await api.updateFolhaMensal(selectedFolhaId, { notas_rh: anaNote });
+      setAnaNoteSaved(true);
+      setTimeout(() => setAnaNoteSaved(false), 2000);
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: err?.message || 'Falha ao salvar nota da Ana', variant: 'danger' });
+    } finally {
+      setAnaNoteSaving(false);
+    }
+  };
+
+  const openAlertNote = (alerta: Alerta) => {
+    if (!alerta.id) return;
+    setAlertNoteText(noteDrafts[alerta.id] ?? '');
+    setAlertNoteSaved(false);
+    setAlertNoteModal({
+      isOpen: true,
+      colaboradorId: alerta.id,
+      titulo: alerta.titulo,
+      descricao: alerta.descricao,
+    });
+  };
+
+  const saveAlertNote = async (opts?: { markChecked?: boolean }) => {
+    const colabId = alertNoteModal.colaboradorId;
+    if (!selectedFolhaId || !colabId) return;
+    if (alertNoteSaving) return;
+    const nota = (alertNoteText ?? '').trim();
+
+    setAlertNoteSaving(true);
+    try {
+      // Persist to the same table the IA reads (colaborador_variacao_notas)
+      await api.upsertColaboradorVariacaoNota({ folhaId: selectedFolhaId, colaboradorId: colabId, nota });
+      setNoteDrafts((prev) => ({ ...prev, [colabId]: nota }));
+      setAlertNoteSaved(true);
+      setTimeout(() => setAlertNoteSaved(false), 2000);
+
+      if (opts?.markChecked) {
+        await handleCheckAlert(colabId);
+      }
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: err?.message || 'Falha ao salvar motivo do alerta', variant: 'danger' });
+    } finally {
+      setAlertNoteSaving(false);
+    }
+  };
+
+  const filteredColaboradores = useMemo(() => {
+    return colaboradores.filter(c => {
+      const matchesSearch = c.nome.toLowerCase().includes(collabSearch.toLowerCase()) || 
+                           c.email?.toLowerCase().includes(collabSearch.toLowerCase()) ||
+                           c.funcao?.toLowerCase().includes(collabSearch.toLowerCase());
+      const matchesDept = collabDeptFilter === 'all' || c.departamento === collabDeptFilter;
+      const matchesStatus = collabStatusFilter === 'all' || c.status === collabStatusFilter;
+      return matchesSearch && matchesDept && matchesStatus;
+    });
+  }, [colaboradores, collabSearch, collabDeptFilter, collabStatusFilter]);
+
+  // If salario_base isn't filled in colaboradores yet, derive it from the selected month launches (sum of "salario")
+  const baseSalaryByColabId = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const l of lancamentos) {
+      const prev = map.get(l.colaborador_id) || 0;
+      map.set(l.colaborador_id, prev + (Number(l.salario) || 0));
+    }
+    return map;
+  }, [lancamentos]);
+
+  const getEffectiveBaseSalary = (c: Colaborador) => {
+    const stored = Number((c as any).salario_base) || 0;
+    if (stored > 0) return stored;
+    return baseSalaryByColabId.get(c.id) || 0;
+  };
+
+  const filteredColaboradoresWithBase = useMemo(() => {
+    return filteredColaboradores.map((c) => ({
+      ...c,
+      salario_base: getEffectiveBaseSalary(c),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredColaboradores, baseSalaryByColabId]);
+
+  const handleSaveCollab = async (data: Partial<Colaborador>) => {
+    try {
+      if (editingCollab) {
+        await api.updateColaborador(editingCollab.id, data);
+      } else {
+        await api.createColaborador(data);
+      }
+      const metadata = await fetchMetadata();
+      if (metadata && selectedFolhaId) {
+        await loadMonthData(selectedFolhaId, metadata.folhasData);
+      }
+      setAlertState({ isOpen: true, title: 'Sucesso', message: 'Colaborador salvo com sucesso.', variant: 'primary' });
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: err.message, variant: 'danger' });
+    }
+  };
+
+  const handleToggleInactiveCollab = async (c: Colaborador) => {
+    const isActive = c.status === 'active';
+    setConfirmState({
+      isOpen: true,
+      title: isActive ? 'Inativar Colaborador' : 'Reativar Colaborador',
+      message: isActive
+        ? `Deseja inativar ${c.nome}? Ele(a) deixará de aparecer como ativo(a) nas seleções.`
+        : `Deseja reativar ${c.nome}?`,
+      variant: 'primary',
+      onConfirm: async () => {
+        try {
+          await api.updateColaborador(c.id, {
+            status: isActive ? 'inactive' : 'active',
+            ativo: !isActive,
+          } as any);
+          await fetchMetadata();
+        } catch (err: any) {
+          setAlertState({ isOpen: true, title: 'Erro', message: err.message, variant: 'danger' });
+        }
+      },
+    });
+  };
+
+  const handleDeleteCollab = async (c: Colaborador) => {
+    setConfirmState({
+      isOpen: true,
+      title: 'Excluir Colaborador',
+      message: `Deseja remover ${c.nome} permanentemente?`,
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.deleteColaborador(c.id);
+          await fetchMetadata();
+          setAlertState({ isOpen: true, title: 'Sucesso', message: 'Colaborador removido.', variant: 'primary' });
+        } catch (err: any) {
+          setAlertState({ isOpen: true, title: 'Erro', message: err.message, variant: 'danger' });
+        }
+      }
+    });
+  };
+
+  const computeLancamentoTotal = (l: Pick<Lancamento, 'salario'|'bonus'|'comissao'|'reembolso'|'passagem'|'inss'|'descontos'>) => {
+    return (
+      (Number(l.salario) || 0) +
+      (Number(l.bonus) || 0) +
+      (Number(l.comissao) || 0) +
+      (Number(l.reembolso) || 0) +
+      (Number(l.passagem) || 0) -
+      (Number(l.inss) || 0) -
+      (Number(l.descontos) || 0)
+    );
+  };
+
+  const refetchLancamentosSilent = async () => {
+    if (!folhaAtual) return;
+    try {
+      const currentLancData = await api.fetchLancamentos(folhaAtual.id);
+      setLancamentos(currentLancData);
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: err.message || 'Erro ao recarregar lançamentos', variant: 'danger' });
+    }
+  };
+
+  const saveLancamentoPatch = async (l: Lancamento, patch: Partial<Lancamento>) => {
+    const next = { ...l, ...patch } as Lancamento;
+    const total = computeLancamentoTotal(next);
+
+    try {
+      // Persist ONLY the field (total is generated by DB)
+      await api.updateLancamento(l.id, patch);
+
+      // Optimistic update to avoid "não persistiu" perception
+      setLancamentos(prev => prev.map(x => x.id === l.id ? ({ ...x, ...patch, total }) : x));
+
+      // Silent refetch to guarantee consistency with DB (no loading global)
+      await refetchLancamentosSilent();
+    } catch (err: any) {
+      console.error('Erro no saveLancamentoPatch:', err);
+      throw err; // Re-throw to be caught by CellInput
+    }
+  };
+
+  const fetchMetadata = async () => {
+    try {
+      const [colabsData, folhasData] = await Promise.all([
+        api.fetchColaboradores(),
+        api.fetchFolhasMensais()
+      ]);
+      setColaboradores(colabsData);
+      setFolhas(folhasData);
+      if (folhasData.length > 0 && !selectedFolhaId) {
+        setSelectedFolhaId(folhasData[0].id);
+      }
+      return { colabsData, folhasData };
+    } catch (err: any) {
+      setError(err.message || 'Falha ao carregar metadados');
+      setLoading(false);
+      return null;
+    }
+  };
+
+  const loadMonthData = async (folhaId: number, allFolhas: FolhaMensal[]) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const currentFolha = allFolhas.find(f => f.id === folhaId) || allFolhas[0];
+      setFolhaAtual(currentFolha);
+      setStatusFolha(currentFolha.status);
+
+      const currentIdx = allFolhas.findIndex(f => f.id === currentFolha.id);
+      const prevFolha = currentIdx < allFolhas.length - 1 ? allFolhas[currentIdx + 1] : null;
+
+      const [currentLancData, prevLancData] = await Promise.all([
+        api.fetchLancamentos(currentFolha.id),
+        prevFolha ? api.fetchLancamentos(prevFolha.id) : Promise.resolve([])
+      ]);
+
+      setLancamentos(currentLancData);
+      setLancamentosAnteriores(prevLancData);
+    } catch (err: any) {
+      setError(err.message || 'Falha ao carregar dados do mês');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load: Fetch colaboradores and available months
+  useEffect(() => {
+    fetchMetadata();
+  }, []);
+
+  // Fetch month data when selection changes
+  useEffect(() => {
+    if (selectedFolhaId && folhas.length > 0) {
+      loadMonthData(selectedFolhaId, folhas);
+    }
+  }, [selectedFolhaId, folhas]);
+
+  const loadData = async () => {
+    const data = await fetchMetadata();
+    if (data && selectedFolhaId) {
+      await loadMonthData(selectedFolhaId, data.folhasData);
+    }
+  };
+
+  // Calculations
+  const totais: TotaisFolha = useMemo(() => {
+    if (!folhaAtual) return { totalGeral: 0, totalCG: 0, totalRec: 0, totalBar: 0, headcount: { total: 0, cg: 0, rec: 0, bar: 0 } };
+    
+    const headcountCG = lancamentos.filter(l => l.unidade === 'cg').length;
+    const headcountRec = lancamentos.filter(l => l.unidade === 'rec').length;
+    const headcountBar = lancamentos.filter(l => l.unidade === 'bar').length;
+
+    // For draft months, prefer live totals from launches (so edits/duplication reflect immediately)
+    const liveTotalCG = lancamentos.filter(l => l.unidade === 'cg').reduce((acc, l) => acc + (l.total || 0), 0);
+    const liveTotalRec = lancamentos.filter(l => l.unidade === 'rec').reduce((acc, l) => acc + (l.total || 0), 0);
+    const liveTotalBar = lancamentos.filter(l => l.unidade === 'bar').reduce((acc, l) => acc + (l.total || 0), 0);
+    const liveTotalGeral = liveTotalCG + liveTotalRec + liveTotalBar;
+    
+    return {
+      totalGeral: folhaAtual.status === 'rascunho' ? liveTotalGeral : (folhaAtual.total_geral || 0),
+      totalCG: folhaAtual.status === 'rascunho' ? liveTotalCG : (folhaAtual.total_cg || 0),
+      totalRec: folhaAtual.status === 'rascunho' ? liveTotalRec : (folhaAtual.total_rec || 0),
+      totalBar: folhaAtual.status === 'rascunho' ? liveTotalBar : (folhaAtual.total_bar || 0),
+      headcount: {
+        total: headcountCG + headcountRec + headcountBar,
+        cg: headcountCG,
+        rec: headcountRec,
+        bar: headcountBar
+      }
+    };
+  }, [folhaAtual, lancamentos]);
+
+  const aggregatedData = useMemo(() => {
+    const currentMap: Record<number, { total: number, nome: string, funcao: string, alert_checked: boolean, id: number }> = {};
+    const prevMap: Record<number, { total: number, nome: string, funcao: string }> = {};
+
+    lancamentos.forEach(l => {
+      if (!currentMap[l.colaborador_id]) {
+        currentMap[l.colaborador_id] = { 
+          id: l.id, 
+          total: 0, 
+          nome: l.colaboradores?.nome || 'N/A', 
+          funcao: l.colaboradores?.funcao || 'N/A',
+          alert_checked: !!l.alert_checked 
+        };
+      }
+      currentMap[l.colaborador_id].total += (l.total || 0);
+      // If any individual launch is not checked, the whole collaborator alert should stay
+      if (!l.alert_checked) currentMap[l.colaborador_id].alert_checked = false;
+    });
+
+    lancamentosAnteriores.forEach(l => {
+      if (!prevMap[l.colaborador_id]) {
+        prevMap[l.colaborador_id] = { 
+          total: 0, 
+          nome: l.colaboradores?.nome || 'N/A', 
+          funcao: l.colaboradores?.funcao || 'N/A' 
+        };
+      }
+      prevMap[l.colaborador_id].total += (l.total || 0);
+    });
+
+    return { currentMap, prevMap };
+  }, [lancamentos, lancamentosAnteriores]);
+
+  const alertas = useMemo(() => {
+    const alerts: Alerta[] = [];
+    if (totais.totalGeral > 0) {
+      const percCG = (totais.totalCG / totais.totalGeral) * 100;
+      if (percCG > 45 || percCG < 35) {
+        alerts.push({
+          severidade: 'warning',
+          titulo: 'Distribuição atípica em Campo Grande',
+          descricao: `Campo Grande representa ${percCG.toFixed(1)}% da folha total (esperado: 38-42%)`,
+        });
+      }
+    }
+
+    const { currentMap, prevMap } = aggregatedData;
+
+    // Variações de colaboradores > 15% (Agregado)
+    Object.keys(currentMap).forEach(idStr => {
+      const colabId = Number(idStr);
+      const curr = currentMap[colabId];
+      const prev = prevMap[colabId];
+
+      if (curr.alert_checked) return;
+
+      if (prev && prev.total > 0) {
+        const varPerc = ((curr.total - prev.total) / prev.total) * 100;
+        if (Math.abs(varPerc) > 15) {
+          alerts.push({
+            id: colabId, // Using colabId as reference for checking
+            severidade: varPerc > 0 ? 'critical' : 'warning',
+            titulo: `Variação alta: ${curr.nome}`,
+            descricao: `Variação de ${varPerc > 0 ? '+' : ''}${varPerc.toFixed(1)}% no total agregado (${formatCurrency(prev.total)} → ${formatCurrency(curr.total)})`,
+          });
+        }
+      } else if (lancamentosAnteriores.length > 0) {
+        // New employee alert
+        alerts.push({
+          id: colabId,
+          severidade: 'info',
+          titulo: `Novo Colaborador: ${curr.nome}`,
+          descricao: `Primeiro lançamento na folha: ${formatCurrency(curr.total)}`,
+        });
+      }
+    });
+
+    return alerts;
+  }, [totais, aggregatedData, lancamentosAnteriores.length]);
+
+  const filteredAlertas = useMemo(() => {
+    if (unidadeFiltro === 'todos') return alertas;
+    
+    return alertas.filter(alerta => {
+      // Find the collaborator in the current month to check their unit
+      const colabId = alerta.id;
+      if (!colabId) return true; // Keep general alerts like "Distribuição atípica"
+      
+      const lancs = lancamentos.filter(l => l.colaborador_id === colabId);
+      // If any of the collaborator's launches match the selected unit
+      return lancs.some(l => l.unidade === unidadeFiltro);
+    });
+  }, [alertas, unidadeFiltro, lancamentos]);
+
+  const comparativoMensal = useMemo(() => {
+    if (!folhaAtual || lancamentosAnteriores.length === 0) return null;
+    
+    const totalAnterior = lancamentosAnteriores.reduce((acc, l) => acc + (l.total || 0), 0);
+    const varTotal = totalAnterior > 0 ? ((totais.totalGeral - totalAnterior) / totalAnterior) * 100 : 0;
+    
+    const { currentMap, prevMap } = aggregatedData;
+    const currentHeadcount = Object.keys(currentMap).length;
+    const prevHeadcount = Object.keys(prevMap).length;
+
+    return {
+      totalAnterior,
+      varTotal,
+      headcountAnterior: prevHeadcount,
+      varHeadcount: prevHeadcount > 0 
+        ? ((currentHeadcount - prevHeadcount) / prevHeadcount) * 100 
+        : 0
+    };
+  }, [folhaAtual, totais, lancamentosAnteriores, aggregatedData]);
+
+  // Ao abrir o Comparativo: carregar insights IA e notas (memória da Ana)
+  useEffect(() => {
+    if (activeTab !== 'comparativo') return;
+    if (!selectedFolhaId) return;
+    if (!comparativoMensal) return; // precisa ter mês anterior
+
+    loadAiInsights(selectedFolhaId);
+
+    // Também carregar a nota geral da Ana para a folha
+    const folha = folhas.find(f => f.id === selectedFolhaId);
+    if (folha) {
+      setAnaNote((folha as any).notas_rh || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, selectedFolhaId, comparativoMensal]);
+
+  // Carregar motivos (Ana) para o mês selecionado (usado tanto no Comparativo quanto nos Alertas)
+  useEffect(() => {
+    if (!selectedFolhaId) return;
+    (async () => {
+      try {
+        const notes = await api.fetchColaboradorVariacaoNotas(selectedFolhaId);
+        setNoteDrafts((prev) => {
+          const next = { ...prev };
+          for (const n of notes) {
+            if (typeof n.colaborador_id === 'number') {
+              next[n.colaborador_id] = n.nota || '';
+            }
+          }
+          return next;
+        });
+      } catch {
+        // silencioso: notas são opcionais
+      }
+    })();
+  }, [selectedFolhaId]);
+
+  const groupedLancamentos = useMemo(() => {
+    let filtered = lancamentos;
+    if (unidadeFiltro !== 'todos') {
+      filtered = lancamentos.filter(l => l.unidade === unidadeFiltro);
+    }
+    
+    return {
+      staff_rateado: filtered.filter(l => l.categoria === 'staff_rateado'),
+      equipe_operacional: filtered.filter(l => l.categoria === 'equipe_operacional'),
+      professores: filtered.filter(l => l.categoria === 'professores'),
+    };
+  }, [lancamentos, unidadeFiltro]);
+
+  const filteredTotalGeral = useMemo(() => {
+    const { staff_rateado, equipe_operacional, professores } = groupedLancamentos;
+    const all = [...staff_rateado, ...equipe_operacional, ...professores];
+    return all.reduce((acc, l) => acc + (l.total || 0), 0);
+  }, [groupedLancamentos]);
+
+  const lancamentosKPIs = useMemo(() => {
+    const { staff_rateado, equipe_operacional, professores } = groupedLancamentos;
+    
+    // Agrupamento do mês anterior para comparação
+    let filteredPrev = lancamentosAnteriores;
+    if (unidadeFiltro !== 'todos') {
+      filteredPrev = lancamentosAnteriores.filter(l => l.unidade === unidadeFiltro);
+    }
+    const prevStaff = filteredPrev.filter(l => l.categoria === 'staff_rateado');
+    const prevOperacional = filteredPrev.filter(l => l.categoria === 'equipe_operacional');
+    const prevProfessores = filteredPrev.filter(l => l.categoria === 'professores');
+
+    const sum = (list: Lancamento[]) => list.reduce((acc, l) => acc + (l.total || 0), 0);
+    const count = (list: Lancamento[]) => new Set(list.map(l => l.colaborador_id)).size;
+
+    const currentTotal = filteredTotalGeral;
+    const prevTotalSum = sum(filteredPrev);
+
+    const calcVar = (curr: number, prev: number) => {
+      if (prev === 0) return null;
+      return ((curr - prev) / prev) * 100;
+    };
+
+    return {
+      hasPrev: lancamentosAnteriores.length > 0,
+      total: {
+        value: currentTotal,
+        count: count([...staff_rateado, ...equipe_operacional, ...professores]),
+        variation: calcVar(currentTotal, prevTotalSum)
+      },
+      staff: {
+        value: sum(staff_rateado),
+        count: count(staff_rateado),
+        percent: currentTotal > 0 ? (sum(staff_rateado) / currentTotal) * 100 : 0,
+        variation: calcVar(sum(staff_rateado), sum(prevStaff))
+      },
+      operacional: {
+        value: sum(equipe_operacional),
+        count: count(equipe_operacional),
+        percent: currentTotal > 0 ? (sum(equipe_operacional) / currentTotal) * 100 : 0,
+        variation: calcVar(sum(equipe_operacional), sum(prevOperacional))
+      },
+      professores: {
+        value: sum(professores),
+        count: count(professores),
+        percent: currentTotal > 0 ? (sum(professores) / currentTotal) * 100 : 0,
+        variation: calcVar(sum(professores), sum(prevProfessores))
+      }
+    };
+  }, [groupedLancamentos, filteredTotalGeral, lancamentosAnteriores, unidadeFiltro]);
+
+  const evolutionData = useMemo(() => {
+    if (folhas.length === 0) return [];
+    
+    // Last 7 months, ordered chronologically
+    return [...folhas]
+      .filter(f => f.status === 'aprovada' || f.id === folhaAtual?.id)
+      .sort((a, b) => a.ano - b.ano || a.mes - b.mes)
+      .slice(-7)
+      .map(f => ({
+        periodo: `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][f.mes - 1]}/${f.ano.toString().slice(-2)}`,
+        total: f.total_geral
+      }));
+  }, [folhas, folhaAtual]);
+
+  const unitData = useMemo(() => [
+    { 
+        id: 'cg',
+        name: 'Campo Grande', 
+        value: totais.totalCG, 
+        color: '#06b6d4', 
+        twColor: 'bg-cyan-500', 
+        twText: 'text-cyan-400',
+        percent: totais.totalGeral ? ((totais.totalCG / totais.totalGeral) * 100).toFixed(1) : '0.0'
+    },
+    { 
+        id: 'rec',
+        name: 'Recreio', 
+        value: totais.totalRec, 
+        color: '#a855f7',
+        twColor: 'bg-purple-500',
+        twText: 'text-purple-400',
+        percent: totais.totalGeral ? ((totais.totalRec / totais.totalGeral) * 100).toFixed(1) : '0.0'
+    },
+    { 
+        id: 'bar',
+        name: 'Barra', 
+        value: totais.totalBar, 
+        color: '#10b981',
+        twColor: 'bg-emerald-500',
+        twText: 'text-emerald-400',
+        percent: totais.totalGeral ? ((totais.totalBar / totais.totalGeral) * 100).toFixed(1) : '0.0'
+    },
+  ], [totais]);
+
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!folhaAtual) return;
+    try {
+      await api.updateFolhaStatus(folhaAtual.id, newStatus);
+      setStatusFolha(newStatus);
+      setFolhaAtual(prev => prev ? ({ ...prev, status: newStatus as any }) : null);
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao atualizar status: ' + err.message, variant: 'danger' });
+    }
+  };
+
+  const handleCheckAlert = async (colaboradorId: number) => {
+    if (!folhaAtual) return;
+    try {
+      await api.markAlertAsChecked(colaboradorId, folhaAtual.id);
+      // Update local state to remove the alert immediately for all launches of this collaborator
+      setLancamentos(prev => prev.map(l => 
+        l.colaborador_id === colaboradorId ? { ...l, alert_checked: true } : l
+      ));
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao confirmar alerta: ' + err.message, variant: 'danger' });
+    }
+  };
+
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'colaboradores', label: 'Colaboradores', icon: Users },
+    { id: 'lancamentos', label: 'Lançamentos', icon: FileText },
+    { id: 'comparativo', label: 'Comparativo', icon: TrendingUp },
+  ];
+
+  const deptLabels: Record<string, string> = {
+    staff_rateado: 'Staff Rateado',
+    equipe_operacional: 'Equipe Operacional',
+    professores: 'Professores',
+  };
+
+  const deptColors: Record<string, string> = {
+    staff_rateado: 'text-violet-400',
+    equipe_operacional: 'text-amber-400',
+    professores: 'text-cyan-400',
+  };
+
+  const unidadeLabels: Record<string, string> = { cg: 'CG', rec: 'REC', bar: 'BAR' };
+  const folhaAnterior = useMemo(() => {
+    if (!selectedFolhaId || folhas.length === 0) return null;
+    const idx = folhas.findIndex(f => f.id === selectedFolhaId);
+    return idx >= 0 && idx < folhas.length - 1 ? folhas[idx + 1] : null;
+  }, [selectedFolhaId, folhas]);
+
+  const handleCreateNextMonth = async () => {
+    if (!folhaAtual) return;
+    const nextMes = folhaAtual.mes === 12 ? 1 : folhaAtual.mes + 1;
+    const nextAno = folhaAtual.mes === 12 ? folhaAtual.ano + 1 : folhaAtual.ano;
+
+    const label = `${getMesNome(nextMes)} ${nextAno}`;
+    
+    setConfirmState({
+      isOpen: true,
+      title: 'Criar Novo Mês',
+      message: `Deseja criar a folha de pagamento para ${label}?`,
+      onConfirm: async () => {
+        try {
+          const created = await api.createFolhaMensal({ ano: nextAno, mes: nextMes });
+          await loadData();
+          setSelectedFolhaId(created.id);
+          setActiveTab('lancamentos');
+        } catch (err: any) {
+          setConfirmState(prev => ({ ...prev, isOpen: false }));
+          setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao criar mês: ' + err.message, variant: 'danger' });
+        }
+      }
+    });
+  };
+
+  const handleDeleteMonth = async () => {
+    if (!folhaAtual) return;
+    
+    setConfirmState({
+      isOpen: true,
+      title: 'Excluir Mês',
+      message: `Deseja excluir permanentemente a folha de ${getMesNome(folhaAtual.mes)} ${folhaAtual.ano} e todos os seus lançamentos? Esta ação não pode ser desfeita.`,
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.deleteFolhaMensal(folhaAtual.id);
+          const updatedFolhas = folhas.filter(f => f.id !== folhaAtual.id);
+          setFolhas(updatedFolhas);
+          if (updatedFolhas.length > 0) {
+            setSelectedFolhaId(updatedFolhas[0].id);
+          } else {
+            setSelectedFolhaId(null);
+          }
+          await loadData();
+          setAlertState({ isOpen: true, title: 'Sucesso', message: 'Mês excluído com sucesso.', variant: 'primary' });
+        } catch (err: any) {
+          setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao excluir mês: ' + err.message, variant: 'danger' });
+        }
+      }
+    });
+  };
+
+  const handleDeleteLancamento = async (l: Lancamento) => {
+    setConfirmState({
+      isOpen: true,
+      title: 'Excluir Lançamento',
+      message: `Deseja remover o lançamento de ${l.colaboradores?.nome} (${unidadeLabels[l.unidade]}) desta folha?`,
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.deleteLancamento(l.id);
+          setLancamentos(prev => prev.filter(x => x.id !== l.id));
+          setAlertState({ isOpen: true, title: 'Sucesso', message: 'Lançamento removido.', variant: 'primary' });
+        } catch (err: any) {
+          setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao excluir lançamento: ' + err.message, variant: 'danger' });
+        }
+      }
+    });
+  };
+
+  const handleDuplicateAction = async () => {
+    if (!folhaAtual) return;
+    if (!duplicateConfig.fromFolhaId) {
+      setAlertState({ isOpen: true, title: 'Atenção', message: 'Selecione o mês de origem.', variant: 'primary' });
+      return;
+    }
+    
+    const fromFolha = folhas.find(f => f.id === Number(duplicateConfig.fromFolhaId));
+    if (!fromFolha) return;
+
+    const fromLabel = `${getMesNome(fromFolha.mes)} ${fromFolha.ano}`;
+    const toLabel = `${getMesNome(folhaAtual.mes)} ${folhaAtual.ano}`;
+    const unitLabel = duplicateConfig.unidade === 'todos' ? 'Consolidado' : unidadeLabels[duplicateConfig.unidade];
+
+    setConfirmState({
+      isOpen: true,
+      title: 'Confirmar Duplicação',
+      message: `Deseja duplicar os lançamentos da unidade ${unitLabel} de ${fromLabel} para ${toLabel}?`,
+      onConfirm: async () => {
+        try {
+          let count = 0;
+          if (duplicateConfig.unidade === 'todos') {
+            const results = await Promise.all([
+              api.duplicateLancamentos({ fromFolhaId: fromFolha.id, toFolhaId: folhaAtual.id, unidade: 'cg' }),
+              api.duplicateLancamentos({ fromFolhaId: fromFolha.id, toFolhaId: folhaAtual.id, unidade: 'rec' }),
+              api.duplicateLancamentos({ fromFolhaId: fromFolha.id, toFolhaId: folhaAtual.id, unidade: 'bar' })
+            ]);
+            count = results.reduce((a, b) => a + b, 0);
+          } else {
+            count = await api.duplicateLancamentos({ 
+              fromFolhaId: fromFolha.id, 
+              toFolhaId: folhaAtual.id, 
+              unidade: duplicateConfig.unidade as any 
+            });
+          }
+          await loadMonthData(folhaAtual.id, folhas);
+          setIsDuplicateModalOpen(false);
+          // Show a custom alert/success instead of native alert if possible, or just let it be for now
+          // We can add a toast later.
+        } catch (err: any) {
+          setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao duplicar: ' + err.message, variant: 'danger' });
+        }
+      }
+    });
+  };
+
+  const openCreateLancamento = () => {
+    if (!folhaAtual) return;
+    if (unidadeFiltro === 'todos') {
+      setAlertState({ isOpen: true, title: 'Atenção', message: 'Para criar lançamentos, selecione uma unidade (não Consolidado).', variant: 'primary' });
+      return;
+    }
+    if (folhaAtual.status !== 'rascunho') {
+      setAlertState({ isOpen: true, title: 'Atenção', message: 'Para criar lançamentos, o mês precisa estar em rascunho.', variant: 'primary' });
+      return;
+    }
+    setDraftLancamento({
+      folha_id: folhaAtual.id,
+      unidade: unidadeFiltro as any,
+      categoria: 'staff_rateado',
+      salario: 0,
+      bonus: 0,
+      comissao: 0,
+      reembolso: 0,
+      passagem: 0,
+      inss: 0,
+      descontos: 0,
+    } as any);
+    setIsCreatingLancamento(true);
+  };
+
+  const handleSaveLancamento = async () => {
+    if (!folhaAtual) return;
+    try {
+      if (isCreatingLancamento) {
+        if (!draftLancamento.colaborador_id) {
+          setAlertState({ isOpen: true, title: 'Atenção', message: 'Selecione um colaborador.', variant: 'primary' });
+          return;
+        }
+        await api.createLancamento(draftLancamento as any);
+      } else if (editingLancamento) {
+        await api.updateLancamento(editingLancamento.id, {
+          salario: editingLancamento.salario,
+          bonus: editingLancamento.bonus,
+          comissao: editingLancamento.comissao,
+          reembolso: editingLancamento.reembolso,
+          passagem: editingLancamento.passagem,
+          inss: editingLancamento.inss,
+          descontos: editingLancamento.descontos,
+        });
+      }
+      setEditingLancamento(null);
+      setIsCreatingLancamento(false);
+      await loadMonthData(folhaAtual.id, folhas);
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao salvar lançamento: ' + err.message, variant: 'danger' });
+    }
+  };
+  const tipoLabels: Record<string, string> = {
+    pj: 'PJ', clt: 'CLT', estagiario: 'Estag.', diarista: 'Diarista', pensao: 'Pensão', mensal_fixo: 'Mensal'
+  };
+
+  return (
+    <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-violet-500/30">
+      {/* Header */}
+      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-full mx-auto px-4 sm:px-8 py-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <img 
+                  src="/logo-LA-colapsed.png" 
+                  alt="LA Logo" 
+                  className="w-10 h-10 object-contain drop-shadow-lg"
+                  onError={(e) => {
+                    // Fallback if image doesn't exist yet
+                    e.currentTarget.style.display = 'none';
+                    if (!e.currentTarget.parentElement?.querySelector('.fallback-logo')) {
+                      e.currentTarget.parentElement!.insertAdjacentHTML('afterbegin', '<div class="fallback-logo w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center font-bold text-lg shadow-lg shadow-violet-500/20">LA</div>');
+                    }
+                  }}
+                />
+                <div>
+                  <h1 className="font-bold text-lg leading-tight">Folha de Pagamento</h1>
+                  <p className="text-xs text-slate-500">LA Music Group</p>
+                </div>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                <Database size={12} className="text-emerald-400" />
+                <span className="text-xs text-emerald-400 font-medium">Supabase</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 sm:gap-6 self-end md:self-auto">
+              <CustomSelect 
+                value={selectedFolhaId?.toString() || ''} 
+                onValueChange={(val) => setSelectedFolhaId(Number(val))}
+                options={folhas.map(f => ({
+                  value: f.id.toString(),
+                  label: `${getMesNome(f.mes)} ${f.ano}`
+                }))}
+              />
+              
+              <div className="flex items-center gap-2">
+                {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
+                {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
+                {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
+              </div>
+              
+              <button onClick={loadData} className="p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400">
+                <RefreshCw size={18} />
+              </button>
+              
+              <button className="relative p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400">
+                <Bell size={18} />
+                {alertas.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-slate-900"></span>
+                )}
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-1 mt-6 overflow-x-auto pb-1 scrollbar-hide">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  activeTab === tab.id 
+                    ? 'bg-violet-500/20 text-violet-400 ring-1 ring-violet-500/30' 
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <tab.icon size={16} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-full mx-auto px-4 sm:px-8 py-8">
+        {loading ? (
+          <LoadingSpinner />
+        ) : error ? (
+          <ErrorState message={error} onRetry={loadData} />
+        ) : (
+          <>
+            {(isCreatingLancamento || editingLancamento) && (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <Card className="w-full max-w-2xl p-0 overflow-hidden">
+                  <div className="flex items-center justify-between px-6 py-4 bg-slate-900/60 border-b border-slate-700/50">
+                    <div>
+                      <div className="text-white font-bold text-lg">
+                        {isCreatingLancamento ? 'Novo Lançamento' : 'Editar Lançamento'}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {folhaAtual ? `${getMesNome(folhaAtual.mes)} ${folhaAtual.ano}` : ''}
+                        {unidadeFiltro !== 'todos' ? ` • Unidade ${unidadeLabels[unidadeFiltro]}` : ''}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setIsCreatingLancamento(false); setEditingLancamento(null); }}
+                      className="text-slate-400 hover:text-white"
+                      aria-label="Fechar"
+                    >
+                      <XCircle size={22} />
+                    </button>
+                  </div>
+
+                  <div className="p-6 space-y-4">
+                    {isCreatingLancamento ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs text-slate-400 mb-1">Colaborador</label>
+                          <CustomSelect
+                            value={draftLancamento.colaborador_id ? String(draftLancamento.colaborador_id) : ''}
+                            onValueChange={(v) => setDraftLancamento(prev => ({ ...prev, colaborador_id: Number(v) } as any))}
+                            placeholder="Selecione..."
+                            options={colaboradores
+                              .filter(c => c.ativo)
+                              .map(c => ({
+                                value: String(c.id),
+                                label: `${c.nome}${c.funcao ? ` — ${c.funcao}` : ''}`,
+                              }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 mb-1">Categoria</label>
+                          <CustomSelect
+                            value={(draftLancamento.categoria as any) ?? 'staff_rateado'}
+                            onValueChange={(v) => setDraftLancamento(prev => ({ ...prev, categoria: v as any }))}
+                            options={[
+                              { value: 'staff_rateado', label: 'Staff Rateado' },
+                              { value: 'equipe_operacional', label: 'Equipe Operacional' },
+                              { value: 'professores', label: 'Professores' },
+                            ]}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {([
+                        ['Salário', 'salario'],
+                        ['Bônus', 'bonus'],
+                        ['Comissão', 'comissao'],
+                        ['Reembolso', 'reembolso'],
+                        ['Passagem', 'passagem'],
+                        ['INSS', 'inss'],
+                        ['Descontos', 'descontos'],
+                      ] as const).map(([label, key]) => (
+                        <div key={key}>
+                          <label className="block text-xs text-slate-400 mb-1">{label}</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="w-full bg-slate-900/40 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500"
+                            value={
+                              isCreatingLancamento
+                                ? (Number((draftLancamento as any)[key] ?? 0))
+                                : (Number((editingLancamento as any)?.[key] ?? 0))
+                            }
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              if (isCreatingLancamento) {
+                                setDraftLancamento(prev => ({ ...prev, [key]: val } as any));
+                              } else if (editingLancamento) {
+                                setEditingLancamento(prev => prev ? ({ ...prev, [key]: val } as any) : prev);
+                              }
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        onClick={() => { setIsCreatingLancamento(false); setEditingLancamento(null); }}
+                        className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleSaveLancamento}
+                        className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold"
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Alerts Section */}
+            {filteredAlertas.length > 0 && (
+              <div className="mb-6">
+                <div 
+                  className={`bg-slate-800/40 border ${alertsExpanded ? 'border-slate-700' : 'border-amber-500/20'} rounded-2xl overflow-hidden transition-all duration-300 shadow-lg`}
+                >
+                  <button 
+                    onClick={() => setAlertsExpanded(!alertsExpanded)}
+                    className={`w-full p-4 flex items-center justify-between transition-colors ${alertsExpanded ? 'bg-slate-800/60' : 'hover:bg-slate-800/60'}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                        <AlertTriangle size={22} />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-bold text-amber-500 text-lg">
+                          {filteredAlertas.length} {filteredAlertas.length === 1 ? 'Alerta Detectado' : 'Alertas Detectados'}
+                        </h4>
+                        <p className="text-xs text-slate-400">
+                          {unidadeFiltro === 'todos' ? 'Revise antes de aprovar a folha' : `Alertas da unidade ${unidadeLabels[unidadeFiltro]}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`p-2 rounded-lg bg-slate-700/30 text-slate-400 transition-transform duration-300 ${alertsExpanded ? 'rotate-180' : ''}`}>
+                      <ChevronDown size={20} />
+                    </div>
+                  </button>
+
+                  <div className={`transition-all duration-500 ease-in-out ${alertsExpanded ? 'max-h-[600px] opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'}`}>
+                    <div className="p-4 pt-2 space-y-px">
+                      {filteredAlertas.map((alerta, idx) => (
+                        <div key={idx} className="flex items-start gap-4 p-4 hover:bg-slate-700/20 transition-colors border-t border-slate-700/30 first:border-t-0 group">
+                          <AlertTriangle className="text-amber-500 shrink-0 mt-1" size={18} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h5 className="text-sm font-bold text-slate-200">{alerta.titulo}</h5>
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 uppercase tracking-tighter">
+                                warning
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-400">{alerta.descricao}</p>
+                            {alerta.id && (noteDrafts[alerta.id] || '').trim() ? (
+                              <p className="mt-2 text-[11px] text-slate-500 italic line-clamp-2">
+                                Motivo (Ana): {(noteDrafts[alerta.id] || '').trim()}
+                              </p>
+                            ) : null}
+                          </div>
+                          {alerta.id && (
+                            <div className="self-center flex items-center gap-2">
+                              <button
+                                onClick={() => openAlertNote(alerta)}
+                                className="px-3 py-1.5 bg-slate-800/60 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                title="Anotar motivo para alimentar a memória da IA"
+                              >
+                                <Edit2 size={14} />
+                                Anotar
+                              </button>
+                              <button 
+                                onClick={() => handleCheckAlert(alerta.id!)}
+                                className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                title="Marcar como verificado"
+                              >
+                                <CheckCircle size={14} />
+                                Verificado
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Alert Note Modal */}
+            <Modal
+              isOpen={alertNoteModal.isOpen}
+              onClose={() => setAlertNoteModal((prev) => ({ ...prev, isOpen: false }))}
+              title="Registrar motivo do alerta"
+              className="max-w-xl"
+            >
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-700/50">
+                  <div className="text-sm font-bold text-slate-200">{alertNoteModal.titulo}</div>
+                  <div className="text-xs text-slate-400 mt-1">{alertNoteModal.descricao}</div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                    Motivo (Ana)
+                  </label>
+                  <textarea
+                    value={alertNoteText}
+                    onChange={(e) => setAlertNoteText(e.target.value)}
+                    placeholder="Ex.: férias (sem VT), bônus pontual, ajuste de carga horária, pico de matrículas..."
+                    className="w-full min-h-[120px] bg-slate-900/40 border border-slate-700/50 rounded-2xl p-4 text-sm text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40 resize-y"
+                    spellCheck="false"
+                    disabled={alertNoteSaving}
+                  />
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+                    <span>Essa anotação alimenta a memória da IA para insights futuros.</span>
+                    {alertNoteSaving ? (
+                      <span className="text-violet-400 font-bold flex items-center gap-1">
+                        <Loader2 size={10} className="animate-spin" /> SALVANDO...
+                      </span>
+                    ) : alertNoteSaved ? (
+                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle size={10} /> SALVO
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setAlertNoteModal((prev) => ({ ...prev, isOpen: false }))}
+                    className="flex-1 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all"
+                    disabled={alertNoteSaving}
+                  >
+                    Fechar
+                  </button>
+                  <button
+                    onClick={() => saveAlertNote({ markChecked: false })}
+                    className="flex-1 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all shadow-lg shadow-violet-600/20"
+                    disabled={alertNoteSaving}
+                    title="Salva o motivo e mantém o alerta visível"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    onClick={() => saveAlertNote({ markChecked: true })}
+                    className="flex-1 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-lg shadow-emerald-600/20"
+                    disabled={alertNoteSaving}
+                    title="Salva o motivo e marca o alerta como verificado"
+                  >
+                    Salvar + Verificar
+                  </button>
+                </div>
+              </div>
+            </Modal>
+
+            {/* Duplication Modal */}
+            <Modal
+              isOpen={isDuplicateModalOpen}
+              onClose={() => setIsDuplicateModalOpen(false)}
+              title="Duplicar Lançamentos"
+              className="max-w-lg"
+            >
+              <div className="space-y-6">
+                <p className="text-sm text-slate-400">
+                  Selecione o mês de origem e a unidade para duplicar os lançamentos para o mês atual ({folhaAtual ? `${getMesNome(folhaAtual.mes)} ${folhaAtual.ano}` : ''}).
+                </p>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Mês de Origem</label>
+                    <CustomSelect
+                      value={duplicateConfig.fromFolhaId}
+                      onValueChange={(v) => setDuplicateConfig(prev => ({ ...prev, fromFolhaId: v }))}
+                      placeholder="Selecione o mês..."
+                      options={folhas
+                        .filter(f => f.id !== selectedFolhaId)
+                        .map(f => ({
+                          value: String(f.id),
+                          label: `${getMesNome(f.mes)} ${f.ano}`,
+                        }))}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Unidade</label>
+                    <CustomSelect
+                      value={duplicateConfig.unidade}
+                      onValueChange={(v) => setDuplicateConfig(prev => ({ ...prev, unidade: v }))}
+                      options={[
+                        { value: 'todos', label: 'Todas as Unidades (Consolidado)' },
+                        { value: 'cg', label: 'Unidade Campo Grande' },
+                        { value: 'rec', label: 'Unidade Recreio' },
+                        { value: 'bar', label: 'Unidade Barra' },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => setIsDuplicateModalOpen(false)}
+                    className="flex-1 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleDuplicateAction}
+                    className="flex-1 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all shadow-lg shadow-violet-600/20"
+                  >
+                    Duplicar Agora
+                  </button>
+                </div>
+              </div>
+            </Modal>
+
+            {/* Generic Confirm Dialog */}
+            <ConfirmDialog
+              isOpen={confirmState.isOpen}
+              onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+              onConfirm={confirmState.onConfirm}
+              title={confirmState.title}
+              message={confirmState.message}
+              variant={confirmState.variant}
+            />
+
+            <AlertDialog
+              isOpen={alertState.isOpen}
+              onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+              title={alertState.title}
+              message={alertState.message}
+              variant={alertState.variant}
+            />
+
+            {/* Dashboard */}
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <KPICard 
+                    icon={DollarSign}
+                    label="Folha Total"
+                    value={formatCurrency(totais.totalGeral)}
+                    variant="violet"
+                    trend={comparativoMensal ? (comparativoMensal.varTotal > 0 ? 'up' : 'down') : undefined}
+                    trendValue={comparativoMensal ? `${comparativoMensal.varTotal.toFixed(1)}%` : undefined}
+                  />
+                  <KPICard 
+                    icon={Users}
+                    label="Lançamentos"
+                    value={totais.headcount.total}
+                    subvalue={`CG: ${totais.headcount.cg} | Rec: ${totais.headcount.rec} | Bar: ${totais.headcount.bar}`}
+                    variant="cyan"
+                    trend={comparativoMensal ? (comparativoMensal.varHeadcount > 0 ? 'up' : 'down') : undefined}
+                    trendValue={comparativoMensal ? `${comparativoMensal.varHeadcount.toFixed(0)}%` : undefined}
+                  />
+                  <KPICard 
+                    icon={Building}
+                    label="Colaboradores"
+                    value={colaboradores.filter(c => c.ativo).length}
+                    subvalue="Ativos no sistema"
+                    variant="emerald"
+                  />
+                  <KPICard 
+                    icon={DollarSign}
+                    label="Média/Lançamento"
+                    value={totais.headcount.total > 0 ? formatCurrency(totais.totalGeral / totais.headcount.total) : 'R$ 0'}
+                    variant="amber"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Distribuição por Unidade */}
+                  <Card className="p-6">
+                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                      <BarChart3 size={20} className="text-white" />
+                      <span className="text-white">Distribuição por Unidade</span>
+                    </h3>
+                    <div className="flex flex-col md:flex-row items-center gap-8">
+                      <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
+                        <DistributionChart data={unitData.map(u => ({ name: u.name, value: u.value, color: u.color }))} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-6 text-center">
+                            <span className="text-white font-bold text-xl leading-tight">
+                              {formatCurrency(totais.totalGeral).replace('R$', '').trim()}
+                            </span>
+                            <span className="text-slate-500 text-[10px] uppercase tracking-widest mt-0.5 font-medium">Total</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 w-full space-y-5">
+                         {unitData.map(unit => (
+                             <div key={unit.id}>
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`w-3 h-3 rounded-full ${unit.twColor}`}></span>
+                                        <span className="text-slate-300 font-medium">{unit.name}</span>
+                                    </div>
+                                    <span className="font-bold text-white">{formatCurrency(unit.value)}</span>
+                                </div>
+                                <div className="w-full bg-slate-700/30 rounded-full h-2.5 mb-1">
+                                    <div className={`h-2.5 rounded-full ${unit.twColor}`} style={{ width: `${unit.percent}%` }}></div>
+                                </div>
+                                <div className="text-right text-xs text-slate-500">{unit.percent}%</div>
+                             </div>
+                         ))}
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Evolução */}
+                  <Card className="p-6 flex flex-col">
+                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                      <LineChartIcon size={20} className="text-white" />
+                      <span className="text-white">Evolução Histórica (Total Geral)</span>
+                    </h3>
+                    <div className="flex-1 min-h-[200px]">
+                      {evolutionData.length > 0 ? (
+                        <EvolutionChart data={evolutionData} />
+                      ) : (
+                        <div className="h-full flex items-center justify-center p-8">
+                          <p className="text-slate-500 text-center text-sm">
+                            Histórico será exibido após cadastrar meses anteriores
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </div>
+                
+                {/* Resumo por Unidade */}
+                <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-4 text-white">Resumo por Unidade</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {unitData.map(unit => (
+                            <Card key={unit.id} className="p-6 relative overflow-hidden group hover:border-slate-600 transition-colors">
+                                <div className={`absolute top-0 right-0 p-24 opacity-5 ${unit.twColor} blur-3xl rounded-full -mr-12 -mt-12 group-hover:opacity-10 transition-opacity`}></div>
+                                <div className="relative z-10">
+                                    <div className="text-slate-400 text-sm font-medium mb-2">{unit.name}</div>
+                                    <div className="text-2xl font-bold text-white mb-1">{formatCurrency(unit.value)}</div>
+                                    <div className="text-xs text-slate-500">{unit.percent}% do total</div>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+              </div>
+            )}
+
+            {/* Collaborators Tab */}
+            {activeTab === 'colaboradores' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <KPICard 
+                    icon={Users} 
+                    label="Total Ativos" 
+                    value={colaboradores.filter(c => c.status === 'active').length} 
+                    variant="violet" 
+                  />
+                  <KPICard 
+                    icon={Building} 
+                    label="Staff Ativo" 
+                    value={colaboradores.filter(c => c.departamento === 'staff_rateado' && c.status === 'active').length} 
+                    variant="violet" 
+                  />
+                  <KPICard 
+                    icon={Music} 
+                    label="Professores Ativos" 
+                    value={colaboradores.filter(c => c.departamento === 'professores' && c.status === 'active').length} 
+                    variant="emerald" 
+                  />
+                  <KPICard 
+                    icon={DollarSign} 
+                    label="Folha Base (Ativos)" 
+                    value={formatCurrency(colaboradores.filter(c => c.status === 'active').reduce((acc, c) => acc + getEffectiveBaseSalary(c), 0))} 
+                    variant="rose" 
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex flex-1 items-center gap-4 w-full">
+                    <div className="relative flex-1 max-w-sm">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                      <input 
+                        type="text" 
+                        placeholder="Buscar por nome, email ou função..." 
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 outline-none transition-all"
+                        value={collabSearch}
+                        onChange={(e) => setCollabSearch(e.target.value)}
+                      />
+                    </div>
+                    <CustomSelect 
+                      value={collabDeptFilter}
+                      onValueChange={setCollabDeptFilter}
+                      options={[
+                        { value: 'all', label: 'Todos os Departamentos' },
+                        ...Object.entries(DEPARTMENT_LABELS).map(([k, v]) => ({ value: k, label: v }))
+                      ]}
+                      className="w-[280px] sm:w-[340px] shrink-0"
+                    />
+                    <CustomSelect 
+                      value={collabStatusFilter}
+                      onValueChange={setCollabStatusFilter}
+                      options={[
+                        { value: 'all', label: 'Todos os Status' },
+                        ...Object.entries(STATUS_LABELS).map(([k, v]) => ({ value: k, label: v }))
+                      ]}
+                      className="max-w-[180px]"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="bg-slate-800 p-1 rounded-xl flex items-center gap-1">
+                      <button 
+                        onClick={() => setViewMode('cards')}
+                        className={cn("p-2 rounded-lg transition-all", viewMode === 'cards' ? "bg-violet-600 text-white shadow-lg" : "text-slate-400 hover:text-white")}
+                      >
+                        <LayoutGrid size={18} />
+                      </button>
+                      <button 
+                        onClick={() => setViewMode('table')}
+                        className={cn("p-2 rounded-lg transition-all", viewMode === 'table' ? "bg-violet-600 text-white shadow-lg" : "text-slate-400 hover:text-white")}
+                      >
+                        <List size={18} />
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => { setEditingCollab(null); setIsCollabModalOpen(true); }}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-violet-600/20"
+                    >
+                      <Plus size={18} />
+                      Novo Colaborador
+                    </button>
+                  </div>
+                </div>
+
+                {viewMode === 'cards' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredColaboradoresWithBase.map(c => (
+                      <CollaboratorCard 
+                        key={c.id} 
+                        collaborator={c} 
+                        onEdit={(collab) => { setEditingCollab({ ...collab, salario_base: getEffectiveBaseSalary(collab) }); setIsCollabModalOpen(true); }}
+                        onToggleInactive={handleToggleInactiveCollab}
+                        onDelete={handleDeleteCollab}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-slate-800/40 rounded-3xl border border-slate-700/50 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-[980px] w-full border-collapse">
+                        <thead className="bg-slate-900/60 border-b border-slate-700/50">
+                          <tr>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Nome</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Departamento</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Função</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Contrato</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Status</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Unidades</th>
+                            <th className="text-right px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Base</th>
+                            <th className="text-center px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredColaboradoresWithBase.map((c, idx) => (
+                            <tr key={c.id} className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors group">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+        <div 
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shadow-lg overflow-hidden" 
+          style={{ backgroundColor: DEPARTMENT_COLORS[c.departamento] }}
+        >
+          {c.id === 2 || c.nome?.includes('Ana Paula') ? (
+            <img src="/Avatar_Ana.png" alt="Ana Paula" className="w-full h-full object-cover" />
+          ) : c.foto_url ? (
+            <img src={c.foto_url} alt={c.nome} className="w-full h-full object-cover" />
+          ) : (
+            c.nome.charAt(0)
+          )}
+        </div>
+                                  <div>
+                                    <div className="font-bold text-sm text-slate-200">{c.nome}</div>
+                                    <div className="text-[10px] text-slate-500">{c.email}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md" style={{ backgroundColor: `${DEPARTMENT_COLORS[c.departamento]}20`, color: DEPARTMENT_COLORS[c.departamento] }}>
+                                  {DEPARTMENT_LABELS[c.departamento]}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">{c.funcao}</td>
+                              <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">{CONTRACT_LABELS[c.tipo]}</td>
+                              <td className="px-6 py-4">
+                                <Badge variant={STATUS_COLORS[c.status]}>{STATUS_LABELS[c.status]}</Badge>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex gap-1">
+                                  {c.is_rateado ? (
+                                    <span className="text-[9px] font-black text-slate-500 bg-slate-700/30 px-2 py-0.5 rounded-full uppercase border border-slate-600/50">RATEADO</span>
+                                  ) : (
+                                    <span className="text-[9px] font-black text-slate-500 bg-slate-700/30 px-2 py-0.5 rounded-full uppercase border border-slate-600/50">{c.unidade_fixa?.toUpperCase()}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-right font-mono font-bold text-slate-200 text-sm">
+                                {formatCurrency(c.salario_base)}
+                              </td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-1 transition-all">
+                      <Tooltip content="Editar">
+                        <button onClick={() => { setEditingCollab({ ...c, salario_base: getEffectiveBaseSalary(c) }); setIsCollabModalOpen(true); }} className="p-2 text-slate-400 hover:text-violet-400 transition-colors">
+                          <Edit2 size={14} />
+                        </button>
+                      </Tooltip>
+                      <Tooltip content={c.status === 'active' ? 'Inativar' : 'Reativar'}>
+                        <button onClick={() => handleToggleInactiveCollab(c)} className="p-2 text-slate-400 hover:text-amber-400 transition-colors">
+                          <UserX size={14} />
+                        </button>
+                      </Tooltip>
+                      <Tooltip content="Excluir">
+                        <button onClick={() => handleDeleteCollab(c)} className="p-2 text-slate-400 hover:text-rose-400 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                <CollaboratorModal 
+                  isOpen={isCollabModalOpen}
+                  onClose={() => { setIsCollabModalOpen(false); setEditingCollab(null); }}
+                  onSave={handleSaveCollab}
+                  initialData={editingCollab || undefined}
+                />
+              </div>
+            )}
+
+            {/* Lancamentos Tab */}
+            {activeTab === 'lancamentos' && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  {/* Filters */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
+                        <Filter size={16} />
+                        <span>Filtrar:</span>
+                    </div>
+                    <div className="bg-slate-800 p-1 rounded-lg inline-flex">
+                        {[
+                            { id: 'todos', label: 'Consolidado' },
+                            { id: 'cg', label: 'Campo Grande' },
+                            { id: 'rec', label: 'Recreio' },
+                            { id: 'bar', label: 'Barra' }
+                        ].map((item) => (
+                             <button
+                                key={item.id}
+                                onClick={() => setUnidadeFiltro(item.id as any)}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                                  unidadeFiltro === item.id
+                                    ? 'bg-violet-600 text-white shadow-sm'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                }`}
+                              >
+                                {item.label}
+                              </button>
+                        ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {/* Option A: Consolidado é read-only */}
+                    <button
+                      onClick={openCreateLancamento}
+                      disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        unidadeFiltro === 'todos' || statusFolha !== 'rascunho'
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                          : 'bg-slate-800 hover:bg-slate-700 text-white'
+                      }`}
+                      title={unidadeFiltro === 'todos' ? 'Selecione uma unidade para criar lançamentos' : 'Novo lançamento'}
+                    >
+                      <Plus size={16} />
+                      Novo Lançamento
+                    </button>
+
+                    <button
+                      onClick={() => setIsDuplicateModalOpen(true)}
+                      disabled={statusFolha !== 'rascunho'}
+                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        statusFolha !== 'rascunho'
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                          : 'bg-slate-800 hover:bg-slate-700 text-white'
+                      }`}
+                      title="Duplicar lançamentos"
+                    >
+                      <Copy size={16} />
+                      Duplicar Mês
+                    </button>
+
+                    <button
+                      onClick={handleCreateNextMonth}
+                      disabled={!folhaAtual}
+                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        !folhaAtual
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                          : 'bg-slate-800 hover:bg-slate-700 text-white'
+                      }`}
+                      title="Criar próximo mês"
+                    >
+                      <Plus size={16} />
+                      Criar Próximo Mês
+                    </button>
+
+                    {statusFolha === 'rascunho' && (
+                      <button
+                        onClick={handleDeleteMonth}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-transparent hover:border-rose-500/30 rounded-lg text-sm font-medium transition-all"
+                        title="Excluir mês atual"
+                      >
+                        <XCircle size={16} />
+                        Excluir Mês
+                      </button>
+                    )}
+
+                    {statusFolha === 'rascunho' && (
+                      <button 
+                        onClick={() => handleUpdateStatus('pendente')}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-violet-600/20"
+                      >
+                        <CheckCircle size={16} />
+                        Submeter
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* KPI Cards for Lancamentos */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <KPICard 
+                    icon={DollarSign}
+                    label={`Folha ${unidadeFiltro === 'todos' ? 'Consolidada' : unidadeLabels[unidadeFiltro]}`}
+                    value={formatCurrency(lancamentosKPIs.total.value)}
+                    subvalue={`${lancamentosKPIs.total.count} Colaboradores`}
+                    variant="violet"
+                    trend={lancamentosKPIs.total.variation !== null ? (lancamentosKPIs.total.variation > 0 ? 'up' : 'down') : undefined}
+                    trendValue={lancamentosKPIs.total.variation !== null ? `${Math.abs(lancamentosKPIs.total.variation).toFixed(1)}%` : undefined}
+                  />
+                  <KPICard 
+                    icon={Users}
+                    label="Staff Rateado"
+                    value={formatCurrency(lancamentosKPIs.staff.value)}
+                    subvalue={`${lancamentosKPIs.staff.count} pessoas | ${lancamentosKPIs.staff.percent.toFixed(1)}%`}
+                    variant="emerald"
+                    trend={lancamentosKPIs.staff.variation !== null ? (lancamentosKPIs.staff.variation > 0 ? 'up' : 'down') : undefined}
+                    trendValue={lancamentosKPIs.staff.variation !== null ? `${Math.abs(lancamentosKPIs.staff.variation).toFixed(1)}%` : undefined}
+                  />
+                  <KPICard 
+                    icon={Building}
+                    label="Equipe Operacional"
+                    value={formatCurrency(lancamentosKPIs.operacional.value)}
+                    subvalue={`${lancamentosKPIs.operacional.count} pessoas | ${lancamentosKPIs.operacional.percent.toFixed(1)}%`}
+                    variant="amber"
+                    trend={lancamentosKPIs.operacional.variation !== null ? (lancamentosKPIs.operacional.variation > 0 ? 'up' : 'down') : undefined}
+                    trendValue={lancamentosKPIs.operacional.variation !== null ? `${Math.abs(lancamentosKPIs.operacional.variation).toFixed(1)}%` : undefined}
+                  />
+                  <KPICard 
+                    icon={Users}
+                    label="Professores"
+                    value={formatCurrency(lancamentosKPIs.professores.value)}
+                    subvalue={`${lancamentosKPIs.professores.count} pessoas | ${lancamentosKPIs.professores.percent.toFixed(1)}%`}
+                    variant="cyan"
+                    trend={lancamentosKPIs.professores.variation !== null ? (lancamentosKPIs.professores.variation > 0 ? 'up' : 'down') : undefined}
+                    trendValue={lancamentosKPIs.professores.variation !== null ? `${Math.abs(lancamentosKPIs.professores.variation).toFixed(1)}%` : undefined}
+                  />
+                </div>
+                
+                <Card className="overflow-hidden border-0 bg-slate-800/40">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-700/50 text-xs text-slate-400 font-medium">
+                          <th className="py-4 px-4 text-left">Colaborador</th>
+                          <th className="py-4 px-2 text-center">Unid.</th>
+                          <th className="py-4 px-2 text-center">Tipo</th>
+                          <th className="py-4 px-2 text-right">Salário</th>
+                          <th className="py-4 px-2 text-right">Bônus</th>
+                          <th className="py-4 px-2 text-right">Comissão</th>
+                          <th className="py-4 px-2 text-right">Reembolso</th>
+                          <th className="py-4 px-2 text-right">Passagem</th>
+                          <th className="py-4 px-2 text-right">INSS</th>
+                          <th className="py-4 px-2 text-right">Descontos</th>
+                          <th className="py-4 px-4 text-right text-white font-bold">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(groupedLancamentos).map(([dept, rawLancs]) => {
+                          const lancs = rawLancs as Lancamento[];
+                          if (lancs.length === 0) return null;
+                          
+                          const sumSalario = lancs.reduce((acc, l) => acc + (l.salario || 0), 0);
+                          const sumBonus = lancs.reduce((acc, l) => acc + (l.bonus || 0), 0);
+                          const sumComissao = lancs.reduce((acc, l) => acc + (l.comissao || 0), 0);
+                          const sumReembolso = lancs.reduce((acc, l) => acc + (l.reembolso || 0), 0);
+                          const sumPassagem = lancs.reduce((acc, l) => acc + (l.passagem || 0), 0);
+                          const sumInss = lancs.reduce((acc, l) => acc + (l.inss || 0), 0);
+                          const sumDescontos = lancs.reduce((acc, l) => acc + (l.descontos || 0), 0);
+                          const subtotal = lancs.reduce((acc, l) => acc + (l.total || 0), 0);
+                          
+                          return (
+                            <React.Fragment key={dept}>
+                              <tr 
+                                className="bg-slate-900/50 cursor-pointer hover:bg-slate-800 transition-colors"
+                                onClick={() => setExpandedDept(prev => ({ ...prev, [dept]: !prev[dept] }))}
+                              >
+                                <td colSpan={11} className="py-3 px-4">
+                                  <div className="flex items-center gap-2">
+                                    {expandedDept[dept] ? <ChevronDown size={14} className="text-slate-500" /> : <ChevronUp size={14} className="text-slate-500" />}
+                                    <span className={`font-bold text-xs uppercase tracking-widest ${deptColors[dept]}`}>
+                                      {deptLabels[dept]} ({lancs.length})
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 text-right hidden">
+                                  {/* Hidden because colspan takes over, maybe redesign if total needs to be shown */}
+                                </td>
+                              </tr>
+                              {/* Add a separate row for subtotal if needed or keep it minimal. The design shows dept header row. */}
+                              
+                              {expandedDept[dept] && lancs.map(l => {
+                                const colab = l.colaboradores || {} as Colaborador;
+                                return (
+                                  <tr key={l.id} className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors group">
+                                    <td className="py-3 px-4">
+                                      <div className="flex items-center justify-between group/colab">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 overflow-hidden">
+                                            {colab.id === 2 || colab.nome?.includes('Ana Paula') ? (
+                                              <img src="/Avatar_Ana.png" alt="Ana Paula" className="w-full h-full object-cover" />
+                                            ) : colab.foto_url ? (
+                                              <img src={colab.foto_url} alt={colab.nome} className="w-full h-full object-cover" />
+                                            ) : (
+                                              (colab.nome || '?').charAt(0)
+                                            )}
+                                          </div>
+                                          <div>
+                                            <div className="font-medium text-sm text-slate-200">{colab.nome || 'N/A'}</div>
+                                            <div className="text-[10px] text-slate-500 uppercase">{colab.funcao || ''}</div>
+                                          </div>
+                                        </div>
+                                        
+                                        {statusFolha === 'rascunho' && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteLancamento(l);
+                                            }}
+                                            className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all mr-2"
+                                            title="Excluir lançamento"
+                                          >
+                                            <Trash2 size={14} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-3 px-2 text-center">
+                                      <span className="bg-slate-700 text-slate-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-slate-600">
+                                        {unidadeLabels[l.unidade] || l.unidade}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-2 text-center">
+                                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                                            colab.tipo === 'clt' 
+                                                ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' 
+                                                : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
+                                        }`}>
+                                            {tipoLabels[colab.tipo] || colab.tipo?.slice(0,3)}
+                                        </span>
+                                    </td>
+                                    <td className="py-3 px-1">
+                                      <CellInput 
+                                        value={l.salario} 
+                                        disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                                        onSave={(val) => saveLancamentoPatch(l, { salario: val })} 
+                                      />
+                                    </td>
+                                    <td className="py-3 px-1">
+                                      <CellInput 
+                                        value={l.bonus} 
+                                        disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                                        onSave={(val) => saveLancamentoPatch(l, { bonus: val })} 
+                                      />
+                                    </td>
+                                    <td className="py-3 px-1">
+                                      <CellInput 
+                                        value={l.comissao} 
+                                        disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                                        onSave={(val) => saveLancamentoPatch(l, { comissao: val })} 
+                                      />
+                                    </td>
+                                    <td className="py-3 px-1">
+                                      <CellInput 
+                                        value={l.reembolso} 
+                                        disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                                        onSave={(val) => saveLancamentoPatch(l, { reembolso: val })} 
+                                      />
+                                    </td>
+                                    <td className="py-3 px-1">
+                                      <CellInput 
+                                        value={l.passagem} 
+                                        disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                                        onSave={(val) => saveLancamentoPatch(l, { passagem: val })} 
+                                      />
+                                    </td>
+                                    <td className="py-3 px-1 text-rose-400/80">
+                                      <CellInput 
+                                        value={l.inss} 
+                                        disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                                        onSave={(val) => saveLancamentoPatch(l, { inss: val })} 
+                                      />
+                                    </td>
+                                    <td className="py-3 px-1 text-rose-400/80">
+                                      <CellInput 
+                                        value={l.descontos} 
+                                        disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                                        onSave={(val) => saveLancamentoPatch(l, { descontos: val })} 
+                                      />
+                                    </td>
+                                    <td className="py-3 px-4 text-right">
+                                      <div className="flex flex-col items-end">
+                                        <span className="font-mono font-bold text-sm text-white">{formatCurrency(l.total)}</span>
+                                        {(() => {
+                                          const { prevMap } = aggregatedData;
+                                          const prev = prevMap[l.colaborador_id];
+                                          if (prev && prev.total > 0) {
+                                            const currColabTotal = aggregatedData.currentMap[l.colaborador_id]?.total || 0;
+                                            const perc = ((currColabTotal - prev.total) / prev.total) * 100;
+                                            if (Math.abs(perc) > 0.1) {
+                                              return (
+                                                <span className={`text-[10px] font-bold ${perc > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                                  {perc > 0 ? '+' : ''}{perc.toFixed(1)}%
+                                                </span>
+                                              );
+                                            }
+                                          }
+                                          return null;
+                                        })()}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                               <tr className="bg-slate-800/30 border-t border-slate-700/50">
+                                   <td colSpan={3} className="py-3 px-4">
+                                     <div className="flex items-center justify-between">
+                                       <div className="flex flex-col gap-0.5">
+                                         <span className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">
+                                           Resumo da Categoria
+                                         </span>
+                                         <span className={`text-[10px] font-bold uppercase tracking-widest ${deptColors[dept]}`}>
+                                           {deptLabels[dept]}
+                                         </span>
+                                       </div>
+                                       <div className="flex flex-col items-end gap-0.5 pr-6">
+                                         <span className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">
+                                           Representatividade {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]}
+                                         </span>
+                                         <span className="text-[11px] font-bold text-slate-400">
+                                           {filteredTotalGeral > 0 ? ((subtotal / filteredTotalGeral) * 100).toFixed(2) : '0.00'}%
+                                         </span>
+                                       </div>
+                                     </div>
+                                   </td>
+                                   <td className="py-3 px-1 text-right">
+                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumSalario)}</span>
+                                   </td>
+                                   <td className="py-3 px-1 text-right">
+                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumBonus)}</span>
+                                   </td>
+                                   <td className="py-3 px-1 text-right">
+                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumComissao)}</span>
+                                   </td>
+                                   <td className="py-3 px-1 text-right">
+                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumReembolso)}</span>
+                                   </td>
+                                   <td className="py-3 px-1 text-right">
+                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumPassagem)}</span>
+                                   </td>
+                                   <td className="py-3 px-1 text-right text-rose-400/80">
+                                     <span className="text-xs font-mono font-bold">{formatCurrency(sumInss)}</span>
+                                   </td>
+                                   <td className="py-3 px-1 text-right text-rose-400/80">
+                                     <span className="text-xs font-mono font-bold">{formatCurrency(sumDescontos)}</span>
+                                   </td>
+                                   <td className={`py-3 px-4 text-right font-mono font-bold text-sm ${deptColors[dept]}`}>
+                                     <div className="flex flex-col items-end">
+                                       <span className="text-[9px] text-slate-500 uppercase font-medium mb-0.5">Subtotal {deptLabels[dept]}</span>
+                                       {formatCurrency(subtotal)}
+                                     </div>
+                                   </td>
+                               </tr>
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+                
+                <div className="flex justify-end">
+                    <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 inline-flex flex-col items-end gap-1 min-w-[200px]">
+                        <span className="text-xs text-slate-500 uppercase tracking-wider">
+                          Total {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]}
+                        </span>
+                        <span className="text-2xl font-bold text-white">{formatCurrency(filteredTotalGeral)}</span>
+                    </div>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'comparativo' && (
+              <div className="space-y-6">
+                {!comparativoMensal ? (
+                  <Card className="p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-slate-700 bg-transparent">
+                    <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-500">
+                        <BarChart3 size={32} />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Dados insuficientes</h3>
+                    <p className="text-slate-400 max-w-md">
+                        O comparativo histórico será ativado assim que houver mais de um mês de folha processado no sistema.
+                    </p>
+                  </Card>
+                ) : (
+                  <div className="space-y-6">
+                    {/* IA & Sugestão da Ana */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <Card className="lg:col-span-2 overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-slate-700 flex items-start justify-between gap-4 bg-slate-800/20">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Sparkles size={16} className="text-cyan-400" />
+                              <h3 className="text-lg font-semibold text-white">Insights de IA</h3>
+                            </div>
+                            <p className="text-xs text-slate-400">
+                              Análise automática de sazonalidade e padrões de variação.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => selectedFolhaId && loadAiInsights(selectedFolhaId)}
+                            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold shrink-0 transition-colors border border-slate-700"
+                            disabled={aiInsightsLoading || !selectedFolhaId}
+                          >
+                            {aiInsightsLoading ? 'Analisando...' : 'Atualizar'}
+                          </button>
+                        </div>
+                        <div className="p-6 flex-1">
+                          {aiInsightsError ? (
+                            <div className="text-sm text-rose-300 bg-rose-500/10 p-4 rounded-2xl border border-rose-500/20 flex items-center gap-3">
+                              <AlertTriangle size={18} />
+                              {aiInsightsError}
+                            </div>
+                          ) : aiInsightsLoading && !aiInsights ? (
+                            <div className="flex flex-col items-center justify-center h-48 text-slate-400 gap-4">
+                              <div className="relative">
+                                <Loader2 className="animate-spin text-cyan-400" size={32} />
+                                <Sparkles className="absolute -top-1 -right-1 text-amber-400 animate-pulse" size={12} />
+                              </div>
+                              <div className="text-center">
+                                <span className="text-sm font-bold text-slate-200 block">Analisando Padrões...</span>
+                                <span className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Cruzando dados de sazonalidade e memória organizacional</span>
+                              </div>
+                            </div>
+                          ) : aiInsights ? (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                              {/* --- Section 1: Executive Summary --- */}
+                              <section>
+                                <div className="flex items-center gap-2 mb-4">
+                                  <div className="w-1.5 h-4 bg-cyan-500 rounded-full"></div>
+                                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Resumo Executivo</h4>
+                                </div>
+                                <div className="bg-slate-900/40 border border-slate-700/30 rounded-3xl p-6 relative overflow-hidden group">
+                                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-violet-500"></div>
+                                  <p className="text-slate-200 leading-relaxed text-sm md:text-base font-medium italic">
+                                    {aiInsights.summary}
+                                  </p>
+                                </div>
+                              </section>
+
+                              {/* --- Section 2: Detailed Highlights --- */}
+                              {aiInsights?.response_json?.insights_detalhados?.length ? (
+                                <section>
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-1.5 h-4 bg-violet-500 rounded-full"></div>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Ocorrências e Padrões</h4>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {aiInsights.response_json.insights_detalhados.map((ins: any, idx: number) => {
+                                      const tipo = (ins.tipo || 'remuneracao').toLowerCase();
+                                      const iconMap: Record<string, any> = {
+                                        turnover: { icon: UserX, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+                                        comercial: { icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+                                        sazonalidade: { icon: Clock, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
+                                        remuneracao: { icon: Coins, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
+                                        default: { icon: Lightbulb, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' }
+                                      };
+                                      const config = iconMap[tipo] || iconMap.default;
+                                      const Icon = config.icon;
+
+                                      return (
+                                        <div key={idx} className={`group p-5 rounded-2xl bg-slate-800/20 border ${config.border} hover:bg-slate-800/40 transition-all duration-300`}>
+                                          <div className="flex items-start gap-4">
+                                            <div className={`p-2.5 rounded-xl ${config.bg} ${config.color} shadow-inner`}>
+                                              <Icon size={18} />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                <h5 className="text-sm font-bold text-white tracking-tight">{ins.titulo}</h5>
+                                                {ins.impacto_financeiro && (
+                                                  <span className={`text-[10px] font-mono font-bold ${ins.impacto_financeiro > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                                    {ins.impacto_financeiro > 0 ? '+' : ''}{formatCurrency(ins.impacto_financeiro)}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300">
+                                                {ins.descricao}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </section>
+                              ) : null}
+
+                              {/* --- Section 3: Action Recommendations --- */}
+                              {aiInsights?.response_json?.recomendacoes?.length ? (
+                                <section>
+                                  <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Sugestões de Ajuste</h4>
+                                  </div>
+                                  <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 space-y-3">
+                                    {aiInsights.response_json.recomendacoes.map((rec: string, idx: number) => (
+                                      <div key={idx} className="flex items-start gap-3">
+                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></div>
+                                        <p className="text-xs text-slate-300 leading-snug">{rec}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </section>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-48 text-slate-500 border-2 border-dashed border-slate-800 rounded-2xl gap-4">
+                              <div className="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center">
+                                <Sparkles size={24} className="text-slate-700" />
+                              </div>
+                              <div className="text-center">
+                                <span className="text-sm font-medium">Insights não gerados</span>
+                                <p className="text-[10px] text-slate-600 mt-1 max-w-[200px]">Clique em atualizar para processar as variações deste mês.</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+
+                      <Card className="overflow-hidden flex flex-col border-violet-500/20 shadow-violet-500/5">
+                        <div className="p-6 border-b border-slate-700 bg-violet-500/5 flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-violet-500/10 p-0.5 border border-violet-500/20 overflow-hidden shrink-0 shadow-lg">
+                            <img 
+                              src="/Avatar_Ana.png" 
+                              onError={(e) => { (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=Ana&background=8b5cf6&color=fff'; }}
+                              alt="Ana RH" 
+                              className="w-full h-full object-cover rounded-xl"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-lg font-semibold text-white">Sugestão da Ana</h3>
+                            <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wider">RH & Gestão de Pessoas</p>
+                          </div>
+                        </div>
+                        <div className="p-6 flex-1 flex flex-col gap-4">
+                          <div className="flex-1 relative">
+                            <textarea
+                              value={anaNote}
+                              onChange={(e) => setAnaNote(e.target.value)}
+                              onBlur={handleSaveAnaNote}
+                              placeholder="Ana, registre aqui suas percepções sobre este fechamento..."
+                              className="w-full h-full min-h-[160px] bg-slate-900/40 border border-slate-700/50 rounded-2xl p-4 text-sm text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40 transition-all resize-none placeholder:text-slate-600"
+                              disabled={anaNoteSaving}
+                              spellCheck="false"
+                            />
+              {anaNoteSaving && (
+                <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-violet-400 font-bold bg-slate-900 px-2 py-1 rounded-lg">
+                  <Loader2 size={10} className="animate-spin" />
+                  SALVANDO...
+                </div>
+              )}
+              {anaNoteSaved && (
+                <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-emerald-400 font-bold bg-slate-900 px-2 py-1 rounded-lg">
+                  <CheckCircle size={10} />
+                  SALVO NA NUVEM
+                </div>
+              )}
+                          </div>
+                          <p className="text-[10px] text-slate-500 text-center">
+                            Suas notas ajudam a treinar a IA para reconhecer padrões futuros.
+                          </p>
+                        </div>
+                      </Card>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card className="p-6">
+                        <h3 className="text-lg font-semibold mb-4 text-white">Resumo da Variação</h3>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400">Total Mês Anterior</span>
+                            <span className="font-mono text-white">{formatCurrency(comparativoMensal.totalAnterior)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400">Total Mês Atual</span>
+                            <span className="font-mono text-white">{formatCurrency(totais.totalGeral)}</span>
+                          </div>
+                          <div className="pt-4 border-t border-slate-700 flex justify-between items-center">
+                            <span className="font-semibold text-white">Diferença</span>
+                            <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varTotal > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              {comparativoMensal.varTotal > 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+                              {formatCurrency(totais.totalGeral - comparativoMensal.totalAnterior)} 
+                              ({comparativoMensal.varTotal > 0 ? '+' : ''}{comparativoMensal.varTotal.toFixed(1)}%)
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+
+                      <Card className="p-6">
+                        <h3 className="text-lg font-semibold mb-4 text-white">Variação de Headcount</h3>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400">Lançamentos Mês Anterior</span>
+                            <span className="font-mono text-white">{comparativoMensal.headcountAnterior}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400">Lançamentos Mês Atual</span>
+                            <span className="font-mono text-white">{totais.headcount.total}</span>
+                          </div>
+                          <div className="pt-4 border-t border-slate-700 flex justify-between items-center">
+                            <span className="font-semibold text-white">Variação</span>
+                            <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varHeadcount > 0 ? 'text-cyan-400' : 'text-slate-400'}`}>
+                              {comparativoMensal.varHeadcount > 0 ? <Users size={18} /> : <Users size={18} />}
+                              {totais.headcount.total - comparativoMensal.headcountAnterior} 
+                              ({comparativoMensal.varHeadcount > 0 ? '+' : ''}{comparativoMensal.varHeadcount.toFixed(0)}%)
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+
+                    <Card className="overflow-hidden">
+                      <div className="p-6 border-b border-slate-700">
+                        <h3 className="text-lg font-semibold text-white">Maiores Variações por Colaborador</h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-wider">
+                              <th className="py-4 px-6">Colaborador</th>
+                              <th className="py-4 px-2 text-right">Mês Anterior</th>
+                              <th className="py-4 px-2 text-right">Mês Atual</th>
+                              <th className="py-4 px-6">Motivo (Ana)</th>
+                              <th className="py-4 px-6 text-right">Variação</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const { currentMap, prevMap } = aggregatedData;
+                              const allColabIds = Array.from(new Set([
+                                ...Object.keys(currentMap).map(Number),
+                                ...Object.keys(prevMap).map(Number)
+                              ]));
+
+                              return allColabIds
+                                .map(id => {
+                                  const curr = currentMap[id];
+                                  const prev = prevMap[id];
+                                  const totalCurr = curr?.total || 0;
+                                  const totalPrev = prev?.total || 0;
+                                  const diff = totalCurr - totalPrev;
+                                  const perc = totalPrev > 0 ? (diff / totalPrev) * 100 : 0;
+                                  
+                                  return { 
+                                    id, 
+                                    nome: curr?.nome || prev?.nome, 
+                                    funcao: curr?.funcao || prev?.funcao, 
+                                    totalCurr, 
+                                    totalPrev, 
+                                    diff, 
+                                    perc,
+                                    status: !prev ? 'NOVO' : !curr ? 'SAIU' : null
+                                  };
+                                })
+                                .filter(item => Math.abs(item.perc) > 0.1 || item.status)
+                                .sort((a, b) => {
+                                  if (a.status && !b.status) return -1;
+                                  if (!a.status && b.status) return 1;
+                                  return Math.abs(b.perc) - Math.abs(a.perc);
+                                })
+                                .map(({ id, nome, funcao, totalCurr, totalPrev, diff, perc, status }) => (
+                                  <tr key={id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
+                                    <td className="py-4 px-6">
+                                      <div className="flex items-center gap-3">
+                                        <div>
+                                          <div className="font-medium text-slate-200">{nome}</div>
+                                          <div className="text-xs text-slate-500">{funcao}</div>
+                                        </div>
+                                        {status && (
+                                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                            status === 'NOVO' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+                                          }`}>
+                                            {status}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-4 px-2 text-right font-mono text-sm text-slate-400">
+                                      {totalPrev > 0 ? formatCurrency(totalPrev) : '-'}
+                                    </td>
+                                    <td className="py-4 px-2 text-right font-mono text-sm text-slate-200">
+                                      {totalCurr > 0 ? formatCurrency(totalCurr) : '-'}
+                                    </td>
+                                    <td className="py-4 px-6">
+                                      <div className="relative">
+                                        <textarea
+                                          value={noteDrafts[id] ?? ''}
+                                          onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
+                                          onBlur={() => handleSaveNote(id)}
+                                          placeholder="Ex.: férias (sem VT), bônus pontual, pico de matrículas..."
+                                          className="w-full min-w-[280px] h-[52px] resize-none bg-slate-900/40 border border-slate-700/50 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                                          disabled={noteSaving[id]}
+                                          spellCheck="false"
+                                        />
+                                        {noteSaving[id] && (
+                                          <div className="absolute right-3 top-3 text-[10px] text-violet-400 font-bold flex items-center gap-1">
+                                            <Loader2 size={10} className="animate-spin" />
+                                            SALVANDO...
+                                          </div>
+                                        )}
+                                        {noteSaved[id] && (
+                                          <div className="absolute right-3 top-3 text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                                            <CheckCircle size={10} />
+                                            SALVO
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className={`py-4 px-6 text-right font-bold ${
+                                      status === 'SAIU' ? 'text-rose-400' :
+                                      status === 'NOVO' ? 'text-emerald-400' :
+                                      perc > 15 ? 'text-rose-400' : 
+                                      perc < -15 ? 'text-emerald-400' : 
+                                      perc > 0 ? 'text-amber-400' : 'text-slate-400'
+                                    }`}>
+                                      <div className="flex items-center justify-end gap-1">
+                                        {!status && (perc > 0 ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                                        {status ? (status === 'NOVO' ? '+100%' : '-100%') : `${perc.toFixed(1)}%`}
+                                      </div>
+                                      <div className="text-[10px] opacity-70">{formatCurrency(diff)}</div>
+                                    </td>
+                                  </tr>
+                                ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </Card>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Action Bar Footer (if pending) */}
+            {statusFolha === 'pendente' && (
+              <div className="fixed bottom-6 left-0 right-0 px-4 z-40 pointer-events-none">
+                <div className="max-w-3xl mx-auto pointer-events-auto">
+                    <div className="bg-slate-800/90 backdrop-blur-md border border-amber-500/30 shadow-2xl shadow-black/50 p-4 rounded-2xl flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-500/20 rounded-lg text-amber-400">
+                                <Clock size={20} />
+                            </div>
+                            <div>
+                                <div className="font-bold text-white text-sm">Aprovação Necessária</div>
+                                <div className="text-xs text-slate-400">Esta folha está pendente de revisão.</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => handleUpdateStatus('rascunho')}
+                                className="p-2 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors"
+                                title="Rejeitar"
+                            >
+                                <XCircle size={20} />
+                            </button>
+                            <button 
+                                onClick={() => handleUpdateStatus('aprovada')}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm font-bold transition-colors shadow-lg shadow-emerald-500/20"
+                            >
+                                <CheckCircle size={16} />
+                                Aprovar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+      
+      <footer className="border-t border-slate-800 mt-auto py-8 bg-slate-900">
+        <div className="max-w-full mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+            <div>&copy; 2024 LA Music Group. Todos os direitos reservados.</div>
+            <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                Sistema v1.2.0
+            </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+export default App;
