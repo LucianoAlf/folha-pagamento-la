@@ -6,10 +6,10 @@ import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, A
 import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
-  Calendar, RefreshCw, Bell, BarChart3, FileText, 
-  TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database,
+  Calendar, Bell, BarChart3, FileText, 
+  TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, ChevronRight, Database,
   LineChart as LineChartIcon,
-  Copy, Plus, Search, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Settings
+  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Settings
 } from 'lucide-react';
 import { 
   CollaboratorCard, 
@@ -514,9 +514,21 @@ function App() {
       setUserId(session?.user?.id ?? null);
     });
 
+    // Supabase Realtime: Intelligent auto-refresh
+    const channel = supabase
+      .channel('db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lancamentos_folha' }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'folhas_mensais' }, () => {
+        loadData();
+      })
+      .subscribe();
+
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -1284,24 +1296,26 @@ function App() {
               <Popover.Root>
                 <Popover.Trigger asChild>
                   <button
-                    className="relative w-10 h-10 rounded-2xl border border-slate-700/60 bg-slate-800/40 hover:bg-slate-800/60 transition-colors overflow-hidden"
+                    className="relative w-10 h-10 rounded-full border-2 border-slate-700/50 hover:border-violet-500/50 transition-all flex-shrink-0 group focus:outline-none focus:ring-2 focus:ring-violet-500/40"
                     title="Perfil"
                     aria-label="Perfil"
                   >
-                    <img
-                      src={
-                        userProfile?.avatar_url ||
-                        getDefaultAvatarByEmail(userEmail) ||
-                        '/logo-LA-colapsed.png'
-                      }
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
-                      }}
-                    />
+                    <div className="w-full h-full rounded-full overflow-hidden">
+                      <img
+                        src={
+                          userProfile?.avatar_url ||
+                          getDefaultAvatarByEmail(userEmail) ||
+                          '/logo-LA-colapsed.png'
+                        }
+                        alt="Avatar"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
+                        }}
+                      />
+                    </div>
                     {alertas.length > 0 && (
-                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-500 rounded-full ring-2 ring-slate-900" />
+                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-500 border-2 border-slate-950 rounded-full animate-pulse shadow-sm shadow-black/50" />
                     )}
                   </button>
                 </Popover.Trigger>
@@ -1309,10 +1323,10 @@ function App() {
                   <Popover.Content
                     sideOffset={10}
                     align="end"
-                    className="z-[9999] w-[320px] rounded-3xl border border-slate-700/60 bg-slate-950/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden"
+                    className="z-[9999] w-[320px] rounded-[2rem] border border-slate-800 bg-slate-950/95 backdrop-blur-xl shadow-2xl shadow-black/60 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
                   >
-                    <div className="p-4 border-b border-slate-800/70 flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl overflow-hidden border border-slate-700/60 bg-slate-900/40 shrink-0">
+                    <div className="p-5 border-b border-slate-800/70 flex items-center gap-4 bg-slate-900/30">
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-700/60 shadow-inner shrink-0">
                         <img
                           src={
                             userProfile?.avatar_url ||
@@ -1324,42 +1338,39 @@ function App() {
                         />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-black text-white truncate">
+                        <div className="text-base font-black text-white truncate leading-tight">
                           {userProfile?.nome ||
                             (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : 'Usuário')}
                         </div>
-                        <div className="text-[11px] text-slate-400 truncate">{userEmail}</div>
-                        <div className="mt-1 text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-                          {isAna(userEmail) ? 'RH' : isLuciano(userEmail) ? 'Admin' : 'User'}
-                        </div>
+                        <div className="text-xs text-slate-400 truncate mb-1">{userEmail}</div>
+                        <Badge variant={isAna(userEmail) ? 'warning' : 'success'} className="text-[9px] py-0 px-2 uppercase tracking-tighter">
+                          {isAna(userEmail) ? 'RH MusiClass' : isLuciano(userEmail) ? 'Administrador' : 'Usuário'}
+                        </Badge>
                       </div>
                     </div>
 
-                    <div className="p-3 space-y-2">
+                    <div className="p-3 space-y-1">
                       <button
                         onClick={openProfile}
-                        className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-slate-900/40 hover:bg-slate-900/60 border border-slate-800 text-slate-200 transition-colors"
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl hover:bg-slate-800/80 text-slate-300 hover:text-white transition-all group"
                       >
                         <div className="flex items-center gap-3">
-                          <Settings size={16} className="text-slate-400" />
-                          <span className="text-sm font-bold">Editar perfil</span>
+                          <Settings size={18} className="text-slate-500 group-hover:text-violet-400 transition-colors" />
+                          <span className="text-sm font-bold">Meu Perfil</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 font-bold">FOTO / NOME</span>
+                        <ChevronRight size={14} className="text-slate-600 group-hover:text-slate-400" />
                       </button>
+
+                      <div className="h-px bg-slate-800/50 mx-2 my-1" />
 
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 text-rose-300 transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 transition-all group"
                       >
-                        <div className="flex items-center gap-3">
-                          <LogOut size={16} className="text-rose-300" />
-                          <span className="text-sm font-black">Sair</span>
-                        </div>
-                        <span className="text-[10px] text-rose-300/70 font-bold">LOGOUT</span>
+                        <LogOut size={18} className="text-slate-600 group-hover:text-rose-400 transition-colors" />
+                        <span className="text-sm font-bold">Sair do sistema</span>
                       </button>
                     </div>
-
-                    <Popover.Arrow className="fill-slate-800/80" />
                   </Popover.Content>
                 </Popover.Portal>
               </Popover.Root>
@@ -1370,9 +1381,6 @@ function App() {
                 {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
               </div>
               
-              <button onClick={loadData} className="p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400">
-                <RefreshCw size={18} />
-              </button>
             </div>
           </div>
           
