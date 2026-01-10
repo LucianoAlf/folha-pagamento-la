@@ -1,19 +1,35 @@
 import { Colaborador, FolhaMensal, Lancamento } from '../types';
+import { supabase } from './supabase';
 
-const SUPABASE_URL = 'https://ubdvtjbitozhkuvvqkxj.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InViZHZ0amJpdG96aGt1dnZxa3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwMDAzOTksImV4cCI6MjA4MzU3NjM5OX0.Dy8I_055izn9952BIwNzN_JhZRfcCsJYrFTlDrF5DVs';
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
 
-const headers = {
-  'apikey': SUPABASE_ANON_KEY,
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation'
-};
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    'Missing Supabase env vars. Define VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env.local'
+  );
+}
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) {
+    // With RLS hardened to authenticated, any anonymous request will fail.
+    throw new Error('Sessão expirada. Faça login novamente.');
+  }
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    Prefer: 'return=representation',
+  };
+}
 
 export const api = {
   async fetchFolhaAiInsights(input: { folhaId: number; force?: boolean }): Promise<any> {
     // Usando o subdomínio .functions que é mais direto para Edge Functions
     const FUNCTIONS_URL = SUPABASE_URL.replace('https://', 'https://').replace('.supabase.co', '.functions.supabase.co');
+    const headers = await getAuthHeaders();
     const res = await fetch(`${FUNCTIONS_URL}/ai-payroll-insights`, {
       method: 'POST',
       headers,
@@ -27,6 +43,7 @@ export const api = {
   },
 
   async upsertColaboradorVariacaoNota(input: { folhaId: number; colaboradorId: number; nota: string }): Promise<void> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/upsert_colaborador_variacao_nota`, {
       method: 'POST',
       headers,
@@ -43,6 +60,7 @@ export const api = {
   },
 
   async fetchColaboradorVariacaoNotas(folhaId: number): Promise<Array<{ colaborador_id: number; nota: string | null }>> {
+    const headers = await getAuthHeaders();
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/colaborador_variacao_notas?select=colaborador_id,nota&folha_id=eq.${folhaId}`,
       { headers }
@@ -52,12 +70,14 @@ export const api = {
   },
 
   async fetchColaboradores(): Promise<Colaborador[]> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/colaboradores?select=*&order=nome`, { headers });
     if (!res.ok) throw new Error('Erro ao buscar colaboradores');
     return res.json();
   },
 
   async createColaborador(input: Partial<Colaborador>): Promise<Colaborador> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/colaboradores`, {
       method: 'POST',
       headers,
@@ -73,6 +93,7 @@ export const api = {
   },
 
   async updateColaborador(id: number, patch: Partial<Colaborador>): Promise<Colaborador> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/colaboradores?id=eq.${id}`, {
       method: 'PATCH',
       headers,
@@ -84,6 +105,7 @@ export const api = {
   },
 
   async deleteColaborador(id: number): Promise<void> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/colaboradores?id=eq.${id}`, {
       method: 'DELETE',
       headers,
@@ -92,6 +114,7 @@ export const api = {
   },
 
   async fetchFolhasMensais(): Promise<FolhaMensal[]> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/folhas_mensais?select=*&order=ano.desc,mes.desc`, { headers });
     if (!res.ok) throw new Error('Erro ao buscar folhas');
     return res.json();
@@ -99,6 +122,7 @@ export const api = {
 
   async createFolhaMensal(input: { ano: number; mes: number }): Promise<FolhaMensal> {
     // Avoid duplicates: if month already exists, return it
+    const headers = await getAuthHeaders();
     const check = await fetch(
       `${SUPABASE_URL}/rest/v1/folhas_mensais?select=*&ano=eq.${input.ano}&mes=eq.${input.mes}&limit=1`,
       { headers }
@@ -128,6 +152,7 @@ export const api = {
   },
 
   async deleteFolhaMensal(folhaId: number): Promise<void> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/folhas_mensais?id=eq.${folhaId}`, {
       method: 'DELETE',
       headers,
@@ -136,6 +161,7 @@ export const api = {
   },
 
   async updateFolhaMensal(id: number, patch: Partial<FolhaMensal>): Promise<FolhaMensal> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/folhas_mensais?id=eq.${id}`, {
       method: 'PATCH',
       headers,
@@ -147,12 +173,14 @@ export const api = {
   },
 
   async fetchLancamentos(folhaId: number): Promise<Lancamento[]> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/lancamentos_folha?select=*,colaboradores(*)&folha_id=eq.${folhaId}&order=categoria,colaborador_id`, { headers });
     if (!res.ok) throw new Error('Erro ao buscar lançamentos');
     return res.json();
   },
 
   async createLancamento(input: Omit<Lancamento, 'id' | 'total' | 'colaboradores'>): Promise<Lancamento> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/lancamentos_folha`, {
       method: 'POST',
       headers,
@@ -168,6 +196,7 @@ export const api = {
   },
 
   async updateLancamento(lancamentoId: number, patch: Partial<Lancamento>): Promise<Lancamento> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/lancamentos_folha?id=eq.${lancamentoId}`, {
       method: 'PATCH',
       headers,
@@ -182,6 +211,7 @@ export const api = {
   },
 
   async duplicateLancamentos(input: { fromFolhaId: number; toFolhaId: number; unidade: 'cg' | 'rec' | 'bar' }): Promise<number> {
+    const headers = await getAuthHeaders();
     const [sourceRes, targetRes] = await Promise.all([
       fetch(
         `${SUPABASE_URL}/rest/v1/lancamentos_folha?select=colaborador_id,unidade,categoria,salario,bonus,comissao,reembolso,passagem,inss,descontos&folha_id=eq.${input.fromFolhaId}&unidade=eq.${input.unidade}`,
@@ -234,6 +264,7 @@ export const api = {
   },
 
   async updateFolhaStatus(folhaId: number, status: string): Promise<FolhaMensal[]> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/folhas_mensais?id=eq.${folhaId}`, {
       method: 'PATCH',
       headers,
@@ -244,6 +275,7 @@ export const api = {
   },
 
   async markAlertAsChecked(colaboradorId: number, folhaId: number): Promise<void> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/lancamentos_folha?colaborador_id=eq.${colaboradorId}&folha_id=eq.${folhaId}`, {
       method: 'PATCH',
       headers,
@@ -253,6 +285,7 @@ export const api = {
   },
 
   async deleteLancamento(lancamentoId: number): Promise<void> {
+    const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/lancamentos_folha?id=eq.${lancamentoId}`, {
       method: 'DELETE',
       headers,

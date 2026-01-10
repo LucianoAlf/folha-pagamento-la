@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api, formatCurrency, getMesNome } from './services/api';
+import { supabase } from './services/supabase';
 import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta } from './types';
 import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, AlertDialog, Modal, Tooltip } from './components/UI';
 import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
@@ -8,7 +9,7 @@ import {
   Calendar, RefreshCw, Bell, BarChart3, FileText, 
   TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database,
   LineChart as LineChartIcon,
-  Copy, Plus, Search, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins
+  Copy, Plus, Search, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut
 } from 'lucide-react';
 import { 
   CollaboratorCard, 
@@ -136,6 +137,10 @@ const CellInput: React.FC<{
 };
 
 function App() {
+  // Auth
+  const [authLoading, setAuthLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
@@ -478,6 +483,133 @@ function App() {
 
   // Initial load: Fetch colaboradores and available months
   useEffect(() => {
+    // Supabase Auth session bootstrap
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!mounted) return;
+        setUserEmail(data.session?.user?.email ?? null);
+      } finally {
+        if (mounted) setAuthLoading(false);
+      }
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email ?? null);
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Simple in-app login page (no router) – production will have signups disabled in Supabase.
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginSubmitting, setLoginSubmitting] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loginSubmitting) return;
+    setLoginSubmitting(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+      if (error) throw error;
+      setAlertState({ isOpen: true, title: 'Bem-vindo(a)', message: 'Login realizado com sucesso.', variant: 'primary' });
+      setLoginPassword('');
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Falha no login', message: err?.message || 'Credenciais inválidas.', variant: 'danger' });
+    } finally {
+      setLoginSubmitting(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center">
+        <div className="flex items-center gap-3 text-slate-400">
+          <Loader2 className="animate-spin" />
+          Carregando sessão...
+        </div>
+      </div>
+    );
+  }
+
+  if (!userEmail) {
+    return (
+      <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-slate-900/50 border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-black/40">
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <img src="/logo-LA-colapsed.png" alt="LA Logo" className="w-14 h-14 object-contain drop-shadow-lg" />
+            <div className="text-center">
+              <div className="text-2xl font-black text-white tracking-tight">Folha de Pagamento</div>
+              <div className="text-xs text-slate-500 mt-1">Acesso restrito</div>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Email</label>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                placeholder="email@lamusic..."
+                required
+                autoComplete="email"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Senha</label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full mt-2 px-6 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 disabled:opacity-50"
+              disabled={loginSubmitting}
+            >
+              {loginSubmitting ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+
+          <div className="text-center text-[10px] text-slate-600 mt-6">
+            LA Music Group © 2026
+          </div>
+
+          <AlertDialog
+            isOpen={alertState.isOpen}
+            onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+            title={alertState.title}
+            message={alertState.message}
+            variant={alertState.variant}
+          />
+        </div>
+      </div>
+    );
+  }
     fetchMetadata();
   }, []);
 
@@ -1050,6 +1182,17 @@ function App() {
                   label: `${getMesNome(f.mes)} ${f.ano}`
                 }))}
               />
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-800/50 border border-slate-700 rounded-full">
+                <span className="text-xs text-slate-300 font-medium truncate max-w-[220px]">{userEmail}</span>
+                <button
+                  onClick={handleLogout}
+                  className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                  title="Sair"
+                  aria-label="Sair"
+                >
+                  <LogOut size={14} />
+                </button>
+              </div>
               
               <div className="flex items-center gap-2">
                 {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
