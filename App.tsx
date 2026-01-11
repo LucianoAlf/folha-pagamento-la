@@ -1455,7 +1455,7 @@ function App() {
       {/* Desktop Sidebar */}
       <div className="hidden lg:block h-screen sticky top-0 z-30">
         <Sidebar
-          current={{ module: 'folha', page: activeTab as any }}
+          current={{ module: currentModule as any, page: activeTab as any }}
           onNavigate={(next) => handleNavigate(next.module, next.page)}
           onLogout={handleLogout}
           onEditProfile={openProfile}
@@ -1474,7 +1474,7 @@ function App() {
           <div className="absolute left-0 top-0 bottom-0">
             <Sidebar
               isMobileDrawer
-              current={{ module: 'folha', page: activeTab as any }}
+              current={{ module: currentModule as any, page: activeTab as any }}
               onNavigate={(next) => handleNavigate(next.module, next.page)}
               onLogout={handleLogout}
               onEditProfile={() => {
