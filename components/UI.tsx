@@ -68,7 +68,7 @@ export const DatePicker: React.FC<{
         <Popover.Content
           sideOffset={10}
           align="start"
-          className="z-[9999] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200"
+          className="z-[9999] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
         >
           <DayPicker
             mode="single"
@@ -83,25 +83,36 @@ export const DatePicker: React.FC<{
             weekStartsOn={0}
             locale={ptBR}
             showOutsideDays
-            className="text-slate-900 dark:text-slate-100"
+            className="p-0"
             classNames={{
-              months: 'flex flex-col',
-              month: 'space-y-6',
-              caption: 'flex items-center justify-between px-2 mb-4',
-              caption_label: 'text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest',
-              nav: 'flex items-center gap-3',
-              nav_button:
-                'h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 text-slate-500 hover:text-slate-900 dark:hover:text-white',
+              months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
+              month: 'space-y-4',
+              caption: 'flex justify-center pt-1 relative items-center px-8',
+              caption_label: 'text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest',
+              nav: 'space-x-1 flex items-center',
+              nav_button: cn(
+                'h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ),
+              nav_button_previous: 'absolute left-1',
+              nav_button_next: 'absolute right-1',
               table: 'w-full border-collapse space-y-1',
-              head_row: 'flex mb-2',
-              head_cell: 'w-10 text-center text-[10px] font-black uppercase tracking-widest text-slate-400',
-              row: 'flex w-full mt-1',
-              cell: 'w-10 h-10 text-center p-0 relative',
-              day: 'w-10 h-10 rounded-xl hover:bg-violet-500/10 dark:hover:bg-violet-500/20 transition-all flex items-center justify-center text-sm font-bold',
-              day_selected: 'bg-violet-600 text-white hover:bg-violet-600 shadow-lg shadow-violet-600/20',
+              head_row: 'flex',
+              head_cell: 'text-slate-500 rounded-md w-10 font-black uppercase text-[10px] tracking-tighter',
+              row: 'flex w-full mt-2',
+              cell: 'h-10 w-10 text-center text-sm p-0 relative focus-within:relative focus-within:z-20',
+              day: cn(
+                'h-10 w-10 p-0 font-bold rounded-xl transition-all flex items-center justify-center hover:bg-violet-500/10 dark:hover:bg-violet-500/20 active:scale-95'
+              ),
+              day_selected: 'bg-violet-600 text-white hover:bg-violet-600 hover:text-white focus:bg-violet-600 focus:text-white shadow-lg shadow-violet-600/20',
               day_today: 'ring-2 ring-rose-500/40 text-rose-500',
               day_outside: 'text-slate-300 dark:text-slate-700 opacity-40',
               day_disabled: 'text-slate-300 opacity-20',
+              day_range_middle: 'aria-selected:bg-slate-100 aria-selected:text-slate-900',
+              day_hidden: 'invisible',
+            }}
+            components={{
+              IconLeft: () => <ChevronDown className="h-4 w-4 rotate-90" />,
+              IconRight: () => <ChevronDown className="h-4 w-4 -rotate-90" />,
             }}
           />
 
