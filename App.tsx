@@ -1621,7 +1621,7 @@ function App() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-auto flex flex-col p-6">
+      <main className="flex-1 overflow-auto flex flex-col p-8">
         {/* Module Tabs (MusiClass Style - Full Bleed) */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
