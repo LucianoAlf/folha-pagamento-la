@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Check, Calendar, X, AlertCircle } from 'lucide-
 import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from './CollaboratorComponents';
 
 export const Tooltip: React.FC<{ 
   content: string; 
@@ -140,13 +141,17 @@ export const Modal: React.FC<{
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
-}> = ({ isOpen, onClose, title, children, footer, className = '' }) => {
+  headerClassName?: string;
+}> = ({ isOpen, onClose, title, children, footer, className = '', headerClassName = '' }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-hidden">
       <Card className={`w-full max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 ${className}`}>
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50 shrink-0">
+        <div className={cn(
+          "sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b shrink-0 transition-colors",
+          headerClassName || "bg-slate-900/80 backdrop-blur-md border-slate-700/50"
+        )}>
           <div className="text-white font-black text-lg tracking-wider uppercase">{title}</div>
           <button
             onClick={onClose}

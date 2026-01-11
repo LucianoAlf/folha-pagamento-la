@@ -77,6 +77,7 @@ export const NovaContaModal: React.FC<{
       onClose={onClose} 
       title="NOVA DESPESA"
       className="max-w-3xl"
+      headerClassName="bg-rose-600 border-rose-500"
       footer={
         <div className="flex items-center justify-between gap-4 w-full">
           <button
