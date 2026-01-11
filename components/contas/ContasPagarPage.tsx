@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { LoadingSpinner, ErrorState } from '../UI';
 import { ContaPagar, CategoriaDespesa } from '../../types/contasPagar';
 import {
