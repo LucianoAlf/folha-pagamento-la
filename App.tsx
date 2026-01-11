@@ -1651,7 +1651,7 @@ function App() {
           </div>
         </div>
 
-        <div className="w-full flex-1 flex flex-col gap-6">
+        <div className="w-full flex-1 flex flex-col gap-6 pt-6">
           {loading ? (
             <LoadingSpinner />
           ) : error ? (
