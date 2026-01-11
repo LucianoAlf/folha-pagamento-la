@@ -1526,11 +1526,13 @@ function App() {
             </div>
             
             <div className="flex items-center gap-3 sm:gap-6 self-end md:self-auto">
-              <div className="flex items-center gap-2">
-                {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
-                {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
-                {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
-              </div>
+              {currentModule === 'folha' && (
+                <div className="flex items-center gap-2">
+                  {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
+                  {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
+                  {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
+                </div>
+              )}
               
               <CustomSelect 
                 value={selectedFolhaId?.toString() || ''} 
