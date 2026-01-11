@@ -1621,11 +1621,10 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-full mx-auto px-4 sm:px-8 py-8 flex-1 flex flex-col">
-        {/* Module Header & Tabs (MusiClass Style) */}
-        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-          {/* Horizontal Tabs (MusiClass Style) */}
-          <div className="-mx-4 sm:-mx-8 border-b border-slate-800/60">
+      <main className="max-w-full mx-auto py-0 flex-1 flex flex-col">
+        {/* Module Tabs (MusiClass Style - Full Bleed) */}
+        <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
             <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-4 sm:px-8">
               {tabs.map(tab => (
                 <button
@@ -1652,12 +1651,13 @@ function App() {
           </div>
         </div>
 
-        {loading ? (
-          <LoadingSpinner />
-        ) : error ? (
-          <ErrorState message={error} onRetry={loadData} />
-        ) : (
-          <>
+        <div className="px-4 sm:px-8 py-8 flex-1 flex flex-col">
+          {loading ? (
+            <LoadingSpinner />
+          ) : error ? (
+            <ErrorState message={error} onRetry={loadData} />
+          ) : (
+            <>
             {(isCreatingLancamento || editingLancamento) && (
               <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <Card className="w-full max-w-2xl p-0 overflow-hidden">
