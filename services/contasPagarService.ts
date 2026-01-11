@@ -129,6 +129,7 @@ export function getStatusVisual(conta: ContaPagar): StatusVisual {
 export function calcularResumo(contas: ContaPagar[]) {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
+  const hojeISO = hoje.toISOString().split('T')[0];
   const em7 = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000);
   const em30 = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
 
@@ -136,17 +137,29 @@ export function calcularResumo(contas: ContaPagar[]) {
 
   const isBetween = (d: Date, start: Date, end: Date) => d >= start && d <= end;
 
-  const vencidas = pendentes.filter((c) => new Date(`${c.data_vencimento}T00:00:00`) < hoje);
+  const vencendoHoje = pendentes.filter((c) => c.data_vencimento === hojeISO);
+  const vencidas = pendentes.filter((c) => {
+    const d = new Date(`${c.data_vencimento}T00:00:00`);
+    return d < hoje;
+  });
   const proximos7 = pendentes.filter((c) => {
     const d = new Date(`${c.data_vencimento}T00:00:00`);
-    return isBetween(d, hoje, em7);
+    // Próximos 7 dias excluindo hoje para não duplicar
+    return d > hoje && d <= em7;
   });
   const proximos30 = pendentes.filter((c) => {
     const d = new Date(`${c.data_vencimento}T00:00:00`);
-    return isBetween(d, hoje, em30);
+    // Próximos 30 dias excluindo hoje e próximos 7 para clareza? 
+    // Ou acumulado? Geralmente resumo mostra acumulado. 
+    // Vamos manter acumulado mas sem hoje.
+    return d > hoje && d <= em30;
   });
 
   return {
+    vencendoHoje: {
+      count: vencendoHoje.length,
+      total: vencendoHoje.reduce((s, c) => s + (Number(c.valor) || 0), 0),
+    },
     vencidas: {
       count: vencidas.length,
       total: vencidas.reduce((s, c) => s + (Number(c.valor) || 0), 0),

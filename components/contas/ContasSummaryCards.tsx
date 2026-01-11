@@ -4,12 +4,26 @@ import { Card } from '../UI';
 import { formatCurrency } from '../../services/api';
 
 export const ContasSummaryCards: React.FC<{
+  vencendoHoje: { total: number; count: number };
   vencidas: { total: number; count: number };
   proximos7: { total: number; count: number };
   proximos30: { total: number; count: number };
-}> = ({ vencidas, proximos7, proximos30 }) => {
+}> = ({ vencendoHoje, vencidas, proximos7, proximos30 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <Card className="p-6 border border-amber-500/30 bg-amber-500/5">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+              <Clock size={18} className="animate-pulse" />
+            </div>
+            <div className="text-sm font-bold text-slate-200">Vencendo hoje</div>
+          </div>
+        </div>
+        <div className="mt-4 text-3xl font-black text-white">{formatCurrency(vencendoHoje.total)}</div>
+        <div className="mt-2 text-xs text-amber-400 font-bold">{vencendoHoje.count} contas para pagar agora</div>
+      </Card>
+
       <Card className="p-6 border border-rose-500/20">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">

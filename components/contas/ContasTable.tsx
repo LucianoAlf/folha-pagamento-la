@@ -5,7 +5,7 @@ import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
 
-type FiltroTab = 'todas' | 'vencidas' | 'prox7' | 'prox30';
+type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
 export const ContasTable: React.FC<{
   contas: ContaPagar[];
@@ -17,6 +17,8 @@ export const ContasTable: React.FC<{
 }> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar }) => {
   const filtered = useMemo(() => {
     const q = (busca || '').trim().toLowerCase();
+    const hojeISO = new Date().toISOString().split('T')[0];
+
     return contas.filter((c) => {
       if (q) {
         const inDesc = (c.descricao || '').toLowerCase().includes(q);
@@ -25,18 +27,22 @@ export const ContasTable: React.FC<{
       }
 
       const statusVisual = getStatusVisual(c);
-      if (filtro === 'vencidas') return statusVisual === 'vencida';
-      if (filtro === 'prox7') return statusVisual === 'urgente';
-      if (filtro === 'prox30') return statusVisual === 'pendente';
+      if (filtro === 'hoje') return c.data_vencimento === hojeISO && c.status === 'pendente';
+      if (filtro === 'vencidas') return statusVisual === 'vencida' && c.data_vencimento !== hojeISO;
+      if (filtro === 'prox7') return statusVisual === 'urgente' && c.data_vencimento !== hojeISO;
+      if (filtro === 'prox30') return statusVisual === 'pendente' && c.data_vencimento !== hojeISO;
       return true;
     });
   }, [contas, busca, filtro]);
 
   const badgeFor = (c: ContaPagar) => {
     const s = getStatusVisual(c);
+    const hojeISO = new Date().toISOString().split('T')[0];
+
+    if (s === 'pago') return <Badge variant="success">Pago</Badge>;
+    if (c.data_vencimento === hojeISO) return <Badge variant="warning">Hoje</Badge>;
     if (s === 'vencida') return <Badge variant="danger">Vencida</Badge>;
     if (s === 'urgente') return <Badge variant="warning">Urgente</Badge>;
-    if (s === 'pago') return <Badge variant="success">Pago</Badge>;
     return <Badge variant="info">Pendente</Badge>;
   };
 
@@ -49,6 +55,7 @@ export const ContasTable: React.FC<{
             {(
               [
                 { id: 'todas', label: 'Todas' },
+                { id: 'hoje', label: 'Hoje' },
                 { id: 'vencidas', label: 'Vencidas' },
                 { id: 'prox7', label: 'Próx 7 dias' },
                 { id: 'prox30', label: 'Próx 30 dias' },

@@ -15,7 +15,7 @@ import { ContasTable } from './ContasTable';
 import { NovaContaModal } from './NovaContaModal';
 import { PagarContaModal } from './PagarContaModal';
 
-type FiltroTab = 'todas' | 'vencidas' | 'prox7' | 'prox30';
+type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
 export const ContasPagarPage: React.FC<{
   mode?: 'visao-geral' | 'todas' | 'categorias';
@@ -127,6 +127,7 @@ export const ContasPagarPage: React.FC<{
       </div>
 
       <ContasSummaryCards
+        vencendoHoje={resumo.vencendoHoje}
         vencidas={resumo.vencidas}
         proximos7={resumo.proximos7}
         proximos30={resumo.proximos30}
