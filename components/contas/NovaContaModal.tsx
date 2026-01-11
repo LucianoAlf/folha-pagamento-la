@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { CustomSelect, DatePicker, Modal } from '../UI';
 import { CategoriaDespesa, ContaPagar, UNIDADES_CONTA } from '../../types/contasPagar';
@@ -19,7 +19,10 @@ export const NovaContaModal: React.FC<{
   categorias: CategoriaDespesa[];
   onClose: () => void;
   onConfirm: (conta: Partial<ContaPagar>) => Promise<void>;
-}> = ({ isOpen, categorias, onClose, onConfirm }) => {
+  defaultVencimento?: string; // yyyy-mm-dd
+  defaultCompetenciaYM?: string; // yyyy-mm
+  defaultUnidade?: 'cg' | 'rec' | 'bar';
+}> = ({ isOpen, categorias, onClose, onConfirm, defaultVencimento, defaultCompetenciaYM, defaultUnidade }) => {
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState<string>('');
   const [categoriaId, setCategoriaId] = useState<string>('');
@@ -46,6 +49,13 @@ export const NovaContaModal: React.FC<{
   const [status, setStatus] = useState<PaymentStatus>('pendente');
   const [observacoes, setObservacoes] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (defaultUnidade) setUnidade(defaultUnidade);
+    if (defaultVencimento) setVencimento(defaultVencimento);
+    if (defaultCompetenciaYM) setCompetencia(`${defaultCompetenciaYM}-01`);
+  }, [isOpen, defaultVencimento, defaultCompetenciaYM, defaultUnidade]);
 
   const categoriaOptions = useMemo(
     () =>

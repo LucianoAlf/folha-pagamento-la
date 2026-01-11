@@ -232,9 +232,9 @@ function App() {
       subtitle: 'FLUXO DE CAIXA E OBRIGAÇÕES',
       icon: CreditCard,
       tabs: [
-        { id: 'dashboard', label: 'Dashboard', icon: LineChartIcon },
-        { id: 'visao-geral', label: 'Visão Geral', icon: BarChart3 },
-        { id: 'todas', label: 'Todas as Contas', icon: FileText },
+        { id: 'dashboard', label: 'Resumo', icon: LineChartIcon },
+        { id: 'visao-geral', label: 'Contas a Pagar', icon: BarChart3 },
+        { id: 'todas', label: 'Auditoria', icon: FileText },
         { id: 'comparativo', label: 'Comparativo', icon: TrendingUp },
         { id: 'categorias', label: 'Categorias', icon: Calendar },
       ]
@@ -1488,15 +1488,16 @@ function App() {
               onCloseMobileDrawer={() => setSidebarMobileOpen(false)}
             />
           </div>
-          <button
-            type="button"
-            className="absolute top-5 right-5 w-10 h-10 rounded-2xl bg-slate-900/80 border border-slate-700 text-slate-200 flex items-center justify-center"
-            onClick={() => setSidebarMobileOpen(false)}
-            aria-label="Fechar menu"
-            title="Fechar menu"
-          >
-            <X size={18} />
-          </button>
+          <Tooltip content="Fechar menu" side="left">
+            <button
+              type="button"
+              className="absolute top-5 right-5 w-10 h-10 rounded-2xl bg-slate-900/80 border border-slate-700 text-slate-200 flex items-center justify-center"
+              onClick={() => setSidebarMobileOpen(false)}
+              aria-label="Fechar menu"
+            >
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
       )}
 
@@ -1507,15 +1508,16 @@ function App() {
         <div className="w-full py-4 px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <button
-                type="button"
-                className="lg:hidden w-11 h-11 rounded-2xl bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-200"
-                onClick={() => setSidebarMobileOpen(true)}
-                aria-label="Abrir menu"
-                title="Abrir menu"
-              >
-                <Menu size={18} />
-              </button>
+              <Tooltip content="Abrir menu" side="right">
+                <button
+                  type="button"
+                  className="lg:hidden w-11 h-11 rounded-2xl bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-200"
+                  onClick={() => setSidebarMobileOpen(true)}
+                  aria-label="Abrir menu"
+                >
+                  <Menu size={18} />
+                </button>
+              </Tooltip>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-500/5">
                   <currentModuleConfig.icon size={20} />
@@ -1569,8 +1571,18 @@ function App() {
         {currentModule === 'contas' && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
             <div>
-              <h2 className="text-2xl font-black text-white">Gestão Mensal</h2>
-              <p className="text-sm text-slate-500 font-bold mt-1">Acompanhamento de contas a pagar por competência</p>
+              <h2 className="text-2xl font-black text-white">
+                {activeTab === 'todas' ? 'Auditoria Financeira' :
+                 activeTab === 'comparativo' ? 'Comparativo Mensal' :
+                 activeTab === 'categorias' ? 'Plano de Negócios' :
+                 'Gestão Mensal'}
+              </h2>
+              <p className="text-sm text-slate-500 font-bold mt-1">
+                {activeTab === 'todas' ? 'Histórico completo de lançamentos e liquidações' :
+                 activeTab === 'comparativo' ? 'Análise estratégica de variações e anomalias nas contas a pagar' :
+                 activeTab === 'categorias' ? 'Gestão estratégica de categorias e classificação financeira' :
+                 'Acompanhamento de contas a pagar por competência'}
+              </p>
             </div>
           </div>
         )}
@@ -1769,22 +1781,24 @@ function App() {
                           </div>
                           {alerta.id && (
                             <div className="self-center flex items-center gap-2">
-                              <button
-                                onClick={() => openAlertNote(alerta)}
-                                className="px-3 py-1.5 bg-slate-800/60 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                title="Anotar motivo para alimentar a memória da IA"
-                              >
-                                <Edit2 size={14} />
-                                Anotar
-                              </button>
-                              <button 
-                                onClick={() => handleCheckAlert(alerta.id!)}
-                                className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                title="Marcar como verificado"
-                              >
-                                <CheckCircle size={14} />
-                                Verificado
-                              </button>
+                              <Tooltip content="Anotar motivo para alimentar a memória da IA">
+                                <button
+                                  onClick={() => openAlertNote(alerta)}
+                                  className="px-3 py-1.5 bg-slate-800/60 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                >
+                                  <Edit2 size={14} />
+                                  Anotar
+                                </button>
+                              </Tooltip>
+                              <Tooltip content="Marcar como verificado">
+                                <button 
+                                  onClick={() => handleCheckAlert(alerta.id!)}
+                                  className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                >
+                                  <CheckCircle size={14} />
+                                  Verificado
+                                </button>
+                              </Tooltip>
                             </div>
                           )}
                         </div>
@@ -1842,22 +1856,24 @@ function App() {
                   >
                     Fechar
                   </button>
-                  <button
-                    onClick={() => saveAlertNote({ markChecked: false })}
-                    className="flex-1 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all shadow-lg shadow-violet-600/20"
-                    disabled={alertNoteSaving}
-                    title="Salva o motivo e mantém o alerta visível"
-                  >
-                    Salvar
-                  </button>
-                  <button
-                    onClick={() => saveAlertNote({ markChecked: true })}
-                    className="flex-1 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-lg shadow-emerald-600/20"
-                    disabled={alertNoteSaving}
-                    title="Salva o motivo e marca o alerta como verificado"
-                  >
-                    Salvar + Verificar
-                  </button>
+                  <Tooltip content="Salva o motivo e mantém o alerta visível">
+                    <button
+                      onClick={() => saveAlertNote({ markChecked: false })}
+                      className="flex-1 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all shadow-lg shadow-violet-600/20"
+                      disabled={alertNoteSaving}
+                    >
+                      Salvar
+                    </button>
+                  </Tooltip>
+                  <Tooltip content="Salva o motivo e marca o alerta como verificado">
+                    <button
+                      onClick={() => saveAlertNote({ markChecked: true })}
+                      className="flex-1 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-lg shadow-emerald-600/20"
+                      disabled={alertNoteSaving}
+                    >
+                      Salvar + Verificar
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
             </Modal>
@@ -2346,57 +2362,61 @@ function App() {
                   
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     {/* Option A: Consolidado é read-only */}
-                    <button
-                      onClick={openCreateLancamento}
-                      disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
-                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        unidadeFiltro === 'todos' || statusFolha !== 'rascunho'
-                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                          : 'bg-slate-800 hover:bg-slate-700 text-white'
-                      }`}
-                      title={unidadeFiltro === 'todos' ? 'Selecione uma unidade para criar lançamentos' : 'Novo lançamento'}
-                    >
-                      <Plus size={16} />
-                      Novo Lançamento
-                    </button>
+                    <Tooltip content={unidadeFiltro === 'todos' ? 'Selecione uma unidade para criar lançamentos' : 'Novo lançamento'}>
+                      <button
+                        onClick={openCreateLancamento}
+                        disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          unidadeFiltro === 'todos' || statusFolha !== 'rascunho'
+                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                            : 'bg-slate-800 hover:bg-slate-700 text-white'
+                        }`}
+                      >
+                        <Plus size={16} />
+                        Novo Lançamento
+                      </button>
+                    </Tooltip>
 
-                    <button
-                      onClick={() => setIsDuplicateModalOpen(true)}
-                      disabled={statusFolha !== 'rascunho'}
-                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        statusFolha !== 'rascunho'
-                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                          : 'bg-slate-800 hover:bg-slate-700 text-white'
-                      }`}
-                      title="Duplicar lançamentos"
-                    >
-                      <Copy size={16} />
-                      Duplicar Mês
-                    </button>
+                    <Tooltip content="Duplicar lançamentos">
+                      <button
+                        onClick={() => setIsDuplicateModalOpen(true)}
+                        disabled={statusFolha !== 'rascunho'}
+                        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          statusFolha !== 'rascunho'
+                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                            : 'bg-slate-800 hover:bg-slate-700 text-white'
+                        }`}
+                      >
+                        <Copy size={16} />
+                        Duplicar Mês
+                      </button>
+                    </Tooltip>
 
-                    <button
-                      onClick={handleCreateNextMonth}
-                      disabled={!folhaAtual}
-                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        !folhaAtual
-                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                          : 'bg-slate-800 hover:bg-slate-700 text-white'
-                      }`}
-                      title="Criar próximo mês"
-                    >
-                      <Plus size={16} />
-                      Criar Próximo Mês
-                    </button>
+                    <Tooltip content="Criar próximo mês">
+                      <button
+                        onClick={handleCreateNextMonth}
+                        disabled={!folhaAtual}
+                        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          !folhaAtual
+                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                            : 'bg-slate-800 hover:bg-slate-700 text-white'
+                        }`}
+                      >
+                        <Plus size={16} />
+                        Criar Próximo Mês
+                      </button>
+                    </Tooltip>
 
                     {statusFolha === 'rascunho' && (
-                      <button
-                        onClick={handleDeleteMonth}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-transparent hover:border-rose-500/30 rounded-lg text-sm font-medium transition-all"
-                        title="Excluir mês atual"
-                      >
-                        <XCircle size={16} />
-                        Excluir Mês
-                      </button>
+                      <Tooltip content="Excluir mês atual">
+                        <button
+                          onClick={handleDeleteMonth}
+                          className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-transparent hover:border-rose-500/30 rounded-lg text-sm font-medium transition-all"
+                        >
+                          <XCircle size={16} />
+                          Excluir Mês
+                        </button>
+                      </Tooltip>
                     )}
                   
                   {statusFolha === 'rascunho' && (
@@ -2526,16 +2546,17 @@ function App() {
                                         </div>
                                         
                                         {statusFolha === 'rascunho' && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDeleteLancamento(l);
-                                            }}
-                                            className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all mr-2"
-                                            title="Excluir lançamento"
-                                          >
-                                            <Trash2 size={14} />
-                                          </button>
+                                          <Tooltip content="Excluir lançamento">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteLancamento(l);
+                                              }}
+                                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all mr-2"
+                                            >
+                                              <Trash2 size={14} />
+                                            </button>
+                                          </Tooltip>
                                         )}
                                       </div>
                                     </td>
@@ -3070,13 +3091,14 @@ function App() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => handleUpdateStatus('rascunho')}
-                                className="p-2 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors"
-                                title="Rejeitar"
-                            >
-                                <XCircle size={20} />
-                            </button>
+                            <Tooltip content="Rejeitar">
+                                <button 
+                                    onClick={() => handleUpdateStatus('rascunho')}
+                                    className="p-2 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors"
+                                >
+                                    <XCircle size={20} />
+                                </button>
+                            </Tooltip>
                             <button 
                                 onClick={() => handleUpdateStatus('aprovada')}
                                 className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm font-bold transition-colors shadow-lg shadow-emerald-500/20"

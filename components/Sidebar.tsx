@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Card, Badge, Modal, CustomSelect, Tooltip } from './UI';
 import {
   LayoutDashboard,
   Users,
@@ -163,33 +164,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Footer */}
       <div className="p-4 border-t border-slate-800/80">
-        <button
-          type="button"
-          className={[
-            'w-full flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 hover:border-violet-500/30 transition-all group/profile',
-            collapsed ? 'justify-center p-2.5' : 'p-3',
-          ].join(' ')}
-          onClick={onEditProfile}
-          title={!collapsed ? 'Editar Perfil' : userLabel}
-          aria-label="Editar Perfil"
-        >
-          <div className="w-10 h-10 rounded-full border border-slate-700 overflow-hidden bg-slate-900/40 shrink-0 group-hover/profile:border-violet-500/50 transition-colors">
-            <img
-              src={userAvatarUrl || '/logo-LA-colapsed.png'}
-              alt="Usuário"
-              className="w-full h-full object-cover group-hover/profile:scale-110 transition-transform duration-300"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
-              }}
-            />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1 text-left">
-              <div className="text-white text-sm font-black truncate group-hover/profile:text-violet-300 transition-colors">{userLabel}</div>
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate group-hover/profile:text-slate-400">Meu Perfil</div>
+        <Tooltip content={!collapsed ? 'Editar Perfil' : userLabel} side="right">
+          <button
+            type="button"
+            className={[
+              'w-full flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 hover:border-violet-500/30 transition-all group/profile',
+              collapsed ? 'justify-center p-2.5' : 'p-3',
+            ].join(' ')}
+            onClick={onEditProfile}
+            aria-label="Editar Perfil"
+          >
+            <div className="w-10 h-10 rounded-full border border-slate-700 overflow-hidden bg-slate-900/40 shrink-0 group-hover/profile:border-violet-500/50 transition-colors">
+              <img
+                src={userAvatarUrl || '/logo-LA-colapsed.png'}
+                alt="Usuário"
+                className="w-full h-full object-cover group-hover/profile:scale-110 transition-transform duration-300"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
+                }}
+              />
             </div>
-          )}
-        </button>
+            {!collapsed && (
+              <div className="min-w-0 flex-1 text-left">
+                <div className="text-white text-sm font-black truncate group-hover/profile:text-violet-300 transition-colors">{userLabel}</div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate group-hover/profile:text-slate-400">Meu Perfil</div>
+              </div>
+            )}
+          </button>
+        </Tooltip>
 
         <button
           type="button"
@@ -205,15 +207,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Collapse Toggle (desktop only) */}
       {!isMobileDrawer && (
-        <button
-          type="button"
-          onClick={() => setCollapsedPersisted(!collapsed)}
-          className="absolute top-1/2 -right-3 w-7 h-7 bg-slate-900 border border-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors"
-          title={collapsed ? 'Expandir' : 'Recolher'}
-          aria-label={collapsed ? 'Expandir' : 'Recolher'}
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
+        <Tooltip content={collapsed ? 'Expandir' : 'Recolher'} side="right">
+          <button
+            type="button"
+            onClick={() => setCollapsedPersisted(!collapsed)}
+            className="absolute top-1/2 -right-3 w-7 h-7 bg-slate-900 border border-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            aria-label={collapsed ? 'Expandir' : 'Recolher'}
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </Tooltip>
       )}
     </aside>
   );
