@@ -137,26 +137,32 @@ export const Modal: React.FC<{
   onClose: () => void; 
   title: string; 
   children: React.ReactNode;
+  footer?: React.ReactNode;
   className?: string;
-}> = ({ isOpen, onClose, title, children, className = '' }) => {
+}> = ({ isOpen, onClose, title, children, footer, className = '' }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <Card className={`w-full max-w-2xl p-0 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 ${className}`}>
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900/60 border-b border-slate-700/50">
-          <div className="text-white font-bold text-lg">{title}</div>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-hidden">
+      <Card className={`w-full max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 ${className}`}>
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50 shrink-0">
+          <div className="text-white font-black text-lg tracking-wider uppercase">{title}</div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
             aria-label="Fechar"
           >
             <X size={20} />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 md:p-8 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
           {children}
         </div>
+        {footer && (
+          <div className="sticky bottom-0 z-10 p-6 bg-slate-900/80 backdrop-blur-md border-t border-slate-700/50 shrink-0">
+            {footer}
+          </div>
+        )}
       </Card>
     </div>
   );

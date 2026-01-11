@@ -35,6 +35,32 @@ export const PagarContaModal: React.FC<{
       onClose={onClose} 
       title="REGISTRAR PAGAMENTO"
       className="max-w-2xl"
+      footer={
+        <div className="flex items-center justify-between gap-4 w-full">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={saving || !dataPagamento || !metodo}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await onConfirm({ data_pagamento: dataPagamento, metodo_pagamento: metodo, observacoes: obs });
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="px-8 py-4 rounded-[2rem] bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-xl shadow-emerald-600/20 disabled:opacity-50"
+          >
+            Confirmar Pagamento
+          </button>
+        </div>
+      }
     >
       <div className="space-y-6">
         <Card className="p-6 mb-6 bg-slate-900/40 border-slate-800">
@@ -82,31 +108,6 @@ export const PagarContaModal: React.FC<{
             spellCheck={false}
           />
         </div>
-      </div>
-
-      <div className="p-6 border-t border-slate-800/70 bg-slate-950/30 flex items-center justify-between gap-4">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-6 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          disabled={saving || !dataPagamento || !metodo}
-          onClick={async () => {
-            setSaving(true);
-            try {
-              await onConfirm({ data_pagamento: dataPagamento, metodo_pagamento: metodo, observacoes: obs });
-            } finally {
-              setSaving(false);
-            }
-          }}
-          className="px-8 py-4 rounded-[2rem] bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-xl shadow-emerald-600/20 disabled:opacity-50"
-        >
-          Confirmar Pagamento
-        </button>
       </div>
     </Modal>
   );

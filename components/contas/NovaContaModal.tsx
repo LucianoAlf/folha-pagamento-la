@@ -70,40 +70,90 @@ export const NovaContaModal: React.FC<{
       onClose={onClose} 
       title="NOVA DESPESA"
       className="max-w-3xl"
+      footer={
+        <div className="flex items-center justify-between gap-4 w-full">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-3.5 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={
+              saving ||
+              !descricao.trim() ||
+              !categoriaId ||
+              !vencimento ||
+              !competencia ||
+              !dataLancamento ||
+              !(valorNum > 0)
+            }
+            onClick={async () => {
+              setSaving(true);
+              try {
+                const payload: Partial<ContaPagar> = {
+                  descricao: descricao.trim(),
+                  categoria_id: categoriaId,
+                  unidade: unidade as any,
+                  valor: valorNum,
+                  data_lancamento: dataLancamento,
+                  data_vencimento: vencimento,
+                  competencia,
+                  status,
+                  tipo_lancamento: launchType,
+                  total_parcelas: launchType === 'parcelada' ? parcelas : null,
+                  parcela_atual: null,
+                  observacoes: observacoes.trim() || null,
+                };
+                await onConfirm(payload);
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="px-10 py-4 rounded-[2rem] bg-rose-600 hover:bg-rose-500 text-white font-black shadow-xl shadow-rose-600/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
+          >
+            {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
+            Confirmar Lançamento
+          </button>
+        </div>
+      }
     >
-      <div className="space-y-8">
+      <div className="space-y-10 pb-4">
         {/* A) Dados principais */}
         <div>
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-4">
-            <span className="text-rose-400">A)</span> Dados principais
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-rose-500/10 text-rose-400 text-[10px]">A</span> 
+            Dados principais
           </div>
 
           <div className="grid grid-cols-1 gap-6">
             <div>
-              <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">
                 Descrição do lançamento *
-              </div>
+              </label>
               <input
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                className="w-full rounded-2xl border border-slate-800 bg-slate-900/30 px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
                 placeholder="Ex: Aluguel Unidade Matriz"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Valor (R$) *</div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Valor (R$) *</label>
                 <input
                   value={valor}
                   onChange={(e) => setValor(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-800 bg-slate-900/30 px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                  className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
                   placeholder="R$ 0,00"
                 />
-                <div className="mt-2 text-xs text-slate-500 font-bold">{valor ? `Preview: ${valorLabel}` : ''}</div>
+                <div className="mt-2 text-[10px] text-slate-500 font-bold px-1">{valor ? `Preview: ${valorLabel}` : ''}</div>
               </div>
               <div>
-                <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Categoria *</div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Categoria *</label>
                 <CustomSelect
                   value={categoriaId}
                   onValueChange={(v) => setCategoriaId(v)}
@@ -115,7 +165,7 @@ export const NovaContaModal: React.FC<{
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Unidade *</div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Unidade *</label>
                 <CustomSelect
                   value={unidade}
                   onValueChange={(v) => setUnidade(v)}
@@ -128,7 +178,8 @@ export const NovaContaModal: React.FC<{
 
         {/* Tipo lançamento */}
         <div>
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-4">
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-800 text-slate-400 text-[10px]">B</span>
             Tipo de Lançamento
           </div>
 
@@ -144,10 +195,10 @@ export const NovaContaModal: React.FC<{
                 key={t.id}
                 type="button"
                 onClick={() => setLaunchType(t.id)}
-                className={[
-                  'flex-1 px-4 py-2.5 rounded-xl text-xs font-black transition-colors',
-                  launchType === t.id ? 'bg-white/10 text-violet-300' : 'text-slate-400 hover:text-slate-200',
-                ].join(' ')}
+                className={cn(
+                  'flex-1 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all',
+                  launchType === t.id ? 'bg-slate-800 text-violet-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                )}
               >
                 {t.label}
               </button>
@@ -155,15 +206,15 @@ export const NovaContaModal: React.FC<{
           </div>
 
           {launchType === 'parcelada' && (
-            <div className="mt-4 w-full md:w-[240px]">
-              <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Nº Parcelas</div>
+            <div className="mt-6 w-full md:w-[240px] animate-in fade-in slide-in-from-top-2 duration-300">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Nº Parcelas</label>
               <input
                 type="number"
                 min={2}
                 max={60}
                 value={parcelas}
                 onChange={(e) => setParcelas(Number(e.target.value || 2))}
-                className="w-full rounded-2xl border border-slate-800 bg-slate-900/30 px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
               />
             </div>
           )}
@@ -171,21 +222,22 @@ export const NovaContaModal: React.FC<{
 
         {/* B) Prazos */}
         <div>
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-4">
-            <span className="text-rose-400">B)</span> Prazos e Competência
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-rose-500/10 text-rose-400 text-[10px]">C</span>
+            Prazos e Competência
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Data Lançamento *</div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Data Lançamento *</label>
               <DatePicker value={dataLancamento} onChange={(v) => setDataLancamento(v || '')} />
             </div>
             <div>
-              <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Vencimento *</div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Vencimento *</label>
               <DatePicker value={vencimento} onChange={(v) => setVencimento(v || '')} />
             </div>
             <div>
-              <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Competência *</div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Competência *</label>
               <DatePicker value={competencia} onChange={(v) => setCompetencia(v || '')} />
             </div>
           </div>
@@ -193,102 +245,57 @@ export const NovaContaModal: React.FC<{
 
         {/* D) Status */}
         <div>
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-4">
-            <span className="text-rose-400">D)</span> Status do Pagamento
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-rose-500/10 text-rose-400 text-[10px]">D</span>
+            Status do Pagamento
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               type="button"
               onClick={() => setStatus('pendente')}
-              className={[
-                'p-5 rounded-2xl border transition-all text-left',
+              className={cn(
+                'p-5 rounded-2xl border transition-all text-left group',
                 status === 'pendente'
-                  ? 'border-violet-500/60 bg-violet-500/10'
-                  : 'border-slate-800 bg-slate-900/20 hover:bg-slate-900/30',
-              ].join(' ')}
+                  ? 'border-violet-500/60 bg-violet-500/10 shadow-lg shadow-violet-500/5'
+                  : 'border-slate-800 bg-slate-900/20 hover:bg-slate-900/30'
+              )}
             >
-              <div className="text-white font-black">Pendente</div>
-              <div className="text-xs text-slate-400 font-bold">Ainda não pago</div>
+              <div className={cn("font-black transition-colors", status === 'pendente' ? "text-white" : "text-slate-400 group-hover:text-slate-200")}>PENDENTE</div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">Ainda não pago</div>
             </button>
             <button
               type="button"
               onClick={() => setStatus('pago')}
-              className={[
-                'p-5 rounded-2xl border transition-all text-left',
+              className={cn(
+                'p-5 rounded-2xl border transition-all text-left group',
                 status === 'pago'
-                  ? 'border-emerald-500/60 bg-emerald-500/10'
-                  : 'border-slate-800 bg-slate-900/20 hover:bg-slate-900/30',
-              ].join(' ')}
+                  ? 'border-emerald-500/60 bg-emerald-500/10 shadow-lg shadow-emerald-500/5'
+                  : 'border-slate-800 bg-slate-900/20 hover:bg-slate-900/30'
+              )}
             >
-              <div className="text-white font-black">Já Pago</div>
-              <div className="text-xs text-slate-400 font-bold">Lançamento realizado</div>
+              <div className={cn("font-black transition-colors", status === 'pago' ? "text-white" : "text-slate-400 group-hover:text-slate-200")}>JÁ PAGO</div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">Lançamento realizado</div>
             </button>
           </div>
         </div>
 
         {/* E) Observações */}
         <div>
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-4">
-            <span className="text-rose-400">E)</span> Observações
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-rose-500/10 text-rose-400 text-[10px]">E</span>
+            Observações
           </div>
           <textarea
             value={observacoes}
             onChange={(e) => setObservacoes(e.target.value)}
-            className="w-full min-h-[130px] rounded-2xl border border-slate-800 bg-slate-900/30 px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+            className="w-full min-h-[130px] rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
             placeholder="Notas adicionais sobre este lançamento..."
             spellCheck={false}
             maxLength={500}
           />
-          <div className="text-right text-xs text-slate-500 font-bold mt-2">{observacoes.length}/500</div>
+          <div className="text-right text-[10px] text-slate-600 font-black mt-3 px-1 uppercase tracking-widest">{observacoes.length} / 500</div>
         </div>
-      </div>
-
-      <div className="mt-10 flex items-center justify-between gap-4">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-6 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          disabled={
-            saving ||
-            !descricao.trim() ||
-            !categoriaId ||
-            !vencimento ||
-            !competencia ||
-            !dataLancamento ||
-            !(valorNum > 0)
-          }
-          onClick={async () => {
-            setSaving(true);
-            try {
-              const payload: Partial<ContaPagar> = {
-                descricao: descricao.trim(),
-                categoria_id: categoriaId,
-                unidade: unidade as any,
-                valor: valorNum,
-                data_lancamento: dataLancamento,
-                data_vencimento: vencimento,
-                competencia,
-                status,
-                tipo_lancamento: launchType,
-                total_parcelas: launchType === 'parcelada' ? parcelas : null,
-                parcela_atual: null,
-                observacoes: observacoes.trim() || null,
-              };
-              await onConfirm(payload);
-            } finally {
-              setSaving(false);
-            }
-          }}
-          className="px-10 py-4 rounded-[2rem] bg-rose-600 hover:bg-rose-500 text-white font-black shadow-xl shadow-rose-600/20 disabled:opacity-50"
-        >
-          Confirmar Lançamento
-        </button>
       </div>
     </Modal>
   );
