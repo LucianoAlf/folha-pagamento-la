@@ -76,6 +76,7 @@ export const NovaContaModal: React.FC<{
       isOpen={isOpen} 
       onClose={onClose} 
       title="NOVA DESPESA"
+      subtitle="Dica: a competência é o mês de referência da despesa. Depois você pode ajustar valor e vencimento em cada lançamento."
       className="max-w-3xl"
       headerClassName="bg-rose-600 border-rose-500"
       footer={

@@ -212,21 +212,29 @@ export const Modal: React.FC<{
   isOpen: boolean; 
   onClose: () => void; 
   title: string; 
+  subtitle?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
   headerClassName?: string;
-}> = ({ isOpen, onClose, title, children, footer, className = '', headerClassName = '' }) => {
+}> = ({ isOpen, onClose, title, subtitle, children, footer, className = '', headerClassName = '' }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-hidden">
       <Card className={`w-full max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 ${className}`}>
         <div className={cn(
-          "sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b shrink-0 transition-colors",
+          "sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b shrink-0 transition-colors",
           headerClassName || "bg-slate-900/80 backdrop-blur-md border-slate-700/50"
         )}>
-          <div className="text-white font-black text-lg tracking-wider uppercase">{title}</div>
+          <div className="min-w-0">
+            <div className="text-white font-black text-lg tracking-wider uppercase truncate">{title}</div>
+            {subtitle ? (
+              <div className="mt-1 text-[11px] font-bold text-white/85 leading-snug">
+                {subtitle}
+              </div>
+            ) : null}
+          </div>
           <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"

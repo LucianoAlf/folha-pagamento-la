@@ -232,8 +232,10 @@ function App() {
       subtitle: 'FLUXO DE CAIXA E OBRIGAÇÕES',
       icon: CreditCard,
       tabs: [
+        { id: 'dashboard', label: 'Dashboard', icon: LineChartIcon },
         { id: 'visao-geral', label: 'Visão Geral', icon: BarChart3 },
         { id: 'todas', label: 'Todas as Contas', icon: FileText },
+        { id: 'comparativo', label: 'Comparativo', icon: TrendingUp },
         { id: 'categorias', label: 'Categorias', icon: Calendar },
       ]
     },
@@ -253,7 +255,7 @@ function App() {
       setActiveTab(page);
     } else {
       if (mod === 'folha') setActiveTab('dashboard');
-      if (mod === 'contas') setActiveTab('visao-geral');
+      if (mod === 'contas') setActiveTab('dashboard');
     }
     
     if (mod === 'folha') setUnidadeFiltro('todos');
@@ -1564,6 +1566,15 @@ function App() {
           </div>
         )}
 
+        {currentModule === 'contas' && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+            <div>
+              <h2 className="text-2xl font-black text-white">Gestão Mensal</h2>
+              <p className="text-sm text-slate-500 font-bold mt-1">Acompanhamento de contas a pagar por competência</p>
+            </div>
+          </div>
+        )}
+
         {/* Module Tabs (MusiClass Style - Full Bleed) */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
@@ -2057,34 +2068,12 @@ function App() {
                       <BarChart3 size={20} className="text-white" />
                       <span className="text-white">Distribuição por Unidade</span>
                     </h3>
-                    <div className="flex flex-col md:flex-row items-center gap-8">
-                      <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
-                        <DistributionChart data={unitData.map(u => ({ name: u.name, value: u.value, color: u.color }))} />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-6 text-center">
-                            <span className="text-white font-bold text-xl leading-tight">
-                              {formatCurrency(totais.totalGeral).replace('R$', '').trim()}
-                            </span>
-                            <span className="text-slate-500 text-[10px] uppercase tracking-widest mt-0.5 font-medium">Total</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 w-full space-y-5">
-                         {unitData.map(unit => (
-                             <div key={unit.id}>
-                                <div className="flex justify-between items-center mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`w-3 h-3 rounded-full ${unit.twColor}`}></span>
-                                        <span className="text-slate-300 font-medium">{unit.name}</span>
-                                    </div>
-                                    <span className="font-bold text-white">{formatCurrency(unit.value)}</span>
-                                </div>
-                                <div className="w-full bg-slate-700/30 rounded-full h-2.5 mb-1">
-                                    <div className={`h-2.5 rounded-full ${unit.twColor}`} style={{ width: `${unit.percent}%` }}></div>
-                                </div>
-                                <div className="text-right text-xs text-slate-500">{unit.percent}%</div>
-                             </div>
-                         ))}
-                      </div>
+                    <div className="h-64">
+                      <DistributionChart 
+                        data={unitData.map(u => ({ name: u.name, value: u.value, color: u.color }))} 
+                        showBars
+                        totalValue={formatCurrency(totais.totalGeral).replace('R$', '').trim()}
+                      />
                     </div>
                   </Card>
 

@@ -48,12 +48,17 @@ export const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, subv
 };
 
 interface DistributionChartProps {
-  data: { name: string; value: number; color: string }[];
+  data: { name: string; value: number; color: string; twColor?: string }[];
+  totalLabel?: string;
+  totalValue?: string;
+  showBars?: boolean;
 }
 
-export const DistributionChart: React.FC<DistributionChartProps> = ({ data }) => {
-  return (
-    <div className="h-full w-full min-h-[160px]">
+export const DistributionChart: React.FC<DistributionChartProps> = ({ data, totalLabel = 'Total', totalValue, showBars = false }) => {
+  const total = data.reduce((s, d) => s + d.value, 0);
+
+  const chart = (
+    <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -77,6 +82,43 @@ export const DistributionChart: React.FC<DistributionChartProps> = ({ data }) =>
           />
         </PieChart>
       </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+        <span className="text-white font-black text-xl leading-tight">
+          {totalValue || formatCurrency(total).replace('R$', '').trim()}
+        </span>
+        <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-0.5">{totalLabel}</span>
+      </div>
+    </div>
+  );
+
+  if (!showBars) return <div className="h-full w-full min-h-[160px]">{chart}</div>;
+
+  return (
+    <div className="flex flex-col md:flex-row items-center gap-8 w-full h-full">
+      {chart}
+      <div className="flex-1 w-full space-y-5">
+        {data.map((item, index) => {
+          const percent = total > 0 ? (item.value / total) * 100 : 0;
+          return (
+            <div key={index}>
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></span>
+                  <span className="text-slate-300 font-bold text-sm">{item.name}</span>
+                </div>
+                <span className="font-black text-white text-sm">{formatCurrency(item.value)}</span>
+              </div>
+              <div className="w-full bg-slate-800/50 rounded-full h-2">
+                <div 
+                  className="h-2 rounded-full transition-all duration-1000" 
+                  style={{ width: `${percent}%`, backgroundColor: item.color }}
+                ></div>
+              </div>
+              <div className="text-right text-[10px] text-slate-500 font-black mt-1">{percent.toFixed(1)}%</div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
@@ -108,12 +150,12 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ data }) => {
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#94a3b8', fontSize: 11 }}
-            tickFormatter={(v) => `R$ ${(v/1000).toFixed(0)}k`}
+            tickFormatter={(v) => (typeof v === 'number' ? `R$ ${(v/1000).toFixed(0)}k` : '')}
           />
           <Tooltip 
             contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
             itemStyle={{ color: '#22d3ee', fontWeight: 'bold' }}
-            formatter={(value: number) => [formatCurrency(value), 'Folha Total']}
+            formatter={(value: number) => [formatCurrency(value), 'Total']}
             labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
           />
           <Area 
@@ -123,6 +165,7 @@ export const EvolutionChart: React.FC<EvolutionChartProps> = ({ data }) => {
             strokeWidth={3}
             fillOpacity={1} 
             fill="url(#colorTotal)" 
+            connectNulls={false}
             animationDuration={1500}
           />
         </AreaChart>

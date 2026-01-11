@@ -7,7 +7,9 @@ const PRESET_ICONS = [
   '💰', '📋', '🛍️', '🎪', '🏠',
   '👤', '🚌', '🍽️', '📊', '📶',
   '⚡', '🔧', '📄', '🧹', '📢',
-  '💵', '↩️', '📦', '📌', '📈'
+  '💵', '↩️', '📦', '📌', '📈',
+  // Ícones que já existem nas categorias (garante que o modal sempre tenha os mesmos)
+  '🏢', '🏦', '👥', '💡', '💧', '💻', '🤝'
 ];
 
 interface CategoriaModalProps {
