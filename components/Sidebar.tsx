@@ -108,11 +108,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <img src="/logo-LA-colapsed.png" alt="LA" className="w-10 h-10 object-contain drop-shadow-2xl" />
           </div>
           {!collapsed && (
-            <div className="min-w-0 flex flex-col">
-              <div className="text-white font-black leading-none truncate uppercase tracking-tighter text-base">SUPER FOLHA SYSTEM</div>
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.38em] leading-none mt-2">
-                Sistema Inteligente
+            <div className="min-w-0">
+              <div className="text-white font-black leading-tight truncate uppercase tracking-tight text-sm">
+                SUPER FOLHA SYSTEM
               </div>
+              <div className="text-xs text-slate-500 font-bold truncate">Sistema Inteligente</div>
             </div>
           )}
         </div>
