@@ -162,21 +162,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Footer */}
       <div className="p-4 border-t border-slate-800/80">
         {!collapsed && (
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full border border-slate-700 overflow-hidden bg-slate-900/40 shrink-0">
-              <img
-                src={userAvatarUrl || '/logo-LA-colapsed.png'}
-                alt="Usuário"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
-                }}
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-white text-sm font-black truncate">{userLabel}</div>
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate">Acesso</div>
-            </div>
+          <div className="mb-3">
+            <div className="text-white text-sm font-black truncate">{userLabel}</div>
           </div>
         )}
 

@@ -1550,29 +1550,21 @@ function App() {
                     align="start"
                     className="z-[999999] w-[320px] rounded-[2rem] border border-slate-800 bg-slate-950/95 backdrop-blur-xl shadow-2xl shadow-black/60 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
                   >
-                    <div className="p-5 border-b border-slate-800/70 flex items-center gap-4 bg-slate-900/30">
-                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-slate-700/60 shadow-inner shrink-0">
-                        <img
-                          src={
-                            userProfile?.avatar_url ||
-                            getDefaultAvatarByEmail(userEmail) ||
-                            '/logo-LA-colapsed.png'
-                          }
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
+                    <div className="p-5 border-b border-slate-800/70 bg-slate-900/30">
+                      <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.25em] mb-2">
+                        Conta
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-base font-black text-white truncate leading-tight">
-                          {userProfile?.nome ||
-                            (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : 'Usuário')}
-                        </div>
-                        <div className="text-xs text-slate-400 truncate mb-1">{userEmail}</div>
-                        <Badge variant={isAna(userEmail) ? 'warning' : 'success'} className="text-[9px] py-0 px-2 uppercase tracking-tighter">
-                          {isAna(userEmail) ? 'RH MusiClass' : isLuciano(userEmail) ? 'Administrador' : 'Usuário'}
-                        </Badge>
+                      <div className="text-base font-black text-white truncate leading-tight">
+                        {userProfile?.nome ||
+                          (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : 'Usuário')}
                       </div>
-              </div>
+                      <div className="text-xs text-slate-400 truncate">{userEmail}</div>
+                      <div className="mt-2">
+                        <span className="inline-flex items-center rounded-full border border-slate-800 bg-slate-950/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-300">
+                          {isAna(userEmail) ? 'RH' : isLuciano(userEmail) ? 'Administrador' : 'Usuário'}
+                        </span>
+                      </div>
+                    </div>
 
                     <div className="p-3 space-y-1">
                       <button
