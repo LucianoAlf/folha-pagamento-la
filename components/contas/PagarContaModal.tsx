@@ -30,24 +30,14 @@ export const PagarContaModal: React.FC<{
   if (!isOpen || !conta) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-2xl">
-      <div className="p-6 bg-slate-900/60 border-b border-slate-800/70 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-            <DollarSign size={22} />
-          </div>
-          <div>
-            <div className="text-white font-black text-xl">REGISTRAR PAGAMENTO</div>
-            <div className="text-xs text-slate-400 font-bold">Confirme os dados da liquidação</div>
-          </div>
-        </div>
-        <button type="button" onClick={onClose} className="text-slate-400 hover:text-white">
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className="p-6">
-        <Card className="p-6 mb-6">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title="REGISTRAR PAGAMENTO"
+      className="max-w-2xl"
+    >
+      <div className="space-y-6">
+        <Card className="p-6 mb-6 bg-slate-900/40 border-slate-800">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Categoria</div>

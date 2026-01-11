@@ -65,23 +65,13 @@ export const NovaContaModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-3xl">
-      <div className="p-6 bg-rose-600/90 border-b border-rose-500/30 flex items-center justify-between rounded-t-[2rem]">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/15 text-white flex items-center justify-center">
-            <Plus size={22} />
-          </div>
-          <div>
-            <div className="text-white font-black text-2xl leading-tight">Nova Despesa</div>
-            <div className="text-white/80 text-xs font-bold">Gestão financeira</div>
-          </div>
-        </div>
-        <button type="button" onClick={onClose} className="text-white/80 hover:text-white">
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className="p-8 space-y-8">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title="NOVA DESPESA"
+      className="max-w-3xl"
+    >
+      <div className="space-y-8">
         {/* A) Dados principais */}
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-4">
@@ -254,7 +244,7 @@ export const NovaContaModal: React.FC<{
         </div>
       </div>
 
-      <div className="p-6 border-t border-slate-800/70 bg-slate-950/30 flex items-center justify-between gap-4 rounded-b-[2rem]">
+      <div className="mt-10 flex items-center justify-between gap-4">
         <button
           type="button"
           onClick={onClose}
@@ -301,6 +291,8 @@ export const NovaContaModal: React.FC<{
         </button>
       </div>
     </Modal>
+  );
+};
   );
 };
 
