@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         id: 'contas' as const,
         label: 'Contas a Pagar',
         icon: CreditCard,
-        disabled: true,
+        disabled: false,
       },
       {
         id: 'agenda' as const,

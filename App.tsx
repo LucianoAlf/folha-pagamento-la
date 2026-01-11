@@ -22,6 +22,7 @@ import {
   cn
 } from './components/CollaboratorComponents';
 import { Sidebar } from './components/Sidebar';
+import { ContasPagarPage } from './components/contas/ContasPagarPage';
 
 
 const parseBRL = (raw: string) => {
@@ -210,7 +211,8 @@ function App() {
   // Reset filter when changing tabs to avoid UX confusion
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
-    setUnidadeFiltro('todos');
+    // Reset filter only for Folha, to avoid confusing the Finance module UX
+    if (currentModule === 'folha') setUnidadeFiltro('todos');
   };
 
   const MODULE_CONFIG = {
@@ -254,7 +256,7 @@ function App() {
       if (mod === 'contas') setActiveTab('visao-geral');
     }
     
-    setUnidadeFiltro('todos');
+    if (mod === 'folha') setUnidadeFiltro('todos');
     setSidebarMobileOpen(false);
   };
 
@@ -1576,7 +1578,9 @@ function App() {
         </div>
 
         <div className="w-full flex-1 flex flex-col gap-6 pt-6">
-          {loading ? (
+          {currentModule === 'contas' ? (
+            <ContasPagarPage mode={(activeTab as any) || 'visao-geral'} />
+          ) : loading ? (
             <LoadingSpinner />
           ) : error ? (
             <ErrorState message={error} onRetry={loadData} />
