@@ -5,6 +5,12 @@ import { ContaPagar, METODOS_PAGAMENTO } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
 
+const formatDateBR = (isoDate: string) => {
+  if (!isoDate) return '—';
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 export const PagarContaModal: React.FC<{
   isOpen: boolean;
   conta: ContaPagar | null;
@@ -55,7 +61,7 @@ export const PagarContaModal: React.FC<{
                 setSaving(false);
               }
             }}
-            className="px-8 py-4 rounded-[2rem] bg-rose-600 hover:bg-rose-500 text-white font-black shadow-xl shadow-rose-600/20 disabled:opacity-50"
+            className="px-8 py-4 rounded-[2rem] bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-xl shadow-emerald-600/20 disabled:opacity-50"
           >
             Confirmar Pagamento
           </button>
@@ -74,7 +80,7 @@ export const PagarContaModal: React.FC<{
             <div className="text-right">
               <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Vencimento</div>
               <div className="text-rose-400 font-black mt-1">
-                {conta.data_vencimento}
+                {formatDateBR(conta.data_vencimento)}
                 {vencidaLabel}
               </div>
               <div className="mt-4 text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Valor Total</div>

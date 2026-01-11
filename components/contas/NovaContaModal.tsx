@@ -278,7 +278,7 @@ export const NovaContaModal: React.FC<{
               className={cn(
                 'p-5 rounded-2xl border transition-all text-left group',
                 status === 'pago'
-                  ? 'border-rose-500/60 bg-rose-500/10 shadow-lg shadow-rose-500/5'
+                  ? 'border-emerald-500/60 bg-emerald-500/10 shadow-lg shadow-emerald-500/5'
                   : 'border-slate-800 bg-slate-900/20 hover:bg-slate-900/30'
               )}
             >
