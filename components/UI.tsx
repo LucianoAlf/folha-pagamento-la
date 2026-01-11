@@ -67,7 +67,7 @@ export const DatePicker: React.FC<{
         <Popover.Content
           sideOffset={10}
           align="start"
-          className="z-[9999] rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-3"
+          className="z-[9999] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200"
         >
           <DayPicker
             mode="single"
@@ -85,38 +85,39 @@ export const DatePicker: React.FC<{
             className="text-slate-900 dark:text-slate-100"
             classNames={{
               months: 'flex flex-col',
-              month: 'space-y-3',
-              caption: 'flex items-center justify-between px-2',
-              caption_label: 'text-sm font-black text-slate-700 dark:text-slate-200',
-              nav: 'flex items-center gap-2',
+              month: 'space-y-6',
+              caption: 'flex items-center justify-between px-2 mb-4',
+              caption_label: 'text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest',
+              nav: 'flex items-center gap-3',
               nav_button:
-                'h-9 w-9 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700',
+                'h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 text-slate-500 hover:text-slate-900 dark:hover:text-white',
               table: 'w-full border-collapse space-y-1',
-              head_row: 'flex',
-              head_cell: 'w-9 text-center text-[10px] font-black uppercase tracking-widest text-slate-400',
+              head_row: 'flex mb-2',
+              head_cell: 'w-10 text-center text-[10px] font-black uppercase tracking-widest text-slate-400',
               row: 'flex w-full mt-1',
-              cell: 'w-9 h-9 text-center',
-              day: 'w-9 h-9 rounded-xl hover:bg-violet-500/10 dark:hover:bg-violet-500/15 transition-colors',
-              day_selected: 'bg-violet-600 text-white hover:bg-violet-600',
-              day_today: 'ring-2 ring-emerald-500/40',
-              day_outside: 'text-slate-300 dark:text-slate-600 opacity-60',
+              cell: 'w-10 h-10 text-center p-0 relative',
+              day: 'w-10 h-10 rounded-xl hover:bg-violet-500/10 dark:hover:bg-violet-500/20 transition-all flex items-center justify-center text-sm font-bold',
+              day_selected: 'bg-violet-600 text-white hover:bg-violet-600 shadow-lg shadow-violet-600/20',
+              day_today: 'ring-2 ring-rose-500/40 text-rose-500',
+              day_outside: 'text-slate-300 dark:text-slate-700 opacity-40',
+              day_disabled: 'text-slate-300 opacity-20',
             }}
           />
 
-          <div className="pt-3 flex justify-between gap-3">
+          <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-4">
             <button
               type="button"
               onClick={() => onChange(undefined)}
-              className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold"
+              className="flex-1 px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest transition-all"
             >
               Limpar
             </button>
             <Popover.Close asChild>
               <button
                 type="button"
-                className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold"
+                className="flex-[1.5] px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-violet-600/20 active:scale-95"
               >
-                Ok
+                Confirmar
               </button>
             </Popover.Close>
           </div>
