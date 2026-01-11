@@ -293,6 +293,4 @@ export const NovaContaModal: React.FC<{
     </Modal>
   );
 };
-  );
-};
 
