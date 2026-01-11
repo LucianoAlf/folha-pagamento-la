@@ -9,15 +9,18 @@ import {
   fetchContasPagar,
   registrarPagamento,
   createContaPagar,
+  upsertCategoria,
+  deleteCategoria,
 } from '../../services/contasPagarService';
 import { supabase } from '../../services/supabase';
 import { ContasSummaryCards } from './ContasSummaryCards';
 import { ContasTable } from './ContasTable';
 import { NovaContaModal } from './NovaContaModal';
 import { PagarContaModal } from './PagarContaModal';
+import { CategoriaModal } from './CategoriaModal';
 import { Card } from '../UI';
 import { formatCurrency } from '../../services/api';
-import { CheckCircle2, DollarSign as DollarIcon, Info, TrendingUp } from 'lucide-react';
+import { CheckCircle2, DollarSign as DollarIcon, Info, TrendingUp, Plus } from 'lucide-react';
 
 type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
@@ -34,6 +37,8 @@ export const ContasPagarPage: React.FC<{
 
   const [novaOpen, setNovaOpen] = useState(false);
   const [pagarConta, setPagarConta] = useState<ContaPagar | null>(null);
+  const [categoriaModalOpen, setCategoriaModalOpen] = useState(false);
+  const [editingCategoria, setEditingCategoria] = useState<CategoriaDespesa | null>(null);
 
   const refetch = useCallback(async () => {
     setLoading(true);
@@ -60,6 +65,9 @@ export const ContasPagarPage: React.FC<{
       .on('postgres_changes', { event: '*', schema: 'public', table: 'contas_pagar' }, () => {
         void refetch();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias_despesa' }, () => {
+        void refetch();
+      })
       .subscribe();
 
     return () => {
@@ -76,37 +84,72 @@ export const ContasPagarPage: React.FC<{
   if (mode === 'categorias') {
     return (
       <div className="w-full">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <div>
             <div className="text-xl font-black text-white">Categorias</div>
-            <div className="text-sm text-slate-500 font-bold">Configuração inicial (read-only)</div>
+            <div className="text-sm text-slate-500 font-bold tracking-tight">Gestão do Plano de Contas</div>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingCategoria(null);
+              setCategoriaModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg shadow-emerald-600/20 transition-all"
+          >
+            <Plus size={16} />
+            Nova Categoria
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {categorias.map((c) => (
-            <div
+            <button
               key={c.id}
-              className="rounded-2xl border border-slate-800 bg-slate-900/20 p-5 flex items-center justify-between"
+              onClick={() => {
+                setEditingCategoria(c);
+                setCategoriaModalOpen(true);
+              }}
+              className="group rounded-2xl border border-slate-800 bg-slate-900/20 p-5 flex items-center justify-between hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all text-left"
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-4 min-w-0">
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `${c.cor}22`, color: c.cor }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-slate-800 group-hover:border-emerald-500/30 transition-colors"
+                  style={{ backgroundColor: `${c.cor}10` }}
                 >
-                  <span className="text-lg">{c.icone}</span>
+                  <span className="text-2xl">{c.icone}</span>
                 </div>
                 <div className="min-w-0">
                   <div className="text-white font-black truncate">{c.nome}</div>
-                  <div className="text-xs text-slate-500 font-bold truncate">
-                    {c.tipo_custo ? c.tipo_custo.toUpperCase() : '—'}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-wider">
+                      {c.tipo_custo || 'VARIÁVEL'}
+                    </div>
+                    <div className="w-1 h-1 rounded-full bg-slate-700" />
+                    <div className="text-[10px] text-emerald-400 font-black uppercase tracking-wider">
+                      {c.tipo_fluxo || 'DESPESA'}
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-slate-500 font-black">#{c.ordem}</div>
-            </div>
+              <div className="text-xs text-slate-700 font-black group-hover:text-emerald-500 transition-colors">#{c.ordem}</div>
+            </button>
           ))}
         </div>
+
+        <CategoriaModal
+          isOpen={categoriaModalOpen}
+          initialData={editingCategoria}
+          onClose={() => setCategoriaModalOpen(false)}
+          onConfirm={async (payload) => {
+            await upsertCategoria(payload);
+            await refetch();
+          }}
+          onDelete={async (id) => {
+            await deleteCategoria(id);
+            await refetch();
+          }}
+        />
       </div>
     );
   }

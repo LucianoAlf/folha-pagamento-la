@@ -3,6 +3,7 @@ export interface CategoriaDespesa {
   nome: string;
   icone: string;
   cor: string;
+  tipo_fluxo: 'receita' | 'despesa';
   tipo_custo: 'fixo' | 'variavel' | null;
   ativo: boolean;
   ordem: number;

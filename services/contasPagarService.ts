@@ -13,6 +13,26 @@ export async function fetchCategorias(): Promise<CategoriaDespesa[]> {
   return (data || []) as CategoriaDespesa[];
 }
 
+export async function upsertCategoria(categoria: Partial<CategoriaDespesa>): Promise<CategoriaDespesa> {
+  const { data, error } = await supabase
+    .from('categorias_despesa')
+    .upsert([categoria])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as CategoriaDespesa;
+}
+
+export async function deleteCategoria(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('categorias_despesa')
+    .update({ ativo: false }) // Soft delete
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
 // Contas
 export async function fetchContasPagar(filtros?: {
   status?: 'todas' | 'pendente' | 'pago';
