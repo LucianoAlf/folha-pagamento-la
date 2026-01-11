@@ -104,13 +104,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logo Area */}
       <div className="p-5 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center overflow-hidden">
-            <img src="/logo-LA-colapsed.png" alt="LA" className="w-7 h-7 object-contain" />
+          <div className="w-11 h-11 flex items-center justify-center shrink-0">
+            <img src="/logo-LA-colapsed.png" alt="LA" className="w-10 h-10 object-contain drop-shadow-2xl" />
           </div>
           {!collapsed && (
-            <div className="min-w-0">
-              <div className="text-white font-black leading-tight truncate uppercase tracking-tight text-sm">SUPER FOLHA SYSTEM</div>
-              <div className="text-[10px] text-slate-500 font-bold truncate">
+            <div className="min-w-0 flex flex-col">
+              <div className="text-white font-black leading-none truncate uppercase tracking-tighter text-base">SUPER FOLHA SYSTEM</div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.38em] leading-none mt-2">
                 Sistema Inteligente
               </div>
             </div>

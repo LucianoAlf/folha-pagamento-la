@@ -1280,15 +1280,15 @@ function App() {
 
           <div className="relative z-10 flex flex-col justify-between p-16 w-full">
             {/* Top Logo */}
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 backdrop-blur-md shadow-xl overflow-hidden group/logo">
-                  <img src="/logo-LA-colapsed.png" className="w-10 h-10 object-contain transition-transform duration-500 group-hover/logo:scale-110" alt="LA" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-black tracking-tight text-white leading-none">SUPER FOLHA SYSTEM</h1>
-                  <p className="text-purple-300/80 text-sm font-medium mt-1">Sistema Inteligente</p>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 flex items-center justify-center shrink-0 group/logo">
+                <img src="/logo-LA-colapsed.png" className="w-12 h-12 object-contain transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-2xl" alt="LA" />
               </div>
+              <div>
+                <h1 className="text-3xl font-black tracking-tight text-white leading-none uppercase">SUPER FOLHA SYSTEM</h1>
+                <p className="text-purple-300/60 text-[11px] font-bold uppercase tracking-[0.35em] mt-1.5">Sistema Inteligente</p>
+              </div>
+            </div>
 
             {/* Central Hero */}
             <div className="flex flex-col items-center text-center">
@@ -1353,11 +1353,11 @@ function App() {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#0a0d14] relative">
           <div className="w-full max-w-md">
               <div className="lg:hidden flex flex-col items-center mb-12">
-                <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center shadow-2xl shadow-violet-600/30 mb-6 pulse-glow overflow-hidden">
-                  <img src="/logo-LA-colapsed.png" className="w-12 h-12 object-contain" alt="LA" />
+                <div className="w-20 h-20 flex items-center justify-center mb-6 pulse-glow">
+                  <img src="/logo-LA-colapsed.png" className="w-16 h-16 object-contain drop-shadow-2xl" alt="LA" />
                 </div>
-                <h1 className="text-white text-3xl font-black tracking-tight">SUPER FOLHA</h1>
-                <p className="text-slate-500 font-bold uppercase text-xs tracking-widest mt-2">Sistema Inteligente</p>
+                <h1 className="text-white text-3xl font-black tracking-tight uppercase">SUPER FOLHA</h1>
+                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.4em] mt-2">Sistema Inteligente</p>
               </div>
 
             <div className="bg-slate-900/40 p-10 rounded-[3rem] border border-slate-800/50 shadow-2xl backdrop-blur-sm relative overflow-hidden group">
@@ -1509,12 +1509,12 @@ function App() {
                 <Menu size={18} />
               </button>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center shadow-lg overflow-hidden">
-                  <img src="/logo-LA-colapsed.png" alt="LA" className="w-7 h-7 object-contain" />
+                <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                  <img src="/logo-LA-colapsed.png" alt="LA" className="w-9 h-9 object-contain drop-shadow-lg" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg leading-tight text-white">{currentModuleConfig.title}</h1>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">GESTÃO DE PESSOAL E LANÇAMENTOS</p>
+                  <h1 className="font-bold text-lg leading-none text-white">{currentModuleConfig.title}</h1>
+                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">GESTÃO DE PESSOAL E LANÇAMENTOS</p>
                 </div>
               </div>
             </div>
