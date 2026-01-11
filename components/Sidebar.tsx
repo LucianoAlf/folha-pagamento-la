@@ -1,0 +1,262 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  TrendingUp,
+  CreditCard,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  LogOut,
+} from 'lucide-react';
+
+const SIDEBAR_COLLAPSED_KEY = 'la-music-sidebar-collapsed';
+
+type ModuleId = 'folha' | 'contas' | 'agenda';
+type FolhaPageId = 'dashboard' | 'colaboradores' | 'lancamentos' | 'comparativo';
+
+export interface SidebarNavigate {
+  module: ModuleId;
+  page?: FolhaPageId | string;
+}
+
+export interface SidebarProps {
+  current: SidebarNavigate;
+  onNavigate: (next: SidebarNavigate) => void;
+  onLogout: () => void;
+  userLabel: string;
+  userAvatarUrl?: string | null;
+  isMobileDrawer?: boolean;
+  onCloseMobileDrawer?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  current,
+  onNavigate,
+  onLogout,
+  userLabel,
+  userAvatarUrl,
+  isMobileDrawer = false,
+  onCloseMobileDrawer,
+}) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [expandedModules, setExpandedModules] = useState<ModuleId[]>(['folha']);
+
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (v === '1') setCollapsed(true);
+      if (v === '0') setCollapsed(false);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const setCollapsedPersisted = (next: boolean) => {
+    setCollapsed(next);
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
+    } catch {
+      // ignore
+    }
+  };
+
+  const toggleModule = (module: ModuleId) => {
+    setExpandedModules((prev) =>
+      prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
+    );
+  };
+
+  const modules = useMemo(
+    () => [
+      {
+        id: 'folha' as const,
+        label: 'Folha de Pagamento',
+        icon: Users,
+        disabled: false,
+        pages: [
+          { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
+          { id: 'colaboradores' as const, label: 'Colaboradores', icon: Users },
+          { id: 'lancamentos' as const, label: 'Lançamentos', icon: FileText },
+          { id: 'comparativo' as const, label: 'Comparativo', icon: TrendingUp },
+        ],
+      },
+      {
+        id: 'contas' as const,
+        label: 'Contas a Pagar',
+        icon: CreditCard,
+        disabled: true,
+        pages: [
+          { id: 'visao-geral' as const, label: 'Visão Geral', icon: LayoutDashboard },
+          { id: 'todas' as const, label: 'Todas as Contas', icon: FileText },
+          { id: 'categorias' as const, label: 'Categorias', icon: Calendar },
+        ],
+      },
+      {
+        id: 'agenda' as const,
+        label: 'Agenda',
+        icon: Calendar,
+        disabled: true,
+        pages: [],
+      },
+    ],
+    []
+  );
+
+  const containerClass = [
+    collapsed ? 'w-20' : 'w-72',
+    'h-full bg-[#0a0d14] border-r border-slate-800/80 flex flex-col transition-all duration-300 relative',
+    isMobileDrawer ? 'shadow-2xl shadow-black/60' : '',
+  ].join(' ');
+
+  const handleNav = (next: SidebarNavigate) => {
+    onNavigate(next);
+    onCloseMobileDrawer?.();
+  };
+
+  const activeModuleId: ModuleId = current.module || 'folha';
+  const activePageId = current.page;
+
+  return (
+    <aside className={containerClass} aria-label="Navegação principal">
+      {/* Logo */}
+      <div className="p-5 border-b border-slate-800/80">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center overflow-hidden">
+            <img src="/logo-LA-colapsed.png" alt="LA" className="w-7 h-7 object-contain" />
+          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <div className="text-white font-black leading-tight truncate">LA Music Group</div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] truncate">
+                Sistema de Folha
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {modules.map((module) => {
+          const ModuleIcon = module.icon;
+          const isActiveModule = activeModuleId === module.id;
+          const isExpanded = expandedModules.includes(module.id);
+
+          return (
+            <div key={module.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (module.disabled) return;
+                  if (!collapsed && module.pages.length > 0) toggleModule(module.id);
+                  if (module.id === 'folha' && !activePageId) handleNav({ module: 'folha', page: 'dashboard' });
+                }}
+                disabled={module.disabled}
+                className={[
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-200',
+                  module.disabled
+                    ? 'opacity-50 cursor-not-allowed text-slate-500'
+                    : isActiveModule
+                      ? 'bg-violet-500/10 text-violet-300 border border-violet-500/15'
+                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-white border border-transparent',
+                ].join(' ')}
+              >
+                <ModuleIcon className="w-5 h-5 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left text-sm font-bold">{module.label}</span>
+                    {module.disabled ? (
+                      <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-300">
+                        Em breve
+                      </span>
+                    ) : module.pages.length > 0 ? (
+                      <ChevronDown
+                        className={[
+                          'w-4 h-4 transition-transform',
+                          isExpanded ? 'rotate-180' : '',
+                        ].join(' ')}
+                      />
+                    ) : null}
+                  </>
+                )}
+              </button>
+
+              {!collapsed && !module.disabled && isExpanded && module.pages.length > 0 && (
+                <div className="ml-3 mt-2 space-y-1">
+                  {module.pages.map((page) => {
+                    const PageIcon = page.icon;
+                    const isActivePage = isActiveModule && activePageId === page.id;
+                    return (
+                      <button
+                        key={page.id}
+                        type="button"
+                        onClick={() => handleNav({ module: module.id, page: page.id })}
+                        className={[
+                          'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-200',
+                          isActivePage
+                            ? 'bg-white/10 text-white'
+                            : 'text-slate-500 hover:bg-white/5 hover:text-slate-200',
+                        ].join(' ')}
+                      >
+                        <PageIcon className="w-4 h-4" />
+                        <span className="font-bold">{page.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-slate-800/80">
+        {!collapsed && (
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full border border-slate-700 overflow-hidden bg-slate-900/40 shrink-0">
+              <img
+                src={userAvatarUrl || '/logo-LA-colapsed.png'}
+                alt="Usuário"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
+                }}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-white text-sm font-black truncate">{userLabel}</div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate">Acesso</div>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onLogout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          {!collapsed && <span className="text-sm font-bold">Sair</span>}
+        </button>
+      </div>
+
+      {/* Collapse Toggle (desktop only) */}
+      {!isMobileDrawer && (
+        <button
+          type="button"
+          onClick={() => setCollapsedPersisted(!collapsed)}
+          className="absolute top-1/2 -right-3 w-7 h-7 bg-slate-900 border border-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+          title={collapsed ? 'Expandir' : 'Recolher'}
+          aria-label={collapsed ? 'Expandir' : 'Recolher'}
+        >
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+      )}
+    </aside>
+  );
+};
+

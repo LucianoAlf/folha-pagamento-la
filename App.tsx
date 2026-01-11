@@ -9,7 +9,7 @@ import {
   Calendar, Bell, BarChart3, FileText, 
   TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, ChevronRight, Database, ShieldCheck,
   LineChart as LineChartIcon,
-  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Settings
+  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Settings, Menu, X
 } from 'lucide-react';
 import { 
   CollaboratorCard, 
@@ -21,6 +21,7 @@ import {
   CONTRACT_LABELS,
   cn
 } from './components/CollaboratorComponents';
+import { Sidebar } from './components/Sidebar';
 
 import * as Popover from '@radix-ui/react-popover';
 
@@ -175,6 +176,7 @@ function App() {
   };
 
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
@@ -209,6 +211,13 @@ function App() {
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
     setUnidadeFiltro('todos');
+  };
+
+  const handleNavigate = (module: string, page?: string) => {
+    // Phase 1: only "folha" pages are enabled.
+    if (module !== 'folha') return;
+    if (!page) return;
+    handleTabChange(page);
   };
 
   const loadAiInsights = async (folhaId: number) => {
@@ -684,9 +693,10 @@ function App() {
   const totais: TotaisFolha = useMemo(() => {
     if (!folhaAtual) return { totalGeral: 0, totalCG: 0, totalRec: 0, totalBar: 0, headcount: { total: 0, cg: 0, rec: 0, bar: 0 } };
     
-    const headcountCG = lancamentos.filter(l => l.unidade === 'cg').length;
-    const headcountRec = lancamentos.filter(l => l.unidade === 'rec').length;
-    const headcountBar = lancamentos.filter(l => l.unidade === 'bar').length;
+    const headcountCG = new Set(lancamentos.filter(l => l.unidade === 'cg').map(l => l.colaborador_id)).size;
+    const headcountRec = new Set(lancamentos.filter(l => l.unidade === 'rec').map(l => l.colaborador_id)).size;
+    const headcountBar = new Set(lancamentos.filter(l => l.unidade === 'bar').map(l => l.colaborador_id)).size;
+    const totalUnico = new Set(lancamentos.map(l => l.colaborador_id)).size;
 
     // For draft months, prefer live totals from launches (so edits/duplication reflect immediately)
     const liveTotalCG = lancamentos.filter(l => l.unidade === 'cg').reduce((acc, l) => acc + (l.total || 0), 0);
@@ -700,7 +710,7 @@ function App() {
       totalRec: folhaAtual.status === 'rascunho' ? liveTotalRec : (folhaAtual.total_rec || 0),
       totalBar: folhaAtual.status === 'rascunho' ? liveTotalBar : (folhaAtual.total_bar || 0),
       headcount: {
-        total: headcountCG + headcountRec + headcountBar,
+        total: totalUnico,
         cg: headcountCG,
         rec: headcountRec,
         bar: headcountBar
@@ -1400,13 +1410,69 @@ function App() {
     );
   }
 
+  const userLabelForSidebar =
+    userProfile?.nome ||
+    (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : userEmail || 'Usuário');
+
   return (
-    <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-violet-500/30">
+    <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-violet-500/30 flex">
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:block h-screen sticky top-0 z-30">
+        <Sidebar
+          current={{ module: 'folha', page: activeTab as any }}
+          onNavigate={(next) => handleNavigate(next.module, next.page)}
+          onLogout={handleLogout}
+          userLabel={userLabelForSidebar}
+          userAvatarUrl={userProfile?.avatar_url || getDefaultAvatarByEmail(userEmail)}
+        />
+      </div>
+
+      {/* Mobile Drawer Sidebar */}
+      {sidebarMobileOpen && (
+        <div className="fixed inset-0 z-[11000] lg:hidden">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSidebarMobileOpen(false)}
+          />
+          <div className="absolute left-0 top-0 bottom-0">
+            <Sidebar
+              isMobileDrawer
+              current={{ module: 'folha', page: activeTab as any }}
+              onNavigate={(next) => handleNavigate(next.module, next.page)}
+              onLogout={handleLogout}
+              userLabel={userLabelForSidebar}
+              userAvatarUrl={userProfile?.avatar_url || getDefaultAvatarByEmail(userEmail)}
+              onCloseMobileDrawer={() => setSidebarMobileOpen(false)}
+            />
+          </div>
+          <button
+            type="button"
+            className="absolute top-5 right-5 w-10 h-10 rounded-2xl bg-slate-900/80 border border-slate-700 text-slate-200 flex items-center justify-center"
+            onClick={() => setSidebarMobileOpen(false)}
+            aria-label="Fechar menu"
+            title="Fechar menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Main content */}
+      <div className="flex-1 min-w-0 flex flex-col">
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-full mx-auto px-4 sm:px-8 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
+              <button
+                type="button"
+                className="lg:hidden w-11 h-11 rounded-2xl bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-200"
+                onClick={() => setSidebarMobileOpen(true)}
+                aria-label="Abrir menu"
+                title="Abrir menu"
+              >
+                <Menu size={18} />
+              </button>
               <div className="flex items-center gap-2">
                 <img 
                   src="/logo-LA-colapsed.png" 
@@ -1526,22 +1592,6 @@ function App() {
             </div>
           </div>
           
-          <div className="flex items-center gap-1 mt-6 overflow-x-auto pb-1 scrollbar-hide">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                  activeTab === tab.id 
-                    ? 'bg-violet-500/20 text-violet-400 ring-1 ring-violet-500/30' 
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <tab.icon size={16} />
-                {tab.label}
-              </button>
-            ))}
-          </div>
         </div>
       </header>
 
@@ -2865,21 +2915,21 @@ function App() {
                             <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varTotal > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                               {comparativoMensal.varTotal > 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                               {formatCurrency(totais.totalGeral - comparativoMensal.totalAnterior)} 
-                              ({comparativoMensal.varTotal > 0 ? '+' : ''}{comparativoMensal.varTotal.toFixed(1)}%)
+                              &nbsp;({comparativoMensal.varTotal > 0 ? '+' : ''}{comparativoMensal.varTotal.toFixed(1)}%)
                             </div>
                           </div>
                         </div>
                       </Card>
 
                       <Card className="p-6">
-                        <h3 className="text-lg font-semibold mb-4 text-white">Variação de Headcount</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-white">Variação de Equipe</h3>
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Lançamentos Mês Anterior</span>
+                            <span className="text-slate-400">Equipe Mês Anterior</span>
                             <span className="font-mono text-white">{comparativoMensal.headcountAnterior}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Lançamentos Mês Atual</span>
+                            <span className="text-slate-400">Equipe Mês Atual</span>
                             <span className="font-mono text-white">{totais.headcount.total}</span>
                           </div>
                           <div className="pt-4 border-t border-slate-700 flex justify-between items-center">
@@ -2887,7 +2937,7 @@ function App() {
                             <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varHeadcount > 0 ? 'text-cyan-400' : 'text-slate-400'}`}>
                               {comparativoMensal.varHeadcount > 0 ? <Users size={18} /> : <Users size={18} />}
                               {totais.headcount.total - comparativoMensal.headcountAnterior} 
-                              ({comparativoMensal.varHeadcount > 0 ? '+' : ''}{comparativoMensal.varHeadcount.toFixed(0)}%)
+                              &nbsp;({comparativoMensal.varHeadcount > 0 ? '+' : ''}{comparativoMensal.varHeadcount.toFixed(0)}%)
                             </div>
                           </div>
                         </div>
@@ -3063,6 +3113,7 @@ function App() {
             </div>
         </div>
       </footer>
+    </div>
     </div>
   );
 }
