@@ -12,11 +12,12 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from './CollaboratorComponents';
 
-export const Tooltip: React.FC<{ 
-  content: string; 
+export const Tooltip: React.FC<{
+  content: React.ReactNode;
   children: React.ReactNode;
   side?: 'top' | 'right' | 'bottom' | 'left';
-}> = ({ content, children, side = 'top' }) => (
+  className?: string;
+}> = ({ content, children, side = 'top', className }) => (
   <TooltipPrimitive.Provider delayDuration={200}>
     <TooltipPrimitive.Root>
       <TooltipPrimitive.Trigger asChild>
@@ -26,7 +27,10 @@ export const Tooltip: React.FC<{
         <TooltipPrimitive.Content
           side={side}
           sideOffset={5}
-          className="z-[9999] overflow-hidden rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xl animate-in fade-in zoom-in-95 duration-200"
+          className={cn(
+            "z-[9999] overflow-hidden rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xl animate-in fade-in zoom-in-95 duration-200",
+            className
+          )}
         >
           {content}
           <TooltipPrimitive.Arrow className="fill-slate-900" />

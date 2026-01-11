@@ -167,10 +167,8 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
       {initialData && onDelete && (
         <button
           onClick={() => {
-            if (window.confirm('Excluir esta categoria?')) {
-              onDelete(initialData.id);
-              onClose();
-            }
+            onDelete(initialData.id);
+            onClose();
           }}
           className="w-full mt-4 py-3 text-[10px] font-black text-rose-500/60 hover:text-rose-500 transition-colors flex items-center justify-center gap-2"
         >

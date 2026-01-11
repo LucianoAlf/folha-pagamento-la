@@ -236,6 +236,8 @@ export const ContasPagarPage: React.FC<{
   const [diaModalOpen, setDiaModalOpen] = useState(false);
   const [diaModalContaIdToDelete, setDiaModalContaIdToDelete] = useState<ContaPagar | null>(null);
 
+  const [confirmDeleteCategoria, setConfirmDeleteCategoria] = useState<{ id: string; nome: string } | null>(null);
+
   useEffect(() => {
     try {
       localStorage.setItem('contas:visaoOperacionalModo', visaoOperacionalModo);
@@ -354,9 +356,7 @@ export const ContasPagarPage: React.FC<{
       // ignore (defensivo: versões antigas podem não expor)
     }
 
-    // Método 1: Usar supabase.functions.invoke() (recomendado)
     try {
-      console.log(`🚀 [Método 1] Chamando ${functionName} via supabase.functions.invoke()`);
       const { data, error, response } = await supabase.functions.invoke(functionName, {
         body: params,
         // redundante, mas garante header mesmo se setAuth falhar por versão
@@ -369,15 +369,11 @@ export const ContasPagarPage: React.FC<{
           (error as any)?.context?.status ??
           (error as any)?.status;
 
-        console.error(`❌ [Método 1] Erro (status=${status ?? 'unknown'}):`, error);
-
         // Se não for 401, lançar erro imediatamente
         if (status !== 401) throw error;
 
         // Se for 401, tentar método alternativo
-        console.warn('⚠️ HTTP 401 detectado, tentando método alternativo...');
       } else {
-        console.log(`✅ [Método 1] Sucesso!`, data);
         return data;
       }
     } catch (err: any) {
@@ -385,13 +381,10 @@ export const ContasPagarPage: React.FC<{
         (err as any)?.context?.status ??
         (err as any)?.status;
 
-      console.error(`❌ [Método 1] Exceção capturada (status=${status ?? 'unknown'}):`, err);
       if (status !== 401) throw err;
     }
 
     // Método 2: Fetch direto com token explícito (fallback)
-    console.log(`🔄 [Método 2] Tentando fetch direto com token explícito`);
-    console.log('✅ Token obtido, enviando requisição...');
     const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
       method: 'POST',
       headers: {
@@ -405,12 +398,10 @@ export const ContasPagarPage: React.FC<{
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ [Método 2] HTTP ${response.status}:`, errorText);
       throw new Error(`Erro ${response.status}: ${errorText || 'Falha na requisição'}`);
     }
 
     const result = await response.json();
-    console.log('✅ [Método 2] Sucesso!', result);
     return result;
   };
 
@@ -425,11 +416,8 @@ export const ContasPagarPage: React.FC<{
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !sessionData?.session) {
-          console.error('❌ Sessão inválida:', sessionError);
           throw new Error('Usuário não autenticado. Por favor, faça login novamente.');
         }
-
-        console.log('✅ Sessão válida, token presente:', !!sessionData.session.access_token);
 
         const params = {
           competenciaYM: competenciaFiltro,
@@ -440,17 +428,12 @@ export const ContasPagarPage: React.FC<{
           force,
         };
 
-        console.log('📋 Parâmetros:', params);
-
         // Usar helper robusto que tenta 2 métodos
         const data = await invokeEdgeFunction('ai-contas-auditoria', params);
-
-        console.log('✅ Resposta da Edge Function:', data);
         const auditData = data as ContasAuditoriaAiRow & { cached?: boolean };
         setAuditAiCached(!!auditData?.cached);
         setAuditAiRow(auditData);
       } catch (e: any) {
-        console.error('❌ Erro capturado:', e);
         setAuditAiRow(null);
         setAuditAiCached(false);
         setAuditAiError(e?.message || 'Falha ao gerar análise');
@@ -1478,10 +1461,7 @@ export const ContasPagarPage: React.FC<{
                   <button
                     onClick={async (e) => {
                       e.stopPropagation();
-                      if (window.confirm(`Excluir a categoria "${c.nome}"?`)) {
-                        await deleteCategoria(c.id);
-                        await refetch();
-                      }
+                      setConfirmDeleteCategoria({ id: c.id, nome: c.nome });
                     }}
                     className="p-2 rounded-lg hover:bg-rose-500/20 text-slate-500 hover:text-rose-500 transition-all"
                   >
@@ -1502,10 +1482,28 @@ export const ContasPagarPage: React.FC<{
             await refetch();
           }}
           onDelete={async (id) => {
-            await deleteCategoria(id);
-            await refetch();
+            const cat = categorias.find((c) => c.id === id);
+            setConfirmDeleteCategoria({ id, nome: cat?.nome || 'Categoria' });
           }}
         />
+
+        {confirmDeleteCategoria && (
+          <ConfirmDialog
+            isOpen={!!confirmDeleteCategoria}
+            onClose={() => setConfirmDeleteCategoria(null)}
+            onConfirm={async () => {
+              const target = confirmDeleteCategoria;
+              if (!target) return;
+              setConfirmDeleteCategoria(null);
+              await deleteCategoria(target.id);
+              await refetch();
+            }}
+            title="Confirmar Exclusão"
+            message={`Tem certeza que deseja excluir a categoria \"${confirmDeleteCategoria.nome}\"?`}
+            confirmText="Excluir"
+            variant="danger"
+          />
+        )}
       </div>
     );
   }

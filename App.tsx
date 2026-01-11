@@ -1532,8 +1532,8 @@ function App() {
             <div className="flex items-center gap-3 sm:gap-6 self-end md:self-auto">
               {/* Profile Menu removed from here, month selector also removed to go inside pages */}
             </div>
-          </div>
-          
+              </div>
+              
         </div>
       </header>
 
@@ -1544,15 +1544,15 @@ function App() {
             <div>
               <h2 className="text-2xl font-black text-white flex items-center gap-3">
                 Gestão Mensal
-                <div className="flex items-center gap-2">
-                  {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
-                  {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
-                  {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
+              <div className="flex items-center gap-2">
+                {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
+                {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
+                {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
                 </div>
               </h2>
               <p className="text-sm text-slate-500 font-bold mt-1">Selecione o mês de referência para lançamentos e conferência</p>
-            </div>
-
+              </div>
+              
             <div className="flex items-center gap-3">
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Mês de Referência</div>
               <CustomSelect 
@@ -1586,18 +1586,18 @@ function App() {
             </div>
           </div>
         )}
-
+          
         {/* Module Tabs (MusiClass Style - Full Bleed) */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
             <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
                     "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
-                    activeTab === tab.id 
+                  activeTab === tab.id 
                       ? "text-violet-400" 
                       : "text-slate-500 hover:text-slate-200"
                   )}
@@ -1606,25 +1606,25 @@ function App() {
                     "transition-colors",
                     activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
                   )} />
-                  {tab.label}
+                {tab.label}
                   {activeTab === tab.id && (
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
                   )}
-                </button>
-              ))}
-            </div>
+              </button>
+            ))}
           </div>
+        </div>
         </div>
 
         <div className="w-full flex-1 flex flex-col gap-6 pt-6">
           {currentModule === 'contas' ? (
             <ContasPagarPage mode={(activeTab as any) || 'visao-geral'} />
           ) : loading ? (
-            <LoadingSpinner />
-          ) : error ? (
-            <ErrorState message={error} onRetry={loadData} />
-          ) : (
-            <>
+          <LoadingSpinner />
+        ) : error ? (
+          <ErrorState message={error} onRetry={loadData} />
+        ) : (
+          <>
             {(isCreatingLancamento || editingLancamento) && (
               <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <Card className="w-full max-w-2xl p-0 overflow-hidden">
@@ -3092,12 +3092,12 @@ function App() {
                         </div>
                         <div className="flex items-center gap-2">
                             <Tooltip content="Rejeitar">
-                                <button 
-                                    onClick={() => handleUpdateStatus('rascunho')}
-                                    className="p-2 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors"
-                                >
-                                    <XCircle size={20} />
-                                </button>
+                            <button 
+                                onClick={() => handleUpdateStatus('rascunho')}
+                                className="p-2 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors"
+                            >
+                                <XCircle size={20} />
+                            </button>
                             </Tooltip>
                             <button 
                                 onClick={() => handleUpdateStatus('aprovada')}
@@ -3111,12 +3111,12 @@ function App() {
                 </div>
               </div>
             )}
-            </>
-          )}
+          </>
+        )}
         </div>
       </main>
       
-    </div>
+            </div>
     </div>
   );
 }
