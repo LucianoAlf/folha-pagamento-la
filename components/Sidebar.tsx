@@ -161,16 +161,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Footer */}
       <div className="p-4 border-t border-slate-800/80">
-        {!collapsed && (
-          <div className="mb-3">
-            <div className="text-white text-sm font-black truncate">{userLabel}</div>
+        <button
+          type="button"
+          className={[
+            'w-full flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 transition-colors',
+            collapsed ? 'justify-center p-2.5' : 'p-3',
+          ].join(' ')}
+          onClick={() => handleNav({ module: 'folha' })}
+          title={!collapsed ? undefined : userLabel}
+          aria-label="Conta"
+        >
+          <div className="w-10 h-10 rounded-full border border-slate-700 overflow-hidden bg-slate-900/40 shrink-0">
+            <img
+              src={userAvatarUrl || '/logo-LA-colapsed.png'}
+              alt="Usuário"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
+              }}
+            />
           </div>
-        )}
+          {!collapsed && (
+            <div className="min-w-0 flex-1 text-left">
+              <div className="text-white text-sm font-black truncate">{userLabel}</div>
+            </div>
+          )}
+        </button>
 
         <button
           type="button"
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+          className={[
+            'w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors',
+          ].join(' ')}
         >
           <LogOut className="w-4 h-4" />
           {!collapsed && <span className="text-sm font-bold">Sair</span>}

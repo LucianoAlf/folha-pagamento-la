@@ -7,9 +7,9 @@ import { KPICard, DistributionChart, EvolutionChart } from './components/Dashboa
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
   Calendar, Bell, BarChart3, FileText, 
-  TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, ChevronRight, Database, ShieldCheck, CreditCard,
+  TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database, ShieldCheck, CreditCard,
   LineChart as LineChartIcon,
-  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Settings, Menu, X
+  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Menu, X
 } from 'lucide-react';
 import { 
   CollaboratorCard, 
@@ -23,7 +23,6 @@ import {
 } from './components/CollaboratorComponents';
 import { Sidebar } from './components/Sidebar';
 
-import * as Popover from '@radix-ui/react-popover';
 
 const parseBRL = (raw: string) => {
   const cleaned = (raw || '')
@@ -1520,78 +1519,6 @@ function App() {
             </div>
             
             <div className="flex items-center gap-3 sm:gap-6 self-end md:self-auto">
-              {/* Profile menu (replaces email chip + bell) */}
-              <Popover.Root>
-                <Popover.Trigger asChild>
-                  <button
-                    className="relative w-12 h-12 rounded-full border-2 border-slate-700/50 hover:border-violet-500/50 transition-all flex-shrink-0 group focus:outline-none focus:ring-2 focus:ring-violet-500/40 shadow-lg shadow-black/20"
-                    title="Perfil"
-                    aria-label="Perfil"
-                  >
-                    <div className="w-full h-full rounded-full overflow-hidden">
-                      <img
-                        src={
-                          userProfile?.avatar_url ||
-                          getDefaultAvatarByEmail(userEmail) ||
-                          '/logo-LA-colapsed.png'
-                        }
-                        alt="Avatar"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
-                        }}
-                      />
-                    </div>
-                  </button>
-                </Popover.Trigger>
-                    <Popover.Portal>
-                  <Popover.Content
-                    sideOffset={12}
-                    align="start"
-                    className="z-[999999] w-[320px] rounded-[2rem] border border-slate-800 bg-slate-950/95 backdrop-blur-xl shadow-2xl shadow-black/60 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-                  >
-                    <div className="p-5 border-b border-slate-800/70 bg-slate-900/30">
-                      <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.25em] mb-2">
-                        Conta
-                      </div>
-                      <div className="text-base font-black text-white truncate leading-tight">
-                        {userProfile?.nome ||
-                          (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : 'Usuário')}
-                      </div>
-                      <div className="text-xs text-slate-400 truncate">{userEmail}</div>
-                      <div className="mt-2">
-                        <span className="inline-flex items-center rounded-full border border-slate-800 bg-slate-950/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-300">
-                          {isAna(userEmail) ? 'RH' : isLuciano(userEmail) ? 'Administrador' : 'Usuário'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-3 space-y-1">
-                      <button
-                        onClick={openProfile}
-                        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl hover:bg-slate-800/80 text-slate-300 hover:text-white transition-all group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Settings size={18} className="text-slate-500 group-hover:text-violet-400 transition-colors" />
-                          <span className="text-sm font-bold">Meu Perfil</span>
-                        </div>
-                        <ChevronRight size={14} className="text-slate-600 group-hover:text-slate-400" />
-                      </button>
-
-                      <div className="h-px bg-slate-800/50 mx-2 my-1" />
-
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 transition-all group"
-                      >
-                        <LogOut size={18} className="text-slate-600 group-hover:text-rose-400 transition-colors" />
-                        <span className="text-sm font-bold">Sair do sistema</span>
-                      </button>
-                    </div>
-                  </Popover.Content>
-                </Popover.Portal>
-              </Popover.Root>
-              
               <div className="flex items-center gap-2">
                 {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
                 {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
