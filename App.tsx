@@ -175,6 +175,7 @@ function App() {
     return null;
   };
 
+  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'agenda'>('folha');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
@@ -213,11 +214,49 @@ function App() {
     setUnidadeFiltro('todos');
   };
 
+  const MODULE_CONFIG = {
+    folha: {
+      title: 'Folha de Pagamento',
+      subtitle: 'GESTÃO DE PESSOAL E LANÇAMENTOS',
+      icon: Users,
+      tabs: [
+        { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+        { id: 'colaboradores', label: 'Colaboradores', icon: Users },
+        { id: 'lancamentos', label: 'Lançamentos', icon: FileText },
+        { id: 'comparativo', label: 'Comparativo', icon: TrendingUp },
+      ]
+    },
+    contas: {
+      title: 'Contas a Pagar',
+      subtitle: 'FLUXO DE CAIXA E OBRIGAÇÕES',
+      icon: CreditCard,
+      tabs: [
+        { id: 'visao-geral', label: 'Visão Geral', icon: BarChart3 },
+        { id: 'todas', label: 'Todas as Contas', icon: FileText },
+        { id: 'categorias', label: 'Categorias', icon: Calendar },
+      ]
+    },
+    agenda: {
+      title: 'Agenda',
+      subtitle: 'COMPROMISSOS E TAREFAS',
+      icon: Calendar,
+      tabs: []
+    }
+  };
+
   const handleNavigate = (module: string, page?: string) => {
-    // Phase 1: only "folha" pages are enabled.
-    if (module !== 'folha') return;
-    if (!page) return;
-    handleTabChange(page);
+    const mod = module as 'folha' | 'contas' | 'agenda';
+    setCurrentModule(mod);
+    
+    if (page) {
+      setActiveTab(page);
+    } else {
+      if (mod === 'folha') setActiveTab('dashboard');
+      if (mod === 'contas') setActiveTab('visao-geral');
+    }
+    
+    setUnidadeFiltro('todos');
+    setSidebarMobileOpen(false);
   };
 
   const loadAiInsights = async (folhaId: number) => {
@@ -1007,12 +1046,8 @@ function App() {
     }
   };
 
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'colaboradores', label: 'Colaboradores', icon: Users },
-    { id: 'lancamentos', label: 'Lançamentos', icon: FileText },
-    { id: 'comparativo', label: 'Comparativo', icon: TrendingUp },
-  ];
+  const currentModuleConfig = MODULE_CONFIG[currentModule];
+  const tabs = currentModuleConfig.tabs;
 
   const deptLabels: Record<string, string> = {
     staff_rateado: 'Staff Rateado',
@@ -1487,8 +1522,8 @@ function App() {
                   }}
                 />
                 <div>
-                  <h1 className="font-bold text-lg leading-tight">Folha de Pagamento</h1>
-                  <p className="text-xs text-slate-500">LA Music Group</p>
+                  <h1 className="font-bold text-lg leading-tight">LA Music Group</h1>
+                  <p className="text-xs text-slate-500">Sistema de Gestão</p>
                 </div>
               </div>
             </div>
@@ -1595,7 +1630,45 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-full mx-auto px-4 sm:px-8 py-8">
+      <main className="max-w-full mx-auto px-4 sm:px-8 py-8 flex-1 flex flex-col">
+        {/* Module Header (MusiClass Style) */}
+        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-500/5">
+              <currentModuleConfig.icon size={24} />
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-white tracking-tight">{currentModuleConfig.title}</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-0.5">{currentModuleConfig.subtitle}</p>
+            </div>
+          </div>
+
+          {/* Horizontal Tabs (MusiClass Style) */}
+          <div className="flex items-center gap-1 border-b border-slate-800/60 mt-6 overflow-x-auto pb-px scrollbar-hide">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={cn(
+                  "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
+                  activeTab === tab.id 
+                    ? "text-violet-400" 
+                    : "text-slate-500 hover:text-slate-200"
+                )}
+              >
+                <tab.icon size={16} className={cn(
+                  "transition-colors",
+                  activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
+                )} />
+                {tab.label}
+                {activeTab === tab.id && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {loading ? (
           <LoadingSpinner />
         ) : error ? (

@@ -42,7 +42,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobileDrawer,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [expandedModules, setExpandedModules] = useState<ModuleId[]>(['folha']);
 
   useEffect(() => {
     try {
@@ -63,12 +62,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const toggleModule = (module: ModuleId) => {
-    setExpandedModules((prev) =>
-      prev.includes(module) ? prev.filter((m) => m !== module) : [...prev, module]
-    );
-  };
-
   const modules = useMemo(
     () => [
       {
@@ -76,30 +69,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         label: 'Folha de Pagamento',
         icon: Users,
         disabled: false,
-        pages: [
-          { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'colaboradores' as const, label: 'Colaboradores', icon: Users },
-          { id: 'lancamentos' as const, label: 'Lançamentos', icon: FileText },
-          { id: 'comparativo' as const, label: 'Comparativo', icon: TrendingUp },
-        ],
       },
       {
         id: 'contas' as const,
         label: 'Contas a Pagar',
         icon: CreditCard,
         disabled: true,
-        pages: [
-          { id: 'visao-geral' as const, label: 'Visão Geral', icon: LayoutDashboard },
-          { id: 'todas' as const, label: 'Todas as Contas', icon: FileText },
-          { id: 'categorias' as const, label: 'Categorias', icon: Calendar },
-        ],
       },
       {
         id: 'agenda' as const,
         label: 'Agenda',
         icon: Calendar,
         disabled: true,
-        pages: [],
       },
     ],
     []
@@ -117,7 +98,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const activeModuleId: ModuleId = current.module || 'folha';
-  const activePageId = current.page;
 
   return (
     <aside className={containerClass} aria-label="Navegação principal">
@@ -143,7 +123,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {modules.map((module) => {
           const ModuleIcon = module.icon;
           const isActiveModule = activeModuleId === module.id;
-          const isExpanded = expandedModules.includes(module.id);
 
           return (
             <div key={module.id}>
@@ -151,16 +130,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 type="button"
                 onClick={() => {
                   if (module.disabled) return;
-                  if (!collapsed && module.pages.length > 0) toggleModule(module.id);
-                  if (module.id === 'folha' && !activePageId) handleNav({ module: 'folha', page: 'dashboard' });
+                  handleNav({ module: module.id });
                 }}
                 disabled={module.disabled}
                 className={[
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-200',
+                  'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200',
                   module.disabled
                     ? 'opacity-50 cursor-not-allowed text-slate-500'
                     : isActiveModule
-                      ? 'bg-violet-500/10 text-violet-300 border border-violet-500/15'
+                      ? 'bg-violet-500/15 text-violet-300 border border-violet-500/20 shadow-lg shadow-violet-500/5'
                       : 'text-slate-400 hover:bg-slate-800/40 hover:text-white border border-transparent',
                 ].join(' ')}
               >
@@ -168,46 +146,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {!collapsed && (
                   <>
                     <span className="flex-1 text-left text-sm font-bold">{module.label}</span>
-                    {module.disabled ? (
-                      <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-300">
+                    {module.disabled && (
+                      <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-400">
                         Em breve
                       </span>
-                    ) : module.pages.length > 0 ? (
-                      <ChevronDown
-                        className={[
-                          'w-4 h-4 transition-transform',
-                          isExpanded ? 'rotate-180' : '',
-                        ].join(' ')}
-                      />
-                    ) : null}
+                    )}
                   </>
                 )}
               </button>
-
-              {!collapsed && !module.disabled && isExpanded && module.pages.length > 0 && (
-                <div className="ml-3 mt-2 space-y-1">
-                  {module.pages.map((page) => {
-                    const PageIcon = page.icon;
-                    const isActivePage = isActiveModule && activePageId === page.id;
-                    return (
-                      <button
-                        key={page.id}
-                        type="button"
-                        onClick={() => handleNav({ module: module.id, page: page.id })}
-                        className={[
-                          'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-200',
-                          isActivePage
-                            ? 'bg-white/10 text-white'
-                            : 'text-slate-500 hover:bg-white/5 hover:text-slate-200',
-                        ].join(' ')}
-                      >
-                        <PageIcon className="w-4 h-4" />
-                        <span className="font-bold">{page.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           );
         })}
