@@ -104,14 +104,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logo Area */}
       <div className="p-5 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center shadow-lg shadow-violet-500/5">
-            <span className="text-violet-400 font-black text-xl">SF</span>
+          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center overflow-hidden">
+            <img src="/logo-LA-colapsed.png" alt="LA" className="w-7 h-7 object-contain" />
           </div>
           {!collapsed && (
             <div className="min-w-0">
               <div className="text-white font-black leading-tight truncate uppercase tracking-tight text-sm">SUPER FOLHA SYSTEM</div>
               <div className="text-[10px] text-slate-500 font-bold truncate">
-                (Sistema de Gestão Inteligente)
+                Sistema Inteligente
               </div>
             </div>
           )}
