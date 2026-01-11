@@ -3,6 +3,13 @@ import { Plus, X } from 'lucide-react';
 import { CustomSelect, DatePicker, Modal } from '../UI';
 import { CategoriaDespesa, ContaPagar, UNIDADES_CONTA } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
+import { cn } from '../CollaboratorComponents';
+
+const UNIDADES_SIMPLES = [
+  { value: 'cg', label: 'Campo Grande' },
+  { value: 'rec', label: 'Recreio' },
+  { value: 'bar', label: 'Barra' }
+];
 
 type LaunchType = 'unica' | 'recorrente' | 'parcelada';
 type PaymentStatus = 'pendente' | 'pago';
@@ -16,7 +23,7 @@ export const NovaContaModal: React.FC<{
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState<string>('');
   const [categoriaId, setCategoriaId] = useState<string>('');
-  const [unidade, setUnidade] = useState<string>('todas');
+  const [unidade, setUnidade] = useState<string>('cg');
 
   const [launchType, setLaunchType] = useState<LaunchType>('unica');
   const [parcelas, setParcelas] = useState<number>(2);
@@ -169,7 +176,7 @@ export const NovaContaModal: React.FC<{
                 <CustomSelect
                   value={unidade}
                   onValueChange={(v) => setUnidade(v)}
-                  options={UNIDADES_CONTA.map((u) => ({ value: u.value, label: u.label }))}
+                  options={UNIDADES_SIMPLES.map((u) => ({ value: u.value, label: u.label }))}
                 />
               </div>
             </div>
