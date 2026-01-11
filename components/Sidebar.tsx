@@ -101,17 +101,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className={containerClass} aria-label="Navegação principal">
-      {/* Logo */}
+      {/* Logo Area */}
       <div className="p-5 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center overflow-hidden">
-            <img src="/logo-LA-colapsed.png" alt="LA" className="w-7 h-7 object-contain" />
+          <div className="w-11 h-11 rounded-2xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center shadow-lg shadow-violet-500/5">
+            <span className="text-violet-400 font-black text-xl">SF</span>
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <div className="text-white font-black leading-tight truncate">LA Music Group</div>
-              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] truncate">
-                Sistema de Folha
+              <div className="text-white font-black leading-tight truncate uppercase tracking-tight text-sm">SUPER FOLHA SYSTEM</div>
+              <div className="text-[10px] text-slate-500 font-bold truncate">
+                (Sistema de Gestão Inteligente)
               </div>
             </div>
           )}

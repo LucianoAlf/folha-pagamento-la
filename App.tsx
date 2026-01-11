@@ -7,7 +7,7 @@ import { KPICard, DistributionChart, EvolutionChart } from './components/Dashboa
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
   Calendar, Bell, BarChart3, FileText, 
-  TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, ChevronRight, Database, ShieldCheck,
+  TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, ChevronRight, Database, ShieldCheck, CreditCard,
   LineChart as LineChartIcon,
   Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Settings, Menu, X
 } from 'lucide-react';
@@ -586,7 +586,7 @@ function App() {
     const channel = supabase
       .channel('db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lancamentos_folha' }, () => {
-        loadData();
+    loadData();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'folhas_mensais' }, () => {
         loadData();
@@ -1238,7 +1238,7 @@ function App() {
   };
 
   if (authLoading) {
-    return (
+  return (
       <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center">
         <div className="flex items-center gap-3 text-slate-400">
           <Loader2 className="animate-spin" />
@@ -1280,14 +1280,14 @@ function App() {
 
           <div className="relative z-10 flex flex-col justify-between p-16 w-full">
             {/* Top Logo */}
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 backdrop-blur-md shadow-xl overflow-hidden group/logo">
-                <img src="/logo-LA-colapsed.png" className="w-10 h-10 object-contain transition-transform duration-500 group-hover/logo:scale-110" alt="LA" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-black tracking-tight text-white leading-none">LA Music Group</h1>
-                <p className="text-purple-300/80 text-sm font-medium mt-1">Sistema de Folha de Pagamento</p>
-              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 backdrop-blur-md shadow-xl group/logo">
+                  <span className="text-white font-black text-2xl transition-transform duration-500 group-hover/logo:scale-110">SF</span>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-black tracking-tight text-white leading-none">SUPER FOLHA SYSTEM</h1>
+                  <p className="text-purple-300/80 text-sm font-medium mt-1">Gestão de Folha Inteligente</p>
+                </div>
             </div>
 
             {/* Central Hero */}
@@ -1353,11 +1353,11 @@ function App() {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#0a0d14] relative">
           <div className="w-full max-w-md">
             <div className="lg:hidden flex flex-col items-center mb-12">
-              <div className="w-20 h-20 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-violet-600/30 mb-6 pulse-glow text-white font-black text-3xl">
-                LA
-              </div>
-              <h1 className="text-white text-3xl font-black tracking-tight">LA Music Group</h1>
-              <p className="text-slate-500 font-bold uppercase text-xs tracking-widest mt-2">Folha de Pagamento</p>
+                <div className="w-20 h-20 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-violet-600/30 mb-6 pulse-glow text-white font-black text-3xl">
+                  SF
+                </div>
+                <h1 className="text-white text-3xl font-black tracking-tight">SUPER FOLHA</h1>
+                <p className="text-slate-500 font-bold uppercase text-xs tracking-widest mt-2">Sistema de Gestão Inteligente</p>
             </div>
 
             <div className="bg-slate-900/40 p-10 rounded-[3rem] border border-slate-800/50 shadow-2xl backdrop-blur-sm relative overflow-hidden group">
@@ -1385,7 +1385,7 @@ function App() {
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Senha de Acesso</label>
-                  </div>
+              </div>
                   <input
                     type="password"
                     value={loginPassword}
@@ -1428,7 +1428,7 @@ function App() {
 
             <div className="text-center mt-10">
               <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">
-                LA Music Group © 2026 • <span className="text-violet-500/80">v2.0 Premium</span>
+                SUPER FOLHA SYSTEM © 2026 • <span className="text-violet-500/80">v2.0 Premium</span>
               </p>
             </div>
           </div>
@@ -1508,22 +1508,13 @@ function App() {
               >
                 <Menu size={18} />
               </button>
-              <div className="flex items-center gap-2">
-                <img 
-                  src="/logo-LA-colapsed.png" 
-                  alt="LA Logo" 
-                  className="w-10 h-10 object-contain drop-shadow-lg"
-                  onError={(e) => {
-                    // Fallback if image doesn't exist yet
-                    e.currentTarget.style.display = 'none';
-                    if (!e.currentTarget.parentElement?.querySelector('.fallback-logo')) {
-                      e.currentTarget.parentElement!.insertAdjacentHTML('afterbegin', '<div class="fallback-logo w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center font-bold text-lg shadow-lg shadow-violet-500/20">LA</div>');
-                    }
-                  }}
-                />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-500/5">
+                  <currentModuleConfig.icon size={20} />
+                </div>
                 <div>
-                  <h1 className="font-bold text-lg leading-tight">LA Music Group</h1>
-                  <p className="text-xs text-slate-500">Sistema de Gestão</p>
+                  <h1 className="font-bold text-lg leading-tight text-white">{currentModuleConfig.title}</h1>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">{currentModuleConfig.subtitle}</p>
                 </div>
               </div>
             </div>
@@ -1581,7 +1572,7 @@ function App() {
                           {isAna(userEmail) ? 'RH MusiClass' : isLuciano(userEmail) ? 'Administrador' : 'Usuário'}
                         </Badge>
                       </div>
-                    </div>
+              </div>
 
                     <div className="p-3 space-y-1">
                       <button
@@ -1608,13 +1599,13 @@ function App() {
                   </Popover.Content>
                 </Popover.Portal>
               </Popover.Root>
-
+              
               <div className="flex items-center gap-2">
                 {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
                 {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
                 {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
               </div>
-
+              
               <CustomSelect 
                 value={selectedFolhaId?.toString() || ''} 
                 onValueChange={(val) => setSelectedFolhaId(Number(val))}
@@ -1631,20 +1622,10 @@ function App() {
       </header>
 
       <main className="max-w-full mx-auto px-4 sm:px-8 py-8 flex-1 flex flex-col">
-        {/* Module Header (MusiClass Style) */}
+        {/* Module Header & Tabs (MusiClass Style) */}
         <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-500/5">
-              <currentModuleConfig.icon size={24} />
-            </div>
-            <div>
-              <h2 className="text-3xl font-black text-white tracking-tight">{currentModuleConfig.title}</h2>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-0.5">{currentModuleConfig.subtitle}</p>
-            </div>
-          </div>
-
           {/* Horizontal Tabs (MusiClass Style) */}
-          <div className="flex items-center gap-1 border-b border-slate-800/60 mt-6 overflow-x-auto pb-px scrollbar-hide">
+          <div className="flex items-center gap-1 border-b border-slate-800/60 overflow-x-auto pb-px scrollbar-hide">
             {tabs.map(tab => (
               <button
                 key={tab.id}
@@ -1679,10 +1660,10 @@ function App() {
               <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <Card className="w-full max-w-2xl p-0 overflow-hidden">
                   <div className="flex items-center justify-between px-6 py-4 bg-slate-900/60 border-b border-slate-700/50">
-                    <div>
+                        <div>
                       <div className="text-white font-bold text-lg">
                         {isCreatingLancamento ? 'Novo Lançamento' : 'Editar Lançamento'}
-                      </div>
+                        </div>
                       <div className="text-xs text-slate-400">
                         {folhaAtual ? `${getMesNome(folhaAtual.mes)} ${folhaAtual.ano}` : ''}
                         {unidadeFiltro !== 'todos' ? ` • Unidade ${unidadeLabels[unidadeFiltro]}` : ''}
@@ -1759,8 +1740,8 @@ function App() {
                               }
                             }}
                           />
-                        </div>
-                      ))}
+                    </div>
+                 ))}
                     </div>
 
                     <div className="flex justify-end gap-3 pt-2">
@@ -2172,9 +2153,9 @@ function App() {
                         <EvolutionChart data={evolutionData} />
                       ) : (
                         <div className="h-full flex items-center justify-center p-8">
-                          <p className="text-slate-500 text-center text-sm">
+                         <p className="text-slate-500 text-center text-sm">
                             Histórico será exibido após cadastrar meses anteriores
-                          </p>
+                         </p>
                         </div>
                       )}
                     </div>
@@ -2482,16 +2463,16 @@ function App() {
                         Excluir Mês
                       </button>
                     )}
-
-                    {statusFolha === 'rascunho' && (
-                      <button 
-                        onClick={() => handleUpdateStatus('pendente')}
+                  
+                  {statusFolha === 'rascunho' && (
+                    <button 
+                      onClick={() => handleUpdateStatus('pendente')}
                         className="flex items-center justify-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-violet-600/20"
-                      >
-                        <CheckCircle size={16} />
+                    >
+                      <CheckCircle size={16} />
                         Submeter
-                      </button>
-                    )}
+                    </button>
+                  )}
                   </div>
                 </div>
 
@@ -2593,7 +2574,7 @@ function App() {
                                   <tr key={l.id} className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors group">
                                     <td className="py-3 px-4">
                                       <div className="flex items-center justify-between group/colab">
-                                        <div className="flex items-center gap-3">
+                                      <div className="flex items-center gap-3">
                                           <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 overflow-hidden">
                                             {colab.id === 2 || colab.nome?.includes('Ana Paula') ? (
                                               <img src="/Avatar_Ana.png" alt="Ana Paula" className="w-full h-full object-cover" />
@@ -2602,11 +2583,11 @@ function App() {
                                             ) : (
                                               (colab.nome || '?').charAt(0)
                                             )}
-                                          </div>
-                                          <div>
-                                            <div className="font-medium text-sm text-slate-200">{colab.nome || 'N/A'}</div>
-                                            <div className="text-[10px] text-slate-500 uppercase">{colab.funcao || ''}</div>
-                                          </div>
+                                        </div>
+                                        <div>
+                                          <div className="font-medium text-sm text-slate-200">{colab.nome || 'N/A'}</div>
+                                          <div className="text-[10px] text-slate-500 uppercase">{colab.funcao || ''}</div>
+                                        </div>
                                         </div>
                                         
                                         {statusFolha === 'rascunho' && (
@@ -2688,7 +2669,7 @@ function App() {
                                     </td>
                                     <td className="py-3 px-4 text-right">
                                       <div className="flex flex-col items-end">
-                                        <span className="font-mono font-bold text-sm text-white">{formatCurrency(l.total)}</span>
+                                      <span className="font-mono font-bold text-sm text-white">{formatCurrency(l.total)}</span>
                                         {(() => {
                                           const { prevMap } = aggregatedData;
                                           const prev = prevMap[l.colaborador_id];
@@ -2781,7 +2762,7 @@ function App() {
             {activeTab === 'comparativo' && (
               <div className="space-y-6">
                 {!comparativoMensal ? (
-                  <Card className="p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-slate-700 bg-transparent">
+                 <Card className="p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-slate-700 bg-transparent">
                     <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-500">
                         <BarChart3 size={32} />
                     </div>
@@ -2789,7 +2770,7 @@ function App() {
                     <p className="text-slate-400 max-w-md">
                         O comparativo histórico será ativado assim que houver mais de um mês de folha processado no sistema.
                     </p>
-                  </Card>
+                 </Card>
                 ) : (
                   <div className="space-y-6">
                     {/* IA & Sugestão da Ana */}
@@ -3179,7 +3160,7 @@ function App() {
       
       <footer className="border-t border-slate-800 mt-auto py-8 bg-slate-900">
         <div className="max-w-full mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
-            <div>&copy; 2024 LA Music Group. Todos os direitos reservados.</div>
+            <div>&copy; 2026 SUPER FOLHA SYSTEM. Todos os direitos reservados.</div>
             <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                 Sistema v1.2.0
