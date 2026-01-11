@@ -20,7 +20,7 @@ import { CategoriaModal } from './CategoriaModal';
 import { Card, CustomSelect } from '../UI';
 import { formatCurrency } from '../../services/api';
 import { CheckCircle2, DollarSign as DollarIcon, Info, TrendingUp, Plus, Filter } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn } from '../CollaboratorComponents';
 
 type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
