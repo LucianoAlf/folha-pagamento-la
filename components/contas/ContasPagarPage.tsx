@@ -8,8 +8,10 @@ import {
   fetchContasPagar,
   registrarPagamento,
   createContaPagar,
+  updateContaPagar,
   upsertCategoria,
   deleteCategoria,
+  getStatusVisual,
 } from '../../services/contasPagarService';
 import { supabase } from '../../services/supabase';
 import { ContasSummaryCards } from './ContasSummaryCards';
@@ -17,6 +19,7 @@ import { ContasTable } from './ContasTable';
 import { NovaContaModal } from './NovaContaModal';
 import { PagarContaModal } from './PagarContaModal';
 import { CategoriaModal } from './CategoriaModal';
+import { EditarContaModal } from './EditarContaModal';
 import { Card, CustomSelect } from '../UI';
 import { formatCurrency } from '../../services/api';
 import { CheckCircle2, DollarSign as DollarIcon, Info, TrendingUp, Plus, Filter } from 'lucide-react';
@@ -38,9 +41,16 @@ export const ContasPagarPage: React.FC<{
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>('all');
   const [comportamentoFiltro, setComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
   const [tipoFiltro, setTipoFiltro] = useState<'all' | 'unica' | 'parcelada' | 'recorrente'>('all');
+  
+  // Define o mês atual como padrão para evitar poluição visual de meses futuros
+  const [competenciaFiltro, setCompetenciaFiltro] = useState<string>(() => {
+    const hoje = new Date();
+    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   const [novaOpen, setNovaOpen] = useState(false);
   const [pagarConta, setPagarConta] = useState<ContaPagar | null>(null);
+  const [editarConta, setEditarConta] = useState<ContaPagar | null>(null);
   const [categoriaModalOpen, setCategoriaModalOpen] = useState(false);
   const [editingCategoria, setEditingCategoria] = useState<CategoriaDespesa | null>(null);
 
@@ -81,24 +91,89 @@ export const ContasPagarPage: React.FC<{
     };
   }, [refetch]);
 
-  const resumo = useMemo(() => calcularResumo(contas), [contas]);
-  const resumoAuditoria = useMemo(() => calcularResumoAuditoria(contas), [contas]);
+  const competenciaOptions = useMemo(() => {
+    const opts = new Set<string>();
+    contas.forEach(c => {
+      if (c.competencia) {
+        const [y, m] = c.competencia.split('-');
+        opts.add(`${y}-${m}`);
+      }
+    });
+    
+    const hoje = new Date();
+    const cur = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+    opts.add(cur);
+    
+    const prox = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+    const nxt = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, '0')}`;
+    opts.add(nxt);
 
-  const contasFiltradas = useMemo(() => {
+    return Array.from(opts)
+      .sort((a, b) => a.localeCompare(b))
+      .map(v => {
+        const [y, m] = v.split('-');
+        const date = new Date(Number(y), Number(m) - 1, 1);
+        const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        return { 
+          value: v, 
+          label: label.charAt(0).toUpperCase() + label.slice(1)
+        };
+      });
+  }, [contas]);
+
+  // Filtro para "Todas as Contas" (Auditoria) - Respeita estritamente o mês
+  const contasAudit = useMemo(() => {
     return contas.filter(c => {
-      // Filtro Unidade
       if (unidadeFiltro !== 'todas' && c.unidade !== unidadeFiltro && c.unidade !== 'todas') return false;
-      
-      // Filtro Categoria
       if (categoriaFiltro !== 'all' && c.categoria_id !== categoriaFiltro) return false;
-      
-      // Filtro Comportamento (Fixo/Variável)
       if (comportamentoFiltro !== 'all' && c.categoria?.tipo_custo !== comportamentoFiltro) return false;
-      
-      // Filtro Tipo (Única/Parcelada)
       if (tipoFiltro !== 'all' && c.tipo_lancamento !== tipoFiltro) return false;
 
-      // Filtro de Busca
+      if (competenciaFiltro !== 'all') {
+        if (!c.competencia) return false;
+        const [y, m] = c.competencia.split('-');
+        if (`${y}-${m}` !== competenciaFiltro) return false;
+      }
+
+      if (busca) {
+        const q = busca.toLowerCase();
+        const inDesc = (c.descricao || '').toLowerCase().includes(q);
+        const inCat = (c.categoria?.nome || '').toLowerCase().includes(q);
+        if (!inDesc && !inCat) return false;
+      }
+      return true;
+    });
+  }, [contas, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, competenciaFiltro, busca]);
+
+  // Filtro para "Visão Geral" (Urgência) - Respeita o mês selecionado, mas SEMPRE mostra contas VENCIDAS
+  // e também mostra o que vence nos próximos 30 dias (independente do mês) para evitar surpresas.
+  const contasVisaoGeral = useMemo(() => {
+    return contas.filter(c => {
+      if (unidadeFiltro !== 'todas' && c.unidade !== unidadeFiltro && c.unidade !== 'todas') return false;
+      if (categoriaFiltro !== 'all' && c.categoria_id !== categoriaFiltro) return false;
+      if (comportamentoFiltro !== 'all' && c.categoria?.tipo_custo !== comportamentoFiltro) return false;
+      if (tipoFiltro !== 'all' && c.tipo_lancamento !== tipoFiltro) return false;
+
+      const statusVisual = getStatusVisual(c);
+      const isVencida = statusVisual === 'vencida';
+      
+      if (c.status === 'pendente') {
+        if (isVencida) return true;
+        
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const venc = new Date(`${c.data_vencimento}T00:00:00`);
+        venc.setHours(0, 0, 0, 0);
+        const diffDias = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDias >= 0 && diffDias <= 30) return true;
+      }
+
+      if (competenciaFiltro !== 'all') {
+        if (!c.competencia) return false;
+        const [y, m] = c.competencia.split('-');
+        if (`${y}-${m}` !== competenciaFiltro) return false;
+      }
+
       if (busca) {
         const q = busca.toLowerCase();
         const inDesc = (c.descricao || '').toLowerCase().includes(q);
@@ -108,10 +183,10 @@ export const ContasPagarPage: React.FC<{
 
       return true;
     });
-  }, [contas, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, busca]);
+  }, [contas, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, competenciaFiltro, busca]);
 
-  const resumoFiltrado = useMemo(() => calcularResumo(contasFiltradas), [contasFiltradas]);
-  const resumoAuditoriaFiltrado = useMemo(() => calcularResumoAuditoria(contasFiltradas), [contasFiltradas]);
+  const resumoFiltrado = useMemo(() => calcularResumo(contasVisaoGeral), [contasVisaoGeral]);
+  const resumoAuditoriaFiltrado = useMemo(() => calcularResumoAuditoria(contasAudit), [contasAudit]);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
@@ -119,10 +194,10 @@ export const ContasPagarPage: React.FC<{
   if (mode === 'categorias') {
     return (
       <div className="w-full">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
           <div>
-            <div className="text-xl font-black text-white">Categorias</div>
-            <div className="text-sm text-slate-500 font-bold tracking-tight">Gestão do Plano de Contas</div>
+            <h2 className="text-2xl font-black text-white">Categorias</h2>
+            <p className="text-sm text-slate-500 font-bold mt-1">Gestão do Plano de Contas e Categorias</p>
           </div>
           <button
             type="button"
@@ -185,11 +260,37 @@ export const ContasPagarPage: React.FC<{
     );
   }
 
-  // visao-geral / todas usam mesma tela por enquanto (diferença: no futuro incluir pagos)
   if (mode === 'todas') {
     return (
       <div className="w-full">
-        {/* Barra de Filtros Superior (Estilo Folha) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+          <div>
+            <h2 className="text-2xl font-black text-white">Auditoria Financeira</h2>
+            <p className="text-sm text-slate-500 font-bold mt-1">Histórico completo de lançamentos e liquidações</p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Período</div>
+            <CustomSelect
+              value={competenciaFiltro}
+              onValueChange={setCompetenciaFiltro}
+              className="min-w-[200px]"
+              options={competenciaOptions}
+            />
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => setNovaOpen(true)}
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98]"
+            >
+              <Plus size={16} />
+              Nova Conta
+            </button>
+          </div>
+        </div>
+
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
           <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
             {[
@@ -204,7 +305,7 @@ export const ContasPagarPage: React.FC<{
                 className={cn(
                   "px-4 py-2 rounded-xl text-xs font-black transition-all",
                   unidadeFiltro === u.id 
-                    ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20" 
+                    ? "bg-slate-800 text-white shadow-sm" 
                     : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
                 )}
               >
@@ -212,24 +313,12 @@ export const ContasPagarPage: React.FC<{
               </button>
             ))}
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setNovaOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all"
-            >
-              <Plus size={16} />
-              Nova Conta
-            </button>
-          </div>
         </div>
 
-        {/* Filtros Avançados */}
         <div className="flex flex-wrap items-center gap-4 mb-8 bg-slate-900/20 p-4 rounded-3xl border border-slate-800/60">
           <div className="flex items-center gap-2 text-slate-500 mr-2">
             <Filter size={14} />
-            <span className="text-[10px] font-black uppercase tracking-wider">Filtros</span>
+            <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
           </div>
 
           <div className="w-full sm:w-48">
@@ -287,17 +376,16 @@ export const ContasPagarPage: React.FC<{
           </div>
         </div>
 
-        {/* Cards de Auditoria (resumo filtrado) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="p-6 border border-rose-500/20 bg-rose-500/5">
+          <Card className="p-6 border border-emerald-500/20 bg-emerald-500/5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
                 <CheckCircle2 size={18} />
               </div>
               <div className="text-sm font-bold text-slate-300">Total Pago</div>
             </div>
             <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPago.total)}</div>
-            <div className="mt-1 text-xs text-rose-400 font-bold">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
+            <div className="mt-1 text-xs text-emerald-400 font-bold">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
           </Card>
 
           <Card className="p-6 border border-violet-500/20 bg-violet-500/5">
@@ -305,7 +393,7 @@ export const ContasPagarPage: React.FC<{
               <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center">
                 <DollarIcon size={18} />
               </div>
-              <div className="text-sm font-bold text-slate-300">Total Pendente</div>
+              <div className="text-sm font-bold text-slate-300">Pendente no Período</div>
             </div>
             <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPendente.total)}</div>
             <div className="mt-1 text-xs text-violet-400 font-bold">{resumoAuditoriaFiltrado.totalPendente.count} em aberto</div>
@@ -316,10 +404,10 @@ export const ContasPagarPage: React.FC<{
               <div className="w-10 h-10 rounded-xl bg-slate-800/60 text-slate-300 flex items-center justify-center">
                 <TrendingUp size={18} />
               </div>
-              <div className="text-sm font-bold text-slate-300">Total Acumulado</div>
+              <div className="text-sm font-bold text-slate-300">Total do Período</div>
             </div>
             <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalGeral.total)}</div>
-            <div className="mt-1 text-xs text-slate-500 font-bold">Volume no filtro</div>
+            <div className="mt-1 text-xs text-slate-500 font-bold">Baseado nos filtros</div>
           </Card>
 
           <Card className="p-6 border border-slate-700/50">
@@ -335,12 +423,13 @@ export const ContasPagarPage: React.FC<{
         </div>
 
         <ContasTable
-          contas={contasFiltradas.filter(c => c.status !== 'cancelado')}
+          contas={contasAudit.filter(c => c.status !== 'cancelado')}
           filtro={filtroTab}
           onFiltroChange={setFiltroTab}
           busca={busca}
           onBuscaChange={setBusca}
           onPagar={(c) => setPagarConta(c)}
+          onEditar={(c) => setEditarConta(c)}
         />
 
         <NovaContaModal
@@ -365,13 +454,52 @@ export const ContasPagarPage: React.FC<{
             await refetch();
           }}
         />
+
+        <EditarContaModal
+          isOpen={!!editarConta}
+          conta={editarConta}
+          onClose={() => setEditarConta(null)}
+          onConfirm={async (patch) => {
+            if (!editarConta) return;
+            await updateContaPagar(editarConta.id, patch);
+            setEditarConta(null);
+            await refetch();
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div className="w-full">
-      {/* Barra de Filtros Superior (Estilo Folha) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+        <div>
+          <h2 className="text-2xl font-black text-white">Gestão Financeira</h2>
+          <p className="text-sm text-slate-500 font-bold mt-1">Controle de contas a pagar, fluxos e competências</p>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Competência</div>
+            <CustomSelect
+              value={competenciaFiltro}
+              onValueChange={setCompetenciaFiltro}
+              className="min-w-[200px]"
+              options={competenciaOptions}
+            />
+          </div>
+          
+          <button
+            type="button"
+            onClick={() => setNovaOpen(true)}
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98]"
+          >
+            <Plus size={16} />
+            Nova Conta
+          </button>
+        </div>
+      </div>
+
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
         <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
           {[
@@ -386,7 +514,7 @@ export const ContasPagarPage: React.FC<{
               className={cn(
                 "px-4 py-2 rounded-xl text-xs font-black transition-all",
                 unidadeFiltro === u.id 
-                  ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20" 
+                  ? "bg-slate-800 text-white shadow-sm" 
                   : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
               )}
             >
@@ -394,24 +522,12 @@ export const ContasPagarPage: React.FC<{
             </button>
           ))}
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setNovaOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all"
-          >
-            <Plus size={16} />
-            Nova Conta
-          </button>
-        </div>
       </div>
 
-      {/* Filtros Avançados para Visão Geral */}
       <div className="flex flex-wrap items-center gap-4 mb-8 bg-slate-900/20 p-4 rounded-3xl border border-slate-800/60">
         <div className="flex items-center gap-2 text-slate-500 mr-2">
           <Filter size={14} />
-          <span className="text-[10px] font-black uppercase tracking-wider">Filtros</span>
+          <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
         </div>
 
         <div className="w-full sm:w-48">
@@ -478,12 +594,13 @@ export const ContasPagarPage: React.FC<{
 
       <div className="mt-6">
         <ContasTable
-          contas={contasFiltradas.filter((c) => c.status !== 'cancelado' && c.status !== 'pago')}
+          contas={contasVisaoGeral.filter((c) => c.status !== 'cancelado' && c.status !== 'pago')}
           filtro={filtroTab}
           onFiltroChange={setFiltroTab}
           busca={busca}
           onBuscaChange={setBusca}
           onPagar={(c) => setPagarConta(c)}
+          onEditar={(c) => setEditarConta(c)}
         />
       </div>
 
@@ -509,7 +626,18 @@ export const ContasPagarPage: React.FC<{
           await refetch();
         }}
       />
+
+      <EditarContaModal
+        isOpen={!!editarConta}
+        conta={editarConta}
+        onClose={() => setEditarConta(null)}
+        onConfirm={async (patch) => {
+          if (!editarConta) return;
+          await updateContaPagar(editarConta.id, patch);
+          setEditarConta(null);
+          await refetch();
+        }}
+      />
     </div>
   );
 };
-

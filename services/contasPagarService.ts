@@ -125,6 +125,26 @@ export async function registrarPagamento(
   return data as ContaPagar;
 }
 
+export async function updateContaPagar(contaId: string, patch: Partial<ContaPagar>): Promise<ContaPagar> {
+  const nextPatch: Partial<ContaPagar> = { ...patch };
+
+  // Mantém competência consistente com o mês do vencimento, se o vencimento mudar.
+  if (nextPatch.data_vencimento) {
+    const [yyyy, mm] = nextPatch.data_vencimento.split('-');
+    if (yyyy && mm) nextPatch.competencia = `${yyyy}-${mm}-01`;
+  }
+
+  const { data, error } = await supabase
+    .from('contas_pagar')
+    .update(nextPatch)
+    .eq('id', contaId)
+    .select('*, categoria:categorias_despesa(*)')
+    .single();
+
+  if (error) throw error;
+  return data as ContaPagar;
+}
+
 export async function deleteConta(contaId: string): Promise<void> {
   const { error } = await supabase.from('contas_pagar').delete().eq('id', contaId);
   if (error) throw error;

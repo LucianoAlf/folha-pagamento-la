@@ -1,10 +1,17 @@
 import React, { useMemo } from 'react';
-import { Search, DollarSign } from 'lucide-react';
-import { Badge, Card } from '../UI';
+import { Search, DollarSign, Edit2 } from 'lucide-react';
+import { Badge, Card, Tooltip } from '../UI';
 import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
 import { CheckCircle2 } from 'lucide-react';
+
+// Helper simples para formatar data ISO (YYYY-MM-DD) para BR (DD/MM/YYYY)
+const formatDateBR = (isoDate: string) => {
+  if (!isoDate) return '—';
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
+};
 
 type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
@@ -15,7 +22,8 @@ export const ContasTable: React.FC<{
   busca: string;
   onBuscaChange: (q: string) => void;
   onPagar: (conta: ContaPagar) => void;
-}> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar }) => {
+  onEditar: (conta: ContaPagar) => void;
+}> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar }) => {
   const filtered = useMemo(() => {
     const q = (busca || '').trim().toLowerCase();
     const hojeISO = new Date().toISOString().split('T')[0];
@@ -28,10 +36,16 @@ export const ContasTable: React.FC<{
       }
 
       const statusVisual = getStatusVisual(c);
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const venc = new Date(`${c.data_vencimento}T00:00:00`);
+      venc.setHours(0, 0, 0, 0);
+      const diffDias = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+
       if (filtro === 'hoje') return c.data_vencimento === hojeISO && c.status === 'pendente';
       if (filtro === 'vencidas') return statusVisual === 'vencida' && c.data_vencimento !== hojeISO;
-      if (filtro === 'prox7') return statusVisual === 'urgente' && c.data_vencimento !== hojeISO;
-      if (filtro === 'prox30') return statusVisual === 'pendente' && c.data_vencimento !== hojeISO;
+      if (filtro === 'prox7') return diffDias > 0 && diffDias <= 7 && c.status === 'pendente';
+      if (filtro === 'prox30') return diffDias > 0 && diffDias <= 30 && c.status === 'pendente';
       return true;
     });
   }, [contas, busca, filtro]);
@@ -40,7 +54,7 @@ export const ContasTable: React.FC<{
     const s = getStatusVisual(c);
     const hojeISO = new Date().toISOString().split('T')[0];
 
-    if (c.status === 'pago') return <Badge variant="danger">Pago</Badge>;
+    if (c.status === 'pago') return <Badge variant="success">Pago</Badge>;
     if (c.data_vencimento === hojeISO) return <Badge variant="warning">Hoje</Badge>;
     if (s === 'vencida') return <Badge variant="danger">Vencida</Badge>;
     if (s === 'urgente') return <Badge variant="warning">Urgente</Badge>;
@@ -107,26 +121,37 @@ export const ContasTable: React.FC<{
                   <div className="text-white font-black truncate">{(c.categoria?.nome || '').toUpperCase()}</div>
                   <div className="text-xs text-slate-500 truncate">{c.descricao}</div>
                 </div>
-                <div className="col-span-2 text-sm font-bold text-slate-300">{c.data_vencimento}</div>
+                <div className="col-span-2 text-sm font-bold text-slate-300">{formatDateBR(c.data_vencimento)}</div>
                 <div className="col-span-2 text-right text-white font-black">{formatCurrency(Number(c.valor) || 0)}</div>
                 <div className="col-span-1 flex justify-center">{badgeFor(c)}</div>
-                <div className="col-span-2 flex justify-end">
-                  {c.status === 'pago' ? (
-                    <div className="flex items-center gap-2 text-rose-400 font-black text-xs px-4 py-2">
-                      <CheckCircle2 size={14} />
-                      Liquidado
+                    <div className="col-span-2 flex justify-end gap-2">
+                      {c.status === 'pago' ? (
+                        <div className="flex items-center gap-2 text-emerald-400 font-black text-xs px-4 py-2">
+                          <CheckCircle2 size={14} />
+                          Liquidado
+                        </div>
+                      ) : (
+                        <>
+                          <Tooltip content="Editar valor/vencimento">
+                            <button
+                              type="button"
+                              onClick={() => onEditar(c)}
+                              className="p-2 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                          </Tooltip>
+                          <button
+                            type="button"
+                            onClick={() => onPagar(c)}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-black shadow-lg shadow-violet-600/20"
+                          >
+                            <DollarSign size={14} />
+                            Pagar
+                          </button>
+                        </>
+                      )}
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onPagar(c)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-black shadow-lg shadow-violet-600/20"
-                    >
-                      <DollarSign size={14} />
-                      Pagar
-                    </button>
-                  )}
-                </div>
               </div>
             ))}
           </div>

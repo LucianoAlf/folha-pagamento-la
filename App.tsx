@@ -1526,23 +1526,7 @@ function App() {
             </div>
             
             <div className="flex items-center gap-3 sm:gap-6 self-end md:self-auto">
-              {currentModule === 'folha' && (
-                <div className="flex items-center gap-2">
-                  {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
-                  {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
-                  {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
-                </div>
-              )}
-              
-              <CustomSelect 
-                value={selectedFolhaId?.toString() || ''} 
-                onValueChange={(val) => setSelectedFolhaId(Number(val))}
-                options={folhas.map(f => ({
-                  value: f.id.toString(),
-                  label: `${getMesNome(f.mes)} ${f.ano}`
-                }))}
-              />
-              
+              {/* Profile Menu removed from here, month selector also removed to go inside pages */}
             </div>
           </div>
           
@@ -1550,6 +1534,36 @@ function App() {
       </header>
 
       <main className="flex-1 overflow-auto flex flex-col p-8">
+        {/* Module-specific Header/Toolbar */}
+        {currentModule === 'folha' && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+            <div>
+              <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                Gestão Mensal
+                <div className="flex items-center gap-2">
+                  {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
+                  {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
+                  {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
+                </div>
+              </h2>
+              <p className="text-sm text-slate-500 font-bold mt-1">Selecione o mês de referência para lançamentos e conferência</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Mês de Referência</div>
+              <CustomSelect 
+                value={selectedFolhaId?.toString() || ''} 
+                onValueChange={(val) => setSelectedFolhaId(Number(val))}
+                className="min-w-[200px]"
+                options={folhas.map(f => ({
+                  value: f.id.toString(),
+                  label: `${getMesNome(f.mes)} ${f.ano}`
+                }))}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Module Tabs (MusiClass Style - Full Bleed) */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
