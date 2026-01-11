@@ -3,7 +3,7 @@ import Cropper, { Area } from 'react-easy-crop';
 import { 
   User, Briefcase, DollarSign, Building2, CreditCard, Music, 
   X, ChevronRight, Check, Search, Trash2, Edit2, ShieldAlert,
-  Mail, Phone, Calendar, MapPin, Hash, Building, RefreshCw, UserX
+  Mail, Phone, Calendar, MapPin, Hash, Building, RefreshCw, UserX, Plus
 } from 'lucide-react';
 import { Card, Badge, Modal, CustomSelect, Tooltip, DatePicker } from './UI';
 import { Colaborador, CollaboratorDepartment, CollaboratorContractType, CollaboratorStatus } from '../types';
