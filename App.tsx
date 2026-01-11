@@ -1496,7 +1496,7 @@ function App() {
       <div className="flex-1 min-w-0 flex flex-col">
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-full mx-auto px-4 sm:px-8 py-4">
+        <div className="w-full py-4 px-0">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <button
@@ -1621,11 +1621,11 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-full mx-auto py-0 flex-1 flex flex-col">
+      <main className="flex-1 overflow-auto flex flex-col p-6">
         {/* Module Tabs (MusiClass Style - Full Bleed) */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
-            <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-4 sm:px-8">
+            <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
               {tabs.map(tab => (
                 <button
                   key={tab.id}
@@ -1651,7 +1651,7 @@ function App() {
           </div>
         </div>
 
-        <div className="px-4 sm:px-8 py-8 flex-1 flex flex-col">
+        <div className="w-full flex-1 flex flex-col gap-6">
           {loading ? (
             <LoadingSpinner />
           ) : error ? (
@@ -3156,8 +3156,9 @@ function App() {
                 </div>
               </div>
             )}
-          </>
-        )}
+            </>
+          )}
+        </div>
       </main>
       
       <footer className="border-t border-slate-800 mt-auto py-8 bg-slate-900">
