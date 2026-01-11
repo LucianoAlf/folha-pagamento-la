@@ -2,8 +2,12 @@ import React from 'react';
 import * as Select from '@radix-ui/react-select';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import * as Popover from '@radix-ui/react-popover';
-import { ChevronDown, ChevronUp, Check, Calendar, X, AlertCircle } from 'lucide-react';
+import { 
+  ChevronDown, ChevronUp, Check, Calendar, X, AlertCircle, 
+  ChevronLeft, ChevronRight 
+} from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/dist/style.css';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from './CollaboratorComponents';
@@ -70,57 +74,34 @@ export const DatePicker: React.FC<{
           align="start"
           className="z-[9999] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
         >
-          <DayPicker
-            mode="single"
-            selected={selected}
-            onSelect={(d) => {
-              if (!d) return onChange(undefined);
-              const yyyy = d.getFullYear();
-              const mm = String(d.getMonth() + 1).padStart(2, '0');
-              const dd = String(d.getDate()).padStart(2, '0');
-              onChange(`${yyyy}-${mm}-${dd}`);
-            }}
-            weekStartsOn={0}
-            locale={ptBR}
-            showOutsideDays
-            className="p-0"
-            classNames={{
-              months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
-              month: 'space-y-4',
-              caption: 'flex justify-center pt-1 relative items-center px-8',
-              caption_label: 'text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest',
-              nav: 'space-x-1 flex items-center',
-              nav_button: cn(
-                'h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-              ),
-              nav_button_previous: 'absolute left-1',
-              nav_button_next: 'absolute right-1',
-              table: 'w-full border-collapse space-y-1',
-              head_row: 'flex',
-              head_cell: 'text-slate-500 rounded-md w-10 font-black uppercase text-[10px] tracking-tighter',
-              row: 'flex w-full mt-2',
-              cell: 'h-10 w-10 text-center text-sm p-0 relative focus-within:relative focus-within:z-20',
-              day: cn(
-                'h-10 w-10 p-0 font-bold rounded-xl transition-all flex items-center justify-center hover:bg-violet-500/10 dark:hover:bg-violet-500/20 active:scale-95'
-              ),
-              day_selected: 'bg-violet-600 text-white hover:bg-violet-600 hover:text-white focus:bg-violet-600 focus:text-white shadow-lg shadow-violet-600/20',
-              day_today: 'ring-2 ring-rose-500/40 text-rose-500',
-              day_outside: 'text-slate-300 dark:text-slate-700 opacity-40',
-              day_disabled: 'text-slate-300 opacity-20',
-              day_range_middle: 'aria-selected:bg-slate-100 aria-selected:text-slate-900',
-              day_hidden: 'invisible',
-            }}
-            components={{
-              IconLeft: () => <ChevronDown className="h-4 w-4 rotate-90" />,
-              IconRight: () => <ChevronDown className="h-4 w-4 -rotate-90" />,
-            }}
-          />
+          <div className="rdp-modern">
+            <DayPicker
+              mode="single"
+              selected={selected}
+              onSelect={(d) => {
+                if (!d) return onChange(undefined);
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                onChange(`${yyyy}-${mm}-${dd}`);
+              }}
+              weekStartsOn={0}
+              locale={ptBR}
+              showOutsideDays
+              components={{
+                Chevron: ({ orientation }) => {
+                  const Icon = orientation === 'left' ? ChevronLeft : ChevronRight;
+                  return <Icon className="h-4 w-4" />;
+                }
+              }}
+            />
+          </div>
 
-          <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-4">
+          <div className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-4">
             <button
               type="button"
               onClick={() => onChange(undefined)}
-              className="flex-1 px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest transition-all"
+              className="flex-1 px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest transition-all"
             >
               Limpar
             </button>
@@ -133,6 +114,88 @@ export const DatePicker: React.FC<{
               </button>
             </Popover.Close>
           </div>
+
+          <style>{`
+            .rdp-modern {
+              --rdp-cell-size: 40px;
+              --rdp-accent-color: #7c3aed;
+              --rdp-background-color: #7c3aed20;
+              --rdp-accent-color-foreground: #ffffff;
+            }
+            .dark .rdp-modern {
+              --rdp-accent-color: #8b5cf6;
+              --rdp-background-color: #8b5cf630;
+            }
+            .rdp {
+              margin: 0;
+            }
+            .rdp-month_caption {
+              display: flex;
+              justify-content: center;
+              padding: 0 0 1.5rem 0;
+              font-weight: 900;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+              color: var(--slate-900);
+            }
+            .dark .rdp-month_caption {
+              color: white;
+            }
+            .rdp-nav {
+              position: absolute;
+              right: 1.5rem;
+              top: 1.5rem;
+              display: flex;
+              gap: 0.5rem;
+            }
+            .rdp-button_next, .rdp-button_previous {
+              border: 1px solid #e2e8f0;
+              border-radius: 12px;
+              width: 32px;
+              height: 32px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: all 0.2s;
+            }
+            .dark .rdp-button_next, .dark .rdp-button_previous {
+              border-color: #1e293b;
+              background: #0f172a;
+              color: #94a3b8;
+            }
+            .rdp-button_next:hover, .rdp-button_previous:hover {
+              background: #f1f5f9;
+            }
+            .dark .rdp-button_next:hover, .dark .rdp-button_previous:hover {
+              background: #1e293b;
+              color: white;
+            }
+            .rdp-head_cell {
+              font-size: 10px;
+              font-weight: 900;
+              text-transform: uppercase;
+              color: #64748b;
+              padding-bottom: 0.5rem;
+            }
+            .rdp-day {
+              font-weight: 600;
+              border-radius: 12px;
+              transition: all 0.2s;
+            }
+            .rdp-day_selected {
+              background-color: var(--rdp-accent-color) !important;
+              color: white;
+              font-weight: 900;
+            }
+            .rdp-day_today {
+              color: #f43f5e;
+              font-weight: 900;
+              border: 2px solid #f43f5e40;
+            }
+            .rdp-day:hover:not(.rdp-day_selected) {
+              background-color: var(--rdp-background-color);
+            }
+          `}</style>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
