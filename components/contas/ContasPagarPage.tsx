@@ -160,10 +160,6 @@ export const ContasPagarPage: React.FC<{
                     <div className="text-[10px] text-slate-500 font-black uppercase tracking-wider">
                       {c.tipo_custo || 'VARIÁVEL'}
                     </div>
-                    <div className="w-1 h-1 rounded-full bg-slate-700" />
-                    <div className="text-[10px] text-rose-400 font-black uppercase tracking-wider">
-                      {c.tipo_fluxo || 'DESPESA'}
-                    </div>
                   </div>
                 </div>
               </div>
