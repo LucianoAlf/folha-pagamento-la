@@ -18,9 +18,10 @@ import { ContasTable } from './ContasTable';
 import { NovaContaModal } from './NovaContaModal';
 import { PagarContaModal } from './PagarContaModal';
 import { CategoriaModal } from './CategoriaModal';
-import { Card } from '../UI';
+import { Card, CustomSelect } from '../UI';
 import { formatCurrency } from '../../services/api';
-import { CheckCircle2, DollarSign as DollarIcon, Info, TrendingUp, Plus } from 'lucide-react';
+import { CheckCircle2, DollarSign as DollarIcon, Info, TrendingUp, Plus, Filter } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
@@ -32,13 +33,19 @@ export const ContasPagarPage: React.FC<{
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [busca, setBusca] = useState('');
-  const [filtro, setFiltro] = useState<FiltroTab>('todas');
+  // Filtros
+  const [filtroTab, setFiltroTab] = useState<FiltroTab>('todas');
+  const [unidadeFiltro, setUnidadeFiltro] = useState<'todas' | 'cg' | 'rec' | 'bar'>('todas');
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>('all');
+  const [comportamentoFiltro, setComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
+  const [tipoFiltro, setTipoFiltro] = useState<'all' | 'unica' | 'parcelada' | 'recorrente'>('all');
 
   const [novaOpen, setNovaOpen] = useState(false);
   const [pagarConta, setPagarConta] = useState<ContaPagar | null>(null);
   const [categoriaModalOpen, setCategoriaModalOpen] = useState(false);
   const [editingCategoria, setEditingCategoria] = useState<CategoriaDespesa | null>(null);
+
+  const [busca, setBusca] = useState('');
 
   const refetch = useCallback(async () => {
     setLoading(true);
@@ -77,6 +84,35 @@ export const ContasPagarPage: React.FC<{
 
   const resumo = useMemo(() => calcularResumo(contas), [contas]);
   const resumoAuditoria = useMemo(() => calcularResumoAuditoria(contas), [contas]);
+
+  const contasFiltradas = useMemo(() => {
+    return contas.filter(c => {
+      // Filtro Unidade
+      if (unidadeFiltro !== 'todas' && c.unidade !== unidadeFiltro && c.unidade !== 'todas') return false;
+      
+      // Filtro Categoria
+      if (categoriaFiltro !== 'all' && c.categoria_id !== categoriaFiltro) return false;
+      
+      // Filtro Comportamento (Fixo/Variável)
+      if (comportamentoFiltro !== 'all' && c.categoria?.tipo_custo !== comportamentoFiltro) return false;
+      
+      // Filtro Tipo (Única/Parcelada)
+      if (tipoFiltro !== 'all' && c.tipo_lancamento !== tipoFiltro) return false;
+
+      // Filtro de Busca
+      if (busca) {
+        const q = busca.toLowerCase();
+        const inDesc = (c.descricao || '').toLowerCase().includes(q);
+        const inCat = (c.categoria?.nome || '').toLowerCase().includes(q);
+        if (!inDesc && !inCat) return false;
+      }
+
+      return true;
+    });
+  }, [contas, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, busca]);
+
+  const resumoFiltrado = useMemo(() => calcularResumo(contasFiltradas), [contasFiltradas]);
+  const resumoAuditoriaFiltrado = useMemo(() => calcularResumoAuditoria(contasFiltradas), [contasFiltradas]);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
@@ -158,22 +194,105 @@ export const ContasPagarPage: React.FC<{
   if (mode === 'todas') {
     return (
       <div className="w-full">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="text-xl font-black text-white">Todas as Contas</div>
-            <div className="text-sm text-slate-500 font-bold">Histórico completo e auditoria financeira</div>
+        {/* Barra de Filtros Superior (Estilo Folha) */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+            {[
+              { id: 'todas', label: 'Consolidado' },
+              { id: 'cg', label: 'Campo Grande' },
+              { id: 'rec', label: 'Recreio' },
+              { id: 'bar', label: 'Barra' },
+            ].map((u) => (
+              <button
+                key={u.id}
+                onClick={() => setUnidadeFiltro(u.id as any)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-xs font-black transition-all",
+                  unidadeFiltro === u.id 
+                    ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20" 
+                    : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+                )}
+              >
+                {u.label}
+              </button>
+            ))}
           </div>
-          <button
-            type="button"
-            onClick={() => setNovaOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20"
-          >
-            <Plus size={16} />
-            Nova Conta
-          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setNovaOpen(true)}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all"
+            >
+              <Plus size={16} />
+              Nova Conta
+            </button>
+          </div>
         </div>
 
-        {/* Cards de Auditoria */}
+        {/* Filtros Avançados */}
+        <div className="flex flex-wrap items-center gap-4 mb-8 bg-slate-900/20 p-4 rounded-3xl border border-slate-800/60">
+          <div className="flex items-center gap-2 text-slate-500 mr-2">
+            <Filter size={14} />
+            <span className="text-[10px] font-black uppercase tracking-wider">Filtros</span>
+          </div>
+
+          <div className="w-full sm:w-48">
+            <CustomSelect
+              value={categoriaFiltro}
+              onValueChange={setCategoriaFiltro}
+              options={[
+                { value: 'all', label: 'Todas Categorias' },
+                ...categorias.map(c => ({ value: c.id, label: c.nome }))
+              ]}
+            />
+          </div>
+
+          <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-xl p-1">
+            {[
+              { id: 'all', label: 'Todos' },
+              { id: 'fixo', label: 'Fixo' },
+              { id: 'variavel', label: 'Variável' },
+            ].map(b => (
+              <button
+                key={b.id}
+                onClick={() => setComportamentoFiltro(b.id as any)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                  comportamentoFiltro === b.id 
+                    ? "bg-slate-800 text-white" 
+                    : "text-slate-600 hover:text-slate-400"
+                )}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-xl p-1">
+            {[
+              { id: 'all', label: 'Tipos' },
+              { id: 'unica', label: 'Única' },
+              { id: 'parcelada', label: 'Parc.' },
+              { id: 'recorrente', label: 'Recorr.' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTipoFiltro(t.id as any)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                  tipoFiltro === t.id 
+                    ? "bg-slate-800 text-white" 
+                    : "text-slate-600 hover:text-slate-400"
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Cards de Auditoria (resumo filtrado) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="p-6 border border-emerald-500/20 bg-emerald-500/5">
             <div className="flex items-center gap-3 mb-4">
@@ -182,8 +301,8 @@ export const ContasPagarPage: React.FC<{
               </div>
               <div className="text-sm font-bold text-slate-300">Total Pago</div>
             </div>
-            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoria.totalPago.total)}</div>
-            <div className="mt-1 text-xs text-emerald-400 font-bold">{resumoAuditoria.totalPago.count} contas liquidadas</div>
+            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPago.total)}</div>
+            <div className="mt-1 text-xs text-emerald-400 font-bold">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
           </Card>
 
           <Card className="p-6 border border-violet-500/20 bg-violet-500/5">
@@ -193,8 +312,8 @@ export const ContasPagarPage: React.FC<{
               </div>
               <div className="text-sm font-bold text-slate-300">Total Pendente</div>
             </div>
-            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoria.totalPendente.total)}</div>
-            <div className="mt-1 text-xs text-violet-400 font-bold">{resumoAuditoria.totalPendente.count} em aberto</div>
+            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPendente.total)}</div>
+            <div className="mt-1 text-xs text-violet-400 font-bold">{resumoAuditoriaFiltrado.totalPendente.count} em aberto</div>
           </Card>
 
           <Card className="p-6 border border-slate-700/50">
@@ -204,8 +323,8 @@ export const ContasPagarPage: React.FC<{
               </div>
               <div className="text-sm font-bold text-slate-300">Total Acumulado</div>
             </div>
-            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoria.totalGeral.total)}</div>
-            <div className="mt-1 text-xs text-slate-500 font-bold">Volume total do mês</div>
+            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalGeral.total)}</div>
+            <div className="mt-1 text-xs text-slate-500 font-bold">Volume no filtro</div>
           </Card>
 
           <Card className="p-6 border border-slate-700/50">
@@ -215,15 +334,15 @@ export const ContasPagarPage: React.FC<{
               </div>
               <div className="text-sm font-bold text-slate-300">Ticket Médio</div>
             </div>
-            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoria.ticketMedio)}</div>
+            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.ticketMedio)}</div>
             <div className="mt-1 text-xs text-slate-500 font-bold">Por lançamento</div>
           </Card>
         </div>
 
         <ContasTable
-          contas={contas.filter(c => c.status !== 'cancelado')}
-          filtro={filtro}
-          onFiltroChange={setFiltro}
+          contas={contasFiltradas.filter(c => c.status !== 'cancelado')}
+          filtro={filtroTab}
+          onFiltroChange={setFiltroTab}
           busca={busca}
           onBuscaChange={setBusca}
           onPagar={(c) => setPagarConta(c)}
@@ -257,35 +376,116 @@ export const ContasPagarPage: React.FC<{
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="text-xl font-black text-white">Contas a Pagar</div>
-          <div className="text-sm text-slate-500 font-bold">
-            {mode === 'todas' ? 'Todas as contas (exceto canceladas)' : 'Visão geral e pendências'}
-          </div>
+      {/* Barra de Filtros Superior (Estilo Folha) */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+        <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          {[
+            { id: 'todas', label: 'Consolidado' },
+            { id: 'cg', label: 'Campo Grande' },
+            { id: 'rec', label: 'Recreio' },
+            { id: 'bar', label: 'Barra' },
+          ].map((u) => (
+            <button
+              key={u.id}
+              onClick={() => setUnidadeFiltro(u.id as any)}
+              className={cn(
+                "px-4 py-2 rounded-xl text-xs font-black transition-all",
+                unidadeFiltro === u.id 
+                  ? "bg-violet-600 text-white shadow-lg shadow-violet-600/20" 
+                  : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+              )}
+            >
+              {u.label}
+            </button>
+          ))}
         </div>
-        <button
-          type="button"
-          onClick={() => setNovaOpen(true)}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20"
-        >
-          <Plus size={16} />
-          Nova Conta
-        </button>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setNovaOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all"
+          >
+            <Plus size={16} />
+            Nova Conta
+          </button>
+        </div>
+      </div>
+
+      {/* Filtros Avançados para Visão Geral */}
+      <div className="flex flex-wrap items-center gap-4 mb-8 bg-slate-900/20 p-4 rounded-3xl border border-slate-800/60">
+        <div className="flex items-center gap-2 text-slate-500 mr-2">
+          <Filter size={14} />
+          <span className="text-[10px] font-black uppercase tracking-wider">Filtros</span>
+        </div>
+
+        <div className="w-full sm:w-48">
+          <CustomSelect
+            value={categoriaFiltro}
+            onValueChange={setCategoriaFiltro}
+            options={[
+              { value: 'all', label: 'Todas Categorias' },
+              ...categorias.map(c => ({ value: c.id, label: c.nome }))
+            ]}
+          />
+        </div>
+
+        <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-xl p-1">
+          {[
+            { id: 'all', label: 'Todos' },
+            { id: 'fixo', label: 'Fixo' },
+            { id: 'variavel', label: 'Variável' },
+          ].map(b => (
+            <button
+              key={b.id}
+              onClick={() => setComportamentoFiltro(b.id as any)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                comportamentoFiltro === b.id 
+                  ? "bg-slate-800 text-white" 
+                  : "text-slate-600 hover:text-slate-400"
+              )}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-xl p-1">
+          {[
+            { id: 'all', label: 'Tipos' },
+            { id: 'unica', label: 'Única' },
+            { id: 'parcelada', label: 'Parc.' },
+            { id: 'recorrente', label: 'Recorr.' },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTipoFiltro(t.id as any)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                tipoFiltro === t.id 
+                  ? "bg-slate-800 text-white" 
+                  : "text-slate-600 hover:text-slate-400"
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <ContasSummaryCards
-        vencendoHoje={resumo.vencendoHoje}
-        vencidas={resumo.vencidas}
-        proximos7={resumo.proximos7}
-        proximos30={resumo.proximos30}
+        vencendoHoje={resumoFiltrado.vencendoHoje}
+        vencidas={resumoFiltrado.vencidas}
+        proximos7={resumoFiltrado.proximos7}
+        proximos30={resumoFiltrado.proximos30}
       />
 
       <div className="mt-6">
         <ContasTable
-          contas={contas.filter((c) => (mode === 'todas' ? c.status !== 'cancelado' : c.status !== 'cancelado' && c.status !== 'pago'))}
-          filtro={filtro}
-          onFiltroChange={setFiltro}
+          contas={contasFiltradas.filter((c) => c.status !== 'cancelado' && c.status !== 'pago')}
+          filtro={filtroTab}
+          onFiltroChange={setFiltroTab}
           busca={busca}
           onBuscaChange={setBusca}
           onPagar={(c) => setPagarConta(c)}
