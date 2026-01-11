@@ -1505,7 +1505,7 @@ function App() {
       <div className="flex-1 min-w-0 flex flex-col">
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-40">
-        <div className="w-full py-4 px-8">
+        <div className="w-full py-5 px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Tooltip content="Abrir menu" side="right">
@@ -1519,7 +1519,7 @@ function App() {
                 </button>
               </Tooltip>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-500/5">
+                <div className="w-11 h-11 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-500/5">
                   <currentModuleConfig.icon size={20} />
                 </div>
                 <div>
@@ -3116,15 +3116,6 @@ function App() {
         </div>
       </main>
       
-      <footer className="border-t border-slate-800 mt-auto py-8 bg-slate-900">
-        <div className="max-w-full mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
-            <div>&copy; 2026 SUPER FOLHA SYSTEM. Todos os direitos reservados.</div>
-            <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                Sistema v1.2.0
-            </div>
-        </div>
-      </footer>
     </div>
     </div>
   );

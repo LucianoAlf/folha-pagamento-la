@@ -1,0 +1,9 @@
+[functions.ai-contas-auditoria]
+# Desabilita a verificação automática do JWT no gateway (senão a função nem chega a executar).
+# IMPORTANTe: isso exige redeploy da função para surtir efeito.
+verify_jwt = false
+
+[functions.ai-contas-comparativo]
+# Mantemos verify_jwt=false e validamos Authorization manualmente, para reduzir flakiness.
+verify_jwt = false
+

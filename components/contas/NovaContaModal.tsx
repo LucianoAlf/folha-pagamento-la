@@ -88,7 +88,7 @@ export const NovaContaModal: React.FC<{
       title="NOVA DESPESA"
       subtitle="Dica: a competência é o mês de referência da despesa. Depois você pode ajustar valor e vencimento em cada lançamento."
       className="max-w-3xl"
-      headerClassName="bg-rose-600 border-rose-500"
+      headerClassName="bg-violet-600 border-violet-500"
       footer={
         <div className="flex items-center justify-between gap-4 w-full">
           <button
@@ -131,7 +131,7 @@ export const NovaContaModal: React.FC<{
                 setSaving(false);
               }
             }}
-            className="px-10 py-4 rounded-[2rem] bg-rose-600 hover:bg-rose-500 text-white font-black shadow-xl shadow-rose-600/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
+            className="px-10 py-4 rounded-[2rem] bg-violet-600 hover:bg-violet-500 text-white font-black shadow-xl shadow-violet-600/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
           >
             {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
             Confirmar Lançamento
@@ -143,7 +143,7 @@ export const NovaContaModal: React.FC<{
         {/* A) Dados principais */}
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
-            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-rose-500/10 text-rose-400 text-[10px]">A</span> 
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-500/10 text-violet-400 text-[10px]">A</span> 
             Dados principais
           </div>
 
@@ -198,7 +198,7 @@ export const NovaContaModal: React.FC<{
         {/* Tipo lançamento */}
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
-            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-800 text-slate-400 text-[10px]">B</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-500/10 text-violet-400 text-[10px]">B</span>
             Tipo de Lançamento
           </div>
 
@@ -242,7 +242,7 @@ export const NovaContaModal: React.FC<{
         {/* B) Prazos */}
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
-            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-rose-500/10 text-rose-400 text-[10px]">C</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-500/10 text-violet-400 text-[10px]">C</span>
             Prazos e Competência
           </div>
 
@@ -265,7 +265,7 @@ export const NovaContaModal: React.FC<{
         {/* D) Status */}
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
-            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-rose-500/10 text-rose-400 text-[10px]">D</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-500/10 text-violet-400 text-[10px]">D</span>
             Status do Pagamento
           </div>
 
@@ -302,7 +302,7 @@ export const NovaContaModal: React.FC<{
         {/* E) Observações */}
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
-            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-rose-500/10 text-rose-400 text-[10px]">E</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-500/10 text-violet-400 text-[10px]">E</span>
             Observações
           </div>
           <textarea

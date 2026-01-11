@@ -1,0 +1,5 @@
+[functions.ai-contas-auditoria]
+# Evita 401 antes da função executar (Supabase valida JWT antes de rodar o código quando true).
+# A função já encaminha o Authorization header para o Supabase client internamente.
+verify_jwt = false
+

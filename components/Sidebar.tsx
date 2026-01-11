@@ -91,7 +91,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const containerClass = [
     collapsed ? 'w-20' : 'w-72',
-    'h-full bg-[#0a0d14] border-r border-slate-800/80 flex flex-col transition-all duration-300 relative',
+    'h-full relative flex flex-col transition-all duration-300',
+    'bg-[#0a0d14] border-r border-slate-800/80',
+    'before:content-[""] before:absolute before:inset-0 before:pointer-events-none',
+    'before:bg-[radial-gradient(900px_circle_at_20%_-10%,rgba(139,92,246,0.20),transparent_55%),radial-gradient(700px_circle_at_80%_30%,rgba(6,182,212,0.10),transparent_60%)]',
+    'before:opacity-100',
+    'after:content-[""] after:absolute after:inset-0 after:pointer-events-none',
+    'after:bg-gradient-to-b after:from-white/[0.03] after:via-transparent after:to-black/40',
     isMobileDrawer ? 'shadow-2xl shadow-black/60' : '',
   ].join(' ');
 
