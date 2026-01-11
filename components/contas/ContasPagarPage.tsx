@@ -4,6 +4,7 @@ import { LoadingSpinner, ErrorState } from '../UI';
 import { ContaPagar, CategoriaDespesa } from '../../types/contasPagar';
 import {
   calcularResumo,
+  calcularResumoAuditoria,
   fetchCategorias,
   fetchContasPagar,
   registrarPagamento,
@@ -14,6 +15,9 @@ import { ContasSummaryCards } from './ContasSummaryCards';
 import { ContasTable } from './ContasTable';
 import { NovaContaModal } from './NovaContaModal';
 import { PagarContaModal } from './PagarContaModal';
+import { Card } from '../UI';
+import { formatCurrency } from '../../services/api';
+import { CheckCircle2, DollarSign as DollarIcon, Info, TrendingUp } from 'lucide-react';
 
 type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
@@ -64,6 +68,7 @@ export const ContasPagarPage: React.FC<{
   }, [refetch]);
 
   const resumo = useMemo(() => calcularResumo(contas), [contas]);
+  const resumoAuditoria = useMemo(() => calcularResumoAuditoria(contas), [contas]);
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
@@ -107,6 +112,106 @@ export const ContasPagarPage: React.FC<{
   }
 
   // visao-geral / todas usam mesma tela por enquanto (diferença: no futuro incluir pagos)
+  if (mode === 'todas') {
+    return (
+      <div className="w-full">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <div className="text-xl font-black text-white">Todas as Contas</div>
+            <div className="text-sm text-slate-500 font-bold">Histórico completo e auditoria financeira</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setNovaOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20"
+          >
+            <Plus size={16} />
+            Nova Conta
+          </button>
+        </div>
+
+        {/* Cards de Auditoria */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="p-6 border border-emerald-500/20 bg-emerald-500/5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <CheckCircle2 size={18} />
+              </div>
+              <div className="text-sm font-bold text-slate-300">Total Pago</div>
+            </div>
+            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoria.totalPago.total)}</div>
+            <div className="mt-1 text-xs text-emerald-400 font-bold">{resumoAuditoria.totalPago.count} contas liquidadas</div>
+          </Card>
+
+          <Card className="p-6 border border-violet-500/20 bg-violet-500/5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center">
+                <DollarIcon size={18} />
+              </div>
+              <div className="text-sm font-bold text-slate-300">Total Pendente</div>
+            </div>
+            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoria.totalPendente.total)}</div>
+            <div className="mt-1 text-xs text-violet-400 font-bold">{resumoAuditoria.totalPendente.count} em aberto</div>
+          </Card>
+
+          <Card className="p-6 border border-slate-700/50">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-slate-800/60 text-slate-300 flex items-center justify-center">
+                <TrendingUp size={18} />
+              </div>
+              <div className="text-sm font-bold text-slate-300">Total Acumulado</div>
+            </div>
+            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoria.totalGeral.total)}</div>
+            <div className="mt-1 text-xs text-slate-500 font-bold">Volume total do mês</div>
+          </Card>
+
+          <Card className="p-6 border border-slate-700/50">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-slate-800/60 text-slate-300 flex items-center justify-center">
+                <Info size={18} />
+              </div>
+              <div className="text-sm font-bold text-slate-300">Ticket Médio</div>
+            </div>
+            <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoria.ticketMedio)}</div>
+            <div className="mt-1 text-xs text-slate-500 font-bold">Por lançamento</div>
+          </Card>
+        </div>
+
+        <ContasTable
+          contas={contas.filter(c => c.status !== 'cancelado')}
+          filtro={filtro}
+          onFiltroChange={setFiltro}
+          busca={busca}
+          onBuscaChange={setBusca}
+          onPagar={(c) => setPagarConta(c)}
+        />
+
+        <NovaContaModal
+          isOpen={novaOpen}
+          categorias={categorias}
+          onClose={() => setNovaOpen(false)}
+          onConfirm={async (payload) => {
+            await createContaPagar(payload);
+            setNovaOpen(false);
+            await refetch();
+          }}
+        />
+
+        <PagarContaModal
+          isOpen={!!pagarConta}
+          conta={pagarConta}
+          onClose={() => setPagarConta(null)}
+          onConfirm={async (input) => {
+            if (!pagarConta) return;
+            await registrarPagamento(pagarConta.id, input);
+            setPagarConta(null);
+            await refetch();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-6">

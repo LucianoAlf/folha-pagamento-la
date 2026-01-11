@@ -4,6 +4,7 @@ import { Badge, Card } from '../UI';
 import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
+import { CheckCircle2 } from 'lucide-react';
 
 type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
@@ -110,14 +111,21 @@ export const ContasTable: React.FC<{
                 <div className="col-span-2 text-right text-white font-black">{formatCurrency(Number(c.valor) || 0)}</div>
                 <div className="col-span-1 flex justify-center">{badgeFor(c)}</div>
                 <div className="col-span-2 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => onPagar(c)}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-black shadow-lg shadow-violet-600/20"
-                  >
-                    <DollarSign size={14} />
-                    Pagar
-                  </button>
+                  {c.status === 'pago' ? (
+                    <div className="flex items-center gap-2 text-emerald-400 font-black text-xs px-4 py-2">
+                      <CheckCircle2 size={14} />
+                      Liquidado
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onPagar(c)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-black shadow-lg shadow-violet-600/20"
+                    >
+                      <DollarSign size={14} />
+                      Pagar
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

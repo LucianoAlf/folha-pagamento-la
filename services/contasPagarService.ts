@@ -175,3 +175,26 @@ export function calcularResumo(contas: ContaPagar[]) {
   };
 }
 
+export function calcularResumoAuditoria(contas: ContaPagar[]) {
+  const pagas = contas.filter(c => c.status === 'pago');
+  const pendentes = contas.filter(c => c.status === 'pendente');
+  
+  return {
+    totalPago: {
+      total: pagas.reduce((s, c) => s + (Number(c.valor) || 0), 0),
+      count: pagas.length
+    },
+    totalPendente: {
+      total: pendentes.reduce((s, c) => s + (Number(c.valor) || 0), 0),
+      count: pendentes.length
+    },
+    totalGeral: {
+      total: contas.reduce((s, c) => s + (Number(c.valor) || 0), 0),
+      count: contas.length
+    },
+    ticketMedio: contas.length > 0 
+      ? contas.reduce((s, c) => s + (Number(c.valor) || 0), 0) / contas.length 
+      : 0
+  };
+}
+
