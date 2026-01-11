@@ -26,7 +26,6 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
   initialData
 }) => {
   const [nome, setNome] = useState('');
-  const [tipoFluxo, setTipoFluxo] = useState<'receita' | 'despesa'>('despesa');
   const [tipoCusto, setTipoCusto] = useState<'fixo' | 'variavel'>('fixo');
   const [icone, setIcone] = useState('💰');
   const [isSaving, setIsSaving] = useState(false);
@@ -34,12 +33,10 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
   useEffect(() => {
     if (initialData) {
       setNome(initialData.nome);
-      setTipoFluxo(initialData.tipo_fluxo || 'despesa');
       setTipoCusto((initialData.tipo_custo as 'fixo' | 'variavel') || 'fixo');
       setIcone(initialData.icone);
     } else {
       setNome('');
-      setTipoFluxo('despesa');
       setTipoCusto('fixo');
       setIcone('💰');
     }
@@ -52,7 +49,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
       await onConfirm({
         ...(initialData?.id ? { id: initialData.id } : {}),
         nome: nome.trim(),
-        tipo_fluxo: tipoFluxo,
+        tipo_fluxo: 'despesa', // Sempre despesa
         tipo_custo: tipoCusto,
         icone,
         ativo: true,
@@ -85,39 +82,8 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Ex: Mensalidades"
-            className="w-full px-5 py-4 bg-[#0a0d14] border border-slate-800 rounded-2xl text-white font-bold placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50 transition-all"
+            className="w-full px-5 py-4 bg-[#0a0d14] border border-slate-800 rounded-2xl text-white font-bold placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:border-rose-500/50 transition-all"
           />
-        </div>
-
-        {/* Tipo de Fluxo */}
-        <div>
-          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 px-1">
-            Tipo de Fluxo
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setTipoFluxo('receita')}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-black text-xs transition-all ${
-                tipoFluxo === 'receita'
-                  ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
-                  : 'bg-slate-900/40 border-slate-800 text-slate-500 hover:bg-slate-800'
-              }`}
-            >
-              💰 RECEITA
-            </button>
-            <button
-              type="button"
-              onClick={() => setTipoFluxo('despesa')}
-              className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-black text-xs transition-all ${
-                tipoFluxo === 'despesa'
-                  ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
-                  : 'bg-slate-900/40 border-slate-800 text-slate-500 hover:bg-slate-800'
-              }`}
-            >
-              📉 DESPESA
-            </button>
-          </div>
         </div>
 
         {/* Comportamento */}
@@ -131,7 +97,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
               onClick={() => setTipoCusto('fixo')}
               className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-black text-xs transition-all ${
                 tipoCusto === 'fixo'
-                  ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
+                  ? 'bg-rose-500/10 border-rose-500/50 text-rose-400'
                   : 'bg-slate-900/40 border-slate-800 text-slate-500 hover:bg-slate-800'
               }`}
             >
@@ -142,7 +108,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
               onClick={() => setTipoCusto('variavel')}
               className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-black text-xs transition-all ${
                 tipoCusto === 'variavel'
-                  ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
+                  ? 'bg-rose-500/10 border-rose-500/50 text-rose-400'
                   : 'bg-slate-900/40 border-slate-800 text-slate-500 hover:bg-slate-800'
               }`}
             >
@@ -164,7 +130,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
                 onClick={() => setIcone(i)}
                 className={`w-full aspect-square flex items-center justify-center rounded-xl text-xl transition-all border ${
                   icone === i
-                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 scale-110 shadow-lg shadow-emerald-500/20'
+                    ? 'bg-rose-500/20 border-rose-500 text-rose-400 scale-110 shadow-lg shadow-rose-500/20'
                     : 'bg-slate-900/40 border-slate-800 hover:bg-slate-800/60'
                 }`}
               >
@@ -185,8 +151,16 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
         <button
           onClick={handleSave}
           disabled={isSaving || !nome.trim()}
-          className="flex-[1.5] py-4 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+          className="flex-[1.5] py-4 px-4 rounded-2xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs shadow-lg shadow-rose-600/20 transition-all flex items-center justify-center gap-2"
         >
+          {isSaving ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Save size={14} />
+          )}
+          SALVAR CATEGORIA
+        </button>
+      </div>
           {isSaving ? (
             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (

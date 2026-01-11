@@ -40,7 +40,7 @@ export const ContasTable: React.FC<{
     const s = getStatusVisual(c);
     const hojeISO = new Date().toISOString().split('T')[0];
 
-    if (s === 'pago') return <Badge variant="success">Pago</Badge>;
+    if (c.status === 'pago') return <Badge variant="danger">Pago</Badge>;
     if (c.data_vencimento === hojeISO) return <Badge variant="warning">Hoje</Badge>;
     if (s === 'vencida') return <Badge variant="danger">Vencida</Badge>;
     if (s === 'urgente') return <Badge variant="warning">Urgente</Badge>;
@@ -112,7 +112,7 @@ export const ContasTable: React.FC<{
                 <div className="col-span-1 flex justify-center">{badgeFor(c)}</div>
                 <div className="col-span-2 flex justify-end">
                   {c.status === 'pago' ? (
-                    <div className="flex items-center gap-2 text-emerald-400 font-black text-xs px-4 py-2">
+                    <div className="flex items-center gap-2 text-rose-400 font-black text-xs px-4 py-2">
                       <CheckCircle2 size={14} />
                       Liquidado
                     </div>

@@ -130,7 +130,7 @@ export const ContasPagarPage: React.FC<{
               setEditingCategoria(null);
               setCategoriaModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg shadow-emerald-600/20 transition-all"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black shadow-lg shadow-rose-600/20 transition-all"
           >
             <Plus size={16} />
             Nova Categoria
@@ -145,11 +145,11 @@ export const ContasPagarPage: React.FC<{
                 setEditingCategoria(c);
                 setCategoriaModalOpen(true);
               }}
-              className="group rounded-2xl border border-slate-800 bg-slate-900/20 p-5 flex items-center justify-between hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all text-left"
+              className="group rounded-2xl border border-slate-800 bg-slate-900/20 p-5 flex items-center justify-between hover:border-rose-500/30 hover:bg-rose-500/5 transition-all text-left"
             >
               <div className="flex items-center gap-4 min-w-0">
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-slate-800 group-hover:border-emerald-500/30 transition-colors"
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-slate-800 group-hover:border-rose-500/30 transition-colors"
                   style={{ backgroundColor: `${c.cor}10` }}
                 >
                   <span className="text-2xl">{c.icone}</span>
@@ -161,13 +161,13 @@ export const ContasPagarPage: React.FC<{
                       {c.tipo_custo || 'VARIÁVEL'}
                     </div>
                     <div className="w-1 h-1 rounded-full bg-slate-700" />
-                    <div className="text-[10px] text-emerald-400 font-black uppercase tracking-wider">
+                    <div className="text-[10px] text-rose-400 font-black uppercase tracking-wider">
                       {c.tipo_fluxo || 'DESPESA'}
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-slate-700 font-black group-hover:text-emerald-500 transition-colors">#{c.ordem}</div>
+              <div className="text-xs text-slate-700 font-black group-hover:text-rose-500 transition-colors">#{c.ordem}</div>
             </button>
           ))}
         </div>
@@ -293,15 +293,15 @@ export const ContasPagarPage: React.FC<{
 
         {/* Cards de Auditoria (resumo filtrado) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="p-6 border border-emerald-500/20 bg-emerald-500/5">
+          <Card className="p-6 border border-rose-500/20 bg-rose-500/5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
                 <CheckCircle2 size={18} />
               </div>
               <div className="text-sm font-bold text-slate-300">Total Pago</div>
             </div>
             <div className="text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPago.total)}</div>
-            <div className="mt-1 text-xs text-emerald-400 font-bold">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
+            <div className="mt-1 text-xs text-rose-400 font-bold">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
           </Card>
 
           <Card className="p-6 border border-violet-500/20 bg-violet-500/5">

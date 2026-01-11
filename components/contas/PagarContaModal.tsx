@@ -55,7 +55,7 @@ export const PagarContaModal: React.FC<{
                 setSaving(false);
               }
             }}
-            className="px-8 py-4 rounded-[2rem] bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-xl shadow-emerald-600/20 disabled:opacity-50"
+            className="px-8 py-4 rounded-[2rem] bg-rose-600 hover:bg-rose-500 text-white font-black shadow-xl shadow-rose-600/20 disabled:opacity-50"
           >
             Confirmar Pagamento
           </button>
