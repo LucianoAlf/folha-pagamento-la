@@ -26,6 +26,7 @@ export interface SidebarProps {
   current: SidebarNavigate;
   onNavigate: (next: SidebarNavigate) => void;
   onLogout: () => void;
+  onEditProfile?: () => void;
   userLabel: string;
   userAvatarUrl?: string | null;
   isMobileDrawer?: boolean;
@@ -36,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   current,
   onNavigate,
   onLogout,
+  onEditProfile,
   userLabel,
   userAvatarUrl,
   isMobileDrawer = false,
@@ -164,18 +166,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           className={[
-            'w-full flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 transition-colors',
+            'w-full flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 hover:border-violet-500/30 transition-all group/profile',
             collapsed ? 'justify-center p-2.5' : 'p-3',
           ].join(' ')}
-          onClick={() => handleNav({ module: 'folha' })}
-          title={!collapsed ? undefined : userLabel}
-          aria-label="Conta"
+          onClick={onEditProfile}
+          title={!collapsed ? 'Editar Perfil' : userLabel}
+          aria-label="Editar Perfil"
         >
-          <div className="w-10 h-10 rounded-full border border-slate-700 overflow-hidden bg-slate-900/40 shrink-0">
+          <div className="w-10 h-10 rounded-full border border-slate-700 overflow-hidden bg-slate-900/40 shrink-0 group-hover/profile:border-violet-500/50 transition-colors">
             <img
               src={userAvatarUrl || '/logo-LA-colapsed.png'}
               alt="Usuário"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover/profile:scale-110 transition-transform duration-300"
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
               }}
@@ -183,7 +185,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1 text-left">
-              <div className="text-white text-sm font-black truncate">{userLabel}</div>
+              <div className="text-white text-sm font-black truncate group-hover/profile:text-violet-300 transition-colors">{userLabel}</div>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate group-hover/profile:text-slate-400">Meu Perfil</div>
             </div>
           )}
         </button>

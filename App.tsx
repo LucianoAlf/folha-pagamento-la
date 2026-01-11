@@ -1456,6 +1456,7 @@ function App() {
           current={{ module: 'folha', page: activeTab as any }}
           onNavigate={(next) => handleNavigate(next.module, next.page)}
           onLogout={handleLogout}
+          onEditProfile={openProfile}
           userLabel={userLabelForSidebar}
           userAvatarUrl={userProfile?.avatar_url || getDefaultAvatarByEmail(userEmail)}
         />
@@ -1474,6 +1475,10 @@ function App() {
               current={{ module: 'folha', page: activeTab as any }}
               onNavigate={(next) => handleNavigate(next.module, next.page)}
               onLogout={handleLogout}
+              onEditProfile={() => {
+                openProfile();
+                setSidebarMobileOpen(false);
+              }}
               userLabel={userLabelForSidebar}
               userAvatarUrl={userProfile?.avatar_url || getDefaultAvatarByEmail(userEmail)}
               onCloseMobileDrawer={() => setSidebarMobileOpen(false)}
@@ -1495,7 +1500,7 @@ function App() {
       <div className="flex-1 min-w-0 flex flex-col">
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-40">
-        <div className="w-full py-4 px-0">
+        <div className="w-full py-4 px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <button
