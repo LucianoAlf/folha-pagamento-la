@@ -1509,12 +1509,12 @@ function App() {
                 <Menu size={18} />
               </button>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 flex items-center justify-center shrink-0">
-                  <img src="/logo-LA-colapsed.png" alt="LA" className="w-9 h-9 object-contain drop-shadow-lg" />
+                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-500/5">
+                  <currentModuleConfig.icon size={20} />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg leading-none text-white">{currentModuleConfig.title}</h1>
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">GESTÃO DE PESSOAL E LANÇAMENTOS</p>
+                  <h1 className="font-bold text-lg leading-tight text-white">{currentModuleConfig.title}</h1>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">{currentModuleConfig.subtitle}</p>
                 </div>
               </div>
             </div>
@@ -1625,28 +1625,30 @@ function App() {
         {/* Module Header & Tabs (MusiClass Style) */}
         <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
           {/* Horizontal Tabs (MusiClass Style) */}
-          <div className="flex items-center gap-1 border-b border-slate-800/60 overflow-x-auto pb-px scrollbar-hide">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={cn(
-                  "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
-                  activeTab === tab.id 
-                    ? "text-violet-400" 
-                    : "text-slate-500 hover:text-slate-200"
-                )}
-              >
-                <tab.icon size={16} className={cn(
-                  "transition-colors",
-                  activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
-                )} />
-                {tab.label}
-                {activeTab === tab.id && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
-                )}
-              </button>
-            ))}
+          <div className="-mx-4 sm:-mx-8 border-b border-slate-800/60">
+            <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-4 sm:px-8">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={cn(
+                    "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
+                    activeTab === tab.id 
+                      ? "text-violet-400" 
+                      : "text-slate-500 hover:text-slate-200"
+                  )}
+                >
+                  <tab.icon size={16} className={cn(
+                    "transition-colors",
+                    activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
+                  )} />
+                  {tab.label}
+                  {activeTab === tab.id && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
