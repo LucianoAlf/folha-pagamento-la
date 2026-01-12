@@ -17,7 +17,7 @@ import { AgendaContent } from './AgendaContent';
 import { TarefaDetailPanel } from './TarefaDetailPanel';
 import { fetchAgendaKanbanConfig } from '../../services/agendaService';
 import type { AgendaKanbanColumnConfig } from '../../types/agenda';
-import { Modal, Badge, ConfirmDialog } from '../UI';
+import { Modal, Badge, ConfirmDialog, Tooltip } from '../UI';
 import { createLista, updateLista, deleteLista } from '../../services/agendaService';
 import { AGENDA_BG_PRESETS, type AgendaBackgroundPresetId } from '../../types/agenda';
 
@@ -633,20 +633,21 @@ export const AgendaPage: React.FC = () => {
 
               <div className="mt-4 flex flex-wrap gap-2">
                 {EMOJI_OPTIONS.map((ic) => (
-                  <button
-                    key={ic}
-                    type="button"
-                    onClick={() => setNovaListaIcone(ic)}
-                    className={cn(
-                      'w-10 h-10 rounded-2xl border flex items-center justify-center transition-all',
-                      novaListaIcone === ic
-                        ? 'bg-violet-500/15 border-violet-500/25 text-white'
-                        : 'bg-slate-900/30 border-slate-800 text-slate-300 hover:text-white hover:border-violet-500/20'
-                    )}
-                    title={`Usar ${ic}`}
-                  >
-                    <span className="text-lg">{ic}</span>
-                  </button>
+                  <Tooltip key={ic} content={`Usar ${ic}`} side="top">
+                    <button
+                      type="button"
+                      onClick={() => setNovaListaIcone(ic)}
+                      className={cn(
+                        'w-10 h-10 rounded-2xl border flex items-center justify-center transition-all',
+                        novaListaIcone === ic
+                          ? 'bg-violet-500/15 border-violet-500/25 text-white'
+                          : 'bg-slate-900/30 border-slate-800 text-slate-300 hover:text-white hover:border-violet-500/20'
+                      )}
+                      aria-label={`Usar ${ic}`}
+                    >
+                      <span className="text-lg">{ic}</span>
+                    </button>
+                  </Tooltip>
                 ))}
               </div>
             </div>
@@ -661,31 +662,32 @@ export const AgendaPage: React.FC = () => {
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   {COLOR_PRESETS.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setNovaListaCor(c)}
-                      className={cn(
-                        'w-9 h-9 rounded-full border transition-all',
-                        novaListaCor?.toLowerCase?.() === c.toLowerCase()
-                          ? 'border-white ring-2 ring-white/20'
-                          : 'border-slate-800 hover:border-violet-500/25'
-                      )}
-                      style={{ backgroundColor: c }}
-                      aria-label={`Selecionar cor ${c}`}
-                      title={c}
-                    />
+                    <Tooltip key={c} content={c} side="top">
+                      <button
+                        type="button"
+                        onClick={() => setNovaListaCor(c)}
+                        className={cn(
+                          'w-9 h-9 rounded-full border transition-all',
+                          novaListaCor?.toLowerCase?.() === c.toLowerCase()
+                            ? 'border-white ring-2 ring-white/20'
+                            : 'border-slate-800 hover:border-violet-500/25'
+                        )}
+                        style={{ backgroundColor: c }}
+                        aria-label={`Selecionar cor ${c}`}
+                      />
+                    </Tooltip>
                   ))}
                   <div className="w-px h-9 bg-slate-800 mx-1" />
                   <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={novaListaCor}
-                      onChange={(e) => setNovaListaCor(e.target.value)}
-                      className="w-10 h-10 rounded-2xl border border-slate-700/60 bg-transparent"
-                      aria-label="Cor personalizada"
-                      title="Cor personalizada"
-                    />
+                    <Tooltip content="Cor personalizada" side="top">
+                      <input
+                        type="color"
+                        value={novaListaCor}
+                        onChange={(e) => setNovaListaCor(e.target.value)}
+                        className="w-10 h-10 rounded-2xl border border-slate-700/60 bg-transparent"
+                        aria-label="Cor personalizada"
+                      />
+                    </Tooltip>
                     <div className="text-xs text-slate-500 font-bold">Personalizada</div>
                   </div>
                 </div>

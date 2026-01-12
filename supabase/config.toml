@@ -20,3 +20,9 @@ verify_jwt = false
 [functions.whatsapp-agenda-resumo]
 verify_jwt = false
 
+[functions.whatsapp-contas-notificacoes]
+verify_jwt = false
+
+[functions.whatsapp-folha-notificacoes]
+verify_jwt = false
+

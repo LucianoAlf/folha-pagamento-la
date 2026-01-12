@@ -127,13 +127,15 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
         </div>
 
         {conta.status !== 'pago' && (
-          <button
-            onClick={() => onPagar(conta)}
-            className="shrink-0 w-8 h-8 rounded-lg bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center shadow-lg shadow-violet-600/20 transition-all active:scale-95"
-            title="Pagar agora"
-          >
-            <CheckCircle2 size={16} />
-          </button>
+          <Tooltip content="Pagar agora" side="top">
+            <button
+              onClick={() => onPagar(conta)}
+              className="shrink-0 w-8 h-8 rounded-lg bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center shadow-lg shadow-violet-600/20 transition-all active:scale-95"
+              aria-label="Pagar agora"
+            >
+              <CheckCircle2 size={16} />
+            </button>
+          </Tooltip>
         )}
       </div>
     </Card>

@@ -124,10 +124,9 @@ Deno.serve(async (req: Request) => {
     const { data: cfg, error: cfgErr } = await supabase
       .from("notificacao_config")
       .select(
-        "user_id, whatsapp_numero, whatsapp_ativo, resumo_diario_ativo, resumo_diario_hora",
+        "user_id, whatsapp_numero, whatsapp_ativo, resumo_diario_ativo, resumo_diario_hora, resumo_semanal_ativo, resumo_semanal_dia, resumo_semanal_hora",
       )
       .eq("whatsapp_ativo", true)
-      .eq("resumo_diario_ativo", true)
       .not("whatsapp_numero", "is", null)
       .order("updated_at", { ascending: false })
       .limit(1)
@@ -141,26 +140,33 @@ Deno.serve(async (req: Request) => {
 
     const now = new Date();
     const dateStr = spDateString(now); // yyyy-mm-dd SP
-    const { hh, mm } = parseTimeToHHMM(cfg.resumo_diario_hora || "08:00");
-    const scheduledFor = scheduledForIsoSp(dateStr, hh, mm);
+    const weekdayShort = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(now);
+    const weekdayKey: Record<string, string> = {
+      Mon: "segunda",
+      Tue: "terca",
+      Wed: "quarta",
+      Thu: "quinta",
+      Fri: "sexta",
+      Sat: "sabado",
+      Sun: "domingo",
+    };
+    const todayKey = weekdayKey[weekdayShort] || "segunda";
 
-    if (!force && !withinWindow(now, scheduledFor, 12)) {
+    const dailyActive = !!(cfg as any)?.resumo_diario_ativo;
+    const { hh: dhh, mm: dmm } = parseTimeToHHMM((cfg as any)?.resumo_diario_hora || "08:00");
+    const scheduledDaily = scheduledForIsoSp(dateStr, dhh, dmm);
+
+    const weeklyActive = !!(cfg as any)?.resumo_semanal_ativo;
+    const weeklyDay = String((cfg as any)?.resumo_semanal_dia || "domingo");
+    const { hh: whh, mm: wmm } = parseTimeToHHMM((cfg as any)?.resumo_semanal_hora || "20:00");
+    const scheduledWeekly = scheduledForIsoSp(dateStr, whh, wmm);
+
+    const shouldSendDaily = dailyActive && (force || withinWindow(now, scheduledDaily, 12));
+    const shouldSendWeekly =
+      weeklyActive && (force || (todayKey === weeklyDay && withinWindow(now, scheduledWeekly, 12)));
+
+    if (!shouldSendDaily && !shouldSendWeekly) {
       return json({ success: true, message: "Fora da janela do envio.", enviados: 0 }, 200);
-    }
-
-    // Idempotência do dia
-    const msgType = "resumo_diario";
-    const { data: existing, error: exErr } = await supabase
-      .from("lembretes_log")
-      .select("id")
-      .eq("canal", "whatsapp")
-      .eq("tipo", msgType)
-      .eq("scheduled_for", scheduledFor)
-      .eq("destinatario", numeroWhatsApp)
-      .maybeSingle();
-    if (exErr) throw exErr;
-    if (existing?.id) {
-      return json({ success: true, message: "Já enviado (idempotência).", enviados: 0 }, 200);
     }
 
     // Range do dia SP (00:00 -03 até 00:00 do dia seguinte)
@@ -168,35 +174,6 @@ Deno.serve(async (req: Request) => {
     const next = new Date(`${dateStr}T00:00:00-03:00`);
     next.setDate(next.getDate() + 1);
     const endIso = next.toISOString();
-
-    const { data: tarefasHoje, error: thErr } = await supabase
-      .from("tarefas")
-      .select("id,titulo,prioridade,vencimento_em,status")
-      .gte("vencimento_em", startIso)
-      .lt("vencimento_em", endIso)
-      .in("status", ["pendente", "em_andamento"])
-      .order("vencimento_em", { ascending: true });
-    if (thErr) throw thErr;
-
-    const { data: atrasadas, error: atErr } = await supabase
-      .from("tarefas")
-      .select("id,titulo,prioridade,vencimento_em,status")
-      .lt("vencimento_em", startIso)
-      .in("status", ["pendente", "em_andamento"]);
-    if (atErr) throw atErr;
-
-    const { data: contasHoje, error: cErr } = await supabase
-      .from("contas_pagar")
-      .select("id,valor,status,data_vencimento")
-      .eq("data_vencimento", dateStr)
-      .eq("status", "pendente");
-    // Se contas_pagar não existir nesse projeto, não falhar o resumo
-    const contas = cErr ? [] : (contasHoje || []);
-
-    const totalContas = (contas as any[]).reduce(
-      (sum, c) => sum + (Number((c as any)?.valor) || 0),
-      0,
-    );
 
     const diaSemana = new Intl.DateTimeFormat("pt-BR", {
       timeZone: TZ,
@@ -208,106 +185,284 @@ Deno.serve(async (req: Request) => {
       month: "long",
     }).format(now);
 
-    let msg = `☀️ *BOM DIA, ANA!*\n`;
-    msg += `📅 ${diaSemana}, ${dataFormatada}\n\n`;
-    msg += `📊 *SEU DIA:*\n`;
-    msg += `• ${(tarefasHoje || []).length} tarefas para hoje\n`;
-    msg += `• ${(atrasadas || []).length} atrasadas\n`;
-    msg += `• ${(contas as any[]).length} contas vencendo\n\n`;
+    let enviados = 0;
 
-    if ((tarefasHoje || []).length) {
-      msg += `📋 *TAREFAS (HOJE):*\n`;
-      for (const t of (tarefasHoje || []).slice(0, 5)) {
-        const hora = t.vencimento_em
-          ? new Date(t.vencimento_em).toLocaleTimeString("pt-BR", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })
-          : "";
-        const icon = t.prioridade === "urgente"
-          ? "🔴"
-          : t.prioridade === "alta"
-          ? "⚠️"
-          : "•";
-        msg += `${icon} ${hora ? `${hora} - ` : ""}${t.titulo}\n`;
-      }
-      if ((tarefasHoje || []).length > 5) {
-        msg += `_... e mais ${(tarefasHoje || []).length - 5}_\n`;
-      }
-      msg += `\n`;
-    }
-
-    if ((atrasadas || []).length) {
-      msg += `⚠️ *ATRASADAS:*\n`;
-      for (const t of (atrasadas || []).slice(0, 3)) {
-        msg += `• ${t.titulo}\n`;
-      }
-      msg += `\n`;
-    }
-
-    if ((contas as any[]).length) {
-      msg += `💰 *CONTAS HOJE:* ${formatMoneyBRL(totalContas)}\n\n`;
-    }
-
-    msg += `_LA Music - Agenda_`;
-
-    // Log primeiro (idempotência)
-    const { data: logEntry, error: logErr } = await supabase
-      .from("lembretes_log")
-      .insert({
-        user_id: userId,
-        canal: "whatsapp",
-        tipo: msgType,
-        scheduled_for: scheduledFor,
-        destinatario: numeroWhatsApp,
-        mensagem: msg,
-        status: "pendente",
-      })
-      .select("id")
-      .single();
-    if (logErr) {
-      if ((logErr as any).code === "23505") {
-        return json({ success: true, message: "Já enviado (race).", enviados: 0 }, 200);
-      }
-      throw logErr;
-    }
-
-    const res = await fetch(`${uazapiUrl.replace(/\/$/, "")}/send/text`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", token: uazapiToken },
-      body: JSON.stringify({ number: numeroWhatsApp, text: msg }),
-    });
-
-    const raw = await res.text();
-    let parsed: any = null;
-    try {
-      parsed = raw ? JSON.parse(raw) : null;
-    } catch {
-      parsed = { raw };
-    }
-
-    if (res.ok) {
-      await supabase
+    // ===== Resumo diário =====
+    if (shouldSendDaily) {
+      const msgType = "resumo_diario";
+      const { data: existing, error: exErr } = await supabase
         .from("lembretes_log")
-        .update({
-          status: "enviado",
-          enviado_em: new Date().toISOString(),
-          provider_message_id: parsed?.message_id || parsed?.id || null,
-        })
-        .eq("id", logEntry.id);
-      return json({ success: true, enviados: 1, scheduled_for: scheduledFor }, 200);
+        .select("id")
+        .eq("canal", "whatsapp")
+        .eq("tipo", msgType)
+        .eq("scheduled_for", scheduledDaily)
+        .eq("destinatario", numeroWhatsApp)
+        .maybeSingle();
+      if (exErr) throw exErr;
+
+      if (!existing?.id) {
+        const { data: tarefasHoje, error: thErr } = await supabase
+          .from("tarefas")
+          .select("id,titulo,prioridade,vencimento_em,status")
+          .gte("vencimento_em", startIso)
+          .lt("vencimento_em", endIso)
+          .in("status", ["pendente", "em_andamento"])
+          .order("vencimento_em", { ascending: true });
+        if (thErr) throw thErr;
+
+        const { data: atrasadas, error: atErr } = await supabase
+          .from("tarefas")
+          .select("id,titulo,prioridade,vencimento_em,status")
+          .lt("vencimento_em", startIso)
+          .in("status", ["pendente", "em_andamento"]);
+        if (atErr) throw atErr;
+
+        const { data: contasHoje, error: cErr } = await supabase
+          .from("contas_pagar")
+          .select("id,valor,status,data_vencimento")
+          .eq("data_vencimento", dateStr)
+          .eq("status", "pendente");
+        const contas = cErr ? [] : (contasHoje || []);
+
+        const totalContas = (contas as any[]).reduce(
+          (sum, c) => sum + (Number((c as any)?.valor) || 0),
+          0,
+        );
+
+        let msg = `☀️ *BOM DIA, ANA!*\n`;
+        msg += `📅 ${diaSemana}, ${dataFormatada}\n\n`;
+        msg += `📊 *SEU DIA:*\n`;
+        msg += `• ${(tarefasHoje || []).length} tarefas para hoje\n`;
+        msg += `• ${(atrasadas || []).length} atrasadas\n`;
+        msg += `• ${(contas as any[]).length} contas vencendo\n\n`;
+
+        if ((tarefasHoje || []).length) {
+          msg += `📋 *TAREFAS (HOJE):*\n`;
+          for (const t of (tarefasHoje || []).slice(0, 5)) {
+            const hora = t.vencimento_em
+              ? new Date(t.vencimento_em).toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              })
+              : "";
+            const icon = t.prioridade === "urgente"
+              ? "🔴"
+              : t.prioridade === "alta"
+              ? "⚠️"
+              : "•";
+            msg += `${icon} ${hora ? `${hora} - ` : ""}${t.titulo}\n`;
+          }
+          if ((tarefasHoje || []).length > 5) {
+            msg += `_... e mais ${(tarefasHoje || []).length - 5}_\n`;
+          }
+          msg += `\n`;
+        }
+
+        if ((atrasadas || []).length) {
+          msg += `⚠️ *ATRASADAS:*\n`;
+          for (const t of (atrasadas || []).slice(0, 3)) {
+            msg += `• ${t.titulo}\n`;
+          }
+          msg += `\n`;
+        }
+
+        if ((contas as any[]).length) {
+          msg += `💰 *CONTAS HOJE:* ${formatMoneyBRL(totalContas)}\n\n`;
+        }
+
+        msg += `_LA Music - Agenda_`;
+
+        const { data: logEntry, error: logErr } = await supabase
+          .from("lembretes_log")
+          .insert({
+            user_id: userId,
+            canal: "whatsapp",
+            tipo: msgType,
+            scheduled_for: scheduledDaily,
+            destinatario: numeroWhatsApp,
+            mensagem: msg,
+            status: "pendente",
+          })
+          .select("id")
+          .single();
+        if (logErr) {
+          if ((logErr as any).code === "23505") {
+            // race: alguém enviou
+          } else {
+            throw logErr;
+          }
+        } else {
+          const res = await fetch(`${uazapiUrl.replace(/\/$/, "")}/send/text`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token: uazapiToken },
+            body: JSON.stringify({ number: numeroWhatsApp, text: msg }),
+          });
+
+          const raw = await res.text();
+          let parsed: any = null;
+          try {
+            parsed = raw ? JSON.parse(raw) : null;
+          } catch {
+            parsed = { raw };
+          }
+
+          if (res.ok) {
+            await supabase
+              .from("lembretes_log")
+              .update({
+                status: "enviado",
+                enviado_em: new Date().toISOString(),
+                provider_message_id: parsed?.message_id || parsed?.id || null,
+              })
+              .eq("id", logEntry.id);
+            enviados++;
+          } else {
+            await supabase
+              .from("lembretes_log")
+              .update({
+                status: "falhou",
+                erro: parsed?.message || `Erro UAZAPI (${res.status})`,
+              })
+              .eq("id", logEntry.id);
+          }
+        }
+      }
     }
 
-    await supabase
-      .from("lembretes_log")
-      .update({
-        status: "falhou",
-        erro: parsed?.message || `Erro UAZAPI (${res.status})`,
-      })
-      .eq("id", logEntry.id);
+    // ===== Resumo semanal =====
+    if (shouldSendWeekly) {
+      const msgType = "resumo_semanal";
+      const { data: existing, error: exErr } = await supabase
+        .from("lembretes_log")
+        .select("id")
+        .eq("canal", "whatsapp")
+        .eq("tipo", msgType)
+        .eq("scheduled_for", scheduledWeekly)
+        .eq("destinatario", numeroWhatsApp)
+        .maybeSingle();
+      if (exErr) throw exErr;
 
-    return json({ success: false, error: parsed?.message || `Erro UAZAPI (${res.status})` }, 502);
+      if (!existing?.id) {
+        const endDate = new Date(`${dateStr}T00:00:00-03:00`);
+        endDate.setDate(endDate.getDate() + 7);
+        const endStr = spDateString(endDate);
+        const start7Iso = new Date(`${dateStr}T00:00:00-03:00`).toISOString();
+        const end7Iso = new Date(`${endStr}T00:00:00-03:00`).toISOString();
+
+        const { data: tarefasSemana, error: tsErr } = await supabase
+          .from("tarefas")
+          .select("id,titulo,prioridade,vencimento_em,status")
+          .gte("vencimento_em", start7Iso)
+          .lt("vencimento_em", end7Iso)
+          .in("status", ["pendente", "em_andamento"])
+          .order("vencimento_em", { ascending: true });
+        if (tsErr) throw tsErr;
+
+        const { data: atrasadas, error: atErr } = await supabase
+          .from("tarefas")
+          .select("id,titulo,prioridade,vencimento_em,status")
+          .lt("vencimento_em", startIso)
+          .in("status", ["pendente", "em_andamento"]);
+        if (atErr) throw atErr;
+
+        const { data: contasSemana, error: cErr } = await supabase
+          .from("contas_pagar")
+          .select("id,valor,status,data_vencimento")
+          .eq("status", "pendente")
+          .gte("data_vencimento", dateStr)
+          .lte("data_vencimento", endStr);
+        const contas = cErr ? [] : (contasSemana || []);
+        const totalContas = (contas as any[]).reduce(
+          (sum, c) => sum + (Number((c as any)?.valor) || 0),
+          0,
+        );
+
+        let msg = `📊 *RESUMO SEMANAL — AGENDA*\n`;
+        msg += `📅 ${diaSemana}, ${dataFormatada}\n\n`;
+        msg += `• ${(tarefasSemana || []).length} tarefas (7 dias)\n`;
+        msg += `• ${(atrasadas || []).length} atrasadas\n`;
+        msg += `• ${(contas as any[]).length} contas vencendo — ${formatMoneyBRL(totalContas)}\n\n`;
+
+        if ((tarefasSemana || []).length) {
+          msg += `📋 *PRÓXIMAS TAREFAS:*\n`;
+          for (const t of (tarefasSemana || []).slice(0, 8)) {
+            const dt = t.vencimento_em
+              ? new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, day: "2-digit", month: "2-digit" }).format(new Date(t.vencimento_em))
+              : "";
+            const icon = t.prioridade === "urgente"
+              ? "🔴"
+              : t.prioridade === "alta"
+              ? "⚠️"
+              : "•";
+            msg += `${icon} ${dt ? `${dt} - ` : ""}${t.titulo}\n`;
+          }
+          if ((tarefasSemana || []).length > 8) {
+            msg += `_... e mais ${(tarefasSemana || []).length - 8}_\n`;
+          }
+          msg += `\n`;
+        }
+
+        msg += `_LA Music - Agenda_`;
+
+        const { data: logEntry, error: logErr } = await supabase
+          .from("lembretes_log")
+          .insert({
+            user_id: userId,
+            canal: "whatsapp",
+            tipo: msgType,
+            scheduled_for: scheduledWeekly,
+            destinatario: numeroWhatsApp,
+            mensagem: msg,
+            status: "pendente",
+          })
+          .select("id")
+          .single();
+        if (logErr) {
+          if ((logErr as any).code === "23505") {
+            // race
+          } else {
+            throw logErr;
+          }
+        } else {
+          const res = await fetch(`${uazapiUrl.replace(/\/$/, "")}/send/text`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", token: uazapiToken },
+            body: JSON.stringify({ number: numeroWhatsApp, text: msg }),
+          });
+
+          const raw = await res.text();
+          let parsed: any = null;
+          try {
+            parsed = raw ? JSON.parse(raw) : null;
+          } catch {
+            parsed = { raw };
+          }
+
+          if (res.ok) {
+            await supabase
+              .from("lembretes_log")
+              .update({
+                status: "enviado",
+                enviado_em: new Date().toISOString(),
+                provider_message_id: parsed?.message_id || parsed?.id || null,
+              })
+              .eq("id", logEntry.id);
+            enviados++;
+          } else {
+            await supabase
+              .from("lembretes_log")
+              .update({
+                status: "falhou",
+                erro: parsed?.message || `Erro UAZAPI (${res.status})`,
+              })
+              .eq("id", logEntry.id);
+          }
+        }
+      }
+    }
+
+    return json({ success: true, enviados, scheduled_daily: scheduledDaily, scheduled_weekly: scheduledWeekly }, 200);
   } catch (e: any) {
     console.error("❌ whatsapp-agenda-resumo:", e?.message || e);
     return json({ success: false, error: e?.message || "Erro inesperado." }, 500);

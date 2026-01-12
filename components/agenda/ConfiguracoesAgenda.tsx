@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Badge, Card, CustomSelect } from '../UI';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Badge, Card, CustomSelect, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
-import { Save, Smartphone, Calendar, Columns3, Eye, EyeOff, ChevronUp, ChevronDown, Sparkles, Image as ImageIcon, Wand2, Trash2, Send, Loader2 } from 'lucide-react';
+import { Save, Smartphone, Calendar, Columns3, Eye, EyeOff, ChevronUp, ChevronDown, Sparkles, Image as ImageIcon, Wand2, Trash2, Send, Loader2, Bot, Images, X } from 'lucide-react';
 import type { AgendaKanbanColumnConfig, NotificacaoConfig } from '../../types/agenda';
 import { AGENDA_BG_PRESETS } from '../../types/agenda';
 import { supabase } from '../../services/supabase';
@@ -12,6 +12,13 @@ import {
   upsertAgendaKanbanConfig,
   upsertNotificacaoConfig,
 } from '../../services/agendaService';
+
+// Tipo para imagens da galeria
+interface GalleryImage {
+  name: string;
+  url: string;
+  created_at: string;
+}
 
 export const ConfiguracoesAgenda: React.FC<{
   onSaved?: () => void;
@@ -28,7 +35,12 @@ export const ConfiguracoesAgenda: React.FC<{
   const [bgPrompt, setBgPrompt] = useState('');
   const [bgGenerating, setBgGenerating] = useState(false);
   const [bgGenError, setBgGenError] = useState<string | null>(null);
-  const [bgProvider, setBgProvider] = useState<'photo' | 'gemini'>('photo');
+  const [tempGeneratedUrl, setTempGeneratedUrl] = useState<string | null>(null);
+
+  // Galeria de imagens geradas
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
   const [kanbanLoading, setKanbanLoading] = useState(true);
   const [kanbanSaving, setKanbanSaving] = useState(false);
@@ -61,14 +73,101 @@ export const ConfiguracoesAgenda: React.FC<{
   );
   const [kanbanColumns, setKanbanColumns] = useState<AgendaKanbanColumnConfig[]>(defaultKanbanColumns);
 
-  // Visual “padrão Agenda” (painel escuro), sem interferir no Card global do app
-  // Importante: sem opacidade (o user pediu “normal”, sem transparência)
+  // Visual "padrão Agenda" (painel escuro), sem interferir no Card global do app
+  // Importante: sem opacidade (o user pediu "normal", sem transparência)
   const agendaCardClass = 'bg-slate-950/85 border-slate-800/70 backdrop-blur-none';
 
   // WhatsApp: envio de teste
   const [waTesting, setWaTesting] = useState(false);
   const [waTestStatus, setWaTestStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [waTestMsg, setWaTestMsg] = useState<string>('');
+
+  // Carregar galeria de imagens do usuário
+  const loadGallery = useCallback(async () => {
+    setGalleryLoading(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user?.id) {
+        console.log('Gallery: No user ID');
+        return;
+      }
+
+      const userId = userData.user.id;
+      console.log('Gallery: Loading for user', userId);
+      
+      const { data: files, error } = await supabase.storage
+        .from('agenda-backgrounds')
+        .list(`users/${userId}`, {
+          limit: 20,
+          sortBy: { column: 'created_at', order: 'desc' },
+        });
+
+      if (error) {
+        console.error('Gallery: Storage error', error);
+        // Se for erro de política, vamos mostrar algo mais amigável
+        if (error.message.includes('New policies')) {
+          console.warn('Aguardando propagação das novas políticas do Storage...');
+        }
+        throw error;
+      }
+
+      console.log('Gallery: Found files', files?.length || 0, files);
+
+      const images: GalleryImage[] = (files || [])
+        .filter((f) => f.name && (f.name.endsWith('.jpg') || f.name.endsWith('.png')))
+        .map((f) => {
+          const { data: urlData } = supabase.storage
+            .from('agenda-backgrounds')
+            .getPublicUrl(`users/${userId}/${f.name}`);
+          return {
+            name: f.name,
+            url: urlData?.publicUrl || '',
+            created_at: f.created_at || '',
+          };
+        })
+        .filter((img) => img.url);
+
+      console.log('Gallery: Processed images', images.length);
+      setGalleryImages(images);
+    } catch (e: any) {
+      console.error('Erro ao carregar galeria:', e?.message);
+    } finally {
+      setGalleryLoading(false);
+    }
+  }, []);
+
+  // Deletar imagem da galeria
+  const deleteGalleryImage = async (imageName: string) => {
+    setDeletingImage(imageName);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user?.id) return;
+
+      const userId = userData.user.id;
+      const { error } = await supabase.storage
+        .from('agenda-backgrounds')
+        .remove([`users/${userId}/${imageName}`]);
+
+      if (error) throw error;
+
+      // Remover da lista local
+      setGalleryImages((prev) => prev.filter((img) => img.name !== imageName));
+
+      // Se a imagem deletada era a atual, limpar
+      if (config.agenda_bg_url?.includes(imageName)) {
+        await saveAppearance({ agenda_bg_url: null });
+      }
+    } catch (e: any) {
+      console.error('Erro ao deletar imagem:', e?.message);
+    } finally {
+      setDeletingImage(null);
+    }
+  };
+
+  // Aplicar imagem da galeria como fundo
+  const applyGalleryImage = async (imageUrl: string) => {
+    await saveAppearance({ agenda_bg_url: imageUrl, agenda_bg_preset: 'classic-dark' });
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -82,7 +181,10 @@ export const ConfiguracoesAgenda: React.FC<{
       })
       .catch((e: any) => setError(e?.message || 'Falha ao carregar configurações'))
       .finally(() => setLoading(false));
-  }, []);
+    
+    // Carregar galeria
+    loadGallery();
+  }, [loadGallery]);
 
   useEffect(() => {
     setKanbanLoading(true);
@@ -261,7 +363,7 @@ export const ConfiguracoesAgenda: React.FC<{
       let publicUrl: string | null = null;
       try {
         const { data, error } = await supabase.functions.invoke('ai-agenda-background', {
-          body: { prompt, style: 'landscape', provider: bgProvider },
+          body: { prompt, style: 'agenda', provider: 'gemini' },
         });
         if (error) throw error;
         publicUrl = (data as any)?.publicUrl || null;
@@ -278,7 +380,7 @@ export const ConfiguracoesAgenda: React.FC<{
             Authorization: `Bearer ${token}`,
             apikey: SUPABASE_ANON_KEY,
           },
-          body: JSON.stringify({ prompt, style: 'landscape', provider: bgProvider }),
+          body: JSON.stringify({ prompt, style: 'agenda', provider: 'gemini' }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -288,11 +390,52 @@ export const ConfiguracoesAgenda: React.FC<{
       }
 
       if (!publicUrl) throw new Error('IA não retornou URL da imagem.');
-      await saveAppearance({ agenda_bg_url: publicUrl, agenda_bg_preset: 'classic-dark' });
+      
+      // Apenas mostra no preview temporário, não salva ainda na config do usuário
+      setTempGeneratedUrl(publicUrl);
+      
     } catch (e: any) {
       setBgGenError(e?.message || 'Falha ao gerar imagem');
     } finally {
       setBgGenerating(false);
+    }
+  };
+
+  const handleDiscardBackground = async () => {
+    if (!tempGeneratedUrl) return;
+    
+    // Tenta extrair o nome do arquivo da URL para deletar do storage
+    try {
+      const urlParts = tempGeneratedUrl.split('/');
+      const imageName = urlParts[urlParts.length - 1];
+      
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user?.id) {
+        await supabase.storage
+          .from('agenda-backgrounds')
+          .remove([`users/${userData.user.id}/${imageName}`]);
+      }
+    } catch (e) {
+      console.error('Erro ao limpar imagem descartada:', e);
+    }
+    
+    setTempGeneratedUrl(null);
+  };
+
+  const handleConfirmBackground = async () => {
+    if (!tempGeneratedUrl) return;
+    
+    setAppearanceSaving(true);
+    try {
+      await saveAppearance({ agenda_bg_url: tempGeneratedUrl, agenda_bg_preset: 'classic-dark' });
+      // Agora sim, recarrega a galeria para mostrar a nova imagem escolhida
+      await loadGallery();
+      // Limpa o estado temporário pois já foi aplicado
+      setTempGeneratedUrl(null);
+    } catch (e: any) {
+      setAppearanceError('Falha ao salvar imagem escolhida');
+    } finally {
+      setAppearanceSaving(false);
     }
   };
 
@@ -335,228 +478,128 @@ export const ConfiguracoesAgenda: React.FC<{
         </Card>
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* WhatsApp */}
-        <Card className={cn('p-0 overflow-hidden', agendaCardClass, 'bg-slate-950/95')}>
-          <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-300">
-                  <Smartphone className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-white font-black">WhatsApp</div>
-                  <div className="text-xs text-slate-500 font-bold">Lembretes e resumos</div>
-                </div>
-              </div>
-              <label className="flex items-center gap-2 text-sm font-black text-slate-200">
-                <span className="text-xs text-slate-500 font-black uppercase tracking-widest">Ativo</span>
-                <input
-                  type="checkbox"
-                  checked={!!config.whatsapp_ativo}
-                  onChange={(e) => setConfig((p) => ({ ...p, whatsapp_ativo: e.target.checked }))}
-                  className="accent-violet-500"
-                />
-              </label>
+      {/* Atalho para Notificações Globais */}
+      <Card className={cn('p-5 border-dashed border-violet-500/30 bg-violet-500/5', agendaCardClass)}>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-400">
+              <Smartphone className="w-6 h-6" />
             </div>
-          </div>
-          <div className="p-6 space-y-4">
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-                Número do WhatsApp
-              </label>
-              <input
-                value={config.whatsapp_numero || ''}
-                onChange={(e) => setConfig((p) => ({ ...p, whatsapp_numero: e.target.value }))}
-                placeholder="+55 21 99999-9999"
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
-              />
-              <div className="text-xs text-slate-500 font-bold mt-2">
-                Dica: use o número pessoal da Ana. O envio via UAZAPI será configurado na próxima fase.
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleTesteWhatsApp}
-                  disabled={waTesting || !config?.whatsapp_ativo || !config?.whatsapp_numero}
-                  className={cn(
-                    'px-4 py-3 rounded-2xl font-black text-white transition-all shadow-lg active:scale-95 flex items-center gap-2',
-                    waTesting || !config?.whatsapp_ativo || !config?.whatsapp_numero
-                      ? 'bg-slate-900/40 border border-slate-800 text-slate-500 cursor-not-allowed shadow-none'
-                      : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
-                  )}
-                  title="Enviar mensagem de teste para o número configurado"
-                >
-                  {waTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  {waTesting ? 'Enviando...' : 'Enviar teste'}
-                </button>
-
-                {waTestStatus === 'success' ? <Badge variant="success">{waTestMsg || 'Enviado'}</Badge> : null}
-                {waTestStatus === 'error' ? <Badge variant="danger">{waTestMsg || 'Erro'}</Badge> : null}
+              <div className="text-white font-black text-sm">Lembretes e Resumos</div>
+              <div className="text-slate-500 text-xs font-bold mt-0.5">
+                Configure seu WhatsApp e horários de resumos na Central de Notificações.
               </div>
             </div>
           </div>
-        </Card>
-
-        {/* Google Calendar */}
-        <Card className={cn('p-0 overflow-hidden', agendaCardClass, 'bg-slate-950/95')}>
-          <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-300">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-white font-black">Google Calendar</div>
-                  <div className="text-xs text-slate-500 font-bold">Integração futura (Fase 4)</div>
-                </div>
-              </div>
-              <Badge variant={config.google_calendar_ativo ? 'success' : 'warning'}>
-                {config.google_calendar_ativo ? 'Conectado' : 'Desconectado'}
-              </Badge>
-            </div>
-          </div>
-          <div className="p-6 space-y-4">
-            <div className="text-sm text-slate-300 font-bold">
-              Status: {config.google_calendar_ativo ? '✅ Conectado' : '⚠️ Desconectado'}
-            </div>
-            <div className="text-xs text-slate-500 font-bold">
-              {config.google_calendar_id ? `Calendário: ${config.google_calendar_id}` : 'Calendário: (não configurado)'}
-            </div>
-            <div className="text-xs text-slate-500 font-bold">
-              Segurança: o sistema <span className="text-slate-300">nunca</span> exibe nem salva refresh token no client.
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                disabled
-                className="px-4 py-3 rounded-2xl bg-slate-900/40 border border-slate-800 text-slate-500 font-black cursor-not-allowed"
-              >
-                Conectar
-              </button>
-              <button
-                type="button"
-                disabled
-                className="px-4 py-3 rounded-2xl bg-slate-900/40 border border-slate-800 text-slate-500 font-black cursor-not-allowed"
-              >
-                Desconectar
-              </button>
-            </div>
-          </div>
-        </Card>
-      </div>
+          <button
+            type="button"
+            onClick={() => {
+              // Dispara um evento ou muda a aba global se necessário
+              // Como estamos no Sidebar, podemos apenas mudar a rota
+              window.location.hash = '#/notificacoes';
+              // Força o reload se o router for baseado em hash simples
+              window.dispatchEvent(new HashChangeEvent('hashchange'));
+            }}
+            className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-violet-600/20"
+          >
+            Abrir Central de Notificações
+          </button>
+        </div>
+      </Card>
 
       {/* Aparência */}
       <Card className={cn('p-0 overflow-hidden', agendaCardClass)}>
         <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/30">
           <div className="text-white font-black">Aparência</div>
-          <div className="text-xs text-slate-500 font-bold mt-1">Presets + geração de imagens (paisagens) para a Ana</div>
+          <div className="text-xs text-slate-500 font-bold mt-1">Galeria pessoal + geração de imagens via IA para a Ana Paula</div>
         </div>
         <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Fundo da Agenda</div>
-              <div className="text-xs text-slate-500 font-bold mt-1">
-                Dica: a escolha é salva por usuário e atualiza em tempo real.
+          {/* GALERIA PESSOAL - Meus Fundos da Ana Paula (sempre visível) */}
+          <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Images className="w-5 h-5 text-violet-400" />
+                <div className="text-sm font-black text-violet-200">Meus Fundos da Ana Paula</div>
+                {galleryImages.length > 0 && <Badge variant="info">{galleryImages.length}</Badge>}
               </div>
-              <div className="mt-2 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 {appearanceSaving ? <Badge variant="info">Salvando…</Badge> : null}
                 {appearanceSaved ? <Badge variant="success">Salvo</Badge> : null}
-                {appearanceError ? <Badge variant="danger">Erro</Badge> : null}
+                {galleryLoading && <Loader2 className="w-4 h-4 animate-spin text-violet-400" />}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => saveAppearance({ agenda_bg_preset: 'classic-dark', agenda_bg_url: null })}
-              disabled={appearanceSaving}
-              className="px-4 py-2 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-300 font-black hover:bg-slate-900/40 hover:border-violet-500/20 transition-all"
-              title="Voltar ao fundo padrão"
-            >
-              Padrão
-            </button>
+            
+            {galleryImages.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                {galleryImages.map((img) => {
+                  const isActive = config.agenda_bg_url === img.url;
+                  const isDeleting = deletingImage === img.name;
+                  return (
+                    <Tooltip content="Clique para aplicar como fundo" side="top">
+                      <div
+                        key={img.name}
+                        className={cn(
+                          'relative group rounded-2xl border overflow-hidden transition-all cursor-pointer',
+                          isActive ? 'border-violet-500/50 ring-2 ring-violet-500/20' : 'border-slate-800/60 hover:border-violet-500/30'
+                        )}
+                        onClick={() => applyGalleryImage(img.url)}
+                      >
+                        <div
+                          className="h-20 w-full bg-cover bg-center"
+                          style={{ backgroundImage: `url(${img.url})` }}
+                        />
+                      {/* Escurece levemente no hover (sem bloquear clique) */}
+                      <div className="absolute inset-0 pointer-events-none bg-black/0 group-hover:bg-black/20 transition-all" />
+
+                      {/* Delete discreto (canto) */}
+                      <Tooltip content="Excluir da galeria" side="top">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteGalleryImage(img.name);
+                          }}
+                          disabled={isDeleting}
+                          className={cn(
+                            'absolute top-2 right-2 w-7 h-7 rounded-xl border border-slate-800/60 bg-slate-950/70 text-slate-300',
+                            'opacity-0 group-hover:opacity-100 transition-all',
+                            'hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-200',
+                            isDeleting ? 'cursor-not-allowed opacity-100' : ''
+                          )}
+                          aria-label="Excluir da galeria"
+                        >
+                          {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <Trash2 className="w-4 h-4 mx-auto" />}
+                        </button>
+                      </Tooltip>
+                      {/* Badge de ativo */}
+                      {isActive && (
+                        <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                          <Eye className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                      </div>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="text-slate-500 font-bold text-sm">Nenhuma imagem gerada ainda</div>
+                <div className="text-slate-600 text-xs mt-1">Use o gerador abaixo para criar fundos personalizados</div>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {AGENDA_BG_PRESETS.slice(0, 10).map((p) => {
-              const active = (config.agenda_bg_preset || 'classic-dark') === p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => saveAppearance({ agenda_bg_preset: p.id, agenda_bg_url: null })}
-                  disabled={appearanceSaving}
-                  className={cn(
-                    'rounded-2xl border overflow-hidden text-left transition-all',
-                    active ? 'border-violet-500/35 ring-2 ring-violet-500/15' : 'border-slate-800/60 hover:border-violet-500/20'
-                  )}
-                >
-                  <div className="h-16" style={{ backgroundImage: p.backgroundImage, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                  <div className="px-3 py-2 bg-slate-950/10">
-                    <div className={cn('text-xs font-black truncate', active ? 'text-violet-200' : 'text-slate-200')}>{p.label}</div>
-                    <div className="text-[10px] text-slate-500 font-bold truncate">{p.description}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="border-t border-slate-800/70 pt-4 mt-2" />
-
-          <div className="rounded-2xl border border-slate-800/60 bg-slate-950/85 overflow-hidden">
-            <div className="flex items-start justify-between gap-3">
+          <div className="rounded-2xl border border-slate-800/60 bg-slate-950/85 overflow-hidden p-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <div className="flex items-center gap-2 text-white font-black">
-                  <Sparkles className="w-4 h-4 text-violet-300" />
-                  Fundo gerado (Fotos reais / IA)
+                  <Bot className="w-4 h-4 text-violet-300" />
+                  Gerador de Fundo por IA
                 </div>
-                <div className="text-xs text-slate-500 font-bold mt-1">
-                  Preferência: <span className="text-slate-200">Fotos reais</span> (sem “cara de IA”). IA fica como alternativa.
-                </div>
-              </div>
-              {config.agenda_bg_url ? (
-                <button
-                  type="button"
-                  onClick={() => saveAppearance({ agenda_bg_url: null })}
-                  disabled={appearanceSaving}
-                  className="px-3 py-2 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-300 font-black hover:bg-slate-900/40 hover:border-rose-500/20 transition-all flex items-center gap-2"
-                  title="Remover imagem e voltar para presets"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Remover
-                </button>
-              ) : null}
-            </div>
-
-            <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <button
-                    type="button"
-                    onClick={() => setBgProvider('photo')}
-                    className={cn(
-                      'px-3 py-2 rounded-2xl border font-black text-xs transition-all',
-                      bgProvider === 'photo'
-                        ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-200'
-                        : 'border-slate-800 bg-slate-900/20 text-slate-300 hover:bg-slate-900/40 hover:border-emerald-500/20'
-                    )}
-                    title="Usar fotos reais (recomendado)"
-                  >
-                    📷 Foto real
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBgProvider('gemini')}
-                    className={cn(
-                      'px-3 py-2 rounded-2xl border font-black text-xs transition-all',
-                      bgProvider === 'gemini'
-                        ? 'bg-violet-500/15 border-violet-500/25 text-violet-200'
-                        : 'border-slate-800 bg-slate-900/20 text-slate-300 hover:bg-slate-900/40 hover:border-violet-500/20'
-                    )}
-                    title="Gerar com IA (pode ficar com cara de IA)"
-                  >
-                    ✨ IA
-                  </button>
+                <div className="text-xs text-slate-500 font-bold mt-1 mb-5">
+                  Crie fundos personalizados e exclusivos usando inteligência artificial.
                 </div>
 
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Prompt</div>
@@ -565,31 +608,41 @@ export const ConfiguracoesAgenda: React.FC<{
                   onChange={(e) => setBgPrompt(e.target.value)}
                   placeholder="Ex.: Rua em Nova York à noite, neon roxo e azul, chuva leve, cinematográfico, sem pessoas, sem texto"
                   spellCheck={false}
-                  className="w-full min-h-[96px] bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
+                  className="w-full min-h-[100px] bg-slate-900/40 border border-slate-700/60 rounded-[1.5rem] px-5 py-4 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
                 />
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {[
-                    { label: 'NY (Noite)', prompt: 'Rua em Nova York à noite, neon roxo e azul, chuva leve, cinematográfico, sem texto, sem pessoas' },
-                    { label: 'Floral', prompt: 'Paisagem floral suave (pastel), luz de manhã, premium, sem texto' },
-                    { label: 'Praia', prompt: 'Praia ao pôr do sol, tons roxo e dourado, atmosfera calma, sem pessoas, sem texto' },
-                    { label: 'Montanhas', prompt: 'Montanhas com neblina, tons frios, minimalista, sem texto, sem pessoas' },
+                    { label: '🎹 Piano', prompt: 'Teclas de piano em iluminação dramática chiaroscuro, tons roxo e azul profundo, fumaça atmosférica criando camadas de profundidade, estética jazz club, cinematográfico' },
+                    { label: '🎸 Guitarra', prompt: 'Cordas de guitarra vibrando em macro fotografia, ondas sonoras visíveis, iluminação âmbar quente e roxo frio, bokeh de luzes de palco, energia musical' },
+                    { label: '🎵 Estúdio', prompt: 'Setup de estúdio de música profissional, luzes roxas e azuis com gel, fumaça revelando raios de luz, equipamentos em silhueta, atmosfera criativa' },
+                    { label: '🎤 Palco', prompt: 'Palco de concerto vazio com holofotes dramáticos, fumaça e raios de luz roxos e azuis, microfone em destaque, atmosfera de show épico' },
+                    { label: '🎧 DJ', prompt: 'Mesa de DJ com luzes neon pulsantes, equalizer visual abstrato, tons roxo e ciano, atmosfera de club noturno premium' },
+                    { label: '🌊 Oceano', prompt: 'Raios de luz penetrando oceano profundo, partículas bioluminescentes flutuando, atmosfera misteriosa de mar profundo, calmo e meditativo' },
+                    { label: '🏔️ Aurora', prompt: 'Aurora boreal dançando no céu noturno, cortinas de luz roxa verde e azul, silhueta de montanhas, estrelas cristalinas, mágico e inspirador' },
+                    { label: '☕ Café', prompt: 'Macro de café sendo derramado criando padrões de redemoinho, tons âmbar quentes com iluminação roxa de destaque, vapor subindo, atmosfera aconchegante de café' },
+                    { label: '🌸 Sakura', prompt: 'Pétalas de cerejeira caindo suavemente, luz dourada de amanhecer, tons rosa pastel e roxo suave, atmosfera zen japonesa, sem pessoas' },
+                    { label: '🌌 Cosmos', prompt: 'Nebulosa colorida no espaço profundo, tons roxo e azul elétrico, estrelas brilhantes, galáxia espiral distante, infinito e contemplativo' },
+                    { label: '🎼 Ondas', prompt: 'Ondas sonoras abstratas se transformando em luz, visualização de frequências musicais, neon roxo e azul, fundo escuro, energia pulsante' },
+                    { label: '🌅 Sunset', prompt: 'Pôr do sol épico sobre silhueta de cidade, gradiente de roxo para dourado, nuvens dramáticas, luz dourada refletindo em arranha-céus' },
+                    { label: '💎 Cristal', prompt: 'Cristais geométricos abstratos refletindo luz roxa e azul, superfície espelhada, prismas criando arco-íris, luxuoso e premium' },
+                    { label: '🔮 Neon', prompt: 'Rua de Tokyo à noite com neon roxo e rosa, reflexos na chuva, atmosfera cyberpunk cinematográfica, sem pessoas, Blade Runner vibes' },
                   ].map((s) => (
-                    <button
-                      key={s.label}
-                      type="button"
-                      onClick={() => setBgPrompt(s.prompt)}
-                      className="px-3 py-2 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-300 font-black hover:bg-slate-900/40 hover:border-violet-500/20 transition-all text-xs"
-                      title="Usar sugestão"
-                    >
-                      <Wand2 className="w-4 h-4 inline-block mr-2 text-violet-300" />
-                      {s.label}
-                    </button>
+                    <Tooltip key={s.label} content={<span className="block max-w-[360px]">{s.prompt}</span>} side="top">
+                      <button
+                        type="button"
+                        onClick={() => setBgPrompt(s.prompt)}
+                        className="px-3 py-2 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-300 font-black hover:bg-slate-900/40 hover:border-violet-500/20 transition-all text-xs"
+                        aria-label={`Aplicar prompt ${s.label}`}
+                      >
+                        {s.label}
+                      </button>
+                    </Tooltip>
                   ))}
                 </div>
                 {bgGenError ? (
-                  <div className="mt-3 text-sm text-rose-200 font-bold">{bgGenError}</div>
+                  <div className="mt-4 text-sm text-rose-200 font-bold">{bgGenError}</div>
                 ) : null}
-                <div className="mt-3 flex items-center gap-3">
+                <div className="mt-5 flex items-center gap-3">
                   <button
                     type="button"
                     onClick={generateBackground}
@@ -602,111 +655,81 @@ export const ConfiguracoesAgenda: React.FC<{
                     <ImageIcon className={cn('w-4 h-4', bgGenerating ? 'animate-pulse' : '')} />
                     {bgGenerating ? 'Gerando…' : 'Gerar e aplicar'}
                   </button>
-                  <div className="text-xs text-slate-500 font-bold">
-                    Dica: depois a gente evolui para “Galeria pessoal” com histórico.
-                  </div>
                 </div>
               </div>
 
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Preview</div>
-                <div className="rounded-2xl border border-slate-800/60 bg-slate-950/85 overflow-hidden">
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Preview</div>
+                  {config.agenda_bg_url ? (
+                      <Tooltip content="Remover imagem gerada" side="top">
+                        <button
+                          type="button"
+                          onClick={() => saveAppearance({ agenda_bg_url: null })}
+                          disabled={appearanceSaving}
+                          className="w-7 h-7 rounded-lg border border-slate-800/60 bg-slate-900/30 text-slate-500 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/10 transition-all flex items-center justify-center"
+                          aria-label="Remover imagem gerada"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </Tooltip>
+                  ) : null}
+                </div>
+                <div className="rounded-3xl border border-slate-800/60 bg-slate-950/40 overflow-hidden flex-1 flex flex-col shadow-2xl relative">
                   <div
-                    className="h-[160px] w-full"
+                    className="flex-1 min-h-[280px] w-full"
                     style={{
-                      backgroundImage: config.agenda_bg_url
-                        ? `linear-gradient(rgba(8,10,15,.45), rgba(8,10,15,.45)), url(${config.agenda_bg_url})`
-                        : `linear-gradient(rgba(8,10,15,.45), rgba(8,10,15,.45)), ${
+                      backgroundImage: (tempGeneratedUrl || config.agenda_bg_url)
+                        ? `linear-gradient(rgba(8,10,15,.35), rgba(8,10,15,.35)), url(${tempGeneratedUrl || config.agenda_bg_url})`
+                        : `linear-gradient(rgba(8,10,15,.35), rgba(8,10,15,.35)), ${
                             (AGENDA_BG_PRESETS.find((x) => x.id === (config.agenda_bg_preset || 'classic-dark')) || AGENDA_BG_PRESETS[0]).backgroundImage
                           }`,
-                      backgroundSize: config.agenda_bg_url ? 'cover' : 'auto',
-                      backgroundPosition: 'center',
+                      backgroundSize: (tempGeneratedUrl || config.agenda_bg_url) ? 'cover' : 'auto',
+                      backgroundPosition: (tempGeneratedUrl || config.agenda_bg_url) ? 'center 45%' : 'center',
                     }}
                   />
-                  <div className="px-4 py-3">
-                    <div className="text-white font-black">Agenda da Ana</div>
-                    <div className="text-xs text-slate-500 font-bold">O fundo escolhido aparece aqui.</div>
+                  
+                  {/* Botão de Escolha (Aparece apenas quando gera algo novo) */}
+                  {tempGeneratedUrl && (
+                    <div className="absolute bottom-4 left-4 right-4 bg-slate-900/95 border border-slate-700/50 p-4 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4 transition-all">
+                      <div className="flex items-center gap-3 text-left">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                          <Sparkles className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-white font-black text-sm">Imagem Gerada!</div>
+                          <div className="text-slate-400 text-[11px] font-bold leading-tight">Salvar na galeria da Ana Paula?</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <button
+                          type="button"
+                          onClick={handleDiscardBackground}
+                          className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all"
+                        >
+                          Descartar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleConfirmBackground}
+                          disabled={appearanceSaving}
+                          className="flex-1 sm:flex-none px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                        >
+                          {appearanceSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                          Gostei, Salvar!
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="px-5 py-3 border-t border-slate-800/40 bg-slate-950/60">
+                    <div className="text-white font-black text-sm">Agenda da Ana</div>
+                    <div className="text-[11px] text-slate-500 font-bold mt-0.5">
+                      {tempGeneratedUrl ? 'Visualizando nova geração…' : 'O fundo escolhido aparece aqui.'}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Resumos */}
-      <Card className={cn('p-0 overflow-hidden', agendaCardClass)}>
-        <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/30">
-          <div className="text-white font-black">Resumos automáticos</div>
-          <div className="text-xs text-slate-500 font-bold mt-1">Preferências do “Bom dia Ana” e resumo semanal</div>
-        </div>
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <label className="flex items-center justify-between gap-3 text-sm font-black text-slate-200">
-              <span>Resumo diário</span>
-              <input
-                type="checkbox"
-                checked={!!config.resumo_diario_ativo}
-                onChange={(e) => setConfig((p) => ({ ...p, resumo_diario_ativo: e.target.checked }))}
-                className="accent-violet-500"
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Horário</div>
-                <input
-                  type="time"
-                  value={config.resumo_diario_hora || '08:00'}
-                  onChange={(e) => setConfig((p) => ({ ...p, resumo_diario_hora: e.target.value }))}
-                  className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <label className="flex items-center justify-between gap-3 text-sm font-black text-slate-200">
-              <span>Resumo semanal</span>
-              <input
-                type="checkbox"
-                checked={!!config.resumo_semanal_ativo}
-                onChange={(e) => setConfig((p) => ({ ...p, resumo_semanal_ativo: e.target.checked }))}
-                className="accent-violet-500"
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Dia</div>
-                <CustomSelect
-                  value={String(config.resumo_semanal_dia || 'domingo')}
-                  onValueChange={(v) => setConfig((p) => ({ ...p, resumo_semanal_dia: v }))}
-                  options={diasSemana}
-                  placeholder="Escolha o dia"
-                />
-              </div>
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Horário</div>
-                <input
-                  type="time"
-                  value={config.resumo_semanal_hora || '20:00'}
-                  onChange={(e) => setConfig((p) => ({ ...p, resumo_semanal_hora: e.target.value }))}
-                  className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-2">
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Lembrete padrão</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <CustomSelect
-                value={String(config.lembrete_padrao_minutos ?? 30)}
-                onValueChange={(v) => setConfig((p) => ({ ...p, lembrete_padrao_minutos: Number(v) }))}
-                options={minutesOptionsSelect}
-                placeholder="Defina o lembrete"
-              />
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                Ao criar uma tarefa (Quick Add), esse será o lembrete sugerido.
               </div>
             </div>
           </div>
@@ -763,24 +786,25 @@ export const ConfiguracoesAgenda: React.FC<{
                   <div key={col.key} className="rounded-2xl border border-slate-800/60 bg-slate-950/85 p-4">
                     <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setKanbanColumns((prev) =>
-                              prev.map((c) => (c.key === col.key ? { ...c, visible: !c.visible } : c))
-                            )
-                          }
-                          className={cn(
-                            'w-10 h-10 rounded-2xl border flex items-center justify-center transition-all shrink-0',
-                            col.visible
-                              ? 'bg-slate-900/30 border-slate-800 text-slate-300 hover:text-white'
-                              : 'bg-slate-900/10 border-slate-900/30 text-slate-600 hover:text-slate-300'
-                          )}
-                          aria-label={col.visible ? 'Ocultar coluna' : 'Mostrar coluna'}
-                          title={col.visible ? 'Ocultar coluna' : 'Mostrar coluna'}
-                        >
-                          {col.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                        </button>
+                        <Tooltip content={col.visible ? 'Ocultar coluna' : 'Mostrar coluna'} side="top">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setKanbanColumns((prev) =>
+                                prev.map((c) => (c.key === col.key ? { ...c, visible: !c.visible } : c))
+                              )
+                            }
+                            className={cn(
+                              'w-10 h-10 rounded-2xl border flex items-center justify-center transition-all shrink-0',
+                              col.visible
+                                ? 'bg-slate-900/30 border-slate-800 text-slate-300 hover:text-white'
+                                : 'bg-slate-900/10 border-slate-900/30 text-slate-600 hover:text-slate-300'
+                            )}
+                            aria-label={col.visible ? 'Ocultar coluna' : 'Mostrar coluna'}
+                          >
+                            {col.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                          </button>
+                        </Tooltip>
 
                         <div className="min-w-0 flex-1">
                           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Status</div>
@@ -788,46 +812,50 @@ export const ConfiguracoesAgenda: React.FC<{
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setKanbanColumns((prev) => {
-                                const sorted = prev.slice().sort((a, b) => a.order - b.order);
-                                const idx = sorted.findIndex((c) => c.key === col.key);
-                                if (idx <= 0) return prev;
-                                const above = sorted[idx - 1];
-                                return prev.map((c) => {
-                                  if (c.key === col.key) return { ...c, order: above.order };
-                                  if (c.key === above.key) return { ...c, order: col.order };
-                                  return c;
-                                });
-                              })
-                            }
-                            className="w-10 h-10 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-400 hover:text-white hover:bg-slate-900/40 transition-all"
-                            title="Subir"
-                          >
-                            <ChevronUp className="w-4 h-4 mx-auto" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setKanbanColumns((prev) => {
-                                const sorted = prev.slice().sort((a, b) => a.order - b.order);
-                                const idx = sorted.findIndex((c) => c.key === col.key);
-                                if (idx < 0 || idx >= sorted.length - 1) return prev;
-                                const below = sorted[idx + 1];
-                                return prev.map((c) => {
-                                  if (c.key === col.key) return { ...c, order: below.order };
-                                  if (c.key === below.key) return { ...c, order: col.order };
-                                  return c;
-                                });
-                              })
-                            }
-                            className="w-10 h-10 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-400 hover:text-white hover:bg-slate-900/40 transition-all"
-                            title="Descer"
-                          >
-                            <ChevronDown className="w-4 h-4 mx-auto" />
-                          </button>
+                          <Tooltip content="Subir" side="top">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setKanbanColumns((prev) => {
+                                  const sorted = prev.slice().sort((a, b) => a.order - b.order);
+                                  const idx = sorted.findIndex((c) => c.key === col.key);
+                                  if (idx <= 0) return prev;
+                                  const above = sorted[idx - 1];
+                                  return prev.map((c) => {
+                                    if (c.key === col.key) return { ...c, order: above.order };
+                                    if (c.key === above.key) return { ...c, order: col.order };
+                                    return c;
+                                  });
+                                })
+                              }
+                              className="w-10 h-10 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-400 hover:text-white hover:bg-slate-900/40 transition-all"
+                              aria-label="Subir"
+                            >
+                              <ChevronUp className="w-4 h-4 mx-auto" />
+                            </button>
+                          </Tooltip>
+                          <Tooltip content="Descer" side="top">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setKanbanColumns((prev) => {
+                                  const sorted = prev.slice().sort((a, b) => a.order - b.order);
+                                  const idx = sorted.findIndex((c) => c.key === col.key);
+                                  if (idx < 0 || idx >= sorted.length - 1) return prev;
+                                  const below = sorted[idx + 1];
+                                  return prev.map((c) => {
+                                    if (c.key === col.key) return { ...c, order: below.order };
+                                    if (c.key === below.key) return { ...c, order: col.order };
+                                    return c;
+                                  });
+                                })
+                              }
+                              className="w-10 h-10 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-400 hover:text-white hover:bg-slate-900/40 transition-all"
+                              aria-label="Descer"
+                            >
+                              <ChevronDown className="w-4 h-4 mx-auto" />
+                            </button>
+                          </Tooltip>
                         </div>
                       </div>
 

@@ -7,6 +7,7 @@ import {
   TrendingUp,
   CreditCard,
   Calendar,
+  Bell,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -15,7 +16,7 @@ import {
 
 const SIDEBAR_COLLAPSED_KEY = 'la-music-sidebar-collapsed';
 
-type ModuleId = 'folha' | 'contas' | 'agenda';
+type ModuleId = 'folha' | 'contas' | 'agenda' | 'notificacoes';
 type FolhaPageId = 'dashboard' | 'colaboradores' | 'lancamentos' | 'comparativo';
 
 export interface SidebarNavigate {
@@ -83,6 +84,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         id: 'agenda' as const,
         label: 'Agenda',
         icon: Calendar,
+        disabled: false,
+      },
+      {
+        id: 'notificacoes' as const,
+        label: 'Notificações',
+        icon: Bell,
         disabled: false,
       },
     ],

@@ -3,6 +3,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { MoreHorizontal, Pencil, Plus, Settings, Trash2 } from 'lucide-react';
 import { cn } from '../CollaboratorComponents';
 import type { TarefaLista } from '../../types/agenda';
+import { Tooltip } from '../UI';
 
 type ListKey = `smart:${string}` | `list:${string}` | 'config';
 
@@ -90,8 +91,8 @@ export const AgendaSidebarListas: React.FC<{
                   </span>
 
                   <Popover.Root>
-                    <Popover.Trigger asChild>
-                      <button
+                    <Tooltip content="Ações" side="top">
+                      <Popover.Trigger
                         type="button"
                         onClick={(e) => e.stopPropagation()}
                         className={cn(
@@ -100,11 +101,10 @@ export const AgendaSidebarListas: React.FC<{
                           'opacity-0 group-hover:opacity-100'
                         )}
                         aria-label="Ações da lista"
-                        title="Ações"
                       >
                         <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </Popover.Trigger>
+                      </Popover.Trigger>
+                    </Tooltip>
                     <Popover.Portal>
                       <Popover.Content
                         sideOffset={8}
@@ -162,21 +162,6 @@ export const AgendaSidebarListas: React.FC<{
         </div>
       </div>
 
-      <div className="p-4 border-t border-slate-800/70 mt-auto bg-gradient-to-t from-black/25 to-transparent">
-        <button
-          type="button"
-          onClick={onOpenConfig}
-          className={cn(
-            'w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all',
-            activeKey === 'config'
-              ? 'bg-violet-500/15 border-violet-500/20 text-violet-200'
-              : 'border-slate-800 bg-slate-900/20 text-slate-300 hover:bg-slate-900/40 hover:border-violet-500/20'
-          )}
-        >
-          <Settings className="w-4 h-4" />
-          <span className="text-sm font-black">Configurações</span>
-        </button>
-      </div>
     </aside>
   );
 };

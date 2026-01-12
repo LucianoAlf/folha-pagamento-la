@@ -115,12 +115,26 @@ export interface NotificacaoConfig {
   google_calendar_ativo: boolean;
   google_refresh_token?: string | null;
   google_calendar_id?: string | null;
+  // Agenda
+  agenda_lembrete_tarefas_ativo?: boolean;
   resumo_diario_ativo: boolean;
   resumo_diario_hora: string;
   resumo_semanal_ativo: boolean;
   resumo_semanal_dia: string;
   resumo_semanal_hora: string;
   lembrete_padrao_minutos: number;
+  // Contas a pagar
+  contas_alerta_3d?: boolean;
+  contas_alerta_1d?: boolean;
+  contas_alerta_no_dia?: boolean;
+  contas_alerta_hora?: string;
+  contas_resumo_semanal_ativo?: boolean;
+  contas_resumo_semanal_dia?: string;
+  contas_resumo_semanal_hora?: string;
+  // Folha de Pagamento
+  folha_alerta_fechamento_ativo?: boolean;
+  folha_alerta_fechamento_dia?: number;
+  folha_alerta_aprovacao_pendente_ativo?: boolean;
   // Aparência da Agenda
   agenda_bg_preset?: string | null;
   agenda_bg_url?: string | null;

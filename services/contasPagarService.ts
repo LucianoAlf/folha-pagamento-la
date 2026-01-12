@@ -150,6 +150,58 @@ export async function deleteConta(contaId: string): Promise<void> {
   if (error) throw error;
 }
 
+// =============================================
+// NOTIFICAÇÕES (Overrides por conta)
+// =============================================
+
+export interface ContaPagarNotificacoesOverride {
+  id: string;
+  user_id: string;
+  conta_pagar_id: string;
+  alerta_3d: boolean | null;
+  alerta_1d: boolean | null;
+  alerta_no_dia: boolean | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchContaPagarNotificacoesOverride(contaId: string): Promise<ContaPagarNotificacoesOverride | null> {
+  const { data, error } = await supabase
+    .from('contas_pagar_notificacoes')
+    .select('*')
+    .eq('conta_pagar_id', contaId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data || null) as any;
+}
+
+export async function upsertContaPagarNotificacoesOverride(
+  contaId: string,
+  patch: { alerta_3d?: boolean | null; alerta_1d?: boolean | null; alerta_no_dia?: boolean | null }
+): Promise<ContaPagarNotificacoesOverride> {
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user?.id) throw new Error('Sessão expirada. Faça login novamente.');
+
+  const { data, error } = await supabase
+    .from('contas_pagar_notificacoes')
+    .upsert([
+      {
+        user_id: user.user.id,
+        conta_pagar_id: contaId,
+        ...patch,
+      },
+    ])
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as any;
+}
+
+export async function deleteContaPagarNotificacoesOverride(contaId: string): Promise<void> {
+  const { error } = await supabase.from('contas_pagar_notificacoes').delete().eq('conta_pagar_id', contaId);
+  if (error) throw error;
+}
+
 // Helpers
 export function getStatusVisual(conta: ContaPagar): StatusVisual {
   if (conta.status === 'pago') return 'pago';

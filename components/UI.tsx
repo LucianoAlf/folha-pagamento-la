@@ -219,6 +219,96 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string }> =
   );
 };
 
+export const ToggleSwitch: React.FC<{
+  checked: boolean;
+  onCheckedChange: (next: boolean) => void;
+  disabled?: boolean;
+  size?: 'sm' | 'md';
+  variant?: 'violet' | 'emerald' | 'cyan';
+  ariaLabel?: string;
+}> = ({ checked, onCheckedChange, disabled = false, size = 'md', variant = 'violet', ariaLabel }) => {
+  const dims =
+    size === 'sm'
+      ? { track: 'w-11 h-6', dot: 'w-4 h-4 top-1 left-1', on: 'translate-x-5' }
+      : { track: 'w-12 h-7', dot: 'w-5 h-5 top-1 left-1', on: 'translate-x-5' };
+
+  const color =
+    variant === 'emerald'
+      ? { onBg: 'bg-emerald-500/25 border-emerald-500/40', onDot: 'bg-emerald-400' }
+      : variant === 'cyan'
+        ? { onBg: 'bg-cyan-500/20 border-cyan-500/35', onDot: 'bg-cyan-300' }
+        : { onBg: 'bg-violet-500/15 border-violet-500/30', onDot: 'bg-violet-300' };
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={() => {
+        if (disabled) return;
+        onCheckedChange(!checked);
+      }}
+      className={cn(
+        'rounded-full border transition-all relative outline-none',
+        dims.track,
+        checked ? color.onBg : 'bg-slate-900/50 border-slate-800',
+        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-700'
+      )}
+    >
+      <span
+        className={cn(
+          'absolute rounded-full transition-all',
+          dims.dot,
+          checked ? `${dims.on} ${color.onDot}` : 'translate-x-0 bg-slate-600'
+        )}
+      />
+    </button>
+  );
+};
+
+function normalizeHHMM(value: string | null | undefined) {
+  const s = String(value || '').trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return '';
+  const hh = String(Math.min(23, Math.max(0, Number(m[1])))).padStart(2, '0');
+  const mm = String(Math.min(59, Math.max(0, Number(m[2])))).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+function buildTimeOptions(stepMinutes: 15 | 30) {
+  const opts: { value: string; label: string }[] = [];
+  for (let mins = 0; mins < 24 * 60; mins += stepMinutes) {
+    const hh = String(Math.floor(mins / 60)).padStart(2, '0');
+    const mm = String(mins % 60).padStart(2, '0');
+    const v = `${hh}:${mm}`;
+    opts.push({ value: v, label: v });
+  }
+  return opts;
+}
+
+export const TimeSelect: React.FC<{
+  value?: string | null;
+  onValueChange: (value: string) => void;
+  stepMinutes?: 15 | 30;
+  className?: string;
+  disabled?: boolean;
+}> = ({ value, onValueChange, stepMinutes = 30, className = '', disabled = false }) => {
+  const safe = normalizeHHMM(value) || '08:00';
+  const options = buildTimeOptions(stepMinutes);
+  return (
+    <div className={cn(disabled && 'opacity-60 pointer-events-none', className)}>
+      <CustomSelect
+        value={safe}
+        onValueChange={(v) => onValueChange(normalizeHHMM(v) || safe)}
+        options={options}
+        className="min-w-[160px]"
+      />
+    </div>
+  );
+};
+
 export const Modal: React.FC<{ 
   isOpen: boolean; 
   onClose: () => void; 

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, DatePicker } from '../UI';
 import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
+import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
 
 const parseBRL = (raw: string) => {
   const cleaned = (raw || '')
@@ -105,6 +106,8 @@ export const EditarContaModal: React.FC<{
         <div className="text-xs text-slate-500 font-bold">
           Dica: conta recorrente aparece todo mês. Ajuste aqui o valor deste mês específico (ex.: conta de luz).
         </div>
+
+        {conta?.id ? <ContaLembretesWhatsApp contaId={conta.id} /> : null}
       </div>
     </Modal>
   );

@@ -24,6 +24,7 @@ import {
 import { Sidebar } from './components/Sidebar';
 import { ContasPagarPage } from './components/contas/ContasPagarPage';
 import { AgendaPage } from './components/agenda/AgendaPage';
+import { NotificacoesPage } from './components/notificacoes/NotificacoesPage';
 
 
 const parseBRL = (raw: string) => {
@@ -176,7 +177,7 @@ function App() {
     return null;
   };
 
-  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'agenda'>('folha');
+  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'agenda' | 'notificacoes'>('folha');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
@@ -245,11 +246,43 @@ function App() {
       subtitle: 'COMPROMISSOS E TAREFAS',
       icon: Calendar,
       tabs: []
+    },
+    notificacoes: {
+      title: 'Notificações',
+      subtitle: 'WHATSAPP E ALERTAS AUTOMÁTICOS',
+      icon: Bell,
+      tabs: []
     }
   };
 
+  // Navegação global (atalhos dentro das telas podem disparar um CustomEvent)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { module?: string; page?: string } | undefined;
+      if (!detail?.module) return;
+
+      const mod = detail.module as 'folha' | 'contas' | 'agenda' | 'notificacoes';
+      setCurrentModule(mod);
+
+      if (detail.page) {
+        setActiveTab(detail.page);
+      } else {
+        if (mod === 'folha') setActiveTab('dashboard');
+        if (mod === 'contas') setActiveTab('dashboard');
+        if (mod === 'agenda') setActiveTab('agenda');
+        if (mod === 'notificacoes') setActiveTab('notificacoes');
+      }
+
+      if (mod === 'folha') setUnidadeFiltro('todos');
+      setSidebarMobileOpen(false);
+    };
+
+    window.addEventListener('la:navigate', handler as EventListener);
+    return () => window.removeEventListener('la:navigate', handler as EventListener);
+  }, []);
+
   const handleNavigate = (module: string, page?: string) => {
-    const mod = module as 'folha' | 'contas' | 'agenda';
+    const mod = module as 'folha' | 'contas' | 'agenda' | 'notificacoes';
     setCurrentModule(mod);
     
     if (page) {
@@ -258,6 +291,7 @@ function App() {
       if (mod === 'folha') setActiveTab('dashboard');
       if (mod === 'contas') setActiveTab('dashboard');
       if (mod === 'agenda') setActiveTab('agenda');
+      if (mod === 'notificacoes') setActiveTab('notificacoes');
     }
     
     if (mod === 'folha') setUnidadeFiltro('todos');
@@ -1637,6 +1671,8 @@ function App() {
             <ContasPagarPage mode={(activeTab as any) || 'visao-geral'} />
           ) : currentModule === 'agenda' ? (
              <AgendaPage />
+          ) : currentModule === 'notificacoes' ? (
+            <NotificacoesPage />
           ) : loading ? (
           <LoadingSpinner />
         ) : error ? (

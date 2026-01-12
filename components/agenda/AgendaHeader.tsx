@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Columns3, LayoutGrid, LayoutList, RefreshCw, Settings } from 'lucide-react';
+import { Bell, Calendar, Columns3, LayoutGrid, LayoutList, Settings } from 'lucide-react';
 import { Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 
@@ -15,9 +15,8 @@ export const AgendaHeader: React.FC<{
   viewMode: AgendaViewMode;
   onChangeViewMode: (m: AgendaViewMode) => void;
   onOpenConfig: () => void;
-  onRefresh: () => void;
   rightSlot?: React.ReactNode;
-}> = ({ leftIcon, accentColor = '#8b5cf6', title, subtitle, mode, viewMode, onChangeViewMode, onOpenConfig, onRefresh, rightSlot }) => {
+}> = ({ leftIcon, accentColor = '#8b5cf6', title, subtitle, mode, viewMode, onChangeViewMode, onOpenConfig, rightSlot }) => {
   return (
     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
       <div className="min-w-0">
@@ -122,14 +121,20 @@ export const AgendaHeader: React.FC<{
           </button>
         </Tooltip>
 
-        <Tooltip content="Atualizar" side="bottom">
+        <Tooltip content="Notificações" side="bottom">
           <button
             type="button"
-            onClick={onRefresh}
+            onClick={() => {
+              try {
+                window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'notificacoes' } }));
+              } catch {
+                // ignore
+              }
+            }}
             className="w-11 h-11 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-400 hover:text-white hover:bg-slate-900/40 flex items-center justify-center transition-all"
-            aria-label="Atualizar"
+            aria-label="Notificações"
           >
-            <RefreshCw className="w-5 h-5" />
+            <Bell className="w-5 h-5" />
           </button>
         </Tooltip>
       </div>

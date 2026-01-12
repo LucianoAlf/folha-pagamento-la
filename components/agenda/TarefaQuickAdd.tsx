@@ -24,10 +24,12 @@ export const TarefaQuickAdd: React.FC<{
   listKey: ListKey;
   listaAtiva: TarefaLista | null;
   onCreated: () => void;
-}> = ({ listKey, listaAtiva, onCreated }) => {
-  const [open, setOpen] = useState(false);
+  defaultDateISO?: string; // yyyy-mm-dd
+  startOpen?: boolean;
+}> = ({ listKey, listaAtiva, onCreated, defaultDateISO, startOpen = false }) => {
+  const [open, setOpen] = useState(!!startOpen);
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState<string | undefined>(undefined); // yyyy-mm-dd
+  const [date, setDate] = useState<string | undefined>(defaultDateISO); // yyyy-mm-dd
   const [time, setTime] = useState('09:00');
   const [diaInteiro, setDiaInteiro] = useState(false);
   const [prioridade, setPrioridade] = useState<Prioridade>('media');
@@ -69,7 +71,7 @@ export const TarefaQuickAdd: React.FC<{
 
   const reset = () => {
     setTitle('');
-    setDate(undefined);
+    setDate(defaultDateISO || undefined);
     setTime('09:00');
     setDiaInteiro(false);
     setPrioridade('media');

@@ -108,7 +108,9 @@ Deno.serve(async (req: Request) => {
     // Somente Ana (primeira config ativa)
     const { data: cfg, error: cfgErr } = await supabase
       .from("notificacao_config")
-      .select("user_id, whatsapp_numero, whatsapp_ativo, lembrete_padrao_minutos")
+      .select(
+        "user_id, whatsapp_numero, whatsapp_ativo, lembrete_padrao_minutos, agenda_lembrete_tarefas_ativo",
+      )
       .eq("whatsapp_ativo", true)
       .not("whatsapp_numero", "is", null)
       .order("updated_at", { ascending: false })
@@ -117,6 +119,9 @@ Deno.serve(async (req: Request) => {
     if (cfgErr) throw cfgErr;
     if (!cfg?.whatsapp_numero) {
       return json({ success: true, message: "WhatsApp não configurado.", enviados: 0, erros: 0 }, 200);
+    }
+    if ((cfg as any)?.agenda_lembrete_tarefas_ativo === false) {
+      return json({ success: true, message: "Lembretes da Agenda desativados.", enviados: 0, erros: 0 }, 200);
     }
     const numeroWhatsApp = String(cfg.whatsapp_numero).replace(/\D/g, "");
     const userId = cfg.user_id || null;

@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
-import { Search, DollarSign, Edit2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Search, DollarSign, Edit2, Bell } from 'lucide-react';
 import { Badge, Card, Tooltip } from '../UI';
 import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
 import { CheckCircle2 } from 'lucide-react';
+import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
 
 // Helper simples para formatar data ISO (YYYY-MM-DD) para BR (DD/MM/YYYY)
 const formatDateBR = (isoDate: string) => {
@@ -24,6 +25,8 @@ export const ContasTable: React.FC<{
   onPagar: (conta: ContaPagar) => void;
   onEditar: (conta: ContaPagar) => void;
 }> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar }) => {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const filtered = useMemo(() => {
     const q = (busca || '').trim().toLowerCase();
     const hojeISO = new Date().toISOString().split('T')[0];
@@ -115,16 +118,38 @@ export const ContasTable: React.FC<{
           <div className="px-6 py-10 text-sm text-slate-400">Nenhuma conta encontrada.</div>
         ) : (
           <div className="divide-y divide-slate-800/50">
-            {filtered.map((c) => (
-              <div key={c.id} className="grid grid-cols-12 px-6 py-5 items-center bg-slate-900/10 hover:bg-slate-900/20 transition-colors">
-                <div className="col-span-5 min-w-0">
-                  <div className="text-white font-black truncate">{(c.categoria?.nome || '').toUpperCase()}</div>
-                  <div className="text-xs text-slate-500 truncate">{c.descricao}</div>
-                </div>
-                <div className="col-span-2 text-sm font-bold text-slate-300">{formatDateBR(c.data_vencimento)}</div>
-                <div className="col-span-2 text-right text-white font-black">{formatCurrency(Number(c.valor) || 0)}</div>
-                <div className="col-span-1 flex justify-center">{badgeFor(c)}</div>
-                    <div className="col-span-2 flex justify-end gap-2">
+            {filtered.map((c) => {
+              const isOpen = expandedId === c.id;
+              return (
+                <div key={c.id}>
+                  <div
+                    className="grid grid-cols-12 px-6 py-5 items-center bg-slate-900/10 hover:bg-slate-900/20 transition-colors cursor-pointer"
+                    onClick={() => setExpandedId(isOpen ? null : c.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') setExpandedId(isOpen ? null : c.id);
+                    }}
+                    aria-expanded={isOpen}
+                  >
+                    <div className="col-span-5 min-w-0">
+                      <div className="text-white font-black truncate">{(c.categoria?.nome || '').toUpperCase()}</div>
+                      <div className="text-xs text-slate-500 truncate">{c.descricao}</div>
+                    </div>
+                    <div className="col-span-2 text-sm font-bold text-slate-300">{formatDateBR(c.data_vencimento)}</div>
+                    <div className="col-span-2 text-right text-white font-black">{formatCurrency(Number(c.valor) || 0)}</div>
+                    <div className="col-span-1 flex justify-center">{badgeFor(c)}</div>
+                    <div className="col-span-2 flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Tooltip content="Lembretes WhatsApp (por conta)">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(isOpen ? null : c.id)}
+                          className="p-2 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+                          aria-label="Lembretes WhatsApp"
+                        >
+                          <Bell size={14} />
+                        </button>
+                      </Tooltip>
                       {c.status === 'pago' ? (
                         <div className="flex items-center gap-2 text-emerald-400 font-black text-xs px-4 py-2">
                           <CheckCircle2 size={14} />
@@ -152,8 +177,37 @@ export const ContasTable: React.FC<{
                         </>
                       )}
                     </div>
-              </div>
-            ))}
+                  </div>
+
+                  {isOpen ? (
+                    <div className="px-6 pb-6 bg-slate-950/30 border-t border-slate-800/50">
+                      <div className="pt-5 grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-5">
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/20 p-5">
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Conta</div>
+                          <div className="text-white font-black mt-1">{c.descricao}</div>
+                          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
+                              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Valor</div>
+                              <div className="text-slate-100 font-black mt-1">{formatCurrency(Number(c.valor) || 0)}</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
+                              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Vencimento</div>
+                              <div className="text-slate-100 font-black mt-1">{formatDateBR(c.data_vencimento)}</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
+                              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Status</div>
+                              <div className="mt-1">{badgeFor(c)}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <ContaLembretesWhatsApp contaId={c.id} dense />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

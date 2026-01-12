@@ -51,7 +51,8 @@ import {
   Calendar,
   Sparkles,
   Brain,
-  Bot
+  Bot,
+  Bell
 } from 'lucide-react';
 import { cn } from '../CollaboratorComponents';
 import { KPICard, DistributionChart, EvolutionChart } from '../DashboardWidgets';
@@ -868,6 +869,22 @@ export const ContasPagarPage: React.FC<{
                 options={competenciaOptions}
               />
             </div>
+            <Tooltip content="Configurações de Notificações" side="top">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'notificacoes' } }));
+                  } catch {
+                    // ignore
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-4 py-3.5 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-200 font-black hover:bg-slate-900/45 hover:border-violet-500/30 transition-all active:scale-[0.98]"
+              >
+                <Bell size={16} className="text-violet-300" />
+                Notificações
+              </button>
+            </Tooltip>
             <button
               type="button"
               onClick={() => setNovaOpen(true)}

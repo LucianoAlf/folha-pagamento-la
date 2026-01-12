@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { addDays, format, isSameMonth, isToday, parseISO, startOfMonth, startOfWeek } from 'date-fns';
+import { addDays, format, isSameMonth, startOfMonth, startOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import type { Tarefa } from '../../types/agenda';
@@ -21,25 +21,12 @@ export const CalendarioView: React.FC<{
   tarefas: Tarefa[];
   selectedDateISO: string | null;
   onSelectDate: (iso: string) => void;
-  tarefasDoDia: Tarefa[];
-  onSelectTarefa: (t: Tarefa) => void;
-}> = ({ tarefas, selectedDateISO, onSelectDate, tarefasDoDia, onSelectTarefa }) => {
+}> = ({ tarefas, selectedDateISO, onSelectDate }) => {
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
 
   const monthStart = useMemo(() => startOfMonth(cursor), [cursor]);
   const gridStart = useMemo(() => startOfWeek(monthStart, { weekStartsOn: 0 }), [monthStart]);
   const days = useMemo(() => Array.from({ length: 42 }, (_, i) => addDays(gridStart, i)), [gridStart]);
-
-  const selectedDateLabel = useMemo(() => {
-    if (!selectedDateISO) return null;
-    try {
-      const d = parseISO(`${selectedDateISO}T00:00:00`);
-      const base = format(d, "d 'de' MMMM", { locale: ptBR });
-      return isToday(d) ? `${base} (Hoje)` : base;
-    } catch {
-      return selectedDateISO;
-    }
-  }, [selectedDateISO]);
 
   const statsByDay = useMemo(() => {
     const map = new Map<string, { urgente: number; alta: number; media: number; baixa: number; total: number; items: Tarefa[] }>();
@@ -219,49 +206,7 @@ export const CalendarioView: React.FC<{
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-800/70 bg-slate-950/95 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-800/70">
-          <div className="text-white font-black flex items-center gap-2">
-            {selectedDateLabel ? <Calendar className="w-4 h-4 text-slate-300" /> : null}
-            {selectedDateLabel ? selectedDateLabel : 'Selecione um dia'}
-          </div>
-          <div className="text-xs text-slate-500 font-bold mt-1">Clique em uma tarefa para abrir os detalhes</div>
-        </div>
-        <div className="p-2">
-          {tarefasDoDia.length === 0 ? (
-            <div className="px-4 py-6 text-sm text-slate-500 font-bold">Nenhuma tarefa nesse dia.</div>
-          ) : (
-            tarefasDoDia.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => onSelectTarefa(t)}
-                className="w-full text-left p-4 rounded-2xl hover:bg-slate-900/40 border border-transparent hover:border-slate-700/60 transition-all"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-white font-black truncate">{t.titulo}</div>
-                    <div className="text-xs text-slate-400 font-bold mt-1">
-                      <span className="inline-flex items-center gap-1.5">
-                        {(() => {
-                          const Icon = prioridadeIcon(t.prioridade as any);
-                          return <Icon className="w-3.5 h-3.5" />;
-                        })()}
-                        {PRIORIDADES[t.prioridade].label} • {t.categoria}
-                      </span>
-                    </div>
-                  </div>
-                  {t.vencimento_em ? (
-                    <div className="text-xs text-slate-400 font-black whitespace-nowrap">
-                      {new Date(t.vencimento_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  ) : null}
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
+      {/* A lista do dia e criação rápida ficam no modal "Tarefas do dia" (AgendaContent) */}
     </div>
   );
 };

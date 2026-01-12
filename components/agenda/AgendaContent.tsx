@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge, Card, Modal } from '../UI';
 import { cn } from '../CollaboratorComponents';
@@ -72,6 +72,7 @@ export const AgendaContent: React.FC<{
   });
 
   const [mobileDetailTarefa, setMobileDetailTarefa] = useState<Tarefa | null>(null);
+  const [dayModalOpen, setDayModalOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const showMeuDia = listKey === 'smart:meu-dia';
@@ -124,6 +125,19 @@ export const AgendaContent: React.FC<{
     if (window.innerWidth < 1280) setMobileDetailTarefa(t);
   };
 
+  const handleSelectDate = (iso: string) => {
+    onSelectDate(iso);
+    setDayModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (viewMode !== 'calendario') setDayModalOpen(false);
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (!selectedDateISO) setDayModalOpen(false);
+  }, [selectedDateISO]);
+
   return (
     <section className="flex-1 min-w-0 bg-slate-950/85">
       <div className="h-full flex flex-col">
@@ -137,7 +151,6 @@ export const AgendaContent: React.FC<{
             viewMode={viewMode}
             onChangeViewMode={setViewMode}
             onOpenConfig={() => setMode('config')}
-            onRefresh={onRefresh}
             rightSlot={
               mode === 'tarefas' && viewMode === 'calendario' && selectedDateLabel ? (
                 <Badge variant="info">{selectedDateLabel}</Badge>
@@ -194,9 +207,7 @@ export const AgendaContent: React.FC<{
               <CalendarioView
                 tarefas={showMeuDia ? [...tarefasAtrasadas, ...tarefasHoje] : tarefas}
                 selectedDateISO={selectedDateISO}
-                onSelectDate={onSelectDate}
-                tarefasDoDia={tarefasDoDia}
-                onSelectTarefa={openDetails}
+                onSelectDate={handleSelectDate}
               />
             </div>
           ) : viewMode === 'lista' ? (
@@ -399,6 +410,53 @@ export const AgendaContent: React.FC<{
           )}
         </div>
       </div>
+
+      {/* Modal: tarefas do dia + criar com data pre-preenchida */}
+      <Modal
+        isOpen={dayModalOpen && !!selectedDateISO}
+        onClose={() => setDayModalOpen(false)}
+        title="Tarefas do dia"
+        subtitle={selectedDateLabel ? selectedDateLabel : 'Selecione um dia no calendário'}
+        className="max-w-3xl"
+      >
+        <div className="space-y-4">
+          <TarefaQuickAdd
+            key={`dayquick:${selectedDateISO || 'none'}`}
+            listKey={listKey}
+            listaAtiva={listaAtiva}
+            onCreated={() => onRefresh()}
+            defaultDateISO={selectedDateISO || undefined}
+            startOpen
+          />
+
+          <div className="rounded-2xl border border-slate-800/60 bg-slate-950/95 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-800/60 bg-slate-950/95">
+              <div className="text-white font-black">Lançamentos do dia</div>
+              <div className="text-xs text-slate-500 font-bold mt-1">Clique em uma tarefa para abrir os detalhes</div>
+            </div>
+            <div className="p-2">
+              {tarefasDoDia.length === 0 ? (
+                <div className="px-4 py-6 text-sm text-slate-500 font-bold">Nenhuma tarefa nesse dia.</div>
+              ) : (
+                tarefasDoDia.map((t) => (
+                  <TarefaCard
+                    key={t.id}
+                    tarefa={t}
+                    isSelected={false}
+                    onSelect={() => {
+                      setDayModalOpen(false);
+                      openDetails(t);
+                    }}
+                    onToggle={() => handleToggle(t)}
+                    onDelete={() => handleDelete(t)}
+                    showOriginList={isSmartView}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </Modal>
 
       {/* Mobile details modal */}
       <Modal
