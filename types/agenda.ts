@@ -121,7 +121,125 @@ export interface NotificacaoConfig {
   resumo_semanal_dia: string;
   resumo_semanal_hora: string;
   lembrete_padrao_minutos: number;
+  // Aparência da Agenda
+  agenda_bg_preset?: string | null;
+  agenda_bg_url?: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+// =============================================
+// APARÊNCIA (Agenda)
+// =============================================
+
+export type AgendaBackgroundPresetId =
+  | 'classic-dark'
+  | 'violet-aurora'
+  | 'lavender-cloud'
+  | 'sunset-peach'
+  | 'ocean-glow'
+  | 'forest-mist'
+  | 'rose-noir'
+  | 'midnight-neon'
+  | 'soft-sky'
+  | 'paper-ink';
+
+export interface AgendaBackgroundPreset {
+  id: AgendaBackgroundPresetId;
+  label: string;
+  description: string;
+  backgroundImage: string; // CSS background-image
+}
+
+export const AGENDA_BG_PRESETS: AgendaBackgroundPreset[] = [
+  {
+    id: 'classic-dark',
+    label: 'Clássico',
+    description: 'Escuro clean (padrão do sistema)',
+    backgroundImage:
+      'radial-gradient(1200px 700px at 15% 10%, rgba(148,163,184,.12), transparent 60%), linear-gradient(180deg, #0f1219, #070a0f)',
+  },
+  {
+    id: 'violet-aurora',
+    label: 'Aurora Violeta',
+    description: 'Roxo LA com brilho suave',
+    backgroundImage:
+      'radial-gradient(900px 520px at 18% 12%, rgba(139,92,246,.35), transparent 60%), radial-gradient(900px 520px at 82% 22%, rgba(59,130,246,.18), transparent 55%), linear-gradient(180deg, #0f1219, #070a0f)',
+  },
+  {
+    id: 'lavender-cloud',
+    label: 'Lavanda',
+    description: 'Calmo, elegante e leve',
+    backgroundImage:
+      'radial-gradient(950px 560px at 35% 18%, rgba(167,139,250,.28), transparent 60%), radial-gradient(700px 420px at 75% 65%, rgba(236,72,153,.10), transparent 55%), linear-gradient(180deg, #0f1219, #070a0f)',
+  },
+  {
+    id: 'sunset-peach',
+    label: 'Pôr do Sol',
+    description: 'Quente, acolhedor (sem pesar)',
+    backgroundImage:
+      'radial-gradient(900px 520px at 75% 12%, rgba(249,115,22,.22), transparent 60%), radial-gradient(700px 420px at 25% 25%, rgba(245,158,11,.16), transparent 55%), linear-gradient(180deg, #0f1219, #070a0f)',
+  },
+  {
+    id: 'ocean-glow',
+    label: 'Oceano',
+    description: 'Azul/teal com brilho',
+    backgroundImage:
+      'radial-gradient(980px 580px at 25% 18%, rgba(6,182,212,.18), transparent 60%), radial-gradient(780px 460px at 85% 55%, rgba(16,185,129,.14), transparent 55%), linear-gradient(180deg, #0f1219, #070a0f)',
+  },
+  {
+    id: 'forest-mist',
+    label: 'Floresta',
+    description: 'Verde suave, foco e paz',
+    backgroundImage:
+      'radial-gradient(980px 580px at 30% 20%, rgba(34,197,94,.16), transparent 60%), radial-gradient(780px 460px at 80% 60%, rgba(16,185,129,.10), transparent 55%), linear-gradient(180deg, #0f1219, #070a0f)',
+  },
+  {
+    id: 'rose-noir',
+    label: 'Rosa Noir',
+    description: 'Rosa discreto, sofisticado',
+    backgroundImage:
+      'radial-gradient(980px 580px at 22% 18%, rgba(236,72,153,.18), transparent 60%), radial-gradient(740px 420px at 78% 42%, rgba(139,92,246,.10), transparent 55%), linear-gradient(180deg, #0f1219, #070a0f)',
+  },
+  {
+    id: 'midnight-neon',
+    label: 'Neon Midnight',
+    description: 'Neon sutil (tech) sem distrair',
+    backgroundImage:
+      'radial-gradient(880px 520px at 20% 18%, rgba(99,102,241,.16), transparent 60%), radial-gradient(720px 420px at 80% 70%, rgba(6,182,212,.12), transparent 55%), radial-gradient(520px 320px at 65% 20%, rgba(245,158,11,.10), transparent 55%), linear-gradient(180deg, #0f1219, #070a0f)',
+  },
+  {
+    id: 'soft-sky',
+    label: 'Céu Suave',
+    description: 'Azul com roxo leve',
+    backgroundImage:
+      'radial-gradient(980px 580px at 60% 18%, rgba(96,165,250,.20), transparent 60%), radial-gradient(780px 460px at 25% 70%, rgba(167,139,250,.12), transparent 55%), linear-gradient(180deg, #0f1219, #070a0f)',
+  },
+  {
+    id: 'paper-ink',
+    label: 'Papel & Tinta',
+    description: 'Mais claro, ainda legível',
+    backgroundImage:
+      'radial-gradient(1100px 650px at 25% 20%, rgba(226,232,240,.10), transparent 65%), radial-gradient(900px 520px at 80% 40%, rgba(148,163,184,.08), transparent 60%), linear-gradient(180deg, #0c1017, #06080c)',
+  },
+];
+
+// =============================================
+// KANBAN (preferências por usuário)
+// =============================================
+
+export type KanbanColumnKey = 'pendente' | 'em_andamento' | 'concluida' | 'adiada';
+
+export interface AgendaKanbanColumnConfig {
+  key: KanbanColumnKey;
+  label: string;
+  visible: boolean;
+  order: number;
+}
+
+export interface AgendaKanbanConfigRow {
+  user_id: string;
+  columns: AgendaKanbanColumnConfig[];
   updated_at: string;
 }
 
@@ -153,7 +271,7 @@ export const PRIORIDADES = {
 
 export const CATEGORIAS = {
   financeiro: { label: 'Financeiro', cor: '#10b981', bg: 'bg-emerald-500/20', text: 'text-emerald-400', icone: '💰' },
-  rh: { label: 'RH', cor: '#8b5cf6', bg: 'bg-purple-500/20', text: 'text-purple-400', icone: '👥' },
+  rh: { label: 'RH', cor: '#8b5cf6', bg: 'bg-purple-500/20', text: 'text-purple-400', icone: '🧑‍🤝‍🧑' },
   administrativo: { label: 'Administrativo', cor: '#6366f1', bg: 'bg-indigo-500/20', text: 'text-indigo-400', icone: '📋' },
   pessoal: { label: 'Pessoal', cor: '#ec4899', bg: 'bg-pink-500/20', text: 'text-pink-400', icone: '🏠' },
   geral: { label: 'Geral', cor: '#6b7280', bg: 'bg-gray-500/20', text: 'text-gray-400', icone: '📌' },

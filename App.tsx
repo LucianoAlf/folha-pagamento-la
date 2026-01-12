@@ -23,6 +23,7 @@ import {
 } from './components/CollaboratorComponents';
 import { Sidebar } from './components/Sidebar';
 import { ContasPagarPage } from './components/contas/ContasPagarPage';
+import { AgendaPage } from './components/agenda/AgendaPage';
 
 
 const parseBRL = (raw: string) => {
@@ -229,7 +230,7 @@ function App() {
     },
     contas: {
       title: 'Contas a Pagar',
-      subtitle: 'FLUXO DE CAIXA E OBRIGAÇÕES',
+      subtitle: 'CONTROLE OPERACIONAL DE DESPESAS',
       icon: CreditCard,
       tabs: [
         { id: 'dashboard', label: 'Resumo', icon: LineChartIcon },
@@ -256,6 +257,7 @@ function App() {
     } else {
       if (mod === 'folha') setActiveTab('dashboard');
       if (mod === 'contas') setActiveTab('dashboard');
+      if (mod === 'agenda') setActiveTab('agenda');
     }
     
     if (mod === 'folha') setUnidadeFiltro('todos');
@@ -1288,7 +1290,7 @@ function App() {
                 <img src="/logo-LA-colapsed.png" className="w-12 h-12 object-contain transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-2xl" alt="LA" />
               </div>
               <div>
-                <h1 className="text-3xl font-black tracking-tight text-white leading-none uppercase">SUPER FOLHA SYSTEM</h1>
+                <h1 className="text-2xl font-bold tracking-[0.2em] text-white leading-none uppercase">SUPER FOLHA SYSTEM</h1>
                 <p className="text-purple-300/60 text-[11px] font-bold uppercase tracking-[0.35em] mt-1.5">Sistema Inteligente</p>
               </div>
             </div>
@@ -1537,7 +1539,13 @@ function App() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-auto flex flex-col p-8">
+      <main
+        className={cn(
+          "flex-1 overflow-auto flex flex-col",
+          // Agenda precisa ficar 100% full-bleed (sem “margem/contorno” visual).
+          currentModule === 'agenda' ? "p-0" : "p-8"
+        )}
+      >
         {/* Module-specific Header/Toolbar */}
         {currentModule === 'folha' && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
@@ -1588,37 +1596,47 @@ function App() {
         )}
           
         {/* Module Tabs (MusiClass Style - Full Bleed) */}
-        <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
-            <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={cn(
-                    "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
-                  activeTab === tab.id 
-                      ? "text-violet-400" 
-                      : "text-slate-500 hover:text-slate-200"
-                  )}
-                >
-                  <tab.icon size={16} className={cn(
-                    "transition-colors",
-                    activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
-                  )} />
-                {tab.label}
-                  {activeTab === tab.id && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
-                  )}
-              </button>
-            ))}
+        {tabs.length > 0 ? (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
+              <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={cn(
+                      "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
+                    activeTab === tab.id 
+                        ? "text-violet-400" 
+                        : "text-slate-500 hover:text-slate-200"
+                    )}
+                  >
+                    <tab.icon size={16} className={cn(
+                      "transition-colors",
+                      activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
+                    )} />
+                  {tab.label}
+                    {activeTab === tab.id && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
+                    )}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        </div>
+          </div>
+        ) : null}
 
-        <div className="w-full flex-1 flex flex-col gap-6 pt-6">
+        <div
+          className={cn(
+            "w-full flex-1 flex flex-col",
+            // Quando não há tabs (Agenda), não adiciona espaço “sobrando” em volta.
+            tabs.length > 0 ? "gap-6 pt-6" : "gap-0 pt-0"
+          )}
+        >
           {currentModule === 'contas' ? (
             <ContasPagarPage mode={(activeTab as any) || 'visao-geral'} />
+          ) : currentModule === 'agenda' ? (
+             <AgendaPage />
           ) : loading ? (
           <LoadingSpinner />
         ) : error ? (

@@ -206,11 +206,18 @@ export const DatePicker: React.FC<{
   );
 };
 
-export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-2xl ${className}`}>
-    {children}
-  </div>
-);
+export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => {
+  // Se className contém bg-slate-950, não aplicar o bg padrão do dark mode
+  const hasCustomBg = className.includes('bg-slate-950') || className.includes('bg-slate-900');
+  const baseClass = hasCustomBg
+    ? 'rounded-2xl'
+    : 'bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-2xl';
+  return (
+    <div className={cn(baseClass, className)}>
+      {children}
+    </div>
+  );
+};
 
 export const Modal: React.FC<{ 
   isOpen: boolean; 
@@ -379,7 +386,7 @@ export const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({
 interface CustomSelectProps {
   value: string;
   onValueChange: (value: string) => void;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; icon?: React.ElementType }[];
   icon?: React.ElementType;
   placeholder?: string;
   className?: string;
@@ -393,13 +400,26 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   placeholder = 'Selecione...',
   className = '',
 }) => {
+  // Radix Select NÃO permite Select.Item com value="".
+  // Porém usamos "" como "nenhuma seleção" em alguns campos (ex.: lista/unidade).
+  // Então mapeamos internamente "" -> sentinel seguro e revertendo no onValueChange.
+  const EMPTY_SENTINEL = '__la__empty__';
+  const safeValue = value === '' ? EMPTY_SENTINEL : value;
+  const selectedOpt = options.find((o) => (o.value === '' ? EMPTY_SENTINEL : o.value) === safeValue);
+  const SelectedIcon = Icon || selectedOpt?.icon;
+
   return (
-    <Select.Root value={value} onValueChange={onValueChange}>
+    <Select.Root
+      value={safeValue}
+      onValueChange={(v) => onValueChange(v === EMPTY_SENTINEL ? '' : v)}
+    >
       <Select.Trigger 
         className={`flex items-center gap-2 bg-slate-900/50 hover:bg-slate-800 text-slate-200 px-4 py-3 rounded-xl border border-slate-700 focus:ring-2 focus:ring-violet-500 outline-none transition-all w-full justify-between group cursor-pointer whitespace-nowrap ${className}`}
       >
         <div className="flex items-center gap-2 pointer-events-none min-w-0">
-          {Icon ? <Icon size={16} className="text-slate-400 group-hover:text-violet-400 transition-colors shrink-0" /> : null}
+          {SelectedIcon ? (
+            <SelectedIcon size={16} className="text-slate-400 group-hover:text-violet-400 transition-colors shrink-0" />
+          ) : null}
           <Select.Value placeholder={placeholder} className="truncate" />
         </div>
         <Select.Icon className="pointer-events-none">
@@ -420,11 +440,14 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           <Select.Viewport className="p-1.5 max-h-[280px] overflow-y-auto">
             {options.map((opt) => (
               <Select.Item
-                key={opt.value}
-                value={opt.value}
+                key={opt.value || EMPTY_SENTINEL}
+                value={opt.value === '' ? EMPTY_SENTINEL : opt.value}
                 className="flex items-center justify-between px-3 py-2.5 text-sm text-slate-300 rounded-lg outline-none cursor-pointer hover:bg-violet-500/20 hover:text-white focus:bg-violet-500/20 focus:text-white transition-colors data-[state=checked]:text-violet-400 data-[state=checked]:font-bold data-[highlighted]:bg-violet-500/20 data-[highlighted]:text-white select-none"
               >
-                <Select.ItemText>{opt.label}</Select.ItemText>
+                <div className="flex items-center gap-2 min-w-0">
+                  {opt.icon ? <opt.icon size={16} className="shrink-0 opacity-80" /> : null}
+                  <Select.ItemText>{opt.label}</Select.ItemText>
+                </div>
                 <Select.ItemIndicator>
                   <Check size={14} className="text-violet-400" />
                 </Select.ItemIndicator>

@@ -1149,8 +1149,8 @@ export const ContasPagarPage: React.FC<{
             <div className="p-6 border-b border-slate-700 flex items-start justify-between gap-4 bg-slate-800/20">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles size={16} className="text-cyan-400" />
-                  <h3 className="text-lg font-semibold text-white">Insights de IA</h3>
+                  <Bot size={16} className="text-cyan-400" />
+                  <h3 className="text-lg font-semibold text-white">Comparativo Inteligente</h3>
                 </div>
                 <p className="text-xs text-slate-400">
                   Análise automática de sazonalidade e padrões de variação.

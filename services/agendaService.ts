@@ -2,6 +2,8 @@ import { supabase } from './supabase';
 import type {
   NotaRapida,
   NotificacaoConfig,
+  AgendaKanbanConfigRow,
+  AgendaKanbanColumnConfig,
   Tarefa,
   TarefaLista,
   TarefaSubtarefa,
@@ -19,7 +21,12 @@ export async function fetchListas(): Promise<TarefaLista[]> {
 }
 
 export async function createLista(lista: Partial<TarefaLista>): Promise<TarefaLista> {
-  const { data, error } = await supabase.from('tarefas_listas').insert([lista]).select().single();
+  const { data: user } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from('tarefas_listas')
+    .insert([{ ...lista, created_by: user.user?.id }])
+    .select()
+    .single();
   if (error) throw error;
   return data as TarefaLista;
 }
@@ -67,7 +74,9 @@ export async function fetchTarefas(filtros?: {
   if (filtros?.vencimento_fim) query = query.lte('vencimento_em', filtros.vencimento_fim);
 
   if (!filtros?.includeConcluidas) {
-    query = query.neq('status', 'concluida').neq('status', 'cancelada');
+    // Para incluir NULL no neq do PostgREST, precisamos ser explícitos ou garantir que o status seja sempre algo.
+    // Aqui vamos usar uma abordagem segura: filtrar apenas o que NÃO queremos.
+    query = query.or('status.is.null,status.not.in.(concluida,cancelada)');
   }
 
   const { data, error } = await query;
@@ -86,8 +95,7 @@ export async function fetchTarefasHoje(): Promise<Tarefa[]> {
     .select('*, lista:tarefas_listas(*), subtarefas:tarefas_subtarefas(*)')
     .gte('vencimento_em', hoje.toISOString())
     .lt('vencimento_em', amanha.toISOString())
-    .neq('status', 'concluida')
-    .neq('status', 'cancelada')
+    .or('status.is.null,status.not.in.(concluida,cancelada)')
     .order('vencimento_em', { ascending: true });
 
   if (error) throw error;
@@ -113,8 +121,7 @@ export async function fetchTarefasImportantes(): Promise<Tarefa[]> {
     .from('tarefas')
     .select('*, lista:tarefas_listas(*), subtarefas:tarefas_subtarefas(*)')
     .in('prioridade', ['alta', 'urgente'])
-    .neq('status', 'concluida')
-    .neq('status', 'cancelada')
+    .or('status.is.null,status.not.in.(concluida,cancelada)')
     .order('prioridade', { ascending: false })
     .order('vencimento_em', { ascending: true, nullsFirst: false });
 
@@ -195,7 +202,8 @@ export async function fetchTemplates(): Promise<TarefaTemplate[]> {
 
 export async function criarTarefaDoTemplate(
   template: TarefaTemplate,
-  variaveis?: Record<string, string>
+  variaveis?: Record<string, string>,
+  overrides?: Partial<Pick<Tarefa, 'lista_id' | 'categoria' | 'prioridade' | 'vencimento_em' | 'dia_inteiro'>>
 ): Promise<Tarefa> {
   let titulo = template.template?.titulo || template.nome;
 
@@ -207,8 +215,11 @@ export async function criarTarefaDoTemplate(
 
   const novaTarefa = await createTarefa({
     titulo,
-    categoria: (template.template?.categoria as any) || 'geral',
-    prioridade: (template.template?.prioridade as any) || 'media',
+    lista_id: overrides?.lista_id ?? null,
+    categoria: (overrides?.categoria as any) || (template.template?.categoria as any) || 'geral',
+    prioridade: (overrides?.prioridade as any) || (template.template?.prioridade as any) || 'media',
+    vencimento_em: overrides?.vencimento_em ?? null,
+    dia_inteiro: overrides?.dia_inteiro ?? false,
   });
 
   const subtarefas = template.template?.subtarefas || [];
@@ -280,6 +291,26 @@ export async function upsertNotificacaoConfig(config: Partial<NotificacaoConfig>
     .single();
   if (error) throw error;
   return data as NotificacaoConfig;
+}
+
+export async function fetchAgendaKanbanConfig(): Promise<AgendaKanbanConfigRow | null> {
+  const { data, error } = await supabase.from('agenda_kanban_config').select('user_id,columns,updated_at').maybeSingle();
+  if (error) throw error;
+  return (data || null) as any;
+}
+
+export async function upsertAgendaKanbanConfig(columns: AgendaKanbanColumnConfig[]): Promise<AgendaKanbanConfigRow> {
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user?.id) throw new Error('Sessão expirada. Faça login novamente.');
+
+  const { data, error } = await supabase
+    .from('agenda_kanban_config')
+    .upsert([{ user_id: user.user.id, columns, updated_at: new Date().toISOString() }])
+    .select('user_id,columns,updated_at')
+    .single();
+
+  if (error) throw error;
+  return data as any;
 }
 
 // =============================================

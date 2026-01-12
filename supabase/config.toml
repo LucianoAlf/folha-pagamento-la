@@ -7,3 +7,16 @@ verify_jwt = false
 # Mantemos verify_jwt=false e validamos Authorization manualmente, para reduzir flakiness.
 verify_jwt = false
 
+[functions.ai-agenda-background]
+# Geramos imagens via Gemini e validamos Authorization manualmente.
+verify_jwt = false
+
+[functions.whatsapp-send]
+verify_jwt = false
+
+[functions.whatsapp-agenda-lembretes]
+verify_jwt = false
+
+[functions.whatsapp-agenda-resumo]
+verify_jwt = false
+

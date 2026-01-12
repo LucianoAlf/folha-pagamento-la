@@ -83,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         id: 'agenda' as const,
         label: 'Agenda',
         icon: Calendar,
-        disabled: true,
+        disabled: false,
       },
     ],
     []
@@ -118,10 +118,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <div className="text-white font-black leading-tight truncate uppercase tracking-tight text-sm">
+              <div className="text-white font-bold leading-tight truncate uppercase tracking-[0.15em] text-[11px]">
                 SUPER FOLHA SYSTEM
               </div>
-              <div className="text-xs text-slate-500 font-bold truncate">Sistema Inteligente</div>
+              <div className="text-[10px] text-slate-500 font-bold truncate tracking-wider opacity-80">
+                Sistema Inteligente
+              </div>
             </div>
           )}
         </div>
