@@ -24,8 +24,6 @@ export const ConfiguracoesAgenda: React.FC<{
   onSaved?: () => void;
 }> = ({ onSaved }) => {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [appearanceSaving, setAppearanceSaving] = useState(false);
@@ -41,6 +39,7 @@ export const ConfiguracoesAgenda: React.FC<{
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
+  const [favoriteImagesOpen, setFavoriteImagesOpen] = useState(false);
 
   const [kanbanLoading, setKanbanLoading] = useState(true);
   const [kanbanSaving, setKanbanSaving] = useState(false);
@@ -241,30 +240,6 @@ export const ConfiguracoesAgenda: React.FC<{
     () => minutesOptions.map((m) => ({ value: String(m.value), label: m.label })),
     [minutesOptions]
   );
-
-  const save = async () => {
-    setSaving(true);
-    setSaved(false);
-    setError(null);
-    try {
-      // Nunca enviar refresh token pelo client
-      const { google_refresh_token: _ignored, ...safe } = config as any;
-      const savedRow = await upsertNotificacaoConfig(safe);
-      const { google_refresh_token: _ignored2, ...safeSaved } = savedRow as any;
-      setConfig(safeSaved);
-      setSaved(true);
-      // Fecha as configurações e volta para tarefas após salvar
-      if (onSaved) {
-        setTimeout(() => onSaved(), 600);
-      } else {
-        setTimeout(() => setSaved(false), 1500);
-      }
-    } catch (e: any) {
-      setError(e?.message || 'Falha ao salvar configurações');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleTesteWhatsApp = async () => {
     const numero = String(config?.whatsapp_numero || '').trim();
@@ -478,115 +453,112 @@ export const ConfiguracoesAgenda: React.FC<{
         </Card>
       ) : null}
 
-      {/* Atalho para Notificações Globais */}
-      <Card className={cn('p-5 border-dashed border-violet-500/30 bg-violet-500/5', agendaCardClass)}>
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-left">
-            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-400">
-              <Smartphone className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-white font-black text-sm">Lembretes e Resumos</div>
-              <div className="text-slate-500 text-xs font-bold mt-0.5">
-                Configure seu WhatsApp e horários de resumos na Central de Notificações.
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              // Dispara um evento ou muda a aba global se necessário
-              // Como estamos no Sidebar, podemos apenas mudar a rota
-              window.location.hash = '#/notificacoes';
-              // Força o reload se o router for baseado em hash simples
-              window.dispatchEvent(new HashChangeEvent('hashchange'));
-            }}
-            className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-black rounded-xl transition-all shadow-lg shadow-violet-600/20"
-          >
-            Abrir Central de Notificações
-          </button>
-        </div>
-      </Card>
-
       {/* Aparência */}
       <Card className={cn('p-0 overflow-hidden', agendaCardClass)}>
-        <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/30">
-          <div className="text-white font-black">Aparência</div>
-          <div className="text-xs text-slate-500 font-bold mt-1">Galeria pessoal + geração de imagens via IA para a Ana Paula</div>
+        <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/30 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-white font-black">Aparência</div>
+            <div className="text-xs text-slate-500 font-bold mt-1">Galeria pessoal + geração de imagens via IA para a Ana Paula</div>
+          </div>
+          
+          <button
+            type="button"
+            onClick={onSaved}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 flex items-center gap-2"
+          >
+            <X className="w-4 h-4" />
+            Sair
+          </button>
         </div>
         <div className="p-6 space-y-4">
-          {/* GALERIA PESSOAL - Meus Fundos da Ana Paula (sempre visível) */}
+          {/* GALERIA PESSOAL - MinhasImagens Favoritas (accordion) */}
           <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div className="flex items-center gap-2">
-                <Images className="w-5 h-5 text-violet-400" />
-                <div className="text-sm font-black text-violet-200">Meus Fundos da Ana Paula</div>
+            <button
+              type="button"
+              onClick={() => setFavoriteImagesOpen((v) => !v)}
+              className="w-full flex items-center justify-between gap-3"
+              aria-expanded={favoriteImagesOpen}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Images className="w-5 h-5 text-violet-400 shrink-0" />
+                <div className="text-sm font-black text-violet-200">My image</div>
                 {galleryImages.length > 0 && <Badge variant="info">{galleryImages.length}</Badge>}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 {appearanceSaving ? <Badge variant="info">Salvando…</Badge> : null}
                 {appearanceSaved ? <Badge variant="success">Salvo</Badge> : null}
                 {galleryLoading && <Loader2 className="w-4 h-4 animate-spin text-violet-400" />}
+                <div
+                  className={cn(
+                    "w-9 h-9 rounded-xl border border-slate-800/60 bg-slate-950/40 text-slate-300 flex items-center justify-center transition-transform",
+                    favoriteImagesOpen ? "rotate-180" : ""
+                  )}
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </div>
               </div>
-            </div>
+            </button>
             
-            {galleryImages.length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-                {galleryImages.map((img) => {
-                  const isActive = config.agenda_bg_url === img.url;
-                  const isDeleting = deletingImage === img.name;
-                  return (
-                    <Tooltip content="Clique para aplicar como fundo" side="top">
-                      <div
-                        key={img.name}
-                        className={cn(
-                          'relative group rounded-2xl border overflow-hidden transition-all cursor-pointer',
-                          isActive ? 'border-violet-500/50 ring-2 ring-violet-500/20' : 'border-slate-800/60 hover:border-violet-500/30'
-                        )}
-                        onClick={() => applyGalleryImage(img.url)}
-                      >
-                        <div
-                          className="h-20 w-full bg-cover bg-center"
-                          style={{ backgroundImage: `url(${img.url})` }}
-                        />
-                      {/* Escurece levemente no hover (sem bloquear clique) */}
-                      <div className="absolute inset-0 pointer-events-none bg-black/0 group-hover:bg-black/20 transition-all" />
+            {favoriteImagesOpen && (
+              <div className="mt-3">
+                {galleryImages.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {galleryImages.map((img) => {
+                      const isActive = config.agenda_bg_url === img.url;
+                      const isDeleting = deletingImage === img.name;
+                      return (
+                        <Tooltip key={img.name} content="Clique para aplicar como fundo" side="top">
+                          <div
+                            className={cn(
+                              'relative group rounded-2xl border overflow-hidden transition-all cursor-pointer',
+                              isActive ? 'border-violet-500/50 ring-2 ring-violet-500/20' : 'border-slate-800/60 hover:border-violet-500/30'
+                            )}
+                            onClick={() => applyGalleryImage(img.url)}
+                          >
+                            <div
+                              className="h-20 w-full bg-cover bg-center"
+                              style={{ backgroundImage: `url(${img.url})` }}
+                            />
+                            {/* Escurece levemente no hover (sem bloquear clique) */}
+                            <div className="absolute inset-0 pointer-events-none bg-black/0 group-hover:bg-black/20 transition-all" />
 
-                      {/* Delete discreto (canto) */}
-                      <Tooltip content="Excluir da galeria" side="top">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteGalleryImage(img.name);
-                          }}
-                          disabled={isDeleting}
-                          className={cn(
-                            'absolute top-2 right-2 w-7 h-7 rounded-xl border border-slate-800/60 bg-slate-950/70 text-slate-300',
-                            'opacity-0 group-hover:opacity-100 transition-all',
-                            'hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-200',
-                            isDeleting ? 'cursor-not-allowed opacity-100' : ''
-                          )}
-                          aria-label="Excluir da galeria"
-                        >
-                          {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <Trash2 className="w-4 h-4 mx-auto" />}
-                        </button>
-                      </Tooltip>
-                      {/* Badge de ativo */}
-                      {isActive && (
-                        <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
-                          <Eye className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                      </div>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="text-slate-500 font-bold text-sm">Nenhuma imagem gerada ainda</div>
-                <div className="text-slate-600 text-xs mt-1">Use o gerador abaixo para criar fundos personalizados</div>
+                            {/* Delete discreto (canto) */}
+                            <Tooltip content="Excluir da galeria" side="top">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteGalleryImage(img.name);
+                                }}
+                                disabled={isDeleting}
+                                className={cn(
+                                  'absolute top-2 right-2 w-7 h-7 rounded-xl border border-slate-800/60 bg-slate-950/70 text-slate-300',
+                                  'opacity-0 group-hover:opacity-100 transition-all',
+                                  'hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-200',
+                                  isDeleting ? 'cursor-not-allowed opacity-100' : ''
+                                )}
+                                aria-label="Excluir da galeria"
+                              >
+                                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : <Trash2 className="w-4 h-4 mx-auto" />}
+                              </button>
+                            </Tooltip>
+                            {/* Badge de ativo */}
+                            {isActive && (
+                              <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                                <Eye className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <div className="text-slate-500 font-bold text-sm">Nenhuma imagem gerada ainda</div>
+                    <div className="text-slate-600 text-xs mt-1">Use o gerador abaixo para criar fundos personalizados</div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -596,7 +568,7 @@ export const ConfiguracoesAgenda: React.FC<{
               <div>
                 <div className="flex items-center gap-2 text-white font-black">
                   <Bot className="w-4 h-4 text-violet-300" />
-                  Gerador de Fundo por IA
+                  Gerador de Imagens
                 </div>
                 <div className="text-xs text-slate-500 font-bold mt-1 mb-5">
                   Crie fundos personalizados e exclusivos usando inteligência artificial.
@@ -608,9 +580,9 @@ export const ConfiguracoesAgenda: React.FC<{
                   onChange={(e) => setBgPrompt(e.target.value)}
                   placeholder="Ex.: Rua em Nova York à noite, neon roxo e azul, chuva leve, cinematográfico, sem pessoas, sem texto"
                   spellCheck={false}
-                  className="w-full min-h-[100px] bg-slate-900/40 border border-slate-700/60 rounded-[1.5rem] px-5 py-4 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
+                  className="w-full min-h-[100px] bg-slate-900/40 border border-slate-700/60 rounded-[1.5rem] px-5 py-4 text-slate-100 text-xs font-bold outline-none focus:ring-2 focus:ring-violet-500/50 resize-none placeholder:text-slate-500 placeholder:font-medium"
                 />
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   {[
                     { label: '🎹 Piano', prompt: 'Teclas de piano em iluminação dramática chiaroscuro, tons roxo e azul profundo, fumaça atmosférica criando camadas de profundidade, estética jazz club, cinematográfico' },
                     { label: '🎸 Guitarra', prompt: 'Cordas de guitarra vibrando em macro fotografia, ondas sonoras visíveis, iluminação âmbar quente e roxo frio, bokeh de luzes de palco, energia musical' },
@@ -631,10 +603,11 @@ export const ConfiguracoesAgenda: React.FC<{
                       <button
                         type="button"
                         onClick={() => setBgPrompt(s.prompt)}
-                        className="px-3 py-2 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-300 font-black hover:bg-slate-900/40 hover:border-violet-500/20 transition-all text-xs"
+                        className="w-full h-11 px-3 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-300 font-black hover:bg-slate-900/40 hover:border-violet-500/20 transition-all text-xs flex items-center justify-start gap-2"
                         aria-label={`Aplicar prompt ${s.label}`}
                       >
-                        {s.label}
+                        <span className="shrink-0 w-6 text-center">{s.label.split(' ')[0]}</span>
+                        <span className="min-w-0 truncate">{s.label.split(' ').slice(1).join(' ')}</span>
                       </button>
                     </Tooltip>
                   ))}
@@ -680,10 +653,8 @@ export const ConfiguracoesAgenda: React.FC<{
                     className="flex-1 min-h-[280px] w-full"
                     style={{
                       backgroundImage: (tempGeneratedUrl || config.agenda_bg_url)
-                        ? `linear-gradient(rgba(8,10,15,.35), rgba(8,10,15,.35)), url(${tempGeneratedUrl || config.agenda_bg_url})`
-                        : `linear-gradient(rgba(8,10,15,.35), rgba(8,10,15,.35)), ${
-                            (AGENDA_BG_PRESETS.find((x) => x.id === (config.agenda_bg_preset || 'classic-dark')) || AGENDA_BG_PRESETS[0]).backgroundImage
-                          }`,
+                        ? `url(${tempGeneratedUrl || config.agenda_bg_url})`
+                        : (AGENDA_BG_PRESETS.find((x) => x.id === (config.agenda_bg_preset || 'classic-dark')) || AGENDA_BG_PRESETS[0]).backgroundImage,
                       backgroundSize: (tempGeneratedUrl || config.agenda_bg_url) ? 'cover' : 'auto',
                       backgroundPosition: (tempGeneratedUrl || config.agenda_bg_url) ? 'center 45%' : 'center',
                     }}
@@ -736,8 +707,8 @@ export const ConfiguracoesAgenda: React.FC<{
         </div>
       </Card>
 
-      {/* Kanban */}
-      <Card className={cn('p-0 overflow-hidden', agendaCardClass)}>
+      {/* Kanban (desktop only) */}
+      <Card className={cn('p-0 overflow-hidden hidden lg:block', agendaCardClass)}>
         <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/30 flex items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
@@ -885,22 +856,6 @@ export const ConfiguracoesAgenda: React.FC<{
           </div>
         </div>
       </Card>
-
-      <div className="flex items-center justify-end gap-3">
-        {saved ? <Badge variant="success">Salvo</Badge> : null}
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className={cn(
-            'px-6 py-3 rounded-2xl font-black text-white flex items-center gap-2 transition-all',
-            saving ? 'bg-slate-800 text-slate-400 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500'
-          )}
-        >
-          <Save className="w-4 h-4" />
-          {saving ? 'Salvando…' : 'Salvar'}
-        </button>
-      </div>
     </div>
   );
 };

@@ -45,6 +45,7 @@ import {
   BarChart3,
   LineChart as LineChartIcon,
   ChevronDown,
+  ChevronRight,
   LayoutGrid,
   List,
   Search,
@@ -131,7 +132,9 @@ type ContasAnomaliaNotaRow = {
 
 export const ContasPagarPage: React.FC<{
   mode?: 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'categorias';
-}> = ({ mode = 'visao-geral' }) => {
+  competenciaYM?: string;
+  onCompetenciaYMChange?: (ym: string) => void;
+}> = ({ mode = 'visao-geral', competenciaYM, onCompetenciaYMChange }) => {
   const [categorias, setCategorias] = useState<CategoriaDespesa[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,10 +148,12 @@ export const ContasPagarPage: React.FC<{
   const [tipoFiltro, setTipoFiltro] = useState<'all' | 'unica' | 'parcelada' | 'recorrente'>('all');
   
   // Define o mês atual como padrão para evitar poluição visual de meses futuros
-  const [competenciaFiltro, setCompetenciaFiltro] = useState<string>(() => {
+  const [competenciaFiltroInternal, setCompetenciaFiltroInternal] = useState<string>(() => {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
   });
+  const competenciaFiltro = competenciaYM ?? competenciaFiltroInternal;
+  const setCompetenciaFiltro = onCompetenciaYMChange ?? setCompetenciaFiltroInternal;
 
   const [novaOpen, setNovaOpen] = useState(false);
   const [pagarConta, setPagarConta] = useState<ContaPagar | null>(null);
@@ -162,6 +167,97 @@ export const ContasPagarPage: React.FC<{
     const prev = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
     return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
   });
+
+  const unidadeTabs = useMemo(
+    () =>
+      [
+        { id: 'todas', mobile: 'Todas', desktop: 'Consolidado' },
+        { id: 'cg', mobile: 'CG', desktop: 'Campo Grande' },
+        { id: 'rec', mobile: 'Recreio', desktop: 'Recreio' },
+        { id: 'bar', mobile: 'Barra', desktop: 'Barra' },
+      ] as const,
+    []
+  );
+
+  // Mobile premium: bottom sheets (Refinar / Ações) com draft state
+  const [contasMobileRefinarOpen, setContasMobileRefinarOpen] = useState(false);
+  const [contasMobileAcoesOpen, setContasMobileAcoesOpen] = useState(false);
+
+  const [draftCompetenciaYM, setDraftCompetenciaYM] = useState<string>('');
+  const [draftCategoriaFiltro, setDraftCategoriaFiltro] = useState<string>('all');
+  const [draftComportamentoFiltro, setDraftComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
+  const [draftTipoFiltro, setDraftTipoFiltro] = useState<'all' | 'unica' | 'parcelada' | 'recorrente'>('all');
+  const [draftBusca, setDraftBusca] = useState<string>('');
+
+  useEffect(() => {
+    if (!contasMobileRefinarOpen) return;
+    setDraftCompetenciaYM(competenciaFiltro);
+    setDraftCategoriaFiltro(categoriaFiltro);
+    setDraftComportamentoFiltro(comportamentoFiltro);
+    setDraftTipoFiltro(tipoFiltro);
+    setDraftBusca(busca);
+  }, [contasMobileRefinarOpen, competenciaFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, busca]);
+
+  const contasActiveFiltersCount = useMemo(() => {
+    let n = 0;
+    if (categoriaFiltro !== 'all') n += 1;
+    if (comportamentoFiltro !== 'all') n += 1;
+    if (tipoFiltro !== 'all') n += 1;
+    if ((busca || '').trim()) n += 1;
+    return n;
+  }, [categoriaFiltro, comportamentoFiltro, tipoFiltro, busca]);
+
+  const contasActiveFilterChips = useMemo(() => {
+    const chips: string[] = [];
+    if (categoriaFiltro !== 'all') {
+      const cat = categorias.find((c) => c.id === categoriaFiltro);
+      chips.push(`Categoria: ${cat?.nome || 'Selecionada'}`);
+    }
+    if (comportamentoFiltro !== 'all') {
+      chips.push(`Custo: ${comportamentoFiltro === 'fixo' ? 'Fixo' : 'Variável'}`);
+    }
+    if (tipoFiltro !== 'all') {
+      chips.push(
+        `Tipo: ${
+          tipoFiltro === 'unica' ? 'Única' : tipoFiltro === 'parcelada' ? 'Parc.' : 'Recorr.'
+        }`
+      );
+    }
+    if ((busca || '').trim()) {
+      chips.push(`Busca: ${(busca || '').trim()}`);
+    }
+    return chips;
+  }, [categoriaFiltro, categorias, comportamentoFiltro, tipoFiltro, busca]);
+
+  const applyContasMobileFilters = useCallback(() => {
+    const nextCompetencia = draftCompetenciaYM || competenciaFiltro;
+    setCompetenciaFiltro(nextCompetencia);
+    setCategoriaFiltro(draftCategoriaFiltro);
+    setComportamentoFiltro(draftComportamentoFiltro);
+    setTipoFiltro(draftTipoFiltro);
+    setBusca(draftBusca);
+
+    setContasMobileRefinarOpen(false);
+  }, [
+    draftCompetenciaYM,
+    draftCategoriaFiltro,
+    draftComportamentoFiltro,
+    draftTipoFiltro,
+    draftBusca,
+    competenciaFiltro,
+    setCompetenciaFiltro,
+    setCategoriaFiltro,
+    setComportamentoFiltro,
+    setTipoFiltro,
+    setBusca,
+  ]);
+
+  const clearContasMobileFilters = useCallback(() => {
+    setDraftCategoriaFiltro('all');
+    setDraftComportamentoFiltro('all');
+    setDraftTipoFiltro('all');
+    setDraftBusca('');
+  }, []);
 
   // Notas e AI Insights
   const [notasAuditoria, setNotasAuditoria] = useState<string>('');
@@ -213,6 +309,22 @@ export const ContasPagarPage: React.FC<{
   const [compAiRow, setCompAiRow] = useState<ContasComparativoAiRow | null>(null);
   const [compAiCached, setCompAiCached] = useState<boolean>(false);
 
+  const [compAiOpen, setCompAiOpen] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem('contas:compAiOpen');
+      if (raw === null) return true; // default aberto
+      return raw === 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('contas:compAiOpen', String(compAiOpen));
+    } catch {}
+  }, [compAiOpen]);
+
   const [anomaliaNotas, setAnomaliaNotas] = useState<Record<string, ContasAnomaliaNotaRow>>({});
   const [anotarOpen, setAnotarOpen] = useState(false);
   const [anotarKey, setAnotarKey] = useState<string | null>(null);
@@ -236,6 +348,11 @@ export const ContasPagarPage: React.FC<{
   const [novaContaDefaults, setNovaContaDefaults] = useState<{ vencimento?: string; competenciaYM?: string } | null>(null);
   const [diaModalOpen, setDiaModalOpen] = useState(false);
   const [diaModalContaIdToDelete, setDiaModalContaIdToDelete] = useState<ContaPagar | null>(null);
+
+  // Se a competência mudar (inclui mobile sheet), limpamos o dia selecionado no calendário
+  useEffect(() => {
+    setCalendarioDiaSelecionado(undefined);
+  }, [competenciaFiltro]);
 
   const [confirmDeleteCategoria, setConfirmDeleteCategoria] = useState<{ id: string; nome: string } | null>(null);
 
@@ -837,14 +954,10 @@ export const ContasPagarPage: React.FC<{
 
     return (
       <div className="w-full animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+        {/* Mobile: Controles (unidade + ações) — rollback */}
+        <div className="lg:hidden flex flex-col gap-3 mb-6">
           <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
-            {[
-              { id: 'todas', label: 'Consolidado' },
-              { id: 'cg', label: 'Campo Grande' },
-              { id: 'rec', label: 'Recreio' },
-              { id: 'bar', label: 'Barra' },
-            ].map((u) => (
+            {unidadeTabs.map((u) => (
               <button
                 key={u.id}
                 type="button"
@@ -854,7 +967,57 @@ export const ContasPagarPage: React.FC<{
                   unidadeFiltro === u.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
                 )}
               >
-                {u.label}
+                {u.mobile}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Tooltip content="Configurações de Notificações" side="top">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'notificacoes' } }));
+                  } catch {
+                    // ignore
+                  }
+                }}
+                className="flex-none px-4 py-3 rounded-2xl bg-slate-900/50 border border-slate-800/70 text-slate-200 font-black hover:bg-slate-900/70 transition-all active:scale-[0.98]"
+                aria-label="Notificações"
+              >
+                <Bell size={16} className="text-violet-300" />
+              </button>
+            </Tooltip>
+            <button
+              type="button"
+              onClick={() => {
+                setNovaContaDefaults(null);
+                setNovaOpen(true);
+              }}
+              className="flex-1 px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <Plus size={16} />
+              Nova Conta
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop: manter layout atual */}
+        <div className="hidden lg:flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+            {unidadeTabs.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => setUnidadeFiltro(u.id as any)}
+                className={cn(
+                  'px-4 py-2 rounded-xl text-xs font-black transition-all',
+                  unidadeFiltro === u.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                )}
+              >
+                <span className="lg:hidden">{u.mobile}</span>
+                <span className="hidden lg:inline">{u.desktop}</span>
               </button>
             ))}
           </div>
@@ -936,7 +1099,7 @@ export const ContasPagarPage: React.FC<{
         )}
 
         {/* Dashboard (Resumo) — KPIs essenciais */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
           <KPICard
             icon={DollarSign}
             label="Total (mês)"
@@ -1099,12 +1262,7 @@ export const ContasPagarPage: React.FC<{
       <div className="w-full animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
-            {[
-              { id: 'todas', label: 'Consolidado' },
-              { id: 'cg', label: 'Campo Grande' },
-              { id: 'rec', label: 'Recreio' },
-              { id: 'bar', label: 'Barra' },
-            ].map((u) => (
+            {unidadeTabs.map((u) => (
               <button
                 key={u.id}
                 type="button"
@@ -1114,12 +1272,13 @@ export const ContasPagarPage: React.FC<{
                   unidadeFiltro === u.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
                 )}
               >
-                {u.label}
+                <span className="lg:hidden">{u.mobile}</span>
+                <span className="hidden lg:inline">{u.desktop}</span>
               </button>
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="hidden lg:flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-3">
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mês atual</div>
               <CustomSelect value={competenciaFiltro} onValueChange={setCompetenciaFiltro} className="min-w-[180px]" options={competenciaOptions} />
@@ -1131,7 +1290,7 @@ export const ContasPagarPage: React.FC<{
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           <KPICard
             icon={TrendingUp}
             label={`Total ${formatCompetenciaLabel(competenciaComparar)}`}
@@ -1174,17 +1333,27 @@ export const ContasPagarPage: React.FC<{
                   {compAiCached ? <span className="ml-2 text-slate-600">(cache)</span> : null}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => loadComparativoAi(true)}
-                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold shrink-0 transition-colors border border-slate-700"
-                disabled={compAiLoading}
-              >
-                {compAiLoading ? 'Analisando...' : 'Atualizar'}
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => loadComparativoAi(true)}
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors border border-slate-700"
+                  disabled={compAiLoading}
+                >
+                  {compAiLoading ? 'Analisando...' : 'Atualizar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCompAiOpen((v) => !v)}
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-900/30 transition-all"
+                  aria-label={compAiOpen ? 'Colapsar seção IA' : 'Expandir seção IA'}
+                >
+                  <ChevronDown className={cn('transition-transform', compAiOpen && 'rotate-180')} size={22} />
+                </button>
+              </div>
             </div>
 
-            <div className="p-6 flex-1">
+            {compAiOpen ? <div className="p-6 flex-1">
               {compAiError ? (
                 <div className="text-sm text-rose-300 bg-rose-500/10 p-4 rounded-2xl border border-rose-500/20 flex items-center gap-3">
                   <AlertTriangle size={18} />
@@ -1299,7 +1468,7 @@ export const ContasPagarPage: React.FC<{
                   </div>
                 </div>
               )}
-            </div>
+            </div> : null}
           </Card>
 
           {/* Notas / Sugestão da Ana (mesma semântica da Folha) */}
@@ -1360,7 +1529,7 @@ export const ContasPagarPage: React.FC<{
             <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ordenado por relevância</div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-950/30 border-b border-slate-800/70 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                 <tr>
@@ -1416,6 +1585,72 @@ export const ContasPagarPage: React.FC<{
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="lg:hidden divide-y divide-slate-800/50">
+            {variations
+              .sort((a, b) => {
+                const aScore = a.status === 'NOVO' || a.status === 'SAIU' ? 9999 : Math.abs(a.perc);
+                const bScore = b.status === 'NOVO' || b.status === 'SAIU' ? 9999 : Math.abs(b.perc);
+                return bScore - aScore;
+              })
+              .slice(0, 50)
+              .map((v) => (
+                <div key={v.key} className="p-4 bg-slate-900/10 hover:bg-slate-900/20 transition-colors active:scale-[0.99]">
+                  {/* Header: Nome e Badges */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-black text-white uppercase truncate">{(v.categoria || '').toUpperCase()}</h4>
+                      <p className="text-[10px] text-slate-500 font-bold truncate">{v.descricao}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0 ml-2">
+                      <span className="text-[9px] font-black text-slate-500 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50 uppercase">
+                        {(v.unidade || 'todas').toUpperCase()}
+                      </span>
+                      {v.status !== 'RECORRENTE' && (
+                        <span className={cn("text-[9px] font-black px-1.5 py-0.5 rounded border uppercase", 
+                          v.status === 'NOVO' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20")}>
+                          {v.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Comparativo: De / Para */}
+                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-slate-800/40">
+                    <div>
+                      <span className="text-[9px] uppercase tracking-widest text-slate-500 block mb-1">{formatCompetenciaLabel(competenciaComparar)}</span>
+                      <span className="text-sm font-bold text-slate-400 font-mono">{v.prev ? formatCurrency(v.prev) : '-'}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] uppercase tracking-widest text-slate-500 block mb-1">{formatCompetenciaLabel(competenciaFiltro)}</span>
+                      <span className="text-sm font-black text-white font-mono">{v.curr ? formatCurrency(v.curr) : '-'}</span>
+                    </div>
+                  </div>
+
+                  {/* Resultado: Variação */}
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Diferença</span>
+                      <span className={cn('text-xs font-mono font-bold', v.diff >= 0 ? 'text-rose-300' : 'text-emerald-300')}>
+                        {v.diff > 0 ? '+' : ''}{v.diff !== 0 ? formatCurrency(v.diff) : '-'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest block mb-0.5">Variação</span>
+                      <div className={cn('inline-flex items-center gap-1 px-2 py-1 rounded-lg font-black text-xs', 
+                        v.status !== 'RECORRENTE' ? 'bg-slate-800 text-white' : 
+                        Math.abs(v.perc) >= THRESHOLD ? (v.perc > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400') : 'bg-slate-800/50 text-slate-400')}>
+                        {v.status === 'RECORRENTE' && Math.abs(v.perc) >= THRESHOLD && (
+                          v.perc > 0 ? <TrendingUp size={14} /> : <TrendingUp size={14} className="rotate-180" />
+                        )}
+                        {v.status === 'NOVO' ? '+100%' : v.status === 'SAIU' ? '-100%' : `${v.perc >= 0 ? '+' : ''}${v.perc.toFixed(1)}%`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
         </Card>
       </div>
     );
@@ -1431,14 +1666,15 @@ export const ContasPagarPage: React.FC<{
               setEditingCategoria(null);
               setCategoriaModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black shadow-lg shadow-rose-600/20 transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-4 sm:py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black shadow-lg shadow-rose-600/20 transition-all active:scale-[0.98]"
           >
             <Plus size={16} />
             Nova Categoria
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* Desktop Grid */}
+        <div className="hidden md:grid grid-cols-2 xl:grid-cols-3 gap-4">
           {categorias.map((c) => (
             <div
               key={c.id}
@@ -1490,6 +1726,47 @@ export const ContasPagarPage: React.FC<{
           ))}
         </div>
 
+        {/* Mobile Premium List */}
+        <div className="md:hidden flex flex-col bg-slate-900/10 rounded-3xl border border-slate-800/50 overflow-hidden">
+          {categorias.map((c, idx) => (
+            <div
+              key={c.id}
+              onClick={() => {
+                setEditingCategoria(c);
+                setCategoriaModalOpen(true);
+              }}
+              className={cn(
+                "flex items-center justify-between p-4 active:bg-slate-800/40 transition-colors cursor-pointer",
+                idx !== categorias.length - 1 && "border-b border-slate-800/40"
+              )}
+            >
+              <div className="flex items-center gap-4">
+                {/* Ícone Estilo Banco Digital */}
+                <div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0 shadow-inner"
+                  style={{ backgroundColor: `${c.cor}15`, border: `1px solid ${c.cor}25` }}
+                >
+                  {c.icone}
+                </div>
+                
+                <div className="min-w-0">
+                  <div className="text-sm font-black text-white">{c.nome}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={cn(
+                      "text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider",
+                      c.tipo_custo === 'FIXO' ? "bg-blue-500/10 text-blue-400" : "bg-amber-500/10 text-amber-400"
+                    )}>
+                      {c.tipo_custo || 'VARIÁVEL'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <ChevronRight size={18} className="text-slate-600" />
+            </div>
+          ))}
+        </div>
+
         <CategoriaModal
           isOpen={categoriaModalOpen}
           initialData={editingCategoria}
@@ -1530,15 +1807,51 @@ export const ContasPagarPage: React.FC<{
     const auditCount = auditRows.length;
     return (
       <div className="w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
+        {/* MOBILE: Controles Simplificados (Unidades + Visão) */}
+        <div className="lg:hidden flex flex-col gap-3 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+            {unidadeTabs.map((u) => (
+              <button
+                key={u.id}
+                onClick={() => setUnidadeFiltro(u.id as any)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-xs font-black transition-all",
+                  unidadeFiltro === u.id 
+                    ? "bg-slate-800 text-white shadow-sm" 
+                    : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+                )}
+              >
+                {u.mobile}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+            {[
+              { id: 'cards', label: 'Cards', icon: LayoutGrid },
+              { id: 'lista', label: 'Lista', icon: List },
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setAuditViewMode(t.id as any)}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all active:scale-95',
+                  auditViewMode === t.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                )}
+              >
+                <t.icon size={14} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* DESKTOP: Layout Original Validado */}
+        <div className="hidden lg:flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
-              {[
-                { id: 'todas', label: 'Consolidado' },
-                { id: 'cg', label: 'Campo Grande' },
-                { id: 'rec', label: 'Recreio' },
-                { id: 'bar', label: 'Barra' },
-              ].map((u) => (
+              {unidadeTabs.map((u) => (
                 <button
                   key={u.id}
                   onClick={() => setUnidadeFiltro(u.id as any)}
@@ -1549,7 +1862,7 @@ export const ContasPagarPage: React.FC<{
                       : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
                   )}
                 >
-                  {u.label}
+                  <span className="hidden lg:inline">{u.desktop}</span>
                 </button>
               ))}
             </div>
@@ -1576,7 +1889,7 @@ export const ContasPagarPage: React.FC<{
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3">
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Período</div>
               <CustomSelect
                 value={competenciaFiltro}
@@ -1588,7 +1901,10 @@ export const ContasPagarPage: React.FC<{
             
             <button
               type="button"
-              onClick={() => setNovaOpen(true)}
+              onClick={() => {
+                setNovaContaDefaults(null);
+                setNovaOpen(true);
+              }}
               className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98]"
             >
               <Plus size={16} />
@@ -1679,8 +1995,9 @@ export const ContasPagarPage: React.FC<{
           </div>
 
           <Card className="p-0 overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-800/60">
-              <div className="p-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 border-t border-slate-800/60">
+              {/* Linha 1 (mobile): Total + Pago | Linha 2 (mobile): Pendente (full) */}
+              <div className="p-5 border-b border-r border-slate-800/60 sm:border-b-0 sm:border-r">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
                   <TrendingUp size={12} />
                   Total do Período
@@ -1689,7 +2006,7 @@ export const ContasPagarPage: React.FC<{
                 <div className="mt-1 text-[11px] text-slate-500 font-bold">Baseado nos filtros</div>
               </div>
 
-              <div className="p-5">
+              <div className="p-5 border-b border-slate-800/60 sm:border-b-0 sm:border-r">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
                   <CheckCircle2 size={12} className="text-emerald-400" />
                   Total Pago
@@ -1698,8 +2015,8 @@ export const ContasPagarPage: React.FC<{
                 <div className="mt-1 text-[11px] text-emerald-400 font-black">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
               </div>
 
-              <div className="p-5">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <div className="p-5 col-span-2 border-slate-800/60 sm:col-span-1 text-center sm:text-left flex flex-col items-center sm:items-start">
+                <div className="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
                   <DollarSign size={12} className="text-violet-400" />
                   Pendente no Período
                 </div>
@@ -1757,8 +2074,8 @@ export const ContasPagarPage: React.FC<{
               className="w-full flex items-center justify-between gap-4 px-6 py-5 bg-slate-900/20 hover:bg-slate-900/30 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-300 flex items-center justify-center">
-                  <Brain size={18} />
+                <div className="text-violet-300 flex items-center justify-center">
+                  <Brain size={20} />
                 </div>
                 <div className="text-left">
                   <div className="text-white font-black">Análise Inteligente</div>
@@ -1767,7 +2084,9 @@ export const ContasPagarPage: React.FC<{
                   </div>
                 </div>
               </div>
-              <ChevronDown className={cn("text-slate-400 transition-transform", auditAiOpen && "rotate-180")} size={18} />
+              <span className="shrink-0 -mr-2 flex items-center justify-center w-11 h-11 rounded-xl hover:bg-slate-900/30 transition-colors">
+                <ChevronDown className={cn('text-slate-300 transition-transform', auditAiOpen && 'rotate-180')} size={22} />
+              </span>
             </button>
 
             {auditAiOpen && (
@@ -1834,7 +2153,9 @@ export const ContasPagarPage: React.FC<{
                   <div className="space-y-5">
                     <div className="p-5 rounded-2xl border border-slate-800/60 bg-slate-950/30">
                       <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">Resumo Executivo</div>
-                      <div className="text-sm text-slate-200 font-bold whitespace-pre-line">{auditAiRow.summary || auditAiRow.response_json?.resumo_executivo}</div>
+                      <div className="text-sm text-slate-200 font-medium leading-relaxed whitespace-pre-line">
+                        {auditAiRow.summary || auditAiRow.response_json?.resumo_executivo}
+                      </div>
                     </div>
 
                     {!!auditAiRow.response_json?.pontos_de_atencao?.length && (
@@ -1870,8 +2191,8 @@ export const ContasPagarPage: React.FC<{
                                   : 'info';
                             return (
                               <div key={a.key} className="p-4 rounded-2xl border border-slate-800/60 bg-slate-900/10">
-                                <div className="flex items-start justify-between gap-4">
-                                  <div className="min-w-0">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+                                  <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
                                       <Badge variant={sev as any}>
                                         {a.severidade === 'alta' ? 'Alta' : a.severidade === 'media' ? 'Média' : 'Baixa'}
@@ -1883,7 +2204,7 @@ export const ContasPagarPage: React.FC<{
                                       ) : null}
                                     </div>
                                     <div className="mt-2 text-white font-black">{a.titulo}</div>
-                                    <div className="mt-1 text-sm text-slate-300 font-medium">{a.descricao}</div>
+                                    <div className="mt-1 text-sm text-slate-300 font-medium leading-relaxed">{a.descricao}</div>
                                     {typeof a.impacto_financeiro === 'number' ? (
                                       <div className="mt-2 text-[11px] text-slate-400 font-black">
                                         Impacto estimado: <span className="text-slate-200">{formatCurrency(a.impacto_financeiro)}</span>
@@ -1896,12 +2217,23 @@ export const ContasPagarPage: React.FC<{
                                         {n.nota.length > 140 ? `${n.nota.slice(0, 140)}...` : n.nota}
                                       </div>
                                     ) : null}
+
+                                    {/* Mobile: ação abaixo para não espremer o texto */}
+                                    <div className="mt-3 lg:hidden">
+                                      <button
+                                        type="button"
+                                        onClick={() => openAnotar(a)}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/40 hover:bg-slate-900/30 text-slate-200 text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.99]"
+                                      >
+                                        Anotar
+                                      </button>
+                                    </div>
                                   </div>
 
                                   <button
                                     type="button"
                                     onClick={() => openAnotar(a)}
-                                    className="shrink-0 px-4 py-2 rounded-xl border border-slate-800 bg-slate-950/40 hover:bg-slate-900/30 text-slate-200 text-[10px] font-black uppercase tracking-widest transition-all"
+                                    className="hidden lg:inline-flex shrink-0 px-4 py-2 rounded-xl border border-slate-800 bg-slate-950/40 hover:bg-slate-900/30 text-slate-200 text-[10px] font-black uppercase tracking-widest transition-all"
                                   >
                                     Anotar
                                   </button>
@@ -2048,15 +2380,107 @@ export const ContasPagarPage: React.FC<{
 
   return (
     <div className="w-full">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
+      {/* Mobile: Command Bar (premium) */}
+      <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 pt-3 pb-3 bg-[#060814]/70 backdrop-blur-xl border-b border-white/5 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+        <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          {unidadeTabs.map((u) => (
+            <button
+              key={u.id}
+              onClick={() => setUnidadeFiltro(u.id as any)}
+              className={cn(
+                "px-4 py-2 rounded-xl text-xs font-black transition-all",
+                unidadeFiltro === u.id
+                  ? "bg-slate-800 text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+              )}
+            >
+              {u.mobile}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          {[
+            { id: 'lista', label: 'Lista', icon: List },
+            { id: 'calendario', label: 'Calendário', icon: Calendar },
+          ].map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setVisaoOperacionalModo(t.id as any)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all',
+                visaoOperacionalModo === t.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+              )}
+            >
+              <t.icon size={14} />
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setContasMobileRefinarOpen(true)}
+            className="flex-none px-4 py-3 rounded-2xl bg-slate-900/50 border border-slate-800/70 text-white font-black inline-flex items-center gap-2 active:scale-[0.98]"
+            aria-label="Filtros"
+          >
+            <Filter size={16} className="text-violet-300" />
+            {contasActiveFiltersCount > 0 ? (
+              <span className="text-[10px] font-black px-2 py-1 rounded-full bg-violet-500/15 text-violet-200 border border-violet-500/20">
+                {contasActiveFiltersCount}
+              </span>
+            ) : null}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'notificacoes' } }));
+              } catch {
+                // ignore
+              }
+            }}
+            className="flex-none px-4 py-3 rounded-2xl bg-slate-900/50 border border-slate-800/70 text-slate-200 font-black hover:bg-slate-900/70 transition-all active:scale-[0.98]"
+            aria-label="Notificações"
+          >
+            <Bell size={16} className="text-violet-300" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setNovaContaDefaults(null);
+              setNovaOpen(true);
+            }}
+            className="flex-1 px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <Plus size={16} />
+            Nova Conta
+          </button>
+        </div>
+
+        {contasActiveFilterChips.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {contasActiveFilterChips.slice(0, 4).map((c) => (
+              <span
+                key={c}
+                className="max-w-full truncate px-3 py-1.5 rounded-full bg-slate-950/40 border border-slate-800/60 text-[10px] font-black text-slate-300"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      {/* Desktop: manter layout atual */}
+      <div className="hidden lg:flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
-            {[
-              { id: 'todas', label: 'Consolidado' },
-              { id: 'cg', label: 'Campo Grande' },
-              { id: 'rec', label: 'Recreio' },
-              { id: 'bar', label: 'Barra' },
-            ].map((u) => (
+            {unidadeTabs.map((u) => (
               <button
                 key={u.id}
                 onClick={() => setUnidadeFiltro(u.id as any)}
@@ -2067,7 +2491,7 @@ export const ContasPagarPage: React.FC<{
                     : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
                 )}
               >
-                {u.label}
+                <span className="hidden lg:inline">{u.desktop}</span>
               </button>
             ))}
           </div>
@@ -2120,7 +2544,7 @@ export const ContasPagarPage: React.FC<{
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 mb-8 bg-slate-900/20 p-4 rounded-3xl border border-slate-800/60">
+      <div className="hidden lg:flex flex-wrap items-center gap-4 mb-8 bg-slate-900/20 p-4 rounded-3xl border border-slate-800/60">
         <div className="flex items-center gap-2 text-slate-500 mr-2">
           <Filter size={14} />
           <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
@@ -2188,17 +2612,176 @@ export const ContasPagarPage: React.FC<{
         proximos30={resumoFiltrado.proximos30}
       />
 
+      {/* Mobile: Bottom Sheets (premium) */}
+      <Modal
+        isOpen={contasMobileRefinarOpen}
+        onClose={() => setContasMobileRefinarOpen(false)}
+        title="Filtros"
+        subtitle="Competência e refinamentos"
+        position="bottom"
+        className="max-w-none"
+        footer={
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={clearContasMobileFilters}
+              className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-black transition-all active:scale-95"
+            >
+              Limpar
+            </button>
+            <button
+              type="button"
+              onClick={applyContasMobileFilters}
+              className="flex-1 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 active:scale-95"
+            >
+              Aplicar
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Competência</div>
+            <CustomSelect
+              value={draftCompetenciaYM || competenciaFiltro}
+              onValueChange={(v) => setDraftCompetenciaYM(v)}
+              options={competenciaOptions}
+            />
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Categoria</div>
+            <CustomSelect
+              value={draftCategoriaFiltro}
+              onValueChange={(v) => setDraftCategoriaFiltro(v)}
+              options={[
+                { value: 'all', label: 'Todas Categorias' },
+                ...categorias.map((c) => ({ value: c.id, label: c.nome })),
+              ]}
+            />
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3">Custo</div>
+            <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-2xl p-1">
+              {[
+                { id: 'all', label: 'Todos' },
+                { id: 'fixo', label: 'Fixo' },
+                { id: 'variavel', label: 'Variável' },
+              ].map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setDraftComportamentoFiltro(b.id as any)}
+                  className={cn(
+                    'flex-1 px-3 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all',
+                    draftComportamentoFiltro === b.id ? 'bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-400'
+                  )}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3">Tipos</div>
+            <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-2xl p-1">
+              {[
+                { id: 'all', label: 'Todos' },
+                { id: 'unica', label: 'Única' },
+                { id: 'parcelada', label: 'Parc.' },
+                { id: 'recorrente', label: 'Recorr.' },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setDraftTipoFiltro(t.id as any)}
+                  className={cn(
+                    'flex-1 px-3 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all',
+                    draftTipoFiltro === t.id ? 'bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-400'
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Busca</div>
+            <div className="relative">
+              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                value={draftBusca}
+                onChange={(e) => setDraftBusca(e.target.value)}
+                placeholder="Buscar por descrição ou categoria…"
+                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-800 bg-slate-950/40 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={contasMobileAcoesOpen}
+        onClose={() => setContasMobileAcoesOpen(false)}
+        title="Ações"
+        subtitle="Operações rápidas"
+        position="bottom"
+        className="max-w-none"
+      >
+        <div className="space-y-3">
+          <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.22em] px-1">Criação</div>
+          <button
+            type="button"
+            onClick={() => {
+              setContasMobileAcoesOpen(false);
+              setNovaContaDefaults(null);
+              setNovaOpen(true);
+            }}
+            className="w-full inline-flex items-center justify-between px-5 py-4 rounded-3xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.99]"
+          >
+            <span className="inline-flex items-center gap-3">
+              <Plus size={16} />
+              Nova Conta
+            </span>
+            <ChevronDown size={16} className="opacity-0" />
+          </button>
+
+          <div className="mt-4 text-[10px] text-slate-500 font-black uppercase tracking-[0.22em] px-1">Configurações</div>
+          <button
+            type="button"
+            onClick={() => {
+              setContasMobileAcoesOpen(false);
+              try {
+                window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'notificacoes' } }));
+              } catch {
+                // ignore
+              }
+            }}
+            className="w-full inline-flex items-center justify-between px-5 py-4 rounded-3xl bg-slate-900/50 border border-slate-800/70 text-slate-200 font-black hover:bg-slate-900/70 transition-all active:scale-[0.99]"
+          >
+            <span className="inline-flex items-center gap-3">
+              <Bell size={16} className="text-violet-300" />
+              Notificações
+            </span>
+            <ChevronDown size={16} className="opacity-0" />
+          </button>
+        </div>
+      </Modal>
+
       {visaoOperacionalModo === 'calendario' && (
         <div className="mt-6">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-white font-black">Calendário do mês</div>
+              <div className="hidden lg:block text-white font-black">Calendário do mês</div>
               {calendarioDiaSelecionado ? (
                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                   Selecionado: {calendarioDiaSelecionado.split('-').reverse().join('/')}
                 </div>
               ) : (
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <div className="hidden lg:block text-[10px] font-black uppercase tracking-widest text-slate-500">
                   Clique em um dia para filtrar a lista
                 </div>
               )}
@@ -2227,17 +2810,19 @@ export const ContasPagarPage: React.FC<{
         </div>
       )}
 
-      <div className="mt-6">
-        <ContasTable
-          contas={contasParaListaOperacional}
-          filtro={filtroTab}
-          onFiltroChange={setFiltroTab}
-          busca={busca}
-          onBuscaChange={setBusca}
-          onPagar={(c) => setPagarConta(c)}
-          onEditar={(c) => setEditarConta(c)}
-        />
-      </div>
+      {visaoOperacionalModo === 'lista' && (
+        <div className="mt-6">
+          <ContasTable
+            contas={contasParaListaOperacional}
+            filtro={filtroTab}
+            onFiltroChange={setFiltroTab}
+            busca={busca}
+            onBuscaChange={setBusca}
+            onPagar={(c) => setPagarConta(c)}
+            onEditar={(c) => setEditarConta(c)}
+          />
+        </div>
+      )}
 
       <NovaContaModal
         isOpen={novaOpen}

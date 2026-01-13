@@ -8,7 +8,7 @@ import {
   BriefcaseBusiness,
   Calendar,
   ClipboardList,
-  Coins,
+  DollarSign,
   FileText,
   Home,
   ListTodo,
@@ -35,7 +35,7 @@ export const prioridadeIcon = (p: Prioridade) => {
 export const categoriaIcon = (c: Categoria) => {
   switch (c) {
     case 'financeiro':
-      return Coins;
+      return DollarSign;
     case 'rh':
       return Users;
     case 'administrativo':
@@ -57,7 +57,7 @@ export const smartListIcon = (key: string) => {
 
 export const listaIcon = (lista: TarefaLista | null | undefined) => {
   const nome = (lista?.nome || '').toLowerCase();
-  if (nome.includes('finance')) return Coins;
+  if (nome.includes('finance')) return DollarSign;
   if (nome === 'rh' || nome.includes('rh')) return Users;
   if (nome.includes('admin')) return ClipboardList;
   if (nome.includes('pessoal')) return Home;

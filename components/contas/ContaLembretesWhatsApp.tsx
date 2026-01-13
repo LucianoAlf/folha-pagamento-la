@@ -80,31 +80,29 @@ export const ContaLembretesWhatsApp: React.FC<{
     if (loading) return <Badge variant="default">Carregando…</Badge>;
     if (saving) return <Badge variant="info">Salvando…</Badge>;
     if (saved) return <Badge variant="success">Salvo</Badge>;
-    return hasOverride ? <Badge variant="info">Override</Badge> : <Badge variant="default">Padrão</Badge>;
+    return hasOverride ? (
+      <Badge variant="info" className="bg-violet-500/10 text-violet-300 border-violet-500/20">
+        Personalizado
+      </Badge>
+    ) : null;
   }, [hasOverride, loading, saved, saving]);
 
   return (
     <div className={cn('rounded-2xl border border-slate-800 bg-slate-950/20', dense ? 'p-4' : 'p-5')}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-violet-400" />
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-              Lembretes WhatsApp
-            </div>
-          </div>
-          <div className="text-white font-black mt-1">Overrides desta conta</div>
-          {!dense ? (
-            <div className="text-xs text-slate-500 font-bold mt-1">
-              Se marcar aqui, esta conta ignora o padrão global definido em “Notificações”.
-            </div>
-          ) : null}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-violet-400" />
+          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">WhatsApp</div>
+          {headerRight}
         </div>
 
-        <div className="flex items-center gap-2">
-          {headerRight}
-          {showOpenCentral ? (
-            <Tooltip content="Abrir Configurações de Notificações" side="top">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-white font-black">Lembretes desta conta</div>
+        </div>
+
+        {showOpenCentral && !hasOverride ? (
+          <div className="pt-1">
+            <Tooltip content="Ver Configurações Globais" side="top">
               <button
                 type="button"
                 onClick={() => {
@@ -114,13 +112,20 @@ export const ContaLembretesWhatsApp: React.FC<{
                     // ignore
                   }
                 }}
-                className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-950/30 text-slate-300 font-black hover:bg-slate-950/45 transition-all text-[10px] uppercase tracking-widest"
+                className="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950/30 text-slate-400 font-bold hover:bg-slate-950/45 transition-all text-[10px] uppercase tracking-widest"
               >
-                Abrir central
+                Config. Globais
               </button>
             </Tooltip>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
+
+        {!dense ? (
+          <p className="text-[11px] text-slate-500 font-bold leading-relaxed">
+            Esta conta segue o padrão definido no módulo <span className="text-slate-400">Notificações</span>. Se você
+            alterar algo abaixo, ela passará a ter um ajuste <span className="text-violet-400/80">individual</span>.
+          </p>
+        ) : null}
       </div>
 
       <div className={cn('mt-4', dense && 'mt-3')}>
@@ -169,7 +174,7 @@ export const ContaLembretesWhatsApp: React.FC<{
                 Atualizado
               </>
             ) : (
-              'Override ativo'
+              'Ajuste individual'
             )}
           </div>
           <Tooltip content="Remover override e voltar ao padrão global" side="top">

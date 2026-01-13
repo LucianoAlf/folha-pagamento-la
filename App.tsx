@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useDeferredValue, useRef } from 'react';
+import * as Popover from '@radix-ui/react-popover';
 import { api, formatCurrency, getMesNome } from './services/api';
 import { supabase } from './services/supabase';
 import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta, UserProfile } from './types';
 import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, AlertDialog, Modal, Tooltip } from './components/UI';
+import { MobileCollaboratorList } from './components/colaboradores/MobileCollaboratorList';
 import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
@@ -103,7 +105,7 @@ const CellInput: React.FC<{
   return (
     <div
       className={[
-        'relative w-full h-full transition-all rounded-lg',
+        'relative w-full min-h-[38px] transition-all rounded-lg',
         saving ? 'opacity-60 pointer-events-none' : '',
         error ? 'bg-rose-500/10' : '',
         isFocused ? 'ring-2 ring-violet-500/50 z-20' : '',
@@ -119,7 +121,7 @@ const CellInput: React.FC<{
       <input
         type="text"
         className={[
-          'w-full h-full px-3 py-2 bg-transparent text-right font-bold focus:outline-none transition-all text-xs font-mono rounded-lg',
+          'w-full min-h-[38px] px-3 py-2 bg-transparent text-right font-bold focus:outline-none transition-all text-xs font-mono rounded-lg',
           isFocused ? colorClass : 'text-transparent select-none',
           disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text hover:bg-slate-700/30',
         ].join(' ')}
@@ -130,6 +132,7 @@ const CellInput: React.FC<{
         onKeyDown={handleKeyDown}
         placeholder={isFocused ? '0,00' : ''}
         disabled={!!disabled}
+        inputMode="decimal"
       />
 
       {saving && (
@@ -140,6 +143,8 @@ const CellInput: React.FC<{
     </div>
   );
 };
+
+const MOBILE_LANC_PAGE_SIZE = 18;
 
 const loginStyles = `
   @keyframes float {
@@ -179,14 +184,47 @@ function App() {
 
   const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'agenda' | 'notificacoes'>('folha');
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [contasCompetenciaYM, setContasCompetenciaYM] = useState<string>(() => {
+    const hoje = new Date();
+    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Folha > Lançamentos (mobile): filtros em "draft" + sheet
+  const [lancamentosFiltersOpen, setLancamentosFiltersOpen] = useState(false);
+  const [lancamentosActionsOpen, setLancamentosActionsOpen] = useState(false);
+  const [draftUnidadeFiltro, setDraftUnidadeFiltro] = useState(unidadeFiltro);
+  const [variacoesOpen, setVariacoesOpen] = useState(true);
+  const [insightsIAOpen, setInsightsIAOpen] = useState(true);
+  useEffect(() => {
+    if (!lancamentosFiltersOpen) return;
+    setDraftUnidadeFiltro(unidadeFiltro);
+  }, [lancamentosFiltersOpen, unidadeFiltro]);
+  const lancamentosActiveFiltersCount = useMemo(() => (unidadeFiltro !== 'todos' ? 1 : 0), [unidadeFiltro]);
+  const applyLancamentosFilters = () => {
+    setUnidadeFiltro(draftUnidadeFiltro as any);
+    setLancamentosFiltersOpen(false);
+  };
+  const clearLancamentosFilters = () => {
+    setDraftUnidadeFiltro('todos');
+  };
+
+  // Track window resize for mobile adjustments
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [mobileCollabDetail, setMobileCollabDetail] = useState<Colaborador | null>(null);
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
   const [editingCollab, setEditingCollab] = useState<Colaborador | null>(null);
   const [collabSearch, setCollabSearch] = useState('');
   const [collabDeptFilter, setCollabDeptFilter] = useState('all');
   const [collabStatusFilter, setCollabStatusFilter] = useState('active');
+
+  // Debug instrumentation removida (evita overhead e ruído em produção).
 
   // Modal & Dialog states
   const [confirmState, setConfirmState] = useState<{
@@ -274,7 +312,6 @@ function App() {
       }
 
       if (mod === 'folha') setUnidadeFiltro('todos');
-      setSidebarMobileOpen(false);
     };
 
     window.addEventListener('la:navigate', handler as EventListener);
@@ -295,7 +332,6 @@ function App() {
     }
     
     if (mod === 'folha') setUnidadeFiltro('todos');
-    setSidebarMobileOpen(false);
   };
 
   const loadAiInsights = async (folhaId: number) => {
@@ -347,6 +383,50 @@ function App() {
   const [lancamentosAnteriores, setLancamentosAnteriores] = useState<Lancamento[]>([]);
   const [statusFolha, setStatusFolha] = useState<string>('rascunho');
   const [alertsExpanded, setAlertsExpanded] = useState(false);
+
+  // Lancamentos (mobile premium) — declarado após Data State para evitar TDZ
+  const [lancamentosSearch, setLancamentosSearch] = useState('');
+  const deferredLancSearch = useDeferredValue(lancamentosSearch);
+  const [lancamentosVisibleByDept, setLancamentosVisibleByDept] = useState<Record<string, number>>({
+    staff_rateado: MOBILE_LANC_PAGE_SIZE,
+    equipe_operacional: MOBILE_LANC_PAGE_SIZE,
+    professores: MOBILE_LANC_PAGE_SIZE,
+  });
+  const deptHeaderRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [mobileLancDetail, setMobileLancDetail] = useState<Lancamento | null>(null);
+  const [mobileLancObs, setMobileLancObs] = useState('');
+  const [mobileLancObsSaving, setMobileLancObsSaving] = useState(false);
+
+  // Persist collapse state (Lancamentos)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('la:folha:lancamentos:expanded');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        setExpandedDept((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem('la:folha:lancamentos:expanded', JSON.stringify(expandedDept));
+    } catch {}
+  }, [expandedDept]);
+
+  // Reset "mostrar mais" quando filtros/pesquisa/mês mudarem
+  useEffect(() => {
+    setLancamentosVisibleByDept({
+      staff_rateado: MOBILE_LANC_PAGE_SIZE,
+      equipe_operacional: MOBILE_LANC_PAGE_SIZE,
+      professores: MOBILE_LANC_PAGE_SIZE,
+    });
+  }, [unidadeFiltro, selectedFolhaId, deferredLancSearch]);
+
+  useEffect(() => {
+    // Sync observação do lançamento selecionado
+    setMobileLancObs(mobileLancDetail?.observacao || '');
+  }, [mobileLancDetail?.id]);
 
   // IA (Comparativo)
   const [aiInsights, setAiInsights] = useState<any | null>(null);
@@ -695,12 +775,14 @@ function App() {
   const [profileAvatar, setProfileAvatar] = useState<string>('');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
 
   const openProfile = () => {
     setProfileName(userProfile?.nome || (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : ''));
     setProfileAvatar(userProfile?.avatar_url || getDefaultAvatarByEmail(userEmail) || '');
     setProfileSaved(false);
     setIsProfileOpen(true);
+    setProfilePopoverOpen(false); // Fecha o popover ao abrir o modal
   };
 
   const handlePickProfileAvatar = async (file: File | null) => {
@@ -960,6 +1042,21 @@ function App() {
     };
   }, [lancamentos, unidadeFiltro]);
 
+  const groupedLancamentosMobile = useMemo(() => {
+    const q = (deferredLancSearch || '').trim().toLowerCase();
+    if (!q) return groupedLancamentos;
+    const matches = (l: Lancamento) => {
+      const nome = (l.colaboradores?.nome || '').toLowerCase();
+      const funcao = (l.colaboradores?.funcao || '').toLowerCase();
+      return nome.includes(q) || funcao.includes(q);
+    };
+    return {
+      staff_rateado: groupedLancamentos.staff_rateado.filter(matches),
+      equipe_operacional: groupedLancamentos.equipe_operacional.filter(matches),
+      professores: groupedLancamentos.professores.filter(matches),
+    };
+  }, [groupedLancamentos, deferredLancSearch]);
+
   const filteredTotalGeral = useMemo(() => {
     const { staff_rateado, equipe_operacional, professores } = groupedLancamentos;
     const all = [...staff_rateado, ...equipe_operacional, ...professores];
@@ -1020,16 +1117,18 @@ function App() {
   const evolutionData = useMemo(() => {
     if (folhas.length === 0) return [];
     
-    // Last 7 months, ordered chronologically
+    // Desktop: Last 7 months, Mobile: Last 6 months
+    const sliceCount = isMobile ? -6 : -7;
+    
     return [...folhas]
       .filter(f => f.status === 'aprovada' || f.id === folhaAtual?.id)
       .sort((a, b) => a.ano - b.ano || a.mes - b.mes)
-      .slice(-7)
+      .slice(sliceCount)
       .map(f => ({
         periodo: `${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][f.mes - 1]}/${f.ano.toString().slice(-2)}`,
         total: f.total_geral
       }));
-  }, [folhas, folhaAtual]);
+  }, [folhas, folhaAtual, isMobile]);
 
   const unitData = useMemo(() => [
     { 
@@ -1086,7 +1185,50 @@ function App() {
   };
 
   const currentModuleConfig = MODULE_CONFIG[currentModule];
+  const getShortLabel = (id: string) => {
+    // Mobile cockpit labels dependem do módulo (pra caber sem scroll e manter semântica)
+    if (currentModule === 'contas') {
+      const contasMap: Record<string, string> = {
+        'dashboard': 'Dash',
+        'visao-geral': 'Contas',
+        'todas': 'Audit.',
+        'comparativo': 'IA',
+        'categorias': 'Categ.',
+      };
+      return contasMap[id] || id;
+    }
+
+    const map: Record<string, string> = {
+      'dashboard': 'Dash',
+      'colaboradores': 'Pessoal',
+      'lancamentos': 'Folha',
+      'comparativo': 'iA',
+      'categorias': 'Categorias',
+      'todas': 'Auditoria'
+    };
+    return map[id] || id;
+  };
+
   const tabs = currentModuleConfig.tabs;
+
+  const contasCompetenciaOptions = useMemo(() => {
+    // Lista “boa o suficiente” para mobile: últimos 12 meses + próximo mês
+    const hoje = new Date();
+    const opts: { value: string; label: string }[] = [];
+    for (let i = 12; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      opts.push({ value: ym, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    }
+    const prox = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+    const proxYm = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, '0')}`;
+    if (!opts.some(o => o.value === proxYm)) {
+      const label = prox.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      opts.push({ value: proxYm, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    }
+    return opts;
+  }, []);
 
   const deptLabels: Record<string, string> = {
     staff_rateado: 'Staff Rateado',
@@ -1189,7 +1331,7 @@ function App() {
 
     const fromLabel = `${getMesNome(fromFolha.mes)} ${fromFolha.ano}`;
     const toLabel = `${getMesNome(folhaAtual.mes)} ${folhaAtual.ano}`;
-    const unitLabel = duplicateConfig.unidade === 'todos' ? 'Consolidado' : unidadeLabels[duplicateConfig.unidade];
+    const unitLabel = duplicateConfig.unidade === 'todos' ? 'Todas' : unidadeLabels[duplicateConfig.unidade];
 
     setConfirmState({
       isOpen: true,
@@ -1321,7 +1463,7 @@ function App() {
             {/* Top Logo */}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 flex items-center justify-center shrink-0 group/logo">
-                <img src="/logo-LA-colapsed.png" className="w-12 h-12 object-contain transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-2xl" alt="LA" />
+                <img src="/logo-LA-colapsed.png" className="w-12 h-12 object-contain transition-transform duration-500 group-hover/logo:scale-110" alt="LA" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-[0.2em] text-white leading-none uppercase">SUPER FOLHA SYSTEM</h1>
@@ -1392,8 +1534,8 @@ function App() {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#0a0d14] relative">
           <div className="w-full max-w-md">
               <div className="lg:hidden flex flex-col items-center mb-12">
-                <div className="w-20 h-20 flex items-center justify-center mb-6 pulse-glow">
-                  <img src="/logo-LA-colapsed.png" className="w-16 h-16 object-contain drop-shadow-2xl" alt="LA" />
+                <div className="w-20 h-20 flex items-center justify-center mb-6 pulse-glow rounded-3xl">
+                  <img src="/logo-LA-colapsed.png" className="w-16 h-16 object-contain" alt="LA" />
                 </div>
                 <h1 className="text-white text-3xl font-black tracking-tight uppercase">SUPER FOLHA</h1>
                 <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.4em] mt-2">Sistema Inteligente</p>
@@ -1502,74 +1644,77 @@ function App() {
         />
       </div>
 
-      {/* Mobile Drawer Sidebar */}
-      {sidebarMobileOpen && (
-        <div className="fixed inset-0 z-[11000] lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSidebarMobileOpen(false)}
-          />
-          <div className="absolute left-0 top-0 bottom-0">
-            <Sidebar
-              isMobileDrawer
-              current={{ module: currentModule as any, page: activeTab as any }}
-              onNavigate={(next) => handleNavigate(next.module, next.page)}
-              onLogout={handleLogout}
-              onEditProfile={() => {
-                openProfile();
-                setSidebarMobileOpen(false);
-              }}
-              userLabel={userLabelForSidebar}
-              userAvatarUrl={userProfile?.avatar_url || getDefaultAvatarByEmail(userEmail)}
-              onCloseMobileDrawer={() => setSidebarMobileOpen(false)}
-            />
-          </div>
-          <Tooltip content="Fechar menu" side="left">
-            <button
-              type="button"
-              className="absolute top-5 right-5 w-10 h-10 rounded-2xl bg-slate-900/80 border border-slate-700 text-slate-200 flex items-center justify-center"
-              onClick={() => setSidebarMobileOpen(false)}
-              aria-label="Fechar menu"
-            >
-              <X size={18} />
-            </button>
-          </Tooltip>
-        </div>
-      )}
-
       {/* Main content */}
       <div className="flex-1 min-w-0 flex flex-col">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-40">
-        <div className="w-full py-5 px-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header className="border-b border-slate-800 bg-[#0f172a] sticky top-0 z-40">
+        <div className="w-full py-4 px-6 md:px-8">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Tooltip content="Abrir menu" side="right">
-                <button
-                  type="button"
-                  className="lg:hidden w-11 h-11 rounded-2xl bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-200"
-                  onClick={() => setSidebarMobileOpen(true)}
-                  aria-label="Abrir menu"
-                >
-                  <Menu size={18} />
-                </button>
-              </Tooltip>
+              {/* Branding: Logo + Title + Subtitle */}
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-lg shadow-violet-500/5">
-                  <currentModuleConfig.icon size={20} />
-                </div>
+                <img src="/logo-LA-colapsed.png" alt="Logo" className="w-9 h-9 object-contain" />
                 <div>
-                  <h1 className="font-bold text-lg leading-tight text-white">{currentModuleConfig.title}</h1>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">{currentModuleConfig.subtitle}</p>
+                  <h1 className="text-white font-black text-sm md:text-base tracking-tight leading-tight flex items-center gap-1.5">
+                    SUPER FOLHA <span className="text-violet-400">SYSTEM</span>
+                  </h1>
+                  <p className="text-[11px] text-slate-500 font-medium leading-none mt-1">Sistema Inteligente</p>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 sm:gap-6 self-end md:self-auto">
-              {/* Profile Menu removed from here, month selector also removed to go inside pages */}
-            </div>
+            <div className="flex items-center gap-3 sm:gap-6">
+              {/* Profile Menu Popover */}
+                <div>
+                <Popover.Root open={profilePopoverOpen} onOpenChange={setProfilePopoverOpen}>
+                  <Popover.Trigger asChild>
+                    <button
+                      type="button"
+                      className="w-10 h-10 md:w-11 md:h-11 rounded-2xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-900/60 flex items-center justify-center overflow-hidden transition-all active:scale-95 shadow-inner"
+                      aria-label="Menu do perfil"
+                    >
+                      <img
+                        src={userProfile?.avatar_url || getDefaultAvatarByEmail(userEmail) || '/logo-LA-colapsed.png'}
+                        alt="Meu perfil"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
+                        }}
+                      />
+                    </button>
+                  </Popover.Trigger>
+                  <Popover.Portal>
+                    <Popover.Content
+                      sideOffset={8}
+                      align="end"
+                      className="z-[11000] w-56 rounded-2xl border border-slate-800 bg-slate-950/95 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-md"
+                    >
+                      <div className="p-4 border-b border-slate-800/60">
+                        <div className="text-white text-sm font-black truncate">{userLabelForSidebar}</div>
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate mt-0.5">Administrador</div>
+                </div>
+                      <div className="p-2 space-y-1">
+                        <button
+                          onClick={openProfile}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all text-sm font-bold"
+                        >
+                          <Edit2 size={16} />
+                          Editar Perfil
+                        </button>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all text-sm font-bold"
+                        >
+                          <LogOut size={16} />
+                          Sair do Sistema
+                        </button>
               </div>
-              
+                    </Popover.Content>
+                  </Popover.Portal>
+                </Popover.Root>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -1577,70 +1722,156 @@ function App() {
         className={cn(
           "flex-1 overflow-auto flex flex-col",
           // Agenda precisa ficar 100% full-bleed (sem “margem/contorno” visual).
-          currentModule === 'agenda' ? "p-0" : "p-8"
+          currentModule === 'agenda' ? "p-0 pb-28 lg:pb-0" : "p-8 pb-28 lg:pb-0"
         )}
       >
         {/* Module-specific Header/Toolbar */}
         {currentModule === 'folha' && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-            <div>
-              <h2 className="text-2xl font-black text-white flex items-center gap-3">
-                Gestão Mensal
+          <>
+            {/* Mobile: Premium Header Card (não altera desktop) */}
+            <div className="lg:hidden mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+              <Card className="p-4">
+                <div className="flex flex-col gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="text-xl font-black text-white leading-tight">
+                          Gestão Mensal
+                        </h2>
+                        <p className="text-sm text-slate-500 font-medium mt-1 leading-snug">
+                          Selecione o mês de referência para lançamentos e conferência
+                        </p>
+                      </div>
+                      <div className="shrink-0 pt-0.5">
+                        {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
+                        {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
+                        {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
+                      </div>
+                    </div>
+              </div>
+              
+                  <div className="w-full">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                      Mês de Referência
+                    </div>
+                    <CustomSelect
+                      value={selectedFolhaId?.toString() || ''}
+                      onValueChange={(val) => setSelectedFolhaId(Number(val))}
+                      className="w-full"
+                      options={folhas.map(f => ({
+                        value: f.id.toString(),
+                        label: `${getMesNome(f.mes)} ${f.ano}`
+                      }))}
+                    />
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Desktop: manter layout atual */}
+            <div className="hidden lg:flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+              <div>
+                <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                  Gestão Mensal
               <div className="flex items-center gap-2">
                 {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
                 {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
                 {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
-                </div>
-              </h2>
-              <p className="text-sm text-slate-500 font-bold mt-1">Selecione o mês de referência para lançamentos e conferência</p>
+                  </div>
+                </h2>
+                <p className="text-sm text-slate-500 font-bold mt-1">
+                  Selecione o mês de referência para lançamentos e conferência
+                </p>
               </div>
               
-            <div className="flex items-center gap-3">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Mês de Referência</div>
-              <CustomSelect 
-                value={selectedFolhaId?.toString() || ''} 
-                onValueChange={(val) => setSelectedFolhaId(Number(val))}
-                className="min-w-[200px]"
-                options={folhas.map(f => ({
-                  value: f.id.toString(),
-                  label: `${getMesNome(f.mes)} ${f.ano}`
-                }))}
-              />
+              <div className="flex items-center gap-3">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">
+                  Mês de Referência
+                </div>
+                <CustomSelect
+                  value={selectedFolhaId?.toString() || ''}
+                  onValueChange={(val) => setSelectedFolhaId(Number(val))}
+                  className="min-w-[200px]"
+                  options={folhas.map(f => ({
+                    value: f.id.toString(),
+                    label: `${getMesNome(f.mes)} ${f.ano}`
+                  }))}
+                />
+              </div>
             </div>
+          </>
+        )}
+
+        {/* Contas: Mobile Premium Header Card (dynamic for each tab) */}
+        {currentModule === 'contas' && isMobile && ['dashboard', 'visao-geral', 'todas', 'comparativo'].includes(activeTab) && (
+          <div className="lg:hidden mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+            <Card className="p-4 bg-slate-900/40 border border-slate-800/60 shadow-xl">
+              <div className="flex flex-col gap-4">
+                <div className="min-w-0">
+                  <h2 className="text-xl font-black text-white leading-tight">
+                    {activeTab === 'dashboard' ? 'Gestão Mensal' :
+                     activeTab === 'visao-geral' ? 'Gestão Mensal' :
+                     activeTab === 'todas' ? 'Auditoria Financeira' :
+                     activeTab === 'comparativo' ? 'IA Financeira' :
+                     'Gestão Mensal'}
+                  </h2>
+                  <p className="text-sm text-slate-500 font-medium mt-1 leading-snug">
+                    {activeTab === 'dashboard' ? 'Selecione o mês de referência para lançamentos e conferência' :
+                     activeTab === 'visao-geral' ? 'Acompanhamento de contas a pagar por competência' :
+                     activeTab === 'todas' ? 'Histórico completo de lançamentos e liquidações' :
+                     activeTab === 'comparativo' ? 'Insights e anomalias detectadas por IA nas contas a pagar' :
+                     'Acompanhamento de contas a pagar por competência'}
+                  </p>
+                </div>
+
+                <div className="w-full">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-1">
+                    Mês de Referência
+                  </div>
+                  <CustomSelect
+                    value={contasCompetenciaYM}
+                    onValueChange={setContasCompetenciaYM}
+                    className="w-full"
+                    options={contasCompetenciaOptions}
+                  />
+                </div>
+              </div>
+            </Card>
           </div>
         )}
 
-        {currentModule === 'contas' && (
+        {currentModule === 'contas' && !(isMobile && ['dashboard', 'visao-geral', 'todas', 'comparativo'].includes(activeTab)) && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
             <div>
               <h2 className="text-2xl font-black text-white">
                 {activeTab === 'todas' ? 'Auditoria Financeira' :
-                 activeTab === 'comparativo' ? 'Comparativo Mensal' :
-                 activeTab === 'categorias' ? 'Plano de Negócios' :
+                 activeTab === 'comparativo' ? 'IA Financeira' :
+                 activeTab === 'categorias' ? 'Categorias Financeiras' :
                  'Gestão Mensal'}
               </h2>
               <p className="text-sm text-slate-500 font-bold mt-1">
                 {activeTab === 'todas' ? 'Histórico completo de lançamentos e liquidações' :
-                 activeTab === 'comparativo' ? 'Análise estratégica de variações e anomalias nas contas a pagar' :
-                 activeTab === 'categorias' ? 'Gestão estratégica de categorias e classificação financeira' :
+                 activeTab === 'comparativo' ? 'Insights e anomalias detectadas por IA nas contas a pagar' :
+                 activeTab === 'categorias' ? 'Gerencie as classificações as categorias para o fluxo de caixa.' :
                  'Acompanhamento de contas a pagar por competência'}
               </p>
             </div>
           </div>
         )}
           
-        {/* Module Tabs (MusiClass Style - Full Bleed) */}
+        {/* Module Tabs */}
         {tabs.length > 0 ? (
           <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
+            {/* Desktop Tabs (MusiClass Style) */}
+            <div className="hidden lg:block border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
               <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
                     className={cn(
                       "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
-                    activeTab === tab.id 
+                  activeTab === tab.id 
                         ? "text-violet-400" 
                         : "text-slate-500 hover:text-slate-200"
                     )}
@@ -1649,14 +1880,45 @@ function App() {
                       "transition-colors",
                       activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
                     )} />
-                  {tab.label}
+                {tab.label}
                     {activeTab === tab.id && (
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
                     )}
-                </button>
-              ))}
-            </div>
+              </button>
+            ))}
           </div>
+        </div>
+
+            {/* Mobile Tabs (Cockpit Premium Style) */}
+            <div className="lg:hidden mb-6">
+              <div className="relative flex bg-[#0f172a] p-1 rounded-xl border border-slate-800/50 shadow-inner overflow-hidden">
+                {/* Indicador Deslizante (Sliding Background) */}
+                <div 
+                  className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-slate-800/80 rounded-lg border border-slate-700/30 shadow-lg"
+                  style={{
+                    // inset horizontal para não “encostar” nas bordas do container
+                    width: `calc(${100 / Math.max(tabs.length, 1)}% - 10px)`,
+                    left: `calc(${(tabs.findIndex(t => t.id === activeTab) * 100) / Math.max(tabs.length, 1)}% + 5px)`,
+                  }}
+                />
+                
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={cn(
+                      "relative z-10 flex-1 py-3 font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap",
+                      tabs.length >= 5 ? "text-[10px]" : "text-[11px]",
+                      activeTab === tab.id 
+                        ? "text-violet-400 scale-[1.02]" 
+                        : "text-slate-500 hover:text-slate-200"
+                    )}
+                  >
+                    {getShortLabel(tab.id)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         ) : null}
 
@@ -1668,7 +1930,11 @@ function App() {
           )}
         >
           {currentModule === 'contas' ? (
-            <ContasPagarPage mode={(activeTab as any) || 'visao-geral'} />
+            <ContasPagarPage
+              mode={(activeTab as any) || 'visao-geral'}
+              competenciaYM={contasCompetenciaYM}
+              onCompetenciaYMChange={setContasCompetenciaYM}
+            />
           ) : currentModule === 'agenda' ? (
              <AgendaPage />
           ) : currentModule === 'notificacoes' ? (
@@ -1817,40 +2083,92 @@ function App() {
                   <div className={`transition-all duration-500 ease-in-out ${alertsExpanded ? 'max-h-[600px] opacity-100 overflow-y-auto' : 'max-h-0 opacity-0'}`}>
                     <div className="p-4 pt-2 space-y-px">
                       {filteredAlertas.map((alerta, idx) => (
-                        <div key={idx} className="flex items-start gap-4 p-4 hover:bg-slate-700/20 transition-colors border-t border-slate-700/30 first:border-t-0 group">
+                        <div
+                          key={idx}
+                          className="flex items-start gap-3 md:gap-4 p-3 md:p-4 hover:bg-slate-700/20 transition-colors border-t border-slate-700/30 first:border-t-0 group"
+                        >
                           <AlertTriangle className="text-amber-500 shrink-0 mt-1" size={18} />
+
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <h5 className="text-sm font-bold text-slate-200">{alerta.titulo}</h5>
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 uppercase tracking-tighter">
-                                warning
-                              </span>
-                            </div>
-                            <p className="text-sm text-slate-400">{alerta.descricao}</p>
+                            {/* Title (mobile: hierarchy) + Desktop chip */}
+                            {(() => {
+                              const rawTitle = String(alerta.titulo || '').trim();
+                              const parts = rawTitle.split(':');
+                              const hasSplit = parts.length >= 2;
+                              const titleKind = hasSplit ? parts[0].trim() : rawTitle;
+                              const titleSubject = hasSplit ? parts.slice(1).join(':').trim() : '';
+
+                              return (
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    {/* Mobile: small kind label + stronger subject */}
+                                    {hasSplit ? (
+                                      <>
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-amber-400/90">
+                                          {titleKind}
+                                        </div>
+                                        <h5 className="mt-0.5 text-sm md:text-sm font-black text-slate-100 leading-snug break-words">
+                                          {titleSubject}
+                                        </h5>
+                                      </>
+                                    ) : (
+                                      <h5 className="text-sm md:text-sm font-black text-slate-100 leading-snug break-words">
+                                        {rawTitle}
+                                      </h5>
+                                    )}
+                                  </div>
+
+                                  {/* Desktop only (mobile: remove textual badge) */}
+                                  <span className="hidden md:inline-flex shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-widest">
+                                    ALERTA
+                                  </span>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Body */}
+                            <p className="mt-1.5 text-[11px] md:text-sm text-slate-400 leading-relaxed line-clamp-5 md:line-clamp-none">
+                              {alerta.descricao}
+                            </p>
+
+                            {/* Ana note preview */}
                             {alerta.id && (noteDrafts[alerta.id] || '').trim() ? (
-                              <p className="mt-2 text-[11px] text-slate-500 italic line-clamp-2">
-                                Motivo (Ana): {(noteDrafts[alerta.id] || '').trim()}
-                              </p>
+                              <div className="mt-2 rounded-xl border border-slate-700/40 bg-slate-900/30 px-3 py-2">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                  Motivo (Ana)
+                                </div>
+                                <div className="mt-1 text-[11px] text-slate-400 leading-snug line-clamp-2">
+                                  {(noteDrafts[alerta.id] || '').trim()}
+                                </div>
+                              </div>
                             ) : null}
                           </div>
+
+                          {/* Actions: always visible on mobile (touch), hover-only on desktop */}
                           {alerta.id && (
-                            <div className="self-center flex items-center gap-2">
+                            <div className="self-start flex items-center gap-2 md:self-center">
                               <Tooltip content="Anotar motivo para alimentar a memória da IA">
                                 <button
                                   onClick={() => openAlertNote(alerta)}
-                                  className="px-3 py-1.5 bg-slate-800/60 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                  className={cn(
+                                    "w-10 h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center justify-center",
+                                    "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
+                                  )}
+                                  aria-label="Anotar"
                                 >
-                                  <Edit2 size={14} />
-                                  Anotar
+                                  <Edit2 size={16} />
                                 </button>
                               </Tooltip>
                               <Tooltip content="Marcar como verificado">
-                                <button 
+                                <button
                                   onClick={() => handleCheckAlert(alerta.id!)}
-                                  className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                  className={cn(
+                                    "w-10 h-10 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-all flex items-center justify-center",
+                                    "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
+                                  )}
+                                  aria-label="Verificado"
                                 >
-                                  <CheckCircle size={14} />
-                                  Verificado
+                                  <CheckCircle size={16} />
                                 </button>
                               </Tooltip>
                             </div>
@@ -2098,7 +2416,7 @@ function App() {
             {/* Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <KPICard 
                     icon={DollarSign}
                     label="Folha Total"
@@ -2133,12 +2451,12 @@ function App() {
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Distribuição por Unidade */}
-                  <Card className="p-6">
-                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                  <Card className="p-4 md:p-6">
+                    <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
                       <BarChart3 size={20} className="text-white" />
                       <span className="text-white">Distribuição por Unidade</span>
                     </h3>
-                    <div className="h-64">
+                    <div className="w-full">
                       <DistributionChart 
                         data={unitData.map(u => ({ name: u.name, value: u.value, color: u.color }))} 
                         showBars
@@ -2148,8 +2466,8 @@ function App() {
                   </Card>
 
                   {/* Evolução */}
-                  <Card className="p-6 flex flex-col">
-                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                  <Card className="p-4 md:p-6 flex flex-col">
+                    <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
                       <LineChartIcon size={20} className="text-white" />
                       <span className="text-white">Evolução Histórica (Total Geral)</span>
                     </h3>
@@ -2169,15 +2487,21 @@ function App() {
                 
                 {/* Resumo por Unidade */}
                 <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-4 text-white">Resumo por Unidade</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <h3 className="text-base md:text-lg font-semibold mb-4 text-white">Resumo por Unidade</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
                         {unitData.map(unit => (
-                            <Card key={unit.id} className="p-6 relative overflow-hidden group hover:border-slate-600 transition-colors">
+                            <Card 
+                              key={unit.id} 
+                              className={cn(
+                                "p-4 md:p-6 relative overflow-hidden group hover:border-slate-600 transition-colors",
+                                unit.id === 'cg' ? "col-span-2 md:col-span-1" : "col-span-1"
+                              )}
+                            >
                                 <div className={`absolute top-0 right-0 p-24 opacity-5 ${unit.twColor} blur-3xl rounded-full -mr-12 -mt-12 group-hover:opacity-10 transition-opacity`}></div>
                                 <div className="relative z-10">
-                                    <div className="text-slate-400 text-sm font-medium mb-2">{unit.name}</div>
-                                    <div className="text-2xl font-bold text-white mb-1">{formatCurrency(unit.value)}</div>
-                                    <div className="text-xs text-slate-500">{unit.percent}% do total</div>
+                                    <div className="text-slate-400 text-[10px] md:text-sm font-bold uppercase tracking-widest md:normal-case md:tracking-normal mb-2">{unit.name}</div>
+                                    <div className="text-lg md:text-2xl font-black md:font-bold text-white mb-1 truncate">{formatCurrency(unit.value)}</div>
+                                    <div className="text-[10px] md:text-xs text-slate-500">{unit.percent}% do total</div>
                                 </div>
                             </Card>
                         ))}
@@ -2189,7 +2513,7 @@ function App() {
             {/* Collaborators Tab */}
             {activeTab === 'colaboradores' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <KPICard 
                     icon={Users} 
                     label="Total Ativos" 
@@ -2216,64 +2540,140 @@ function App() {
                   />
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex flex-1 items-center gap-4 w-full">
-                    <div className="relative flex-1 max-w-sm">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                      <input 
-                        type="text" 
-                        placeholder="Buscar por nome, email ou função..." 
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 outline-none transition-all"
-                        value={collabSearch}
-                        onChange={(e) => setCollabSearch(e.target.value)}
+                {/* Toolbar (Mobile-first premium) */}
+                <>
+                  {/* Mobile */}
+                  <div className="lg:hidden sticky top-0 z-20">
+                    <Card className="p-4">
+                      <div className="space-y-4">
+                        {/* Busca */}
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                          <input
+                            type="text"
+                            placeholder="Buscar por nome, email ou função..."
+                            className="w-full pl-10 pr-4 py-3 bg-slate-900/40 border border-slate-700/60 rounded-2xl text-sm font-medium text-slate-100 placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                            value={collabSearch}
+                            onChange={(e) => setCollabSearch(e.target.value)}
+                          />
+                        </div>
+
+                        {/* Filtros */}
+                        <div className="space-y-3">
+                          <div>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                              Departamentos
+                            </div>
+                            <CustomSelect
+                              value={collabDeptFilter}
+                              onValueChange={setCollabDeptFilter}
+                              options={[
+                                { value: 'all', label: 'Todos os Departamentos' },
+                                ...Object.entries(DEPARTMENT_LABELS).map(([k, v]) => ({ value: k, label: v })),
+                              ]}
+                              className="w-full"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                              Status
+                            </div>
+                            <CustomSelect
+                              value={collabStatusFilter}
+                              onValueChange={setCollabStatusFilter}
+                              options={[
+                                { value: 'all', label: 'Todos os Status' },
+                                ...Object.entries(STATUS_LABELS).map(([k, v]) => ({ value: k, label: v })),
+                              ]}
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Ações */}
+                        <div className="flex items-center gap-3">
+                          {/* CTA (Full Width on Mobile) */}
+                          <button
+                            onClick={() => { setEditingCollab(null); setIsCollabModalOpen(true); }}
+                            className="flex-1 h-12 flex items-center justify-center gap-2 px-4 bg-violet-600 hover:bg-violet-500 rounded-2xl text-sm font-black text-white transition-all shadow-lg shadow-violet-600/20 active:scale-95"
+                          >
+                            <Plus size={18} />
+                            Novo Colaborador
+                          </button>
+                        </div>
+                      </div>
+                    </Card>
+                    <div className="h-4" />
+                  </div>
+
+                  {/* Desktop (mantém layout atual) */}
+                  <div className="hidden lg:flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex flex-1 items-center gap-4 w-full">
+                      <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                        <input 
+                          type="text" 
+                          placeholder="Buscar por nome, email ou função..." 
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 outline-none transition-all"
+                          value={collabSearch}
+                          onChange={(e) => setCollabSearch(e.target.value)}
+                        />
+                      </div>
+                      <CustomSelect 
+                        value={collabDeptFilter}
+                        onValueChange={setCollabDeptFilter}
+                        options={[
+                          { value: 'all', label: 'Todos os Departamentos' },
+                          ...Object.entries(DEPARTMENT_LABELS).map(([k, v]) => ({ value: k, label: v }))
+                        ]}
+                        className="w-[280px] sm:w-[340px] shrink-0"
+                      />
+                      <CustomSelect 
+                        value={collabStatusFilter}
+                        onValueChange={setCollabStatusFilter}
+                        options={[
+                          { value: 'all', label: 'Todos os Status' },
+                          ...Object.entries(STATUS_LABELS).map(([k, v]) => ({ value: k, label: v }))
+                        ]}
+                        className="max-w-[180px]"
                       />
                     </div>
-                    <CustomSelect 
-                      value={collabDeptFilter}
-                      onValueChange={setCollabDeptFilter}
-                      options={[
-                        { value: 'all', label: 'Todos os Departamentos' },
-                        ...Object.entries(DEPARTMENT_LABELS).map(([k, v]) => ({ value: k, label: v }))
-                      ]}
-                      className="w-[280px] sm:w-[340px] shrink-0"
-                    />
-                    <CustomSelect 
-                      value={collabStatusFilter}
-                      onValueChange={setCollabStatusFilter}
-                      options={[
-                        { value: 'all', label: 'Todos os Status' },
-                        ...Object.entries(STATUS_LABELS).map(([k, v]) => ({ value: k, label: v }))
-                      ]}
-                      className="max-w-[180px]"
-                    />
-                  </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="bg-slate-800 p-1 rounded-xl flex items-center gap-1">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-slate-800 p-1 rounded-xl flex items-center gap-1">
+                        <button 
+                          onClick={() => setViewMode('cards')}
+                          className={cn("p-2 rounded-lg transition-all", viewMode === 'cards' ? "bg-violet-600 text-white shadow-lg" : "text-slate-400 hover:text-white")}
+                        >
+                          <LayoutGrid size={18} />
+                        </button>
+                        <button 
+                          onClick={() => setViewMode('table')}
+                          className={cn("p-2 rounded-lg transition-all", viewMode === 'table' ? "bg-violet-600 text-white shadow-lg" : "text-slate-400 hover:text-white")}
+                        >
+                          <List size={18} />
+                        </button>
+                      </div>
                       <button 
-                        onClick={() => setViewMode('cards')}
-                        className={cn("p-2 rounded-lg transition-all", viewMode === 'cards' ? "bg-violet-600 text-white shadow-lg" : "text-slate-400 hover:text-white")}
+                        onClick={() => { setEditingCollab(null); setIsCollabModalOpen(true); }}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-violet-600/20"
                       >
-                        <LayoutGrid size={18} />
-                      </button>
-                      <button 
-                        onClick={() => setViewMode('table')}
-                        className={cn("p-2 rounded-lg transition-all", viewMode === 'table' ? "bg-violet-600 text-white shadow-lg" : "text-slate-400 hover:text-white")}
-                      >
-                        <List size={18} />
+                        <Plus size={18} />
+                        Novo Colaborador
                       </button>
                     </div>
-                    <button 
-                      onClick={() => { setEditingCollab(null); setIsCollabModalOpen(true); }}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-violet-600/20"
-                    >
-                      <Plus size={18} />
-                      Novo Colaborador
-                    </button>
                   </div>
-                </div>
+                </>
 
-                {viewMode === 'cards' ? (
+                {isMobile ? (
+                  <MobileCollaboratorList
+                    items={filteredColaboradoresWithBase}
+                    onOpen={(c) => {
+                      setMobileCollabDetail({ ...(c as any), salario_base: getEffectiveBaseSalary(c) } as any);
+                    }}
+                  />
+                ) : viewMode === 'cards' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredColaboradoresWithBase.map(c => (
                       <CollaboratorCard 
@@ -2282,6 +2682,7 @@ function App() {
                         onEdit={(collab) => { setEditingCollab({ ...collab, salario_base: getEffectiveBaseSalary(collab) }); setIsCollabModalOpen(true); }}
                         onToggleInactive={handleToggleInactiveCollab}
                         onDelete={handleDeleteCollab}
+                        isMobile={false}
                       />
                     ))}
                   </div>
@@ -2387,6 +2788,7 @@ function App() {
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   {/* Filters */}
+                  {!isMobile ? (
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
                         <Filter size={16} />
@@ -2397,7 +2799,7 @@ function App() {
                             { id: 'todos', label: 'Consolidado' },
                             { id: 'cg', label: 'Campo Grande' },
                             { id: 'rec', label: 'Recreio' },
-                            { id: 'bar', label: 'Barra' }
+                          { id: 'bar', label: 'Barra' },
                         ].map((item) => (
                              <button
                                 key={item.id}
@@ -2413,8 +2815,59 @@ function App() {
                         ))}
                     </div>
                   </div>
+                  ) : (
+                    <div className="w-full">
+                      <div className="sticky top-0 z-20 -mx-4 px-4 py-3 bg-[#060814]/70 backdrop-blur-xl border-b border-white/5">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setLancamentosFiltersOpen(true)}
+                            className="flex-1 flex items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-slate-900/60 border border-slate-800/70 text-slate-100 font-black"
+                          >
+                            <span className="flex items-center gap-2 min-w-0">
+                              <Filter size={16} className="text-violet-300 shrink-0" />
+                              <span className="truncate">
+                                {unidadeFiltro === 'todos' ? 'Consolidado' : unidadeLabels[unidadeFiltro]}
+                              </span>
+                            </span>
+                            <span className="flex items-center gap-2 shrink-0">
+                              {lancamentosActiveFiltersCount > 0 ? (
+                                <span className="text-[10px] font-black px-2 py-1 rounded-full bg-violet-500/15 text-violet-200 border border-violet-500/20">
+                                  {lancamentosActiveFiltersCount}
+                                </span>
+                              ) : null}
+                              <ChevronDown size={16} className="text-slate-400" />
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setLancamentosActionsOpen(true)}
+                            className="px-4 py-2.5 rounded-2xl bg-slate-900/60 border border-slate-800/70 text-white font-black"
+                          >
+                            Ações
+                          </button>
+                        </div>
+
+                        {unidadeFiltro !== 'todos' ? (
+                          <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+                            <button
+                              type="button"
+                              onClick={() => setUnidadeFiltro('todos')}
+                              className="shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/60 border border-slate-800/70 text-xs font-black text-slate-200"
+                            >
+                              <span>Unidade: {unidadeLabels[unidadeFiltro]}</span>
+                              <X size={14} className="text-slate-400" />
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {isMobile ? null : (
+                    <>
                     {/* Option A: Consolidado é read-only */}
                     <Tooltip content={unidadeFiltro === 'todos' ? 'Selecione uma unidade para criar lançamentos' : 'Novo lançamento'}>
                       <button
@@ -2482,11 +2935,246 @@ function App() {
                         Submeter
                     </button>
                   )}
+                    </>)}
                   </div>
                 </div>
+                
+                {/* Mobile: Bottom sheets */}
+                <Modal
+                  isOpen={isMobile && lancamentosFiltersOpen}
+                  onClose={() => setLancamentosFiltersOpen(false)}
+                  title="Filtros"
+                  subtitle="Ajuste a unidade exibida nos lançamentos"
+                  position="bottom"
+                  className="max-w-none"
+                  footer={
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={clearLancamentosFilters}
+                        className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-black transition-all active:scale-95"
+                      >
+                        Limpar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyLancamentosFilters}
+                        className="flex-1 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 active:scale-95"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  }
+                >
+                  <div className="space-y-4">
+                    <div className="text-xs text-slate-400 font-bold">
+                      Dica: “Consolidado” é leitura (não permite criar/editar lançamentos).
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        { id: 'todos', label: 'Consolidado' },
+                        { id: 'cg', label: 'Campo Grande' },
+                        { id: 'rec', label: 'Recreio' },
+                        { id: 'bar', label: 'Barra' },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setDraftUnidadeFiltro(item.id)}
+                          className={cn(
+                            "w-full flex items-center justify-between px-5 py-4 rounded-2xl border text-left transition-all",
+                            draftUnidadeFiltro === item.id
+                              ? "bg-violet-500/10 border-violet-500/30 text-white"
+                              : "bg-slate-900/50 border-slate-800/70 text-slate-200 hover:bg-slate-900/70"
+                          )}
+                        >
+                          <div className="font-black">{item.label}</div>
+                          {draftUnidadeFiltro === item.id ? (
+                            <Badge variant="purple">Selecionado</Badge>
+                          ) : (
+                            <span className="text-xs font-bold text-slate-500">Selecionar</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </Modal>
+
+                <Modal
+                  isOpen={isMobile && lancamentosActionsOpen}
+                  onClose={() => setLancamentosActionsOpen(false)}
+                  title="Ações"
+                  subtitle="Operações rápidas para o mês atual"
+                  position="bottom"
+                  className="max-w-none"
+                >
+                  {(() => {
+                    const canEditMonth = statusFolha === 'rascunho';
+                    const needsUnit = unidadeFiltro !== 'todos';
+
+                    const disabledNovo = !canEditMonth || !needsUnit;
+                    const reasonNovo = !needsUnit
+                      ? 'Selecione uma unidade (não Consolidado).'
+                      : !canEditMonth
+                        ? 'Este mês não está em rascunho.'
+                        : 'Crie um lançamento manual no mês atual.';
+
+                    const disabledDuplicar = !canEditMonth;
+                    const reasonDuplicar = !canEditMonth
+                      ? 'Este mês não está em rascunho.'
+                      : 'Importe lançamentos de outro mês/unidade para ganhar tempo.';
+
+                    const disabledCriarProximo = !folhaAtual;
+                    const reasonCriarProximo = !folhaAtual
+                      ? 'Nenhum mês selecionado.'
+                      : 'Cria a competência seguinte baseada no mês atual.';
+
+                    const showExcluir = canEditMonth;
+                    const reasonExcluir = 'Remove o mês atual e todos os lançamentos (ação irreversível).';
+
+                    const showSubmeter = canEditMonth;
+                    const reasonSubmeter = 'Envia a folha para revisão/aprovação.';
+
+                    const sectionTitleClass = "text-[10px] font-black uppercase tracking-widest text-slate-500";
+                    const itemBase = "w-full px-5 py-4 rounded-2xl border text-left transition-all";
+                    const subtitleBase = "text-[11px] font-bold mt-1 leading-snug";
+
+                    return (
+                      <div className="space-y-6">
+                        {/* Criação */}
+                        <div>
+                          <div className={sectionTitleClass}>Criação</div>
+                          <div className="mt-3 space-y-3">
+                            <button
+                              type="button"
+                              onClick={() => { setLancamentosActionsOpen(false); openCreateLancamento(); }}
+                              disabled={disabledNovo}
+                              className={cn(
+                                itemBase,
+                                disabledNovo
+                                  ? "bg-slate-900/30 border-slate-800/60 text-slate-500 cursor-not-allowed"
+                                  : "bg-slate-900/60 border-slate-800/70 text-white hover:bg-slate-900/80"
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <div className="font-black">Novo Lançamento</div>
+                                  <div className={cn(subtitleBase, disabledNovo ? "text-slate-500" : "text-slate-400")}>
+                                    {reasonNovo}
+                                  </div>
+                                </div>
+                                <Plus size={18} className={cn(disabledNovo ? "text-slate-600" : "text-violet-300")} />
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Operações do mês */}
+                        <div>
+                          <div className={sectionTitleClass}>Operações do mês</div>
+                          <div className="mt-3 space-y-3">
+                            <button
+                              type="button"
+                              onClick={() => { setLancamentosActionsOpen(false); setIsDuplicateModalOpen(true); }}
+                              disabled={disabledDuplicar}
+                              className={cn(
+                                itemBase,
+                                disabledDuplicar
+                                  ? "bg-slate-900/30 border-slate-800/60 text-slate-500 cursor-not-allowed"
+                                  : "bg-slate-900/60 border-slate-800/70 text-white hover:bg-slate-900/80"
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <div className="font-black">Duplicar Mês</div>
+                                  <div className={cn(subtitleBase, disabledDuplicar ? "text-slate-500" : "text-slate-400")}>
+                                    {reasonDuplicar}
+                                  </div>
+                                </div>
+                                <Copy size={18} className={cn(disabledDuplicar ? "text-slate-600" : "text-slate-200")} />
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => { setLancamentosActionsOpen(false); handleCreateNextMonth(); }}
+                              disabled={disabledCriarProximo}
+                              className={cn(
+                                itemBase,
+                                disabledCriarProximo
+                                  ? "bg-slate-900/30 border-slate-800/60 text-slate-500 cursor-not-allowed"
+                                  : "bg-slate-900/60 border-slate-800/70 text-white hover:bg-slate-900/80"
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <div className="font-black">Criar Próximo Mês</div>
+                                  <div className={cn(subtitleBase, disabledCriarProximo ? "text-slate-500" : "text-slate-400")}>
+                                    {reasonCriarProximo}
+                                  </div>
+                                </div>
+                                <Plus size={18} className={cn(disabledCriarProximo ? "text-slate-600" : "text-slate-200")} />
+                              </div>
+                            </button>
+
+                            {showExcluir ? (
+                              <button
+                                type="button"
+                                onClick={() => { setLancamentosActionsOpen(false); handleDeleteMonth(); }}
+                                className={cn(itemBase, "bg-rose-500/10 border-rose-500/20 text-rose-200 hover:bg-rose-500/15")}
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="min-w-0">
+                                    <div className="font-black">Excluir Mês</div>
+                                    <div className={cn(subtitleBase, "text-rose-200/80")}>
+                                      {reasonExcluir}
+                                    </div>
+                                  </div>
+                                  <XCircle size={18} className="text-rose-300" />
+                                </div>
+                              </button>
+                            ) : (
+                              <div className="text-[11px] text-slate-500 font-bold">
+                                Excluir mês: disponível apenas em rascunho.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Aprovação */}
+                        <div>
+                          <div className={sectionTitleClass}>Aprovação</div>
+                          <div className="mt-3 space-y-3">
+                            {showSubmeter ? (
+                              <button
+                                type="button"
+                                onClick={() => { setLancamentosActionsOpen(false); handleUpdateStatus('pendente'); }}
+                                className={cn(itemBase, "bg-violet-600 border-violet-500/30 text-white hover:bg-violet-500")}
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="min-w-0">
+                                    <div className="font-black">Submeter</div>
+                                    <div className={cn(subtitleBase, "text-white/85")}>
+                                      {reasonSubmeter}
+                                    </div>
+                                  </div>
+                                  <CheckCircle size={18} className="text-white" />
+                                </div>
+                              </button>
+                            ) : (
+                              <div className="text-[11px] text-slate-500 font-bold">
+                                Submeter: disponível apenas em rascunho.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </Modal>
 
                 {/* KPI Cards for Lancamentos */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <KPICard 
                     icon={DollarSign}
                     label={`Folha ${unidadeFiltro === 'todos' ? 'Consolidada' : unidadeLabels[unidadeFiltro]}`}
@@ -2525,6 +3213,7 @@ function App() {
                   />
                 </div>
                 
+                {!isMobile ? (
                 <Card className="overflow-hidden border-0 bg-slate-800/40">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -2536,7 +3225,7 @@ function App() {
                           <th className="py-4 px-2 text-right">Salário</th>
                           <th className="py-4 px-2 text-right">Bônus</th>
                           <th className="py-4 px-2 text-right">Comissão</th>
-                          <th className="py-4 px-2 text-right">Reembolso</th>
+                            <th className="py-4 px-2 text-right">Reembolso</th>
                           <th className="py-4 px-2 text-right">Passagem</th>
                           <th className="py-4 px-2 text-right">INSS</th>
                           <th className="py-4 px-2 text-right">Descontos</th>
@@ -2757,15 +3446,350 @@ function App() {
                     </table>
                   </div>
                 </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Busca + atalhos */}
+                    <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-2xl bg-slate-950/60 border border-slate-800/60 text-slate-400">
+                          <Search size={16} />
+                        </div>
+                        <input
+                          value={lancamentosSearch}
+                          onChange={(e) => setLancamentosSearch(e.target.value)}
+                          placeholder="Buscar colaborador (nome ou função)"
+                          className="w-full bg-transparent text-slate-100 placeholder:text-slate-500 text-sm font-bold outline-none"
+                        />
+                        {lancamentosSearch.trim() ? (
+                          <button
+                            type="button"
+                            onClick={() => setLancamentosSearch('')}
+                            className="p-2 rounded-2xl bg-slate-950/60 border border-slate-800/60 text-slate-400"
+                            aria-label="Limpar busca"
+                          >
+                            <X size={16} />
+                          </button>
+                        ) : null}
+                      </div>
+
+                    </div>
+
+                    {/* Summary bar discreta */}
+                    <div className="flex items-center justify-between bg-slate-900/40 border border-slate-800/60 rounded-3xl px-5 py-4">
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest truncate">
+                          Total {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]} • {lancamentosKPIs.total.count} colaboradores
+                        </div>
+                        <div className="text-lg font-black text-white truncate">{formatCurrency(filteredTotalGeral)}</div>
+                      </div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                        {statusFolha === 'rascunho' ? 'Rascunho' : statusFolha}
+                      </div>
+                    </div>
+
+                    {/* Cards por grupo */}
+                    <div className="space-y-3">
+                      {(['staff_rateado', 'equipe_operacional', 'professores'] as const).map((dept) => {
+                        const lancs = (groupedLancamentosMobile as any)[dept] as Lancamento[];
+                        if (!lancs || lancs.length === 0) return null;
+
+                        const subtotal = lancs.reduce((acc, l) => acc + (l.total || 0), 0);
+                        const visible = lancs.slice(0, lancamentosVisibleByDept[dept] ?? MOBILE_LANC_PAGE_SIZE);
+                        const hasMore = visible.length < lancs.length;
+
+                        return (
+                          <div key={dept} ref={(el) => { deptHeaderRefs.current[dept] = el; }} className="space-y-2">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedDept((prev) => ({ ...prev, [dept]: !prev[dept] }))}
+                              className="w-full flex items-center justify-between px-5 py-4 rounded-3xl bg-slate-900/40 border border-slate-800/60"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                {expandedDept[dept] ? (
+                                  <ChevronDown size={18} className="text-slate-500 shrink-0" />
+                                ) : (
+                                  <ChevronUp size={18} className="text-slate-500 shrink-0" />
+                                )}
+                                <div className="min-w-0 text-left">
+                                  <div className={cn("text-[11px] font-black uppercase tracking-widest truncate", deptColors[dept])}>
+                                    {deptLabels[dept]} ({lancs.length})
+                                  </div>
+                                  <div className="text-xs text-slate-400 font-bold truncate">{formatCurrency(subtotal)}</div>
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Abrir</span>
+                            </button>
+
+                            {expandedDept[dept] ? (
+                              <div className="space-y-2">
+                                {visible.map((l) => {
+                                  const colab = (l.colaboradores || {}) as Colaborador;
+                                  const tipo = (colab.tipo || '') as any;
+                                  const tipoLabel = tipoLabels[tipo] || (tipo ? String(tipo).slice(0, 3) : '—');
+
+                                  const badge = (label: string, val: number, variant?: 'muted' | 'pos' | 'neg') => (
+                                    <div
+                                      className={cn(
+                                        "flex items-center justify-between gap-2 px-3 py-2 rounded-2xl border text-[10px] font-black uppercase tracking-widest",
+                                        variant === 'neg'
+                                          ? "bg-rose-500/10 border-rose-500/20 text-rose-200"
+                                          : variant === 'pos'
+                                            ? "bg-slate-950/40 border-slate-800/60 text-slate-200"
+                                            : "bg-slate-950/20 border-slate-800/50 text-slate-500"
+                                      )}
+                                    >
+                                      <span>{label}</span>
+                                      <span className="font-mono text-[11px] normal-case tracking-normal">{val ? formatCurrency(val) : '—'}</span>
+                                    </div>
+                                  );
+
+                                  return (
+                                    <button
+                                      key={l.id}
+                                      type="button"
+                                      onClick={() => {
+                                        // Se está em Consolidado, muda para a unidade do lançamento para permitir edição
+                                        if (unidadeFiltro === 'todos' && l.unidade) {
+                                          setUnidadeFiltro(l.unidade);
+                                        }
+                                        setMobileLancDetail(l);
+                                      }}
+                                      className="w-full text-left px-5 py-4 rounded-3xl bg-slate-900/40 border border-slate-800/60 hover:bg-slate-900/55 transition-colors"
+                                    >
+                                      <div className="flex items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                          <div className="text-slate-100 font-black truncate">{colab.nome || 'N/A'}</div>
+                                          <div className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                            <span className="px-2 py-1 rounded-full bg-slate-950/40 border border-slate-800/60">
+                                              {unidadeLabels[l.unidade] || l.unidade}
+                                            </span>
+                                            <span className="px-2 py-1 rounded-full bg-slate-950/40 border border-slate-800/60">
+                                              {tipoLabel}
+                                            </span>
+                                          </div>
+                                          {colab.funcao ? (
+                                            <div className="mt-1 text-xs text-slate-400 font-bold truncate">{colab.funcao}</div>
+                                          ) : null}
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                          <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Total</div>
+                                          <div className="text-lg font-black text-white font-mono">{formatCurrency(l.total)}</div>
+                                        </div>
+                                      </div>
+
+                                      <div className="mt-3 grid grid-cols-2 gap-2">
+                                        {badge('Salário', l.salario, l.salario ? 'pos' : 'muted')}
+                                        {badge('Bônus', l.bonus, l.bonus ? 'pos' : 'muted')}
+                                        {badge('Comissão', l.comissao, l.comissao ? 'pos' : 'muted')}
+                                        {badge('INSS', l.inss, l.inss ? 'neg' : 'muted')}
+                                        {badge('Descontos', l.descontos, l.descontos ? 'neg' : 'muted')}
+                                        {badge('Passagem', l.passagem, l.passagem ? 'pos' : 'muted')}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+
+                                {hasMore ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setLancamentosVisibleByDept((prev) => ({
+                                        ...prev,
+                                        [dept]: Math.min((prev[dept] ?? MOBILE_LANC_PAGE_SIZE) + MOBILE_LANC_PAGE_SIZE, lancs.length),
+                                      }))
+                                    }
+                                    className="w-full px-5 py-3 rounded-2xl bg-slate-900/30 border border-slate-800/60 text-slate-200 font-black text-sm hover:bg-slate-900/45 transition-colors"
+                                  >
+                                    Mostrar mais ({lancs.length - visible.length})
+                                  </button>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 
+                {!isMobile ? (
                 <div className="flex justify-end">
                     <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 inline-flex flex-col items-end gap-1 min-w-[200px]">
-                        <span className="text-xs text-slate-500 uppercase tracking-wider">
-                          Total {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]}
-                        </span>
-                        <span className="text-2xl font-bold text-white">{formatCurrency(filteredTotalGeral)}</span>
+                      <span className="text-xs text-slate-500 uppercase tracking-wider">
+                        Total {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]}
+                      </span>
+                      <span className="text-2xl font-bold text-white">{formatCurrency(filteredTotalGeral)}</span>
                     </div>
                 </div>
+                ) : null}
+
+                {/* Mobile: Detail Sheet do lançamento */}
+                <Modal
+                  isOpen={isMobile && !!mobileLancDetail}
+                  onClose={() => setMobileLancDetail(null)}
+                  title={mobileLancDetail?.colaboradores?.nome || 'Detalhes do colaborador'}
+                  subtitle="Detalhes e edição rápida do lançamento"
+                  position="bottom"
+                  className="max-w-none"
+                  footer={
+                    mobileLancDetail ? (
+                      <div className="flex flex-col gap-3">
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setMobileLancDetail(null)}
+                            className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-black transition-all active:scale-95"
+                          >
+                            Fechar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!folhaAtual || !mobileLancDetail) return;
+                              try {
+                                const clone: any = {
+                                  folha_id: folhaAtual.id,
+                                  colaborador_id: mobileLancDetail.colaborador_id,
+                                  unidade: mobileLancDetail.unidade,
+                                  categoria: mobileLancDetail.categoria,
+                                  salario: mobileLancDetail.salario || 0,
+                                  bonus: mobileLancDetail.bonus || 0,
+                                  comissao: mobileLancDetail.comissao || 0,
+                                  reembolso: mobileLancDetail.reembolso || 0,
+                                  passagem: mobileLancDetail.passagem || 0,
+                                  inss: mobileLancDetail.inss || 0,
+                                  descontos: mobileLancDetail.descontos || 0,
+                                  observacao: mobileLancObs || '',
+                                };
+                                await api.createLancamento(clone);
+                                await loadMonthData(folhaAtual.id, folhas);
+                                setAlertState({ isOpen: true, title: 'Sucesso', message: 'Linha duplicada.', variant: 'primary' });
+                              } catch (err: any) {
+                                setAlertState({ isOpen: true, title: 'Erro', message: err?.message || 'Falha ao duplicar linha', variant: 'danger' });
+                              }
+                            }}
+                            disabled={statusFolha !== 'rascunho'}
+                            className={cn(
+                              "flex-1 px-6 py-3.5 rounded-2xl font-black transition-all active:scale-95 shadow-lg",
+                              statusFolha !== 'rascunho'
+                                ? "bg-slate-800/60 text-slate-500 cursor-not-allowed shadow-transparent"
+                                : "bg-slate-900/60 hover:bg-slate-900 text-white shadow-slate-950/30"
+                            )}
+                          >
+                            Duplicar linha
+                          </button>
+              </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!mobileLancDetail) return;
+                            setMobileLancDetail(null);
+                            handleDeleteLancamento(mobileLancDetail);
+                          }}
+                          disabled={statusFolha !== 'rascunho'}
+                          className={cn(
+                            "w-full px-6 py-3.5 rounded-2xl font-black transition-all active:scale-95 shadow-lg",
+                            statusFolha !== 'rascunho'
+                              ? "bg-slate-800/60 text-slate-500 cursor-not-allowed shadow-transparent"
+                              : "bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20"
+                          )}
+                        >
+                          Excluir linha
+                        </button>
+                      </div>
+                    ) : null
+                  }
+                >
+                  {mobileLancDetail ? (
+                    <div className="space-y-5">
+                      {(() => {
+                        const prev = aggregatedData?.prevMap?.[mobileLancDetail.colaborador_id];
+                        const currTotal = aggregatedData?.currentMap?.[mobileLancDetail.colaborador_id]?.total || mobileLancDetail.total || 0;
+                        const prevTotal = prev?.total || 0;
+                        const perc = prevTotal > 0 ? ((currTotal - prevTotal) / prevTotal) * 100 : null;
+                        return (
+                          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Total do colaborador</div>
+                                <div className="text-2xl font-black text-white font-mono truncate">{formatCurrency(currTotal)}</div>
+                                <div className="mt-1 text-xs text-slate-400 font-bold">
+                                  {mobileLancDetail.categoria ? deptLabels[mobileLancDetail.categoria] : ''}
+                                  {' • '}
+                                  Unidade {unidadeLabels[mobileLancDetail.unidade] || mobileLancDetail.unidade}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Anterior</div>
+                                <div className="text-sm font-black text-slate-200 font-mono">{prevTotal > 0 ? formatCurrency(prevTotal) : '—'}</div>
+                                {perc !== null ? (
+                                  <div className={cn("mt-1 text-[11px] font-black", perc > 0 ? "text-rose-300" : "text-emerald-300")}>
+                                    {perc > 0 ? '+' : ''}{perc.toFixed(1)}%
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      <div className="grid grid-cols-1 gap-3">
+                        {([
+                          { k: 'salario', label: 'Salário', neg: false },
+                          { k: 'bonus', label: 'Bônus', neg: false },
+                          { k: 'comissao', label: 'Comissão', neg: false },
+                          { k: 'reembolso', label: 'Reembolso', neg: false },
+                          { k: 'passagem', label: 'Passagem', neg: false },
+                          { k: 'inss', label: 'INSS', neg: true },
+                          { k: 'descontos', label: 'Descontos', neg: true },
+                        ] as const).map(({ k, label, neg }) => (
+                          <div key={k} className="flex items-center justify-between gap-4 bg-slate-900/40 border border-slate-800/60 rounded-3xl px-4 py-3">
+                            <div className="text-xs font-black uppercase tracking-widest text-slate-400">{label}</div>
+                            <div className="w-[170px]">
+                              <CellInput
+                                value={(mobileLancDetail as any)[k] || 0}
+                                disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
+                                colorClass={neg ? 'text-rose-300' : 'text-slate-100'}
+                                onSave={(val) => saveLancamentoPatch(mobileLancDetail, { [k]: val } as any)}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+                        <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Observação</div>
+                        <textarea
+                          spellCheck={false}
+                          value={mobileLancObs}
+                          onChange={(e) => setMobileLancObs(e.target.value)}
+                          onBlur={async () => {
+                            if (!mobileLancDetail) return;
+                            const next = (mobileLancObs || '').trim();
+                            const curr = (mobileLancDetail.observacao || '').trim();
+                            if (next === curr) return;
+                            setMobileLancObsSaving(true);
+                            try {
+                              await api.updateLancamento(mobileLancDetail.id, { observacao: next } as any);
+                              setLancamentos((prev) => prev.map((x) => (x.id === mobileLancDetail.id ? ({ ...x, observacao: next } as any) : x)));
+                            } catch (err: any) {
+                              setAlertState({ isOpen: true, title: 'Erro', message: err?.message || 'Falha ao salvar observação', variant: 'danger' });
+                              setMobileLancObs(mobileLancDetail.observacao || '');
+                            } finally {
+                              setMobileLancObsSaving(false);
+                            }
+                          }}
+                          placeholder="Anotações rápidas sobre esse lançamento…"
+                          className="w-full min-h-[90px] bg-slate-950/30 border border-slate-800/60 rounded-2xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-violet-500/40"
+                        />
+                        <div className="mt-2 flex items-center justify-between text-[10px] font-bold text-slate-500">
+                          <span>Salva automaticamente ao sair do campo</span>
+                          <span>{mobileLancObsSaving ? 'Salvando…' : '—'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </Modal>
               </div>
             )}
             
@@ -3009,124 +4033,309 @@ function App() {
                     </div>
 
                     <Card className="overflow-hidden">
-                      <div className="p-6 border-b border-slate-700">
-                        <h3 className="text-lg font-semibold text-white">Maiores Variações por Colaborador</h3>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                          <thead>
-                            <tr className="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-wider">
-                              <th className="py-4 px-6">Colaborador</th>
-                              <th className="py-4 px-2 text-right">Mês Anterior</th>
-                              <th className="py-4 px-2 text-right">Mês Atual</th>
-                              <th className="py-4 px-6">Motivo (Ana)</th>
-                              <th className="py-4 px-6 text-right">Variação</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(() => {
-                              const { currentMap, prevMap } = aggregatedData;
-                              const allColabIds = Array.from(new Set([
-                                ...Object.keys(currentMap).map(Number),
-                                ...Object.keys(prevMap).map(Number)
-                              ]));
+                      <button
+                        type="button"
+                        onClick={() => setVariacoesOpen(!variacoesOpen)}
+                        className="w-full p-4 md:p-6 border-b border-slate-700 flex items-center justify-between text-left group transition-all active:bg-slate-800/40"
+                      >
+                        <div className="min-w-0">
+                          <h3 className="text-base md:text-lg font-black text-white">Maiores Variações por Colaborador</h3>
+                          <p className="mt-1 text-[11px] md:text-xs text-slate-400 font-medium">
+                            {variacoesOpen ? 'Toque para recolher a análise detalhada' : 'Toque para expandir e ver as variações por colaborador'}
+                          </p>
+                        </div>
+                        <div className={cn(
+                          "w-10 h-10 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center text-slate-400 group-hover:text-white transition-all",
+                          variacoesOpen ? "rotate-180" : ""
+                        )}>
+                          <ChevronDown size={20} />
+                        </div>
+                      </button>
 
-                              return allColabIds
-                                .map(id => {
-                                  const curr = currentMap[id];
-                                  const prev = prevMap[id];
-                                  const totalCurr = curr?.total || 0;
-                                  const totalPrev = prev?.total || 0;
-                                  const diff = totalCurr - totalPrev;
-                                  const perc = totalPrev > 0 ? (diff / totalPrev) * 100 : 0;
-                                  
-                                  return { 
-                                    id, 
-                                    nome: curr?.nome || prev?.nome, 
-                                    funcao: curr?.funcao || prev?.funcao, 
-                                    totalCurr, 
-                                    totalPrev, 
-                                    diff, 
-                                    perc,
-                                    status: !prev ? 'NOVO' : !curr ? 'SAIU' : null
-                                  };
-                                })
-                                .filter(item => Math.abs(item.perc) > 0.1 || item.status)
-                                .sort((a, b) => {
-                                  if (a.status && !b.status) return -1;
-                                  if (!a.status && b.status) return 1;
-                                  return Math.abs(b.perc) - Math.abs(a.perc);
-                                })
-                                .map(({ id, nome, funcao, totalCurr, totalPrev, diff, perc, status }) => (
-                                  <tr key={id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
-                                    <td className="py-4 px-6">
-                                      <div className="flex items-center gap-3">
-                                        <div>
-                                          <div className="font-medium text-slate-200">{nome}</div>
-                                          <div className="text-xs text-slate-500">{funcao}</div>
+                      {variacoesOpen && (() => {
+                        const { currentMap, prevMap } = aggregatedData;
+                        const allColabIds = Array.from(new Set([
+                          ...Object.keys(currentMap).map(Number),
+                          ...Object.keys(prevMap).map(Number)
+                        ]));
+
+                        const items = allColabIds
+                          .map(id => {
+                            const curr = currentMap[id];
+                            const prev = prevMap[id];
+                            const totalCurr = curr?.total || 0;
+                            const totalPrev = prev?.total || 0;
+                            const diff = totalCurr - totalPrev;
+                            const perc = totalPrev > 0 ? (diff / totalPrev) * 100 : 0;
+
+                            return {
+                              id,
+                              nome: curr?.nome || prev?.nome,
+                              funcao: curr?.funcao || prev?.funcao,
+                              totalCurr,
+                              totalPrev,
+                              diff,
+                              perc,
+                              status: !prev ? 'NOVO' : !curr ? 'SAIU' : null
+                            };
+                          })
+                          .filter(item => Math.abs(item.perc) > 0.1 || item.status)
+                          .sort((a, b) => {
+                            if (a.status && !b.status) return -1;
+                            if (!a.status && b.status) return 1;
+                            return Math.abs(b.perc) - Math.abs(a.perc);
+                          });
+
+                        const colorFor = (status: string | null, perc: number) => {
+                          if (status === 'SAIU') return 'text-rose-400';
+                          if (status === 'NOVO') return 'text-emerald-400';
+                          if (perc > 15) return 'text-rose-400';
+                          if (perc < -15) return 'text-emerald-400';
+                          if (perc > 0) return 'text-amber-400';
+                          return 'text-slate-400';
+                        };
+
+                        const statusPill = (status: string | null) => {
+                          if (!status) return null;
+                          return (
+                            <span className={cn(
+                              "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border",
+                              status === 'NOVO'
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            )}>
+                              {status}
+                            </span>
+                          );
+                        };
+
+                        return (
+                          <>
+                            {/* MOBILE: cards (no horizontal scroll) */}
+                            <div className="lg:hidden divide-y divide-slate-800/60">
+                              {items.map(({ id, nome, funcao, totalCurr, totalPrev, diff, perc, status }) => (
+                                <div key={id} className="p-4">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <div className="font-black text-slate-100 leading-snug break-words">
+                                          {nome}
                                         </div>
-                                        {status && (
-                                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                            status === 'NOVO' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
-                                          }`}>
-                                            {status}
-                                          </span>
-                                        )}
+                                        {statusPill(status)}
                                       </div>
-                                    </td>
-                                    <td className="py-4 px-2 text-right font-mono text-sm text-slate-400">
-                                      {totalPrev > 0 ? formatCurrency(totalPrev) : '-'}
-                                    </td>
-                                    <td className="py-4 px-2 text-right font-mono text-sm text-slate-200">
-                                      {totalCurr > 0 ? formatCurrency(totalCurr) : '-'}
-                                    </td>
-                                    <td className="py-4 px-6">
-                                      <div className="relative">
-                                        <textarea
-                                          value={noteDrafts[id] ?? ''}
-                                          onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
-                                          onBlur={() => handleSaveNote(id)}
-                                          placeholder="Ex.: férias (sem VT), bônus pontual, pico de matrículas..."
-                                          className="w-full min-w-[280px] h-[52px] resize-none bg-slate-900/40 border border-slate-700/50 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
-                                          disabled={noteSaving[id]}
-                                          spellCheck="false"
-                                        />
-                                        {noteSaving[id] && (
-                                          <div className="absolute right-3 top-3 text-[10px] text-violet-400 font-bold flex items-center gap-1">
-                                            <Loader2 size={10} className="animate-spin" />
-                                            SALVANDO...
-                                          </div>
-                                        )}
-                                        {noteSaved[id] && (
-                                          <div className="absolute right-3 top-3 text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                                            <CheckCircle size={10} />
-                                            SALVO
-                                          </div>
-                                        )}
+                                      <div className="mt-0.5 text-[11px] text-slate-500 font-bold truncate">
+                                        {funcao || '—'}
                                       </div>
-                                    </td>
-                                    <td className={`py-4 px-6 text-right font-bold ${
-                                      status === 'SAIU' ? 'text-rose-400' :
-                                      status === 'NOVO' ? 'text-emerald-400' :
-                                      perc > 15 ? 'text-rose-400' : 
-                                      perc < -15 ? 'text-emerald-400' : 
-                                      perc > 0 ? 'text-amber-400' : 'text-slate-400'
-                                    }`}>
-                                      <div className="flex items-center justify-end gap-1">
+                                    </div>
+
+                                    <div className={cn("text-right shrink-0", colorFor(status, perc))}>
+                                      <div className="inline-flex items-center justify-end gap-1 font-black text-sm">
                                         {!status && (perc > 0 ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
                                         {status ? (status === 'NOVO' ? '+100%' : '-100%') : `${perc.toFixed(1)}%`}
                                       </div>
-                                      <div className="text-[10px] opacity-70">{formatCurrency(diff)}</div>
-                                    </td>
+                                      <div className="text-[10px] font-mono opacity-80">
+                                        {formatCurrency(diff)}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Metrics grid */}
+                                  <div className="mt-3 grid grid-cols-2 gap-3">
+                                    <div className="rounded-2xl border border-slate-800/60 bg-slate-900/30 px-3 py-2">
+                                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                        Mês anterior
+                                      </div>
+                                      <div className="mt-0.5 font-mono text-sm text-slate-300">
+                                        {totalPrev > 0 ? formatCurrency(totalPrev) : '—'}
+                                      </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-slate-800/60 bg-slate-900/30 px-3 py-2">
+                                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                        Mês atual
+                                      </div>
+                                      <div className="mt-0.5 font-mono text-sm text-slate-100">
+                                        {totalCurr > 0 ? formatCurrency(totalCurr) : '—'}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Note (Ana) */}
+                                  <div className="mt-3">
+                                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                                      Motivo (Ana)
+                                    </div>
+                                    <div className="relative">
+                                      <textarea
+                                        value={noteDrafts[id] ?? ''}
+                                        onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
+                                        onBlur={() => handleSaveNote(id)}
+                                        placeholder="Ex.: férias (sem VT), bônus pontual, pico de matrículas..."
+                                        className="w-full h-[70px] resize-none bg-slate-900/40 border border-slate-700/50 rounded-2xl px-3 py-2 text-[11px] text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                                        disabled={noteSaving[id]}
+                                        spellCheck="false"
+                                      />
+                                      {noteSaving[id] && (
+                                        <div className="absolute right-3 top-3 text-[10px] text-violet-400 font-bold flex items-center gap-1">
+                                          <Loader2 size={10} className="animate-spin" />
+                                          Salvando...
+                                        </div>
+                                      )}
+                                      {noteSaved[id] && (
+                                        <div className="absolute right-3 top-3 text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                                          <CheckCircle size={10} />
+                                          Salvo
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* DESKTOP: keep table */}
+                            <div className="hidden lg:block overflow-x-auto">
+                              <table className="w-full text-left">
+                                <thead>
+                                  <tr className="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-wider">
+                                    <th className="py-4 px-6">Colaborador</th>
+                                    <th className="py-4 px-2 text-right">Mês Anterior</th>
+                                    <th className="py-4 px-2 text-right">Mês Atual</th>
+                                    <th className="py-4 px-6">Motivo (Ana)</th>
+                                    <th className="py-4 px-6 text-right">Variação</th>
                                   </tr>
-                                ));
-                            })()}
-                          </tbody>
-                        </table>
-                      </div>
+                                </thead>
+                                <tbody>
+                                  {items.map(({ id, nome, funcao, totalCurr, totalPrev, diff, perc, status }) => (
+                                    <tr key={id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
+                                      <td className="py-4 px-6">
+                                        <div className="flex items-center gap-3">
+                                          <div>
+                                            <div className="font-medium text-slate-200">{nome}</div>
+                                            <div className="text-xs text-slate-500">{funcao}</div>
+                                          </div>
+                                          {status && (
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                              status === 'NOVO' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+                                            }`}>
+                                              {status}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-4 px-2 text-right font-mono text-sm text-slate-400">
+                                        {totalPrev > 0 ? formatCurrency(totalPrev) : '-'}
+                                      </td>
+                                      <td className="py-4 px-2 text-right font-mono text-sm text-slate-200">
+                                        {totalCurr > 0 ? formatCurrency(totalCurr) : '-'}
+                                      </td>
+                                      <td className="py-4 px-6">
+                                        <div className="relative">
+                                          <textarea
+                                            value={noteDrafts[id] ?? ''}
+                                            onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
+                                            onBlur={() => handleSaveNote(id)}
+                                            placeholder="Ex.: férias (sem VT), bônus pontual, pico de matrículas..."
+                                            className="w-full min-w-[280px] h-[52px] resize-none bg-slate-900/40 border border-slate-700/50 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                                            disabled={noteSaving[id]}
+                                            spellCheck="false"
+                                          />
+                                          {noteSaving[id] && (
+                                            <div className="absolute right-3 top-3 text-[10px] text-violet-400 font-bold flex items-center gap-1">
+                                              <Loader2 size={10} className="animate-spin" />
+                                              SALVANDO...
+                                            </div>
+                                          )}
+                                          {noteSaved[id] && (
+                                            <div className="absolute right-3 top-3 text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                                              <CheckCircle size={10} />
+                                              SALVO
+                                            </div>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className={`py-4 px-6 text-right font-bold ${colorFor(status, perc)}`}>
+                                        <div className="flex items-center justify-end gap-1">
+                                          {!status && (perc > 0 ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                                          {status ? (status === 'NOVO' ? '+100%' : '-100%') : `${perc.toFixed(1)}%`}
+                                        </div>
+                                        <div className="text-[10px] opacity-70">{formatCurrency(diff)}</div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </Card>
                   </div>
                 )}
+
+                {/* Mobile: detalhe do colaborador (modal) */}
+                <Modal
+                  isOpen={!!mobileCollabDetail}
+                  onClose={() => setMobileCollabDetail(null)}
+                  title={mobileCollabDetail?.nome || 'Colaborador'}
+                  subtitle={mobileCollabDetail?.funcao || 'Detalhes e ações rápidas'}
+                  className="max-w-2xl"
+                  footer={
+                    mobileCollabDetail ? (
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setMobileCollabDetail(null)}
+                          className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-black transition-all active:scale-95"
+                        >
+                          Fechar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCollab({ ...(mobileCollabDetail as any), salario_base: getEffectiveBaseSalary(mobileCollabDetail) } as any);
+                            setIsCollabModalOpen(true);
+                            setMobileCollabDetail(null);
+                          }}
+                          className="flex-1 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 active:scale-95"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleToggleInactiveCollab(mobileCollabDetail);
+                            setMobileCollabDetail(null);
+                          }}
+                          className="flex-1 px-6 py-3.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all shadow-lg shadow-amber-600/20 active:scale-95"
+                        >
+                          {mobileCollabDetail.status === 'active' ? 'Inativar' : 'Reativar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleDeleteCollab(mobileCollabDetail);
+                            setMobileCollabDetail(null);
+                          }}
+                          className="flex-1 px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black transition-all shadow-lg shadow-rose-600/20 active:scale-95"
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    ) : null
+                  }
+                >
+                  {mobileCollabDetail ? (
+                    <div className="space-y-4">
+                      <CollaboratorCard
+                        collaborator={mobileCollabDetail as any}
+                        onEdit={(collab) => { setEditingCollab({ ...collab, salario_base: getEffectiveBaseSalary(collab) }); setIsCollabModalOpen(true); setMobileCollabDetail(null); }}
+                        onToggleInactive={handleToggleInactiveCollab}
+                        onDelete={handleDeleteCollab}
+                        isMobile
+                      />
+                    </div>
+                  ) : null}
+                </Modal>
               </div>
             )}
 
@@ -3170,7 +4379,46 @@ function App() {
         </div>
       </main>
       
+      {/* Mobile Bottom Navbar (4 módulos) */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[10500] border-t border-slate-800/70 bg-[#0f172a]"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)' }}
+        aria-label="Navegação inferior"
+      >
+        <div className="px-4 pt-2">
+          <div className="grid grid-cols-4 gap-2">
+            {([
+              { id: 'folha', label: 'Folha', icon: Users },
+              { id: 'contas', label: 'Contas', icon: CreditCard },
+              { id: 'agenda', label: 'Agenda', icon: Calendar },
+              { id: 'notificacoes', label: 'Notif.', icon: Bell },
+            ] as const).map((item) => {
+              const active = currentModule === item.id;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleNavigate(item.id)}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-1.5 py-3 transition-all',
+                    active
+                      ? 'text-violet-400'
+                      : 'text-slate-500 hover:text-slate-300'
+                  )}
+                  aria-label={item.label}
+                >
+                  <Icon className={cn("w-6 h-6 transition-all", active && "scale-110 drop-shadow-[0_0_8px_rgba(167,139,250,0.4)]")} />
+                  <span className={cn("text-[11px] font-medium transition-colors", active ? "text-violet-400" : "text-slate-500")}>
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
             </div>
+        </div>
+      </nav>
+    </div>
     </div>
   );
 }

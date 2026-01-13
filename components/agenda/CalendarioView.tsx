@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { addDays, format, isSameMonth, startOfMonth, startOfWeek } from 'date-fns';
+import { addDays, format, isSameMonth, startOfMonth, startOfWeek, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import type { Tarefa } from '../../types/agenda';
 import { PRIORIDADES } from '../../types/agenda';
-import { prioridadeIcon } from './agendaIcons';
+import { prioridadeIcon, categoriaIcon } from './agendaIcons';
 
 const toISODate = (d: Date) => d.toISOString().split('T')[0];
 
@@ -25,7 +25,8 @@ export const CalendarioView: React.FC<{
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
 
   const monthStart = useMemo(() => startOfMonth(cursor), [cursor]);
-  const gridStart = useMemo(() => startOfWeek(monthStart, { weekStartsOn: 0 }), [monthStart]);
+  // Semana começa na segunda (padrão Google Calendar)
+  const gridStart = useMemo(() => startOfWeek(monthStart, { weekStartsOn: 1 }), [monthStart]);
   const days = useMemo(() => Array.from({ length: 42 }, (_, i) => addDays(gridStart, i)), [gridStart]);
 
   const statsByDay = useMemo(() => {
@@ -52,7 +53,8 @@ export const CalendarioView: React.FC<{
     return m;
   }, [statsByDay]);
 
-  const weekDays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+  // Abreviações premium (sem pontuação) e começando na segunda
+  const weekDays = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
 
   const dayTooltip = (iso: string) => {
     const row = statsByDay.get(iso);
@@ -106,47 +108,58 @@ export const CalendarioView: React.FC<{
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between p-1 bg-slate-950/85 rounded-[2rem] border border-slate-800/60">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex items-center justify-between p-2 bg-slate-900/40 backdrop-blur-xl rounded-3xl border border-slate-800/60 shadow-xl">
         <button
           type="button"
           onClick={() => setCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-          className="w-10 h-10 rounded-full border border-slate-800 bg-slate-900/40 hover:bg-slate-900/60 text-slate-300 flex items-center justify-center transition-all"
+          className="w-11 h-11 rounded-2xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900/60 text-slate-300 flex items-center justify-center transition-all active:scale-90"
           aria-label="Mês anterior"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <div className="text-white font-black uppercase tracking-widest text-sm">
+        <div className="text-white font-black uppercase tracking-[0.2em] text-xs md:text-sm">
           {format(monthStart, "MMMM 'de' yyyy", { locale: ptBR })}
         </div>
         <button
           type="button"
           onClick={() => setCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-          className="w-10 h-10 rounded-full border border-slate-800 bg-slate-900/40 hover:bg-slate-900/60 text-slate-300 flex items-center justify-center transition-all"
+          className="w-11 h-11 rounded-2xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900/60 text-slate-300 flex items-center justify-center transition-all active:scale-90"
           aria-label="Próximo mês"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="rounded-2xl border border-slate-800/70 bg-slate-950/95 p-4">
-        <div className="grid grid-cols-7 gap-2 mb-2">
+      <div className="rounded-2xl border border-slate-800/70 bg-slate-950/95 p-2 md:p-4">
+        <div className="grid grid-cols-7 gap-[4.8px] mb-1">
           {weekDays.map((w) => (
-            <div key={w} className="text-[10px] font-black uppercase tracking-widest text-slate-600 px-2">
+            <div key={w} className="text-[10px] font-black uppercase tracking-widest text-slate-600 px-1 text-center">
               {w}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-[4.8px]">
           {days.map((d) => {
             const iso = toISODate(d);
             const inMonth = isSameMonth(d, monthStart);
             const row = statsByDay.get(iso);
             const isSelected = selectedDateISO === iso;
+            const today = isToday(d);
+            const items = row?.items || [];
+            const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768;
 
             // Heatmap violeta (volume do dia). As bolinhas indicam prioridade.
             const intensity = row && maxTotal > 0 ? Math.min(1, row.total / maxTotal) : 0;
             const bg = row && row.total > 0 ? `rgba(139,92,246,${0.08 + intensity * 0.22})` : 'transparent';
+
+            // Estilo de bloco sólido (Google Calendar style)
+            const getPrioColors = (p: Tarefa['prioridade']) => {
+              if (p === 'urgente') return 'bg-rose-600 text-white';
+              if (p === 'alta') return 'bg-amber-500 text-slate-950';
+              if (p === 'media') return 'bg-blue-600 text-white';
+              return 'bg-slate-600 text-white';
+            };
 
             const btn = (
               <button
@@ -157,32 +170,56 @@ export const CalendarioView: React.FC<{
                   onSelectDate(iso);
                 }}
                 className={cn(
-                  'w-full relative rounded-2xl border transition-all text-left p-3 h-[92px] overflow-hidden',
-                  inMonth ? 'border-slate-800 bg-slate-900/10 hover:bg-slate-900/25' : 'border-slate-900/10 bg-slate-950/10 opacity-40 cursor-default',
-                  isSelected ? 'ring-2 ring-violet-500/60 border-violet-500/40 bg-violet-500/10' : ''
+                  // Visual refinado: bordas arredondadas moderadas e espaçamento harmônico
+                  'w-full relative transition-all text-left px-1.5 py-1.5 h-[100px] md:h-[120px] overflow-hidden rounded-[5px] border',
+                  inMonth 
+                    ? 'border-slate-800 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700' 
+                    : 'border-slate-900/20 bg-slate-950/20 opacity-40 cursor-default',
+                  isSelected ? 'z-10 ring-2 ring-violet-500 border-violet-500 bg-violet-500/10' : '',
+                  today && inMonth ? 'z-10 border-violet-500/50 bg-violet-500/5' : ''
                 )}
                 style={{ backgroundColor: bg }}
               >
-                <div className="flex items-center justify-between">
-                  <div className={cn('text-xs font-black', inMonth ? 'text-slate-200' : 'text-slate-600')}>
-                    {format(d, 'd')}
-                  </div>
-                  {row && row.total > 0 ? (
-                    <div className="flex items-center gap-1">
-                      {row.urgente > 0 ? <div className="w-2 h-2 rounded-full bg-rose-500" /> : null}
-                      {row.alta > 0 ? <div className="w-2 h-2 rounded-full bg-amber-400" /> : null}
-                      {row.media > 0 ? <div className="w-2 h-2 rounded-full bg-blue-400" /> : null}
-                      {row.baixa > 0 ? <div className="w-2 h-2 rounded-full bg-slate-400" /> : null}
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center justify-between mb-1 px-1">
+                    <div
+                      className={cn(
+                        'text-[11px] md:text-xs font-black',
+                        today && inMonth ? 'text-violet-400' : inMonth ? 'text-slate-200' : 'text-slate-600'
+                      )}
+                    >
+                      {format(d, 'd')}
                     </div>
-                  ) : (
-                    <div />
-                  )}
-                </div>
-                {row && row.total > 0 ? (
-                  <div className="mt-2 text-[10px] text-slate-400 font-black">
-                    {row.total} tarefa{row.total === 1 ? '' : 's'}
                   </div>
-                ) : null}
+
+                  {/* Blocos de texto (estilo Google Calendar) */}
+                  {inMonth && items.length > 0 ? (
+                    <div className="space-y-0.5">
+                      {items.slice(0, isMobileView ? 2 : 4).map((t) => (
+                        <Tooltip key={t.id} content={t.titulo} side="top">
+                          <div 
+                            className={cn(
+                              'px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold leading-tight shadow-sm !rounded-[5px] flex items-center gap-2',
+                              getPrioColors(t.prioridade)
+                            )}
+                            aria-label={t.titulo}
+                          >
+                            {(() => {
+                              const Icon = categoriaIcon(t.categoria);
+                              return <Icon className="w-3.5 h-3.5 opacity-95 shrink-0" />;
+                            })()}
+                            <span className="sr-only">{t.titulo}</span>
+                          </div>
+                        </Tooltip>
+                      ))}
+                      {items.length > (isMobileView ? 2 : 4) ? (
+                        <div className="text-[9px] font-black text-slate-500 px-1 pt-0.5">
+                          + {items.length - (isMobileView ? 2 : 4)}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </button>
             );
 

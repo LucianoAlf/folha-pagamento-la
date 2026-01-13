@@ -120,8 +120,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logo Area */}
       <div className="p-5 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 flex items-center justify-center shrink-0">
-            <img src="/logo-LA-colapsed.png" alt="LA" className="w-10 h-10 object-contain drop-shadow-2xl" />
+          <div className="w-11 h-11 flex items-center justify-center shrink-0 rounded-2xl bg-transparent">
+            <img src="/logo-LA-colapsed.png" alt="LA" className="w-10 h-10 object-contain" />
           </div>
           {!collapsed && (
             <div className="min-w-0">

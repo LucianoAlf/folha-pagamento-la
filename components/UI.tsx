@@ -76,7 +76,7 @@ export const DatePicker: React.FC<{
         <Popover.Content
           sideOffset={10}
           align="start"
-          className="z-[9999] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
+          className="z-[12500] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
         >
           <div className="rdp-modern">
             <DayPicker
@@ -318,12 +318,33 @@ export const Modal: React.FC<{
   footer?: React.ReactNode;
   className?: string;
   headerClassName?: string;
-}> = ({ isOpen, onClose, title, subtitle, children, footer, className = '', headerClassName = '' }) => {
+  position?: 'center' | 'bottom' | 'left';
+  overlayClassName?: string;
+}> = ({ isOpen, onClose, title, subtitle, children, footer, className = '', headerClassName = '', position = 'center', overlayClassName = '' }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-hidden">
-      <Card className={`w-full max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 ${className}`}>
+    <div
+      className={cn(
+        "fixed inset-0 z-[12000] flex overflow-hidden bg-black/60",
+        position === 'bottom' ? "items-end justify-center p-0 sm:p-4" : 
+        position === 'left' ? "items-stretch justify-start p-0" :
+        "items-center justify-center p-4",
+        overlayClassName
+      )}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <Card
+        className={cn(
+          "w-full flex flex-col p-0 overflow-hidden shadow-2xl animate-in duration-200",
+          position === 'bottom' ? "max-w-none rounded-t-3xl rounded-b-none max-h-[85vh] slide-in-from-bottom" : 
+          position === 'left' ? "w-[280px] max-w-[85vw] h-full rounded-none slide-in-from-left" :
+          "max-w-2xl max-h-[90vh] zoom-in fade-in",
+          className
+        )}
+      >
         <div className={cn(
           "sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b shrink-0 transition-colors",
           headerClassName || "bg-slate-900/80 backdrop-blur-md border-slate-700/50"
@@ -344,7 +365,10 @@ export const Modal: React.FC<{
             <X size={20} />
           </button>
         </div>
-        <div className="p-6 md:p-8 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+        <div className={cn(
+          "overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent",
+          position === 'bottom' ? "p-5" : "p-6 md:p-8"
+        )}>
           {children}
         </div>
         {footer && (
@@ -370,7 +394,7 @@ export const ConfirmDialog: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="p-8 text-center">
           <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'}`}>
@@ -413,7 +437,7 @@ export const AlertDialog: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="p-8 text-center">
           <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'}`}>

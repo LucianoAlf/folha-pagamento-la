@@ -19,9 +19,13 @@ export const AgendaSidebarListas: React.FC<{
   onCreateLista: () => void;
   onEditLista: (lista: TarefaLista) => void;
   onDeleteLista: (lista: TarefaLista) => void;
-}> = ({ listasInteligentes, listas, activeKey, counts, onSelect, onOpenConfig, onCreateLista, onEditLista, onDeleteLista }) => {
+  isMobile?: boolean;
+}> = ({ listasInteligentes, listas, activeKey, counts, onSelect, onOpenConfig, onCreateLista, onEditLista, onDeleteLista, isMobile }) => {
   return (
-    <aside className="w-[270px] shrink-0 border-r border-slate-800/70 flex flex-col h-full transition-all duration-300 bg-slate-950/95">
+    <aside className={cn(
+      "shrink-0 flex flex-col h-full transition-all duration-300 bg-slate-950/95",
+      isMobile ? "w-full" : "w-[270px] border-r border-slate-800/70"
+    )}>
       {/* Nota UX: removemos o header "Agenda" aqui para não ficar redundante com o módulo Agenda do sidebar principal */}
       <div className="flex-1 p-4 space-y-4 overflow-y-auto">
         <div>

@@ -268,7 +268,7 @@ Deno.serve(async (req: Request) => {
         }
 
         if ((contas as any[]).length) {
-          msg += `💰 *CONTAS HOJE:* ${formatMoneyBRL(totalContas)}\n\n`;
+          msg += `💵 *CONTAS HOJE:* ${formatMoneyBRL(totalContas)}\n\n`;
         }
 
         msg += `_LA Music - Agenda_`;

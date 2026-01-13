@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Search, DollarSign, Edit2, Bell } from 'lucide-react';
+import { Search, DollarSign, Edit2, Bell, CheckCircle2 } from 'lucide-react';
 import { Badge, Card, Tooltip } from '../UI';
+import { cn } from '../CollaboratorComponents';
 import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
-import { CheckCircle2 } from 'lucide-react';
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
 
 // Helper simples para formatar data ISO (YYYY-MM-DD) para BR (DD/MM/YYYY)
@@ -69,26 +69,27 @@ export const ContasTable: React.FC<{
       <div className="p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="text-lg font-black text-white">Contas a Pagar</div>
-          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 rounded-2xl p-1">
+          <div className="flex items-center gap-1 bg-slate-900/40 border border-slate-800 rounded-2xl p-1 w-full lg:w-auto">
             {(
               [
-                { id: 'todas', label: 'Todas' },
-                { id: 'hoje', label: 'Hoje' },
-                { id: 'vencidas', label: 'Vencidas' },
-                { id: 'prox7', label: 'Próx 7 dias' },
-                { id: 'prox30', label: 'Próx 30 dias' },
+                { id: 'todas', label: 'Todas', mobile: 'Todas' },
+                { id: 'hoje', label: 'Hoje', mobile: 'Hoje' },
+                { id: 'vencidas', label: 'Vencidas', mobile: 'Venc.' },
+                { id: 'prox7', label: 'Próx 7 dias', mobile: '7D' },
+                { id: 'prox30', label: 'Próx 30 dias', mobile: '30D' },
               ] as const
             ).map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => onFiltroChange(t.id)}
-                className={[
-                  'px-3 py-1.5 rounded-xl text-xs font-black transition-colors',
-                  filtro === t.id ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-slate-200',
-                ].join(' ')}
+                className={cn(
+                  'flex-1 lg:flex-none px-2 lg:px-3 py-1.5 rounded-xl text-[10px] lg:text-xs font-black transition-colors whitespace-nowrap text-center',
+                  filtro === t.id ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-slate-200'
+                )}
               >
-                {t.label}
+                <span className="lg:hidden">{t.mobile}</span>
+                <span className="hidden lg:inline">{t.label}</span>
               </button>
             ))}
           </div>
@@ -106,7 +107,8 @@ export const ContasTable: React.FC<{
       </div>
 
       <div className="border-t border-slate-800/70">
-        <div className="grid grid-cols-12 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 bg-slate-950/30">
+        {/* Desktop Header */}
+        <div className="hidden lg:grid grid-cols-12 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 bg-slate-950/30">
           <div className="col-span-5">Descrição / Categoria</div>
           <div className="col-span-2">Vencimento</div>
           <div className="col-span-2 text-right">Valor</div>
@@ -115,15 +117,20 @@ export const ContasTable: React.FC<{
         </div>
 
         {filtered.length === 0 ? (
-          <div className="px-6 py-10 text-sm text-slate-400">Nenhuma conta encontrada.</div>
+          <div className="px-6 py-10 text-sm text-slate-400 text-center">Nenhuma conta encontrada.</div>
         ) : (
           <div className="divide-y divide-slate-800/50">
             {filtered.map((c) => {
               const isOpen = expandedId === c.id;
+              const statusVisual = getStatusVisual(c);
+              const isVencida = statusVisual === 'vencida';
+              const isHoje = c.data_vencimento === new Date().toISOString().split('T')[0];
+
               return (
                 <div key={c.id}>
+                  {/* Desktop Row */}
                   <div
-                    className="grid grid-cols-12 px-6 py-5 items-center bg-slate-900/10 hover:bg-slate-900/20 transition-colors cursor-pointer"
+                    className="hidden lg:grid grid-cols-12 px-6 py-5 items-center bg-slate-900/10 hover:bg-slate-900/20 transition-colors cursor-pointer"
                     onClick={() => setExpandedId(isOpen ? null : c.id)}
                     role="button"
                     tabIndex={0}
@@ -179,10 +186,89 @@ export const ContasTable: React.FC<{
                     </div>
                   </div>
 
-                  {isOpen ? (
-                    <div className="px-6 pb-6 bg-slate-950/30 border-t border-slate-800/50">
+                  {/* Mobile Premium Card */}
+                  <div 
+                    className="lg:hidden p-4 bg-slate-900/10 active:bg-slate-900/30 transition-all border-b border-slate-800/50 group"
+                    onClick={() => setExpandedId(isOpen ? null : c.id)}
+                  >
+                    <div className="flex flex-col gap-3">
+                      {/* Top Info: Categoria, Data e Unidade */}
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={cn(
+                              "text-[10px] font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-md",
+                              c.status === 'pago' ? "bg-emerald-500/10 text-emerald-400" :
+                              isVencida ? "bg-rose-500/10 text-rose-400" :
+                              isHoje ? "bg-amber-500/10 text-amber-400" :
+                              "bg-slate-800 text-slate-400"
+                            )}>
+                              {(c.categoria?.nome || 'Sem categoria').toUpperCase()}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500">
+                              {formatDateBR(c.data_vencimento)}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-black text-slate-100 truncate">
+                            {c.descricao}
+                          </h4>
+                          <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-0.5">
+                            {(c.unidade || 'todas').toUpperCase()}
+                          </div>
+                        </div>
+                        {badgeFor(c)}
+                      </div>
+
+                      {/* Bottom Info: Valor e Ações Diretas */}
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        <div className="text-xl font-black text-white leading-none">
+                          {formatCurrency(Number(c.valor) || 0)}
+                        </div>
+
+                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={() => setExpandedId(isOpen ? null : c.id)}
+                            className={cn(
+                              "w-10 h-10 rounded-xl border flex items-center justify-center transition-all active:scale-90",
+                              isOpen ? "bg-violet-500 border-violet-400 text-white" : "bg-slate-900/40 border-slate-800 text-slate-400"
+                            )}
+                            aria-label="Lembretes WhatsApp"
+                          >
+                            <Bell size={16} />
+                          </button>
+
+                          <button
+                            onClick={() => onEditar(c)}
+                            className="w-10 h-10 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 flex items-center justify-center active:scale-90 transition-all"
+                            aria-label="Editar"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          
+                          {c.status !== 'pago' ? (
+                            <button
+                              onClick={() => onPagar(c)}
+                              className="h-10 px-4 rounded-xl bg-violet-600 text-white text-xs font-black shadow-lg shadow-violet-600/20 active:scale-95 transition-all flex items-center gap-2"
+                            >
+                              <DollarSign size={14} />
+                              Pagar
+                            </button>
+                          ) : (
+                            <div className="h-10 px-4 rounded-xl bg-emerald-500/10 text-emerald-400 text-[10px] font-black border border-emerald-500/20 flex items-center gap-2">
+                              <CheckCircle2 size={14} />
+                              Liquidado
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded Content (Details & WhatsApp - Desktop/Mobile shared logic but styled accordingly) */}
+                  {isOpen && (
+                    <div className="px-4 lg:px-6 pb-6 bg-slate-950/30 border-t border-slate-800/50">
                       <div className="pt-5 grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-5">
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/20 p-5">
+                        <div className="rounded-2xl border border-slate-800 bg-slate-900/20 p-5 hidden lg:block">
                           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Conta</div>
                           <div className="text-white font-black mt-1">{c.descricao}</div>
                           <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -204,7 +290,7 @@ export const ContasTable: React.FC<{
                         <ContaLembretesWhatsApp contaId={c.id} dense />
                       </div>
                     </div>
-                  ) : null}
+                  )}
                 </div>
               );
             })}

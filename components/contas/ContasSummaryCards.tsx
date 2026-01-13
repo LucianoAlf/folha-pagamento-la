@@ -10,7 +10,7 @@ export const ContasSummaryCards: React.FC<{
   proximos30: { total: number; count: number };
 }> = ({ vencendoHoje, vencidas, proximos7, proximos30 }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
       <Card className="p-6 border border-amber-500/30 bg-amber-500/5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -20,7 +20,7 @@ export const ContasSummaryCards: React.FC<{
             <div className="text-sm font-bold text-slate-200">Vencendo hoje</div>
           </div>
         </div>
-        <div className="mt-4 text-3xl font-black text-white">{formatCurrency(vencendoHoje.total)}</div>
+        <div className="mt-4 text-xl sm:text-2xl lg:text-3xl font-black text-white truncate">{formatCurrency(vencendoHoje.total)}</div>
         <div className="mt-2 text-xs text-amber-400 font-bold">{vencendoHoje.count} contas para pagar agora</div>
       </Card>
 
@@ -33,7 +33,7 @@ export const ContasSummaryCards: React.FC<{
             <div className="text-sm font-bold text-slate-300">Vencidas</div>
           </div>
         </div>
-        <div className="mt-4 text-3xl font-black text-white">{formatCurrency(vencidas.total)}</div>
+        <div className="mt-4 text-xl sm:text-2xl lg:text-3xl font-black text-white truncate">{formatCurrency(vencidas.total)}</div>
         <div className="mt-2 text-xs text-rose-400 font-bold">{vencidas.count} contas</div>
       </Card>
 
@@ -46,7 +46,7 @@ export const ContasSummaryCards: React.FC<{
             <div className="text-sm font-bold text-slate-300">Próximos 7 dias</div>
           </div>
         </div>
-        <div className="mt-4 text-3xl font-black text-white">{formatCurrency(proximos7.total)}</div>
+        <div className="mt-4 text-xl sm:text-2xl lg:text-3xl font-black text-white truncate">{formatCurrency(proximos7.total)}</div>
         <div className="mt-2 text-xs text-amber-400 font-bold">{proximos7.count} contas</div>
       </Card>
 
@@ -59,7 +59,7 @@ export const ContasSummaryCards: React.FC<{
             <div className="text-sm font-bold text-slate-300">Próximos 30 dias</div>
           </div>
         </div>
-        <div className="mt-4 text-3xl font-black text-white">{formatCurrency(proximos30.total)}</div>
+        <div className="mt-4 text-xl sm:text-2xl lg:text-3xl font-black text-white truncate">{formatCurrency(proximos30.total)}</div>
         <div className="mt-2 text-xs text-slate-400 font-bold">{proximos30.count} contas</div>
       </Card>
     </div>

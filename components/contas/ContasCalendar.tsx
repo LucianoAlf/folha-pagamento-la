@@ -215,7 +215,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                 onSelectDate(iso);
               }}
               className={cn(
-                'relative rounded-2xl border transition-all text-left p-3 h-[92px] overflow-hidden cursor-pointer',
+                'relative rounded-2xl border transition-all text-left p-2 lg:p-3 h-[46px] lg:h-[92px] overflow-hidden cursor-pointer group',
                 inMonth ? 'border-slate-800 bg-slate-900/10 hover:bg-slate-900/20' : 'border-slate-900/10 bg-slate-950/10 opacity-40 cursor-default',
                 isSelected && 'ring-2 ring-violet-500/60 border-violet-500/40 bg-violet-500/10'
               )}
@@ -236,7 +236,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                         className="p-3 rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl"
                         side="top"
                       >
-                        <div className="w-2 h-2 rounded-full bg-rose-500" />
+                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-rose-500" />
                       </Tooltip>
                     ) : null}
                     {hasPendente ? (
@@ -245,7 +245,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                         className="p-3 rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl"
                         side="top"
                       >
-                        <div className="w-2 h-2 rounded-full bg-amber-400" />
+                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-amber-400" />
                       </Tooltip>
                     ) : null}
                     {hasPago ? (
@@ -254,54 +254,55 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                         className="p-3 rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl"
                         side="top"
                       >
-                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-400" />
                       </Tooltip>
                     ) : null}
                   </div>
                 ) : (
                   <div />
                 )}
-                {inMonth && onCreateForDate ? (
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                ) : null}
               </div>
 
               {stats && stats.count > 0 ? (
-                <div className="mt-2 space-y-1">
+                <div className="hidden lg:block mt-1 lg:mt-2 space-y-1">
                   <div className="text-[10px] font-black text-slate-200">
                     {stats.count} conta{stats.count > 1 ? 's' : ''}
                   </div>
-                  <div className="text-[10px] font-black text-slate-100">{formatCurrency(stats.total)}</div>
+                  <div className="text-[10px] font-black text-slate-100 truncate">
+                    {formatCurrency(stats.total)}
+                  </div>
                 </div>
               ) : (
-                <div className="mt-2 text-[10px] text-slate-600 font-bold">—</div>
+                <div className="hidden lg:block mt-1 lg:mt-2 text-[10px] text-slate-600 font-bold">—</div>
               )}
 
               {inMonth && onCreateForDate ? (
-                <Tooltip content="Nova conta para este dia">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCreateForDate(iso);
-                    }}
-                    className="absolute bottom-2 right-2 w-8 h-8 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-300 hover:text-white hover:bg-violet-600/20 hover:border-violet-500/30 transition-all flex items-center justify-center"
-                    aria-label="Nova conta para este dia"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </Tooltip>
+                <div className="hidden lg:block">
+                  <Tooltip content="Nova conta para este dia">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCreateForDate(iso);
+                      }}
+                      className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-6 h-6 lg:w-8 lg:h-8 rounded-lg lg:rounded-xl bg-slate-900/60 border border-slate-800 text-slate-300 hover:text-white hover:bg-violet-600/20 hover:border-violet-500/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+                      aria-label="Nova conta para este dia"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </Tooltip>
+                </div>
               ) : null}
             </div>
           );
         })}
       </div>
 
-      <div className="mt-3 text-[10px] text-slate-500 font-bold">
+      {/* Legenda Desktop */}
+      <div className="hidden lg:block mt-3 text-[10px] text-slate-500 font-bold">
         * Fundo violeta = volume do dia (heatmap). Bolinhas: <span className="text-rose-300">Vencida</span> •{' '}
         <span className="text-amber-300">Pendente</span> • <span className="text-emerald-300">Pago</span>
       </div>
     </div>
   );
 }
-

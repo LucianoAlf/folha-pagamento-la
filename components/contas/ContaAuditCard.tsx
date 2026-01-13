@@ -5,8 +5,6 @@ import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
 import { cn } from '../CollaboratorComponents';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 interface Props {
   conta: ContaPagar;
@@ -17,6 +15,15 @@ interface Props {
 
 export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDelete }) => {
   const statusVisual = getStatusVisual(conta);
+
+  const formatDateShortBR = (iso: string) => {
+    // iso can be YYYY-MM-DD (preferred) or a full ISO string; we only need dd/MM
+    if (!iso) return '';
+    const d = new Date(iso.includes('T') ? iso : `${iso}T00:00:00`);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}`;
+  };
   
   const getRelativeDate = (dateStr: string) => {
     const date = new Date(`${dateStr}T00:00:00`);
@@ -68,7 +75,8 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
                 Parcela {conta.parcela_atual}/{conta.total_parcelas}
               </Badge>
             )}
-            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+            {/* Unidade como mini-chip (mais premium que texto solto) */}
+            <div className="text-[9px] h-4 px-1.5 rounded-md bg-slate-800/40 border border-slate-700/50 text-slate-400 font-black uppercase tracking-widest flex items-center">
               {(conta.unidade || 'todas').toUpperCase()}
             </div>
           </div>
@@ -97,7 +105,8 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
           {conta.status === 'pago' ? (
             <div className="flex items-center gap-1.5">
               <CheckCircle2 size={12} />
-              Liquidado em {new Date(conta.data_pagamento!).toLocaleDateString('pt-BR')}
+              <span className="lg:hidden">Liquidado em {formatDateShortBR(conta.data_pagamento!)}</span>
+              <span className="hidden lg:inline">Liquidado em {new Date(conta.data_pagamento!).toLocaleDateString('pt-BR')}</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
@@ -109,17 +118,17 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
       </div>
 
       {/* Footer: Badges and Action */}
-      <div className="mt-5 pt-4 border-t border-slate-800/50 flex items-center justify-between gap-2">
+      <div className="mt-4 pt-3 border-t border-slate-800/50 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 overflow-hidden">
           <Badge 
             variant={conta.status === 'pago' ? 'success' : (statusVisual === 'vencida' ? 'danger' : (statusVisual === 'urgente' ? 'warning' : 'info'))}
-            className="text-[10px] font-bold px-2 py-0.5 whitespace-nowrap"
+            className="text-[10px] font-black px-2.5 h-6 inline-flex items-center whitespace-nowrap"
           >
             {conta.status === 'pago' ? 'Pago' : (statusVisual === 'vencida' ? 'Pendente' : (statusVisual === 'urgente' ? 'Urgente' : 'Pendente'))}
           </Badge>
           
           {conta.categoria && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800/50 border border-slate-700/50 text-slate-400 text-[10px] font-bold truncate">
+            <div className="h-6 flex items-center gap-1.5 px-2.5 rounded-md bg-slate-800/50 border border-slate-700/50 text-slate-400 text-[10px] font-black truncate">
               <span className="shrink-0">{conta.categoria.icone}</span>
               <span className="truncate">{conta.categoria.nome}</span>
             </div>

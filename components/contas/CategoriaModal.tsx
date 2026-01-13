@@ -40,7 +40,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
     } else {
       setNome('');
       setTipoCusto('fixo');
-      setIcone('💰');
+      setIcone('💵');
     }
   }, [initialData, isOpen]);
 
@@ -71,6 +71,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
       onClose={onClose} 
       title={initialData ? 'EDITAR CATEGORIA' : 'NOVA CATEGORIA'}
       className="max-w-md"
+      position="bottom"
     >
       <div className="space-y-6">
         {/* Nome */}

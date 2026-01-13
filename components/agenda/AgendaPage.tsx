@@ -46,7 +46,7 @@ const COLOR_PRESETS = [
 
 type ListKey = `smart:${string}` | `list:${string}` | 'config';
 type Mode = 'tarefas' | 'config';
-type ViewMode = 'lista' | 'cards' | 'kanban' | 'calendario';
+type ViewMode = 'lista' | 'cards' | 'kanban' | 'mes' | 'semana' | '3dias' | 'dia';
 
 const SMART_MEUDIA = 'smart:meu-dia' as const;
 const SMART_IMPORTANTE = 'smart:importante' as const;
@@ -84,6 +84,45 @@ export const AgendaPage: React.FC = () => {
 
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
+
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 1023px)').matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    // Safari < 14 fallback
+    try {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    } catch {
+      mq.addListener(onChange);
+      return () => mq.removeListener(onChange);
+    }
+  }, []);
+
+  // Forçar modo lista no mobile se estiver em kanban/cards
+  useEffect(() => {
+    if (isMobile && (viewMode === 'kanban' || (viewMode as any) === 'cards')) {
+      setViewMode('lista');
+    }
+  }, [isMobile, viewMode]);
+
+  // trava scroll do body quando o drawer estiver aberto
+  useEffect(() => {
+    if (!isMobile) return;
+    if (typeof document === 'undefined') return;
+    const prev = document.body.style.overflow;
+    if (isMobileSidebarOpen) document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMobile, isMobileSidebarOpen]);
 
   // Aparência (fundo por usuário)
   const [agendaBgPreset, setAgendaBgPreset] = useState<AgendaBackgroundPresetId>('classic-dark');
@@ -461,7 +500,12 @@ export const AgendaPage: React.FC = () => {
 
   const onSelectDate = (iso: string) => {
     setSelectedDateISO(iso);
-    if (viewMode !== 'calendario') setViewMode('calendario');
+    if (viewMode === 'lista' || viewMode === 'kanban') setViewMode('mes');
+  };
+
+  const handleGoToToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    onSelectDate(today);
   };
 
   const selectedDateLabel = useMemo(() => {
@@ -493,7 +537,9 @@ export const AgendaPage: React.FC = () => {
       <div
         className={cn(
           'flex-1 overflow-hidden',
-          selectedTarefa ? 'grid grid-cols-[270px_minmax(0,1fr)_400px]' : 'grid grid-cols-[270px_minmax(0,1fr)]'
+          isMobile 
+            ? 'flex flex-col' 
+            : (selectedTarefa ? 'grid grid-cols-[270px_minmax(0,1fr)_400px]' : 'grid grid-cols-[270px_minmax(0,1fr)]')
         )}
         style={{
           backgroundColor: '#0f1219',
@@ -504,17 +550,85 @@ export const AgendaPage: React.FC = () => {
           backgroundPosition: 'center',
         }}
       >
-        <AgendaSidebarListas
-          listasInteligentes={smartLists.map((l) => ({ ...l, _key: normalizeSmartKey(l.nome) }))}
-          listas={regularLists.map((l) => ({ ...l, _key: (`list:${l.id}` as const) }))}
-          activeKey={listKey}
-          counts={counts}
-          onSelect={onSelectLista}
-          onOpenConfig={() => onSelectLista('config')}
-          onCreateLista={openNovaLista}
-          onEditLista={(l) => openEditarLista(l)}
-          onDeleteLista={(l) => setConfirmDeleteLista(l)}
-        />
+        {!isMobile && (
+          <AgendaSidebarListas
+            listasInteligentes={smartLists.map((l) => ({ ...l, _key: normalizeSmartKey(l.nome) }))}
+            listas={regularLists.map((l) => ({ ...l, _key: (`list:${l.id}` as const) }))}
+            activeKey={listKey}
+            counts={counts}
+            onSelect={onSelectLista}
+            onOpenConfig={() => onSelectLista('config')}
+            onCreateLista={openNovaLista}
+            onEditLista={(l) => openEditarLista(l)}
+            onDeleteLista={(l) => setConfirmDeleteLista(l)}
+          />
+        )}
+
+        {/* Mobile Sidebar (Drawer real: overlay + swipe) */}
+        {isMobile ? (
+          <div
+            className={cn(
+              'fixed inset-0 z-[14000] transition-opacity',
+              isMobileSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            )}
+          >
+            <div
+              className={cn(
+                'absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity',
+                isMobileSidebarOpen ? 'opacity-100' : 'opacity-0'
+              )}
+              onClick={() => setIsMobileSidebarOpen(false)}
+              role="button"
+              aria-label="Fechar menu"
+              tabIndex={-1}
+            />
+
+            <div
+              className={cn(
+                'absolute top-0 left-0 h-full w-[86%] max-w-[320px] bg-slate-950/95 border-r border-slate-800/70 shadow-2xl transition-transform duration-300',
+                isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+              )}
+              onTouchStart={(e) => {
+                // swipe-to-close: detecta arrasto para a esquerda
+                (window as any).__la_drawerStartX = e.touches?.[0]?.clientX ?? 0;
+              }}
+              onTouchEnd={(e) => {
+                const startX = (window as any).__la_drawerStartX ?? 0;
+                const endX = e.changedTouches?.[0]?.clientX ?? startX;
+                const delta = endX - startX;
+                if (delta < -60) setIsMobileSidebarOpen(false);
+              }}
+            >
+              <AgendaSidebarListas
+                listasInteligentes={smartLists.map((l) => ({ ...l, _key: normalizeSmartKey(l.nome) }))}
+                listas={regularLists.map((l) => ({ ...l, _key: (`list:${l.id}` as const) }))}
+                activeKey={listKey}
+                counts={counts}
+                isMobile
+                onSelect={(key) => {
+                  onSelectLista(key);
+                  setIsMobileSidebarOpen(false);
+                }}
+                onOpenConfig={() => {
+                  onSelectLista('config');
+                  setIsMobileSidebarOpen(false);
+                }}
+                onCreateLista={() => {
+                  openNovaLista();
+                  setIsMobileSidebarOpen(false);
+                }}
+                onEditLista={(l) => {
+                  openEditarLista(l);
+                  setIsMobileSidebarOpen(false);
+                }}
+                onDeleteLista={(l) => {
+                  setConfirmDeleteLista(l);
+                  setIsMobileSidebarOpen(false);
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
 
         {/* min-w-0 é essencial para que a área central "encolha" quando o painel de detalhes abrir,
             ao invés de manter o tamanho mínimo do Kanban e acabar ficando por baixo/overlap. */}
@@ -542,12 +656,15 @@ export const AgendaPage: React.FC = () => {
             selectedDateLabel={selectedDateLabel}
             tarefasDoDia={tarefasDoDia}
             onSelectDate={onSelectDate}
+            onGoToToday={handleGoToToday}
             onRefresh={() => {
               loadListas().catch(() => {});
               loadCounts().catch(() => {});
               loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }).catch(() => {});
             }}
             kanbanColumns={kanbanColumns}
+            isMobile={isMobile}
+            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           />
         </div>
 

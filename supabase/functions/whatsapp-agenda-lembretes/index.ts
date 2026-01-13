@@ -45,7 +45,7 @@ const prioridadeEmoji: Record<string, string> = {
 };
 
 const categoriaEmoji: Record<string, string> = {
-  financeiro: "💰",
+  financeiro: "💵",
   rh: "👩‍💼",
   administrativo: "📋",
   pessoal: "🏠",

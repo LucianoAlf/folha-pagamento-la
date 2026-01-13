@@ -28,21 +28,21 @@ export const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, subv
   };
 
   return (
-    <Card className="p-5 hover:border-slate-600/50 transition-all duration-300">
-      <div className="flex items-start justify-between mb-3">
-        <div className={`p-2.5 rounded-xl bg-gradient-to-br ${colorMap[variant]} text-white shadow-lg shadow-black/20`}>
-          <Icon size={20} />
+    <Card className="p-4 md:p-5 hover:border-slate-600/50 transition-all duration-300">
+      <div className="flex items-start justify-between mb-2 md:mb-3">
+        <div className={`p-2 md:p-2.5 rounded-xl bg-gradient-to-br ${colorMap[variant]} text-white shadow-lg shadow-black/20`}>
+          <Icon size={18} className="md:w-5 md:h-5" />
         </div>
         {trend && (
-          <div className={`flex items-center gap-1 text-sm font-medium ${trend === 'up' ? 'text-rose-400' : 'text-emerald-400'}`}>
-            {trend === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+          <div className={`flex items-center gap-1 text-[10px] md:text-sm font-medium ${trend === 'up' ? 'text-rose-400' : 'text-emerald-400'}`}>
+            {trend === 'up' ? <TrendingUp size={12} className="md:w-3.5 md:h-3.5" /> : <TrendingDown size={12} className="md:w-3.5 md:h-3.5" />}
             {trendValue}
           </div>
         )}
       </div>
-      <div className="text-2xl font-bold text-white mb-1 truncate">{value}</div>
-      <div className="text-sm text-slate-400 truncate">{label}</div>
-      {subvalue && <div className="text-xs text-slate-500 mt-1 truncate">{subvalue}</div>}
+      <div className="text-base md:text-2xl font-bold text-white mb-0.5 md:mb-1 truncate leading-tight">{value}</div>
+      <div className="text-[10px] md:text-sm text-slate-400 truncate font-medium uppercase tracking-wider md:normal-case md:tracking-normal">{label}</div>
+      {subvalue && <div className="text-[9px] md:text-xs text-slate-500 mt-1 truncate">{subvalue}</div>}
     </Card>
   );
 };
@@ -58,7 +58,7 @@ export const DistributionChart: React.FC<DistributionChartProps> = ({ data, tota
   const total = data.reduce((s, d) => s + d.value, 0);
 
   const chart = (
-    <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
+    <div className="relative w-28 h-28 md:w-44 md:h-44 shrink-0 flex items-center justify-center">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -75,46 +75,41 @@ export const DistributionChart: React.FC<DistributionChartProps> = ({ data, tota
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip 
-            formatter={(value: number) => formatCurrency(value)}
-            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
-            itemStyle={{ color: '#e2e8f0' }}
-          />
         </PieChart>
       </ResponsiveContainer>
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-        <span className="text-white font-black text-xl leading-tight">
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-2">
+        <span className="text-white font-black text-xs md:text-xl leading-tight">
           {totalValue || formatCurrency(total).replace('R$', '').trim()}
         </span>
-        <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-0.5">{totalLabel}</span>
+        <span className="text-slate-500 text-[8px] md:text-[10px] font-black uppercase tracking-widest mt-0.5">{totalLabel}</span>
       </div>
     </div>
   );
 
-  if (!showBars) return <div className="h-full w-full min-h-[160px]">{chart}</div>;
+  if (!showBars) return <div className="h-full w-full">{chart}</div>;
 
   return (
-    <div className="flex flex-col md:flex-row items-center gap-8 w-full h-full">
+    <div className="flex flex-row items-center gap-4 md:gap-8 w-full h-full">
       {chart}
-      <div className="flex-1 w-full space-y-5">
+      <div className="flex-1 w-full space-y-3 md:space-y-5">
         {data.map((item, index) => {
           const percent = total > 0 ? (item.value / total) * 100 : 0;
           return (
             <div key={index}>
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></span>
-                  <span className="text-slate-300 font-bold text-sm">{item.name}</span>
+              <div className="flex justify-between items-center mb-1 md:mb-2">
+                <div className="flex items-center gap-1.5 md:gap-2">
+                  <span className="w-2 h-2 md:w-3 md:h-3 rounded-full" style={{ backgroundColor: item.color }}></span>
+                  <span className="text-slate-300 font-bold text-[10px] md:text-sm truncate max-w-[80px] md:max-w-none">{item.name}</span>
                 </div>
-                <span className="font-black text-white text-sm">{formatCurrency(item.value)}</span>
+                <span className="font-black text-white text-[10px] md:text-sm">{formatCurrency(item.value)}</span>
               </div>
-              <div className="w-full bg-slate-800/50 rounded-full h-2">
+              <div className="w-full bg-slate-800/50 rounded-full h-1.5 md:h-2">
                 <div 
-                  className="h-2 rounded-full transition-all duration-1000" 
+                  className="h-full rounded-full transition-all duration-1000" 
                   style={{ width: `${percent}%`, backgroundColor: item.color }}
                 ></div>
               </div>
-              <div className="text-right text-[10px] text-slate-500 font-black mt-1">{percent.toFixed(1)}%</div>
+              <div className="text-right text-[8px] md:text-[10px] text-slate-500 font-black mt-0.5 md:mt-1">{percent.toFixed(1)}%</div>
             </div>
           );
         })}

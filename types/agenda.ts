@@ -284,7 +284,7 @@ export const PRIORIDADES = {
 } as const;
 
 export const CATEGORIAS = {
-  financeiro: { label: 'Financeiro', cor: '#10b981', bg: 'bg-emerald-500/20', text: 'text-emerald-400', icone: '💰' },
+  financeiro: { label: 'Financeiro', cor: '#10b981', bg: 'bg-emerald-500/20', text: 'text-emerald-400', icone: '$' },
   rh: { label: 'RH', cor: '#8b5cf6', bg: 'bg-purple-500/20', text: 'text-purple-400', icone: '🧑‍🤝‍🧑' },
   administrativo: { label: 'Administrativo', cor: '#6366f1', bg: 'bg-indigo-500/20', text: 'text-indigo-400', icone: '📋' },
   pessoal: { label: 'Pessoal', cor: '#ec4899', bg: 'bg-pink-500/20', text: 'text-pink-400', icone: '🏠' },

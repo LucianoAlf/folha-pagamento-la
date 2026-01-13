@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Info, Plus } from 'lucide-react';
 import { CustomSelect, DatePicker, Modal } from '../UI';
 import { CategoriaDespesa, ContaPagar, UNIDADES_CONTA } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
@@ -23,6 +23,11 @@ export const NovaContaModal: React.FC<{
   defaultCompetenciaYM?: string; // yyyy-mm
   defaultUnidade?: 'cg' | 'rec' | 'bar';
 }> = ({ isOpen, categorias, onClose, onConfirm, defaultVencimento, defaultCompetenciaYM, defaultUnidade }) => {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768;
+  });
+
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState<string>('');
   const [categoriaId, setCategoriaId] = useState<string>('');
@@ -57,6 +62,13 @@ export const NovaContaModal: React.FC<{
     if (defaultCompetenciaYM) setCompetencia(`${defaultCompetenciaYM}-01`);
   }, [isOpen, defaultVencimento, defaultCompetenciaYM, defaultUnidade]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [isOpen]);
+
   const categoriaOptions = useMemo(
     () =>
       categorias.map((c) => ({
@@ -86,15 +98,14 @@ export const NovaContaModal: React.FC<{
       isOpen={isOpen} 
       onClose={onClose} 
       title="NOVA DESPESA"
-      subtitle="Dica: a competência é o mês de referência da despesa. Depois você pode ajustar valor e vencimento em cada lançamento."
-      className="max-w-3xl"
-      headerClassName="bg-violet-600 border-violet-500"
+      position={isMobile ? 'bottom' : 'center'}
+      className={cn(isMobile ? 'max-w-none' : 'max-w-3xl')}
       footer={
-        <div className="flex items-center justify-between gap-4 w-full">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 w-full">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-3.5 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
+            className="sm:w-auto w-full px-6 py-3.5 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
           >
             Cancelar
           </button>
@@ -131,7 +142,7 @@ export const NovaContaModal: React.FC<{
                 setSaving(false);
               }
             }}
-            className="px-10 py-4 rounded-[2rem] bg-violet-600 hover:bg-violet-500 text-white font-black shadow-xl shadow-violet-600/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
+            className="w-full sm:w-auto px-10 py-4 rounded-[2rem] bg-violet-600 hover:bg-violet-500 text-white font-black shadow-xl shadow-violet-600/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2"
           >
             {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
             Confirmar Lançamento
@@ -139,7 +150,19 @@ export const NovaContaModal: React.FC<{
         </div>
       }
     >
-      <div className="space-y-10 pb-4">
+      <div className="space-y-8 md:space-y-10 pb-2">
+        <div className="rounded-3xl bg-violet-500/10 border border-violet-500/20 p-4 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center text-violet-200 shrink-0">
+            <Info size={16} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-200/80">Dica</div>
+            <div className="mt-1 text-xs font-bold text-slate-200 leading-snug">
+              A competência é o mês de referência da despesa. Depois você pode ajustar valor e vencimento em cada lançamento.
+            </div>
+          </div>
+        </div>
+
         {/* A) Dados principais */}
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
@@ -147,7 +170,7 @@ export const NovaContaModal: React.FC<{
             Dados principais
           </div>
 
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:gap-6">
             <div>
               <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">
                 Descrição do lançamento *
@@ -155,18 +178,19 @@ export const NovaContaModal: React.FC<{
               <input
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
                 placeholder="Ex: Aluguel Unidade Matriz"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Valor (R$) *</label>
                 <input
                   value={valor}
                   onChange={(e) => setValor(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                  inputMode="decimal"
+                  className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
                   placeholder="R$ 0,00"
                 />
                 <div className="mt-2 text-[10px] text-slate-500 font-bold px-1">{valor ? `Preview: ${valorLabel}` : ''}</div>
@@ -182,7 +206,7 @@ export const NovaContaModal: React.FC<{
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Unidade *</label>
                 <CustomSelect
