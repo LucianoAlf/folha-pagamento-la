@@ -1676,26 +1676,33 @@ function App() {
         <div className="w-full py-4 px-6 md:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              {/* Branding: Logo + Title + Subtitle */}
+              {/* Dynamic Module Title & Icon */}
               <div className="flex items-center gap-3">
-                <img src="/logo-LA-colapsed.png" alt="Logo" className="w-9 h-9 object-contain" />
+                <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                  {(() => {
+                    const Icon = MODULE_CONFIG[currentModule as keyof typeof MODULE_CONFIG].icon;
+                    return <Icon className="w-5 h-5 text-violet-400" />;
+                  })()}
+                </div>
                 <div>
-                  <h1 className="text-white font-black text-sm md:text-base tracking-tight leading-tight flex items-center gap-1.5">
-                    SUPER FOLHA <span className="text-violet-400">SYSTEM</span>
+                  <h1 className="text-white font-black text-sm md:text-base tracking-tight leading-tight">
+                    {MODULE_CONFIG[currentModule as keyof typeof MODULE_CONFIG].title}
                   </h1>
-                  <p className="text-[11px] text-slate-500 font-medium leading-none mt-1">Sistema Inteligente</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none mt-1">
+                    {MODULE_CONFIG[currentModule as keyof typeof MODULE_CONFIG].subtitle}
+                  </p>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center gap-3 sm:gap-6">
-              {/* Profile Menu Popover */}
-                <div>
+              {/* Profile Menu Popover - Only on Mobile */}
+              <div className="lg:hidden">
                 <Popover.Root open={profilePopoverOpen} onOpenChange={setProfilePopoverOpen}>
                   <Popover.Trigger asChild>
                     <button
                       type="button"
-                      className="w-10 h-10 md:w-11 md:h-11 rounded-2xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-900/60 flex items-center justify-center overflow-hidden transition-all active:scale-95 shadow-inner"
+                      className="w-10 h-10 rounded-2xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-900/60 flex items-center justify-center overflow-hidden transition-all active:scale-95 shadow-inner"
                       aria-label="Menu do perfil"
                     >
                       <img
@@ -2816,10 +2823,6 @@ function App() {
                   {/* Filters */}
                   {!isMobile ? (
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
-                        <Filter size={16} />
-                        <span>Filtrar:</span>
-                    </div>
                     <div className="bg-slate-800 p-1 rounded-lg inline-flex">
                         {[
                             { id: 'todos', label: 'Consolidado' },
