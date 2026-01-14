@@ -241,12 +241,20 @@ export const NotificacoesPage: React.FC = () => {
       <div className="grid grid-cols-1 gap-6">
         {/* WhatsApp */}
         <Card className={cn('p-0 overflow-hidden', cardClass, 'bg-slate-950/95')}>
-          <button
-            type="button"
+          <div
+            role={isMobile ? 'button' : undefined}
+            tabIndex={isMobile ? 0 : -1}
             onClick={() => isMobile && toggleAccordion('whatsapp')}
+            onKeyDown={(e) => {
+              if (!isMobile) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleAccordion('whatsapp');
+              }
+            }}
             className={cn(
               'w-full px-6 py-4 border-b border-slate-800/70 flex items-center justify-between',
-              isMobile && 'active:bg-slate-900/40 transition-colors'
+              isMobile && 'cursor-pointer active:bg-slate-900/40 transition-colors'
             )}
           >
             <div className="flex items-center gap-3">
@@ -260,17 +268,19 @@ export const NotificacoesPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-3">
               {!isMobile && <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Ativo</div>}
-              <ToggleSwitch
-                checked={!!config.whatsapp_ativo}
-                onCheckedChange={(next) => setConfig((prev) => ({ ...prev, whatsapp_ativo: next }))}
-                variant="emerald"
-                ariaLabel="Ativar WhatsApp"
-              />
+              <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                <ToggleSwitch
+                  checked={!!config.whatsapp_ativo}
+                  onCheckedChange={(next) => setConfig((prev) => ({ ...prev, whatsapp_ativo: next }))}
+                  variant="emerald"
+                  ariaLabel="Ativar WhatsApp"
+                />
+              </div>
               {isMobile && (
                 accordionOpen.whatsapp ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />
               )}
             </div>
-          </button>
+          </div>
           {(!isMobile || accordionOpen.whatsapp) && (
             <div className="divide-y divide-slate-800/60">
               <div className="px-6 py-5 space-y-4">

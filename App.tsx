@@ -27,6 +27,7 @@ import { Sidebar } from './components/Sidebar';
 import { ContasPagarPage } from './components/contas/ContasPagarPage';
 import { AgendaPage } from './components/agenda/AgendaPage';
 import { NotificacoesPage } from './components/notificacoes/NotificacoesPage';
+import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
 
 
 const parseBRL = (raw: string) => {
@@ -216,6 +217,7 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [mobileCollabDetail, setMobileCollabDetail] = useState<Colaborador | null>(null);
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
@@ -333,6 +335,29 @@ function App() {
     
     if (mod === 'folha') setUnidadeFiltro('todos');
   };
+
+  // Deep-linking for PWA shortcuts (/?module=agenda|contas|folha|notificacoes)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const moduleParam = (params.get('module') || '').toLowerCase();
+      const pageParam = (params.get('page') || '').toLowerCase();
+
+      if (moduleParam === 'folha' || moduleParam === 'contas' || moduleParam === 'agenda' || moduleParam === 'notificacoes') {
+        handleNavigate(moduleParam, pageParam || undefined);
+
+        // Keep URL clean (remove only module/page)
+        params.delete('module');
+        params.delete('page');
+        const nextSearch = params.toString();
+        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || ''}`;
+        window.history.replaceState({}, '', nextUrl);
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadAiInsights = async (folhaId: number) => {
     setAiInsightsLoading(true);
@@ -4418,6 +4443,9 @@ function App() {
             </div>
         </div>
       </nav>
+
+      {/* PWA Install Prompt (mobile-friendly, sits above bottom navbar) */}
+      <InstallPWAPrompt />
     </div>
     </div>
   );
