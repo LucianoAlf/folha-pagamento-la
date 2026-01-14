@@ -192,24 +192,9 @@ function App() {
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  // Folha > Lançamentos (mobile): filtros em "draft" + sheet
-  const [lancamentosFiltersOpen, setLancamentosFiltersOpen] = useState(false);
-  const [lancamentosActionsOpen, setLancamentosActionsOpen] = useState(false);
-  const [draftUnidadeFiltro, setDraftUnidadeFiltro] = useState(unidadeFiltro);
   const [variacoesOpen, setVariacoesOpen] = useState(true);
   const [insightsIAOpen, setInsightsIAOpen] = useState(true);
-  useEffect(() => {
-    if (!lancamentosFiltersOpen) return;
-    setDraftUnidadeFiltro(unidadeFiltro);
-  }, [lancamentosFiltersOpen, unidadeFiltro]);
-  const lancamentosActiveFiltersCount = useMemo(() => (unidadeFiltro !== 'todos' ? 1 : 0), [unidadeFiltro]);
-  const applyLancamentosFilters = () => {
-    setUnidadeFiltro(draftUnidadeFiltro as any);
-    setLancamentosFiltersOpen(false);
-  };
-  const clearLancamentosFilters = () => {
-    setDraftUnidadeFiltro('todos');
-  };
+  // Folha > Lançamentos (mobile): sem bottom-sheet. Unidades + Ações ficam sempre visíveis.
 
   // Track window resize for mobile adjustments
   useEffect(() => {
@@ -1676,8 +1661,19 @@ function App() {
         <div className="w-full py-4 px-6 md:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              {/* Dynamic Module Title & Icon */}
-              <div className="flex items-center gap-3">
+              {/* MOBILE: Logo + System Name (Hidden on Desktop) */}
+              <div className="flex lg:hidden items-center gap-3">
+                <img src="/logo-LA-colapsed.png" alt="Logo" className="w-9 h-9 object-contain" />
+                <div>
+                  <h1 className="text-white font-black text-sm md:text-base tracking-tight leading-tight flex items-center gap-1.5">
+                    SUPER FOLHA <span className="text-violet-400">SYSTEM</span>
+                  </h1>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none mt-1">Sistema Inteligente</p>
+                </div>
+              </div>
+
+              {/* DESKTOP: Dynamic Module Title & Icon (Hidden on Mobile) */}
+              <div className="hidden lg:flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
                   {(() => {
                     const Icon = MODULE_CONFIG[currentModule as keyof typeof MODULE_CONFIG].icon;
@@ -2846,50 +2842,133 @@ function App() {
                   </div>
                   ) : (
                     <div className="w-full">
+                      {/* Mobile: Command Bar v2 (sem modais) */}
                       <div className="sticky top-0 z-20 -mx-4 px-4 py-3 bg-[#060814]/70 backdrop-blur-xl border-b border-white/5">
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setLancamentosFiltersOpen(true)}
-                            className="flex-1 flex items-center justify-between gap-2 px-4 py-2.5 rounded-2xl bg-slate-900/60 border border-slate-800/70 text-slate-100 font-black"
-                          >
-                            <span className="flex items-center gap-2 min-w-0">
-                              <Filter size={16} className="text-violet-300 shrink-0" />
-                              <span className="truncate">
-                                {unidadeFiltro === 'todos' ? 'Consolidado' : unidadeLabels[unidadeFiltro]}
-                              </span>
-                            </span>
-                            <span className="flex items-center gap-2 shrink-0">
-                              {lancamentosActiveFiltersCount > 0 ? (
-                                <span className="text-[10px] font-black px-2 py-1 rounded-full bg-violet-500/15 text-violet-200 border border-violet-500/20">
-                                  {lancamentosActiveFiltersCount}
-                                </span>
-                              ) : null}
-                              <ChevronDown size={16} className="text-slate-400" />
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setLancamentosActionsOpen(true)}
-                            className="px-4 py-2.5 rounded-2xl bg-slate-900/60 border border-slate-800/70 text-white font-black"
-                          >
-                            Ações
-                          </button>
+                        {/* Unidades (pills) */}
+                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+                            {[
+                              { id: 'todos', label: 'Consolidado' },
+                              { id: 'cg', label: 'CG' },
+                              { id: 'rec', label: 'Recreio' },
+                              { id: 'bar', label: 'Barra' },
+                            ].map((u) => (
+                              <button
+                                key={u.id}
+                                type="button"
+                                onClick={() => setUnidadeFiltro(u.id as any)}
+                                className={cn(
+                                  'px-4 py-2 rounded-xl text-xs font-black transition-all',
+                                  unidadeFiltro === u.id
+                                    ? 'bg-slate-800 text-white shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                                )}
+                                aria-pressed={unidadeFiltro === u.id}
+                                title={u.id === 'todos' ? 'Consolidado (somente leitura)' : `Unidade: ${u.label}`}
+                              >
+                                {u.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
 
-                        {unidadeFiltro !== 'todos' ? (
-                          <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
-                            <button
-                              type="button"
-                              onClick={() => setUnidadeFiltro('todos')}
-                              className="shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/60 border border-slate-800/70 text-xs font-black text-slate-200"
-                            >
-                              <span>Unidade: {unidadeLabels[unidadeFiltro]}</span>
-                              <X size={14} className="text-slate-400" />
-                            </button>
+                        {unidadeFiltro === 'todos' ? (
+                          <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            Somente leitura
                           </div>
                         ) : null}
+
+                        {/* Ações (sempre aparentes) */}
+                        <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                          {(() => {
+                            const canEditMonth = statusFolha === 'rascunho';
+                            const isConsolidado = unidadeFiltro === 'todos';
+
+                            const actionItems = [
+                              {
+                                id: 'novo',
+                                label: 'Novo',
+                                icon: Plus,
+                                kind: 'primary' as const,
+                                disabled: isConsolidado || !canEditMonth,
+                                onClick: openCreateLancamento,
+                                title: isConsolidado
+                                  ? 'Selecione CG/Rec/Bar (Consolidado é somente leitura).'
+                                  : !canEditMonth
+                                    ? 'Este mês não está em rascunho.'
+                                    : 'Criar novo lançamento',
+                              },
+                              {
+                                id: 'duplicar',
+                                label: 'Duplicar',
+                                icon: Copy,
+                                kind: 'neutral' as const,
+                                disabled: !canEditMonth,
+                                onClick: () => setIsDuplicateModalOpen(true),
+                                title: !canEditMonth ? 'Este mês não está em rascunho.' : 'Duplicar mês',
+                              },
+                              {
+                                id: 'proximo',
+                                label: 'Próx',
+                                icon: Plus,
+                                kind: 'neutral' as const,
+                                disabled: !folhaAtual,
+                                onClick: handleCreateNextMonth,
+                                title: !folhaAtual ? 'Nenhum mês selecionado.' : 'Criar próximo mês',
+                              },
+                              {
+                                id: 'submeter',
+                                label: 'Subm',
+                                icon: CheckCircle,
+                                kind: 'primary' as const,
+                                disabled: !canEditMonth,
+                                onClick: () => handleUpdateStatus('pendente'),
+                                title: !canEditMonth ? 'Este mês não está em rascunho.' : 'Submeter para aprovação',
+                              },
+                              {
+                                id: 'excluir',
+                                label: 'Excluir',
+                                icon: XCircle,
+                                kind: 'danger' as const,
+                                disabled: !canEditMonth,
+                                onClick: handleDeleteMonth,
+                                title: !canEditMonth ? 'Este mês não está em rascunho.' : 'Excluir mês (irreversível)',
+                              },
+                            ];
+
+                            return actionItems.map((a) => {
+                              const Icon = a.icon;
+                              const base =
+                                'min-w-[72px] px-3 py-2.5 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.98] flex flex-col items-center justify-center gap-1';
+                              const enabled =
+                                a.kind === 'primary'
+                                  ? 'bg-violet-600 hover:bg-violet-500 border-violet-500/30 text-white shadow-lg shadow-violet-600/20'
+                                  : a.kind === 'danger'
+                                    ? 'bg-slate-900/50 hover:bg-rose-500/10 border-slate-800/70 hover:border-rose-500/30 text-rose-300'
+                                    : 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-800/70 text-slate-200';
+                              const disabled =
+                                'opacity-40 cursor-not-allowed bg-slate-900/30 border-slate-800/50 text-slate-500';
+
+                              return (
+                                <button
+                                  key={a.id}
+                                  type="button"
+                                  disabled={a.disabled}
+                                  onClick={() => {
+                                    if (a.disabled) return;
+                                    a.onClick();
+                                  }}
+                                  className={cn(base, a.disabled ? disabled : enabled)}
+                                  title={a.title}
+                                  aria-label={a.label}
+                                >
+                                  <Icon size={18} className={a.disabled ? 'text-slate-500' : a.kind === 'danger' ? 'text-rose-300' : 'text-white'} />
+                                  <span className="leading-none">{a.label}</span>
+                                </button>
+                              );
+                            });
+                          })()}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2967,240 +3046,6 @@ function App() {
                     </>)}
                   </div>
                 </div>
-                
-                {/* Mobile: Bottom sheets */}
-                <Modal
-                  isOpen={isMobile && lancamentosFiltersOpen}
-                  onClose={() => setLancamentosFiltersOpen(false)}
-                  title="Filtros"
-                  subtitle="Ajuste a unidade exibida nos lançamentos"
-                  position="bottom"
-                  className="max-w-none"
-                  footer={
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={clearLancamentosFilters}
-                        className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-black transition-all active:scale-95"
-                      >
-                        Limpar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={applyLancamentosFilters}
-                        className="flex-1 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 active:scale-95"
-                      >
-                        Aplicar
-                      </button>
-                    </div>
-                  }
-                >
-                  <div className="space-y-4">
-                    <div className="text-xs text-slate-400 font-bold">
-                      Dica: “Consolidado” é leitura (não permite criar/editar lançamentos).
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {[
-                        { id: 'todos', label: 'Consolidado' },
-                        { id: 'cg', label: 'Campo Grande' },
-                        { id: 'rec', label: 'Recreio' },
-                        { id: 'bar', label: 'Barra' },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setDraftUnidadeFiltro(item.id)}
-                          className={cn(
-                            "w-full flex items-center justify-between px-5 py-4 rounded-2xl border text-left transition-all",
-                            draftUnidadeFiltro === item.id
-                              ? "bg-violet-500/10 border-violet-500/30 text-white"
-                              : "bg-slate-900/50 border-slate-800/70 text-slate-200 hover:bg-slate-900/70"
-                          )}
-                        >
-                          <div className="font-black">{item.label}</div>
-                          {draftUnidadeFiltro === item.id ? (
-                            <Badge variant="purple">Selecionado</Badge>
-                          ) : (
-                            <span className="text-xs font-bold text-slate-500">Selecionar</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </Modal>
-
-                <Modal
-                  isOpen={isMobile && lancamentosActionsOpen}
-                  onClose={() => setLancamentosActionsOpen(false)}
-                  title="Ações"
-                  subtitle="Operações rápidas para o mês atual"
-                  position="bottom"
-                  className="max-w-none"
-                >
-                  {(() => {
-                    const canEditMonth = statusFolha === 'rascunho';
-                    const needsUnit = unidadeFiltro !== 'todos';
-
-                    const disabledNovo = !canEditMonth || !needsUnit;
-                    const reasonNovo = !needsUnit
-                      ? 'Selecione uma unidade (não Consolidado).'
-                      : !canEditMonth
-                        ? 'Este mês não está em rascunho.'
-                        : 'Crie um lançamento manual no mês atual.';
-
-                    const disabledDuplicar = !canEditMonth;
-                    const reasonDuplicar = !canEditMonth
-                      ? 'Este mês não está em rascunho.'
-                      : 'Importe lançamentos de outro mês/unidade para ganhar tempo.';
-
-                    const disabledCriarProximo = !folhaAtual;
-                    const reasonCriarProximo = !folhaAtual
-                      ? 'Nenhum mês selecionado.'
-                      : 'Cria a competência seguinte baseada no mês atual.';
-
-                    const showExcluir = canEditMonth;
-                    const reasonExcluir = 'Remove o mês atual e todos os lançamentos (ação irreversível).';
-
-                    const showSubmeter = canEditMonth;
-                    const reasonSubmeter = 'Envia a folha para revisão/aprovação.';
-
-                    const sectionTitleClass = "text-[10px] font-black uppercase tracking-widest text-slate-500";
-                    const itemBase = "w-full px-5 py-4 rounded-2xl border text-left transition-all";
-                    const subtitleBase = "text-[11px] font-bold mt-1 leading-snug";
-
-                    return (
-                      <div className="space-y-6">
-                        {/* Criação */}
-                        <div>
-                          <div className={sectionTitleClass}>Criação</div>
-                          <div className="mt-3 space-y-3">
-                            <button
-                              type="button"
-                              onClick={() => { setLancamentosActionsOpen(false); openCreateLancamento(); }}
-                              disabled={disabledNovo}
-                              className={cn(
-                                itemBase,
-                                disabledNovo
-                                  ? "bg-slate-900/30 border-slate-800/60 text-slate-500 cursor-not-allowed"
-                                  : "bg-slate-900/60 border-slate-800/70 text-white hover:bg-slate-900/80"
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="font-black">Novo Lançamento</div>
-                                  <div className={cn(subtitleBase, disabledNovo ? "text-slate-500" : "text-slate-400")}>
-                                    {reasonNovo}
-                                  </div>
-                                </div>
-                                <Plus size={18} className={cn(disabledNovo ? "text-slate-600" : "text-violet-300")} />
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Operações do mês */}
-                        <div>
-                          <div className={sectionTitleClass}>Operações do mês</div>
-                          <div className="mt-3 space-y-3">
-                            <button
-                              type="button"
-                              onClick={() => { setLancamentosActionsOpen(false); setIsDuplicateModalOpen(true); }}
-                              disabled={disabledDuplicar}
-                              className={cn(
-                                itemBase,
-                                disabledDuplicar
-                                  ? "bg-slate-900/30 border-slate-800/60 text-slate-500 cursor-not-allowed"
-                                  : "bg-slate-900/60 border-slate-800/70 text-white hover:bg-slate-900/80"
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="font-black">Duplicar Mês</div>
-                                  <div className={cn(subtitleBase, disabledDuplicar ? "text-slate-500" : "text-slate-400")}>
-                                    {reasonDuplicar}
-                                  </div>
-                                </div>
-                                <Copy size={18} className={cn(disabledDuplicar ? "text-slate-600" : "text-slate-200")} />
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => { setLancamentosActionsOpen(false); handleCreateNextMonth(); }}
-                              disabled={disabledCriarProximo}
-                              className={cn(
-                                itemBase,
-                                disabledCriarProximo
-                                  ? "bg-slate-900/30 border-slate-800/60 text-slate-500 cursor-not-allowed"
-                                  : "bg-slate-900/60 border-slate-800/70 text-white hover:bg-slate-900/80"
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="font-black">Criar Próximo Mês</div>
-                                  <div className={cn(subtitleBase, disabledCriarProximo ? "text-slate-500" : "text-slate-400")}>
-                                    {reasonCriarProximo}
-                                  </div>
-                                </div>
-                                <Plus size={18} className={cn(disabledCriarProximo ? "text-slate-600" : "text-slate-200")} />
-                              </div>
-                            </button>
-
-                            {showExcluir ? (
-                              <button
-                                type="button"
-                                onClick={() => { setLancamentosActionsOpen(false); handleDeleteMonth(); }}
-                                className={cn(itemBase, "bg-rose-500/10 border-rose-500/20 text-rose-200 hover:bg-rose-500/15")}
-                              >
-                                <div className="flex items-start justify-between gap-4">
-                                  <div className="min-w-0">
-                                    <div className="font-black">Excluir Mês</div>
-                                    <div className={cn(subtitleBase, "text-rose-200/80")}>
-                                      {reasonExcluir}
-                                    </div>
-                                  </div>
-                                  <XCircle size={18} className="text-rose-300" />
-                                </div>
-                              </button>
-                            ) : (
-                              <div className="text-[11px] text-slate-500 font-bold">
-                                Excluir mês: disponível apenas em rascunho.
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Aprovação */}
-                        <div>
-                          <div className={sectionTitleClass}>Aprovação</div>
-                          <div className="mt-3 space-y-3">
-                            {showSubmeter ? (
-                              <button
-                                type="button"
-                                onClick={() => { setLancamentosActionsOpen(false); handleUpdateStatus('pendente'); }}
-                                className={cn(itemBase, "bg-violet-600 border-violet-500/30 text-white hover:bg-violet-500")}
-                              >
-                                <div className="flex items-start justify-between gap-4">
-                                  <div className="min-w-0">
-                                    <div className="font-black">Submeter</div>
-                                    <div className={cn(subtitleBase, "text-white/85")}>
-                                      {reasonSubmeter}
-                                    </div>
-                                  </div>
-                                  <CheckCircle size={18} className="text-white" />
-                                </div>
-                              </button>
-                            ) : (
-                              <div className="text-[11px] text-slate-500 font-bold">
-                                Submeter: disponível apenas em rascunho.
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </Modal>
 
                 {/* KPI Cards for Lancamentos */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
