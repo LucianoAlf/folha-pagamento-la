@@ -59,7 +59,7 @@ export const MobileCollaboratorList: React.FC<{
           const unidadeLabel = c.is_rateado
             ? 'RATEADO'
             : c.unidade_fixa
-              ? `UNIDADE ${String(c.unidade_fixa).toUpperCase()}`
+              ? String(c.unidade_fixa).toUpperCase()
               : null;
 
           return (
