@@ -1,7 +1,7 @@
 {
-  "name": "LA Music - Sistema de Gestão",
-  "short_name": "LA Music",
-  "description": "Sistema de gestão para LA Music - Folha, Contas e Agenda",
+  "name": "Super Folha - Sistema de Gestão",
+  "short_name": "Super Folha",
+  "description": "Super Folha - Folha, Contas e Agenda",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f1219",
