@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, User } from 'lucide-react';
+import { User, Edit2, UserX, Trash2 } from 'lucide-react';
 import { Badge } from '../UI';
 import { cn, DEPARTMENT_COLORS, DEPARTMENT_LABELS, STATUS_COLORS, STATUS_LABELS } from '../CollaboratorComponents';
 import type { Colaborador } from '../../types';
@@ -9,8 +9,10 @@ const PAGE_SIZE = 20;
 
 export const MobileCollaboratorList: React.FC<{
   items: Colaborador[];
-  onOpen: (c: Colaborador) => void;
-}> = ({ items, onOpen }) => {
+  onEdit: (c: Colaborador) => void;
+  onDelete: (c: Colaborador) => void;
+  onToggleInactive: (c: Colaborador) => void;
+}> = ({ items, onEdit, onDelete, onToggleInactive }) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -52,9 +54,7 @@ export const MobileCollaboratorList: React.FC<{
       <div className="divide-y divide-slate-800/60">
         {visibleItems.map((c) => {
           const deptColor = DEPARTMENT_COLORS[c.departamento];
-          const statusVariant = STATUS_COLORS[c.status];
           const deptLabel = DEPARTMENT_LABELS[c.departamento];
-          const statusLabel = STATUS_LABELS[c.status];
 
           const unidadeLabel = c.is_rateado
             ? 'RATEADO'
@@ -62,43 +62,10 @@ export const MobileCollaboratorList: React.FC<{
               ? `UNIDADE ${String(c.unidade_fixa).toUpperCase()}`
               : null;
 
-          const open = (source: 'row' | 'chevron') => {
-            // #region agent log (debug)
-            fetch('http://127.0.0.1:7243/ingest/7dcc2162-a403-4482-b403-ed930a18b5ac', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                sessionId: 'debug-session',
-                runId: 'run1',
-                hypothesisId: 'H1',
-                location: 'MobileCollaboratorList.tsx:open',
-                message: 'open() invoked from UI interaction',
-                data: { collaboratorId: (c as any)?.id, source },
-                timestamp: Date.now(),
-              }),
-            }).catch(() => {});
-            // #endregion agent log (debug)
-
-            onOpen(c);
-          };
-
           return (
             <div
               key={c.id}
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                open('row');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  open('row');
-                }
-              }}
-              className="w-full text-left px-5 py-4 hover:bg-slate-900/35 active:bg-slate-900/50 transition-colors cursor-pointer select-none touch-manipulation"
+              className="w-full text-left px-5 py-4 hover:bg-slate-900/35 transition-colors select-none touch-manipulation"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -117,13 +84,21 @@ export const MobileCollaboratorList: React.FC<{
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="font-black text-slate-100 truncate">{c.nome}</div>
-                        <Badge variant={statusVariant} className="rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-widest">
-                          {statusLabel}
-                        </Badge>
+                      <div className="font-black text-slate-100 text-sm truncate">{c.nome}</div>
+                      <div className="text-xs text-slate-500 font-bold truncate mt-0.5 flex items-center gap-1.5">
+                        {c.status === 'active' ? (
+                          <span className="relative flex h-1.5 w-1.5 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                          </span>
+                        ) : (
+                          <span className={cn(
+                            "h-1.5 w-1.5 rounded-full shrink-0",
+                            c.status === 'inactive' ? "bg-rose-500" : "bg-amber-500"
+                          )} />
+                        )}
+                        {c.funcao || 'Colaborador'}
                       </div>
-                      {c.funcao ? <div className="text-xs text-slate-500 font-bold truncate mt-0.5">{c.funcao}</div> : null}
                     </div>
 
                     <div className="text-right shrink-0">
@@ -149,18 +124,34 @@ export const MobileCollaboratorList: React.FC<{
                       ) : null}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        open('chevron');
-                      }}
-                      className="w-10 h-10 -mr-2 rounded-2xl border border-transparent hover:border-slate-800 hover:bg-slate-900/30 active:bg-slate-900/45 flex items-center justify-center text-slate-500 hover:text-slate-200 transition-all touch-manipulation"
-                      aria-label="Abrir detalhes"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-1 -mr-1">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(c)}
+                        className="w-8 h-8 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-violet-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        aria-label="Editar"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onToggleInactive(c)}
+                        className="w-8 h-8 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-amber-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        aria-label={c.status === 'active' ? 'Inativar' : 'Reativar'}
+                      >
+                        <UserX size={13} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onDelete(c)}
+                        className="w-8 h-8 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-rose-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        aria-label="Excluir"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

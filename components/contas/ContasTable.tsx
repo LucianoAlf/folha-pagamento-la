@@ -144,7 +144,7 @@ export const ContasTable: React.FC<{
                       <div className="text-xs text-slate-500 truncate">{c.descricao}</div>
                     </div>
                     <div className="col-span-2 text-sm font-bold text-slate-300">{formatDateBR(c.data_vencimento)}</div>
-                    <div className="col-span-2 text-right text-white font-black">{formatCurrency(Number(c.valor) || 0)}</div>
+                    <div className="col-span-2 text-right text-white font-bold">{formatCurrency(Number(c.valor) || 0)}</div>
                     <div className="col-span-1 flex justify-center">{badgeFor(c)}</div>
                     <div className="col-span-2 flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                       <Tooltip content="Lembretes WhatsApp (por conta)">
@@ -220,42 +220,42 @@ export const ContasTable: React.FC<{
                       </div>
 
                       {/* Bottom Info: Valor e Ações Diretas */}
-                      <div className="flex items-center justify-between gap-2 mt-1">
-                        <div className="text-xl font-black text-white leading-none">
+                      <div className="flex items-center justify-between gap-1 mt-1">
+                        <div className="text-base font-bold text-white leading-none shrink-0">
                           {formatCurrency(Number(c.valor) || 0)}
                         </div>
 
-                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
                           <button
                             onClick={() => setExpandedId(isOpen ? null : c.id)}
                             className={cn(
-                              "w-10 h-10 rounded-xl border flex items-center justify-center transition-all active:scale-90",
+                              "w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-90",
                               isOpen ? "bg-violet-500 border-violet-400 text-white" : "bg-slate-900/40 border-slate-800 text-slate-400"
                             )}
                             aria-label="Lembretes WhatsApp"
                           >
-                            <Bell size={16} />
+                            <Bell size={14} />
                           </button>
 
                           <button
                             onClick={() => onEditar(c)}
-                            className="w-10 h-10 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 flex items-center justify-center active:scale-90 transition-all"
+                            className="w-9 h-9 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 flex items-center justify-center active:scale-90 transition-all"
                             aria-label="Editar"
                           >
-                            <Edit2 size={16} />
+                            <Edit2 size={14} />
                           </button>
                           
                           {c.status !== 'pago' ? (
                             <button
                               onClick={() => onPagar(c)}
-                              className="h-10 px-4 rounded-xl bg-violet-600 text-white text-xs font-black shadow-lg shadow-violet-600/20 active:scale-95 transition-all flex items-center gap-2"
+                              className="h-9 px-3 rounded-xl bg-violet-600 text-white text-[10px] font-black shadow-lg shadow-violet-600/20 active:scale-95 transition-all flex items-center gap-1.5"
                             >
-                              <DollarSign size={14} />
+                              <DollarSign size={12} />
                               Pagar
                             </button>
                           ) : (
-                            <div className="h-10 px-4 rounded-xl bg-emerald-500/10 text-emerald-400 text-[10px] font-black border border-emerald-500/20 flex items-center gap-2">
-                              <CheckCircle2 size={14} />
+                            <div className="h-9 px-3 rounded-xl bg-emerald-500/10 text-emerald-400 text-[10px] font-black border border-emerald-500/20 flex items-center gap-1.5">
+                              <CheckCircle2 size={12} />
                               Liquidado
                             </div>
                           )}

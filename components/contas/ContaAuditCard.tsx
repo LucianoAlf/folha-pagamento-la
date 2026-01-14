@@ -96,7 +96,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
 
       {/* Value */}
       <div className="mt-auto">
-        <div className="text-2xl font-black text-white tracking-tighter">
+        <div className="text-base font-bold text-white tracking-tighter">
           {formatCurrency(Number(conta.valor) || 0)}
         </div>
         

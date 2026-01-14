@@ -2002,7 +2002,7 @@ export const ContasPagarPage: React.FC<{
                   <TrendingUp size={12} />
                   Total do Período
                 </div>
-                <div className="mt-2 text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalGeral.total)}</div>
+                <div className="mt-2 text-base md:text-2xl font-bold text-white">{formatCurrency(resumoAuditoriaFiltrado.totalGeral.total)}</div>
                 <div className="mt-1 text-[11px] text-slate-500 font-bold">Baseado nos filtros</div>
               </div>
 
@@ -2011,7 +2011,7 @@ export const ContasPagarPage: React.FC<{
                   <CheckCircle2 size={12} className="text-emerald-400" />
                   Total Pago
                 </div>
-                <div className="mt-2 text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPago.total)}</div>
+                <div className="mt-2 text-base md:text-2xl font-bold text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPago.total)}</div>
                 <div className="mt-1 text-[11px] text-emerald-400 font-black">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
               </div>
 
@@ -2020,7 +2020,7 @@ export const ContasPagarPage: React.FC<{
                   <DollarSign size={12} className="text-violet-400" />
                   Pendente no Período
                 </div>
-                <div className="mt-2 text-2xl font-black text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPendente.total)}</div>
+                <div className="mt-2 text-base md:text-2xl font-bold text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPendente.total)}</div>
                 <div className="mt-1 text-[11px] text-violet-400 font-black">{resumoAuditoriaFiltrado.totalPendente.count} em aberto</div>
               </div>
             </div>

@@ -2249,10 +2249,10 @@ function App() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2 sm:gap-3 pt-2">
                   <button
                     onClick={() => setAlertNoteModal((prev) => ({ ...prev, isOpen: false }))}
-                    className="flex-1 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all"
+                    className="flex-1 px-3 sm:px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-base font-bold transition-all leading-tight"
                     disabled={alertNoteSaving}
                   >
                     Fechar
@@ -2260,7 +2260,7 @@ function App() {
                   <Tooltip content="Salva o motivo e mantém o alerta visível">
                     <button
                       onClick={() => saveAlertNote({ markChecked: false })}
-                      className="flex-1 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all shadow-lg shadow-violet-600/20"
+                      className="flex-1 px-3 sm:px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs sm:text-base font-bold transition-all shadow-lg shadow-violet-600/20 leading-tight"
                       disabled={alertNoteSaving}
                     >
                       Salvar
@@ -2269,7 +2269,7 @@ function App() {
                   <Tooltip content="Salva o motivo e marca o alerta como verificado">
                     <button
                       onClick={() => saveAlertNote({ markChecked: true })}
-                      className="flex-1 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all shadow-lg shadow-emerald-600/20"
+                      className="flex-1 px-3 sm:px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-base font-bold transition-all shadow-lg shadow-emerald-600/20 leading-tight"
                       disabled={alertNoteSaving}
                     >
                       Salvar + Verificar
@@ -2698,9 +2698,9 @@ function App() {
                 {isMobile ? (
                   <MobileCollaboratorList
                     items={filteredColaboradoresWithBase}
-                    onOpen={(c) => {
-                      setMobileCollabDetail({ ...(c as any), salario_base: getEffectiveBaseSalary(c) } as any);
-                    }}
+                    onEdit={(collab) => { setEditingCollab({ ...collab, salario_base: getEffectiveBaseSalary(collab) }); setIsCollabModalOpen(true); }}
+                    onToggleInactive={handleToggleInactiveCollab}
+                    onDelete={handleDeleteCollab}
                   />
                 ) : viewMode === 'cards' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
