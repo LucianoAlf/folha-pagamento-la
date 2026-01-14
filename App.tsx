@@ -1747,7 +1747,8 @@ function App() {
         className={cn(
           "flex-1 overflow-auto flex flex-col",
           // Agenda precisa ficar 100% full-bleed (sem “margem/contorno” visual).
-          currentModule === 'agenda' ? "p-0 pb-28 lg:pb-0" : "p-8 pb-28 lg:pb-0"
+          // No desktop, mantemos um respiro no fundo para não “cortar” a última seção.
+          currentModule === 'agenda' ? "p-0 pb-28 lg:pb-10" : "p-8 pb-28 lg:pb-10"
         )}
       >
         {/* Module-specific Header/Toolbar */}
