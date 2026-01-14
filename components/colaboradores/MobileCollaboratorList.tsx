@@ -128,28 +128,28 @@ export const MobileCollaboratorList: React.FC<{
                       <button
                         type="button"
                         onClick={() => onEdit(c)}
-                        className="w-7 h-7 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-violet-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-violet-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
                         aria-label="Editar"
                       >
-                        <Edit2 size={12} />
+                        <Edit2 size={11} />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => onToggleInactive(c)}
-                        className="w-7 h-7 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-amber-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-amber-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
                         aria-label={c.status === 'active' ? 'Inativar' : 'Reativar'}
                       >
-                        <UserX size={12} />
+                        <UserX size={11} />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => onDelete(c)}
-                        className="w-7 h-7 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-rose-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-rose-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
                         aria-label="Excluir"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={11} />
                       </button>
                     </div>
                   </div>
