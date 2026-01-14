@@ -167,7 +167,7 @@ const loginStyles = `
   }
 `;
 
-function App() {
+export default function App() {
   // Auth
   const [authLoading, setAuthLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -4323,5 +4323,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

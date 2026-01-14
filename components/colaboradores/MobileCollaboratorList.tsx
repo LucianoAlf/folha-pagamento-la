@@ -109,14 +109,14 @@ export const MobileCollaboratorList: React.FC<{
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0">
                       <span
-                        className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border"
+                        className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-lg border"
                         style={{ backgroundColor: `${deptColor}18`, color: deptColor, borderColor: `${deptColor}33` }}
                       >
                         {deptLabel}
                       </span>
                       {unidadeLabel ? (
                         <span className={cn(
-                          'text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full border',
+                          'text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
                           'bg-slate-900/30 border-slate-800 text-slate-400'
                         )}>
                           {unidadeLabel}
@@ -128,28 +128,28 @@ export const MobileCollaboratorList: React.FC<{
                       <button
                         type="button"
                         onClick={() => onEdit(c)}
-                        className="w-8 h-8 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-violet-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        className="w-7 h-7 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-violet-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
                         aria-label="Editar"
                       >
-                        <Edit2 size={13} />
+                        <Edit2 size={12} />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => onToggleInactive(c)}
-                        className="w-8 h-8 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-amber-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        className="w-7 h-7 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-amber-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
                         aria-label={c.status === 'active' ? 'Inativar' : 'Reativar'}
                       >
-                        <UserX size={13} />
+                        <UserX size={12} />
                       </button>
 
                       <button
                         type="button"
                         onClick={() => onDelete(c)}
-                        className="w-8 h-8 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-rose-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        className="w-7 h-7 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-rose-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
                         aria-label="Excluir"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   </div>
