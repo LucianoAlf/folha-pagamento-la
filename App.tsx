@@ -2845,28 +2845,28 @@ function App() {
                       {/* Mobile: Command Bar v2 (sem modais) */}
                       <div className="sticky top-0 z-20 -mx-4 px-4 py-3 bg-[#060814]/70 backdrop-blur-xl border-b border-white/5">
                         {/* Unidades (pills) */}
-                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+                        <div className="bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-full">
+                          <div className="grid grid-cols-4 gap-1">
                             {[
-                              { id: 'todos', label: 'Consolidado' },
-                              { id: 'cg', label: 'CG' },
-                              { id: 'rec', label: 'Recreio' },
-                              { id: 'bar', label: 'Barra' },
+                              { id: 'todos', label: 'Consolidado', short: 'Todas' },
+                              { id: 'cg', label: 'Campo Grande', short: 'CG' },
+                              { id: 'rec', label: 'Recreio', short: 'Recreio' },
+                              { id: 'bar', label: 'Barra', short: 'Barra' },
                             ].map((u) => (
                               <button
                                 key={u.id}
                                 type="button"
                                 onClick={() => setUnidadeFiltro(u.id as any)}
                                 className={cn(
-                                  'px-4 py-2 rounded-xl text-xs font-black transition-all',
+                                  'w-full px-2 py-2 rounded-xl text-xs font-black transition-all truncate',
                                   unidadeFiltro === u.id
                                     ? 'bg-slate-800 text-white shadow-sm'
                                     : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
                                 )}
                                 aria-pressed={unidadeFiltro === u.id}
-                                title={u.id === 'todos' ? 'Consolidado (somente leitura)' : `Unidade: ${u.label}`}
+                                title={u.label}
                               >
-                                {u.label}
+                                {u.short}
                               </button>
                             ))}
                           </div>
@@ -2879,8 +2879,7 @@ function App() {
                         ) : null}
 
                         {/* Ações (sempre aparentes) */}
-                        <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
-                          {(() => {
+                        {(() => {
                             const canEditMonth = statusFolha === 'rascunho';
                             const isConsolidado = unidadeFiltro === 'todos';
 
@@ -2921,54 +2920,79 @@ function App() {
                                 label: 'Subm',
                                 icon: CheckCircle,
                                 kind: 'primary' as const,
-                                disabled: !canEditMonth,
+                                disabled: isConsolidado || !canEditMonth,
                                 onClick: () => handleUpdateStatus('pendente'),
-                                title: !canEditMonth ? 'Este mês não está em rascunho.' : 'Submeter para aprovação',
+                                title: isConsolidado
+                                  ? 'Consolidado é somente leitura.'
+                                  : !canEditMonth
+                                    ? 'Este mês não está em rascunho.'
+                                    : 'Submeter para aprovação',
                               },
                               {
                                 id: 'excluir',
                                 label: 'Excluir',
                                 icon: XCircle,
                                 kind: 'danger' as const,
-                                disabled: !canEditMonth,
+                                disabled: isConsolidado || !canEditMonth,
                                 onClick: handleDeleteMonth,
-                                title: !canEditMonth ? 'Este mês não está em rascunho.' : 'Excluir mês (irreversível)',
+                                title: isConsolidado
+                                  ? 'Consolidado é somente leitura.'
+                                  : !canEditMonth
+                                    ? 'Este mês não está em rascunho.'
+                                    : 'Excluir mês (irreversível)',
                               },
                             ];
 
-                            return actionItems.map((a) => {
-                              const Icon = a.icon;
-                              const base =
-                                'min-w-[72px] px-3 py-2.5 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.98] flex flex-col items-center justify-center gap-1';
-                              const enabled =
-                                a.kind === 'primary'
-                                  ? 'bg-violet-600 hover:bg-violet-500 border-violet-500/30 text-white shadow-lg shadow-violet-600/20'
-                                  : a.kind === 'danger'
-                                    ? 'bg-slate-900/50 hover:bg-rose-500/10 border-slate-800/70 hover:border-rose-500/30 text-rose-300'
-                                    : 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-800/70 text-slate-200';
-                              const disabled =
-                                'opacity-40 cursor-not-allowed bg-slate-900/30 border-slate-800/50 text-slate-500';
+                            const btnBase =
+                              'w-full px-3 py-2.5 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.98] flex flex-col items-center justify-center gap-1';
 
+                            const styleEnabled = (kind: 'primary' | 'neutral' | 'danger') =>
+                              kind === 'primary'
+                                ? 'bg-violet-600 hover:bg-violet-500 border-violet-500/30 text-white shadow-lg shadow-violet-600/20'
+                                : kind === 'danger'
+                                  ? 'bg-slate-900/50 hover:bg-rose-500/10 border-slate-800/70 hover:border-rose-500/30 text-rose-300'
+                                  : 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-800/70 text-slate-200';
+
+                            const styleDisabled =
+                              'opacity-40 cursor-not-allowed bg-slate-900/30 border-slate-800/50 text-slate-500';
+
+                            const renderBtn = (a: (typeof actionItems)[number]) => {
+                              const Icon = a.icon;
                               return (
                                 <button
                                   key={a.id}
                                   type="button"
                                   disabled={a.disabled}
-                                  onClick={() => {
-                                    if (a.disabled) return;
-                                    a.onClick();
-                                  }}
-                                  className={cn(base, a.disabled ? disabled : enabled)}
+                                  onClick={() => !a.disabled && a.onClick()}
+                                  className={cn(btnBase, a.disabled ? styleDisabled : styleEnabled(a.kind))}
                                   title={a.title}
                                   aria-label={a.label}
                                 >
-                                  <Icon size={18} className={a.disabled ? 'text-slate-500' : a.kind === 'danger' ? 'text-rose-300' : 'text-white'} />
+                                  <Icon
+                                    size={18}
+                                    className={a.disabled ? 'text-slate-500' : a.kind === 'danger' ? 'text-rose-300' : 'text-white'}
+                                  />
                                   <span className="leading-none">{a.label}</span>
                                 </button>
                               );
-                            });
+                            };
+
+                            const [a1, a2, a3, a4, a5] = actionItems;
+
+                            return (
+                              <div className="mt-3 space-y-2">
+                                <div className="grid grid-cols-4 gap-2">
+                                  {renderBtn(a1)}
+                                  {renderBtn(a2)}
+                                  {renderBtn(a3)}
+                                  {renderBtn(a4)}
+                                </div>
+                                <div className="grid grid-cols-1">
+                                  {renderBtn(a5)}
+                                </div>
+                              </div>
+                            );
                           })()}
-                        </div>
                       </div>
                     </div>
                   )}
