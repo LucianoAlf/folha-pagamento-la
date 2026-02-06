@@ -715,6 +715,30 @@ export const BistroTab: React.FC<{
   const [movDeleteOpen, setMovDeleteOpen] = useState(false);
   const [movToDelete, setMovToDelete] = useState<BistroMovimentacao | null>(null);
 
+  // UX: campos de taxa (%) devem aparecer no formato humano (0,99 / 1,68 / 3,68),
+  // mesmo quando persistimos no banco como fração (0.0099 / 0.0168 / 0.0368).
+  const [focusedPctKey, setFocusedPctKey] = useState<null | 'pix_taxa_pct' | 'debito_taxa_pct' | 'credito_taxa_pct'>(null);
+
+  const formatPctForUI = (raw: any, fallbackFraction: number) => {
+    const n = typeof raw === 'number' ? raw : Number(String(raw ?? '').replace(',', '.'));
+    const frac = Number.isFinite(n) && n > 0 ? n : fallbackFraction;
+    const pct = frac < 0.1 ? frac * 100 : frac; // se vier fração (<0.1), converte pra %; se vier em %, mantém
+    const s = pct
+      .toFixed(2)
+      .replace(/\.00$/, '')
+      .replace(/(\.\d)0$/, '$1')
+      .replace('.', ',');
+    return s;
+  };
+
+  const pctInputValue = (k: 'pix_taxa_pct' | 'debito_taxa_pct' | 'credito_taxa_pct') => {
+    const v = (vendas as any)?.[k];
+    // Enquanto o usuário digita, não “reformata” o valor (evita cursor pulando).
+    if (focusedPctKey === k && typeof v === 'string') return v;
+    const fallback = k === 'pix_taxa_pct' ? 0.0099 : k === 'debito_taxa_pct' ? 0.0168 : 0.0368;
+    return formatPctForUI(v, fallback);
+  };
+
   function openEditMov(m: BistroMovimentacao) {
     setMovEditDraft({
       id: m.id,
@@ -1134,12 +1158,16 @@ export const BistroTab: React.FC<{
               <div key={k}>
                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{label}</div>
                 <input
-                  value={String((vendas as any)?.[k] ?? '')}
+                  value={pctInputValue(k)}
                   onChange={(e) => {
-                    const raw = String(e.target.value || '').replace(',', '.');
-                    setVendas((p) => ({ ...(p || ({} as any)), [k]: raw } as any));
+                    // Mantém o que o usuário digitou (com vírgula ou ponto); normalizamos no autosave.
+                    setVendas((p) => ({ ...(p || ({} as any)), [k]: String(e.target.value || '') } as any));
                   }}
-                  onBlur={() => void autoSaveTaxas()}
+                  onFocus={() => setFocusedPctKey(k)}
+                  onBlur={() => {
+                    setFocusedPctKey(null);
+                    void autoSaveTaxas();
+                  }}
                   placeholder={k === 'pix_taxa_pct' ? '0,99' : k === 'debito_taxa_pct' ? '1,68' : '3,68'}
                   className={inputBase}
                   inputMode="decimal"
