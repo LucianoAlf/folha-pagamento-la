@@ -2078,7 +2078,7 @@ export default function App() {
                           
                           {/* Nota de Detalhamento (Estilo Excel) */}
                           {activeNoteField === key && (
-                            <div className="absolute bottom-full left-0 right-0 z-[100000] mb-2 p-3 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl animate-in slide-in-from-bottom-2 duration-200">
+                            <div className="absolute bottom-full left-0 right-0 z-[1000000] mb-2 p-3 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl animate-in slide-in-from-bottom-2 duration-200">
                               <div className="text-[9px] font-black text-violet-400 uppercase tracking-widest mb-2 flex items-center gap-1">
                                 <Sparkles size={10} /> Detalhar {label}
                               </div>
