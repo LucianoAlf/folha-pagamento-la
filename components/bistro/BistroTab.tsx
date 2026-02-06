@@ -318,6 +318,44 @@ export const BistroTab: React.FC<{
 
   const [luciaApplyLoading, setLuciaApplyLoading] = useState(false);
   const [luciaApplyOk, setLuciaApplyOk] = useState(false);
+  const [luciaCreateLoading, setLuciaCreateLoading] = useState(false);
+
+  async function createLuciaLancamento() {
+    if (!canEdit || !params?.lucia_colaborador_id) return;
+    const colab = colaboradores.find((c) => c.id === params.lucia_colaborador_id) as any;
+    if (!colab) return;
+
+    const unidadeRaw = String(colab.unidade_fixa || 'cg').toLowerCase();
+    const unidade = (['cg', 'rec', 'bar'].includes(unidadeRaw) ? unidadeRaw : 'cg') as 'cg' | 'rec' | 'bar';
+    const depRaw = String(colab.departamento || 'equipe_operacional') as any;
+    const categoria = (['staff_rateado', 'equipe_operacional', 'professores'].includes(depRaw) ? depRaw : 'equipe_operacional') as any;
+
+    setLuciaCreateLoading(true);
+    try {
+      const created = await api.createLancamento({
+        folha_id: folhaAtual.id,
+        colaborador_id: params.lucia_colaborador_id,
+        unidade,
+        categoria,
+        salario: Number((params as any).lucia_salario_base || 0),
+        bonus: 0,
+        comissao: 0,
+        reembolso: 0,
+        passagem: 0,
+        inss: 0,
+        descontos: 0,
+        observacoes: '',
+      } as any);
+      setLuciaLancRemote(created as any);
+      await onRefreshLancamentos();
+    } catch (e: any) {
+      console.warn('[bistro] create lucia lancamento failed', e);
+      // fallback: mantém a UI estável; o usuário ainda pode criar manualmente na folha
+    } finally {
+      setLuciaCreateLoading(false);
+    }
+  }
+
   async function applyLuciaToFolha() {
     if (!canEdit || !luciaLancEffective || !lucia || !params?.lucia_colaborador_id) return;
     setLuciaApplyLoading(true);
@@ -799,7 +837,28 @@ export const BistroTab: React.FC<{
               <div className="mt-3 text-[10px] font-bold text-amber-300">
                 {luciaLancRemoteLoading
                   ? 'Verificando a linha da Lúcia na folha atual…'
-                  : 'Não encontrei a linha da Lúcia na folha atual. Provavelmente este mês ainda não foi duplicado para a Folha. Vá em Folha → Lançamentos e duplique/crie a linha da Lúcia e volte aqui.'}
+                  : `Não encontrei a linha da Lúcia na folha atual (${monthLabelPt(ymFolha)}). Esse mês ainda não tem lançamentos (provavelmente não foi duplicado). Você pode criar só a linha da Lúcia aqui, ou duplicar o mês anterior em Folha → Lançamentos.`}
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void createLuciaLancamento()}
+                    disabled={!canEdit || luciaCreateLoading}
+                    className={cn(
+                      'px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2',
+                      !canEdit ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed' : 'bg-amber-500/20 text-amber-200 border-amber-500/30 hover:bg-amber-500/25'
+                    )}
+                  >
+                    {luciaCreateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Criar linha da Lúcia na Folha
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'folha', page: 'lancamentos' } }))}
+                    className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-800 bg-slate-900/40 text-slate-200 hover:bg-slate-900/60 transition-all"
+                  >
+                    Ir para Lançamentos
+                  </button>
+                </div>
               </div>
             ) : null}
 
