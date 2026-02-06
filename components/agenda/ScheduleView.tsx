@@ -210,6 +210,55 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
         </div>
       </div>
 
+      {/* All-day tasks strip */}
+      {allDayTasks.length > 0 && (
+        <div className="flex border-b border-slate-800/60 bg-slate-900/20">
+          <div className="w-12 md:w-20 shrink-0 border-r border-slate-800/60 flex items-center justify-center text-[9px] font-black text-slate-500 uppercase tracking-widest">
+            DIA
+          </div>
+          <div className="flex-1 flex overflow-x-auto md:overflow-x-hidden scrollbar-hide">
+            {days.map((day) => {
+              const dayAllDay = allDayTasks.filter((t) => isSameDay(parseISO(t.vencimento_em!), day));
+              return (
+                <div key={`allday-${day.toISOString()}`} className="flex-1 min-w-0 border-r border-slate-800/40 last:border-r-0 p-1 md:min-w-[100px]">
+                  {dayAllDay.length === 0 ? (
+                    <div className="h-6" />
+                  ) : (
+                    <div className="space-y-0.5">
+                      {dayAllDay.slice(0, 3).map((t) => {
+                        const isFinanceiro = t.categoria === 'financeiro';
+                        return (
+                          <Tooltip key={t.id} content={t.titulo} side="bottom">
+                            <button
+                              type="button"
+                              onClick={() => onSelectTarefa(t)}
+                              className={cn(
+                                'w-full text-left px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold leading-tight truncate border-l-2',
+                                t.status === 'concluida'
+                                  ? 'bg-emerald-900/30 text-emerald-300 border-emerald-500'
+                                  : isFinanceiro
+                                    ? 'bg-violet-900/30 text-violet-200 border-violet-500'
+                                    : 'bg-slate-800/60 text-slate-200 border-slate-500'
+                              )}
+                            >
+                              {isFinanceiro && <DollarSign size={10} className="inline mr-0.5 -mt-0.5" />}
+                              {t.titulo}
+                            </button>
+                          </Tooltip>
+                        );
+                      })}
+                      {dayAllDay.length > 3 && (
+                        <div className="text-[8px] font-black text-slate-500 px-1">+{dayAllDay.length - 3}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Grid de Horários */}
       <div 
         ref={scrollRef}

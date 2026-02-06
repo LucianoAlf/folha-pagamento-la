@@ -226,18 +226,18 @@ export const AgendaPage: React.FC = () => {
     return rows;
   }, [listKey]);
 
-  const syncIntegrations = useCallback(async () => {
-    // Throttle: evita loop com realtime (tarefas inseridas → scheduleRefresh → sync novamente).
+  const syncIntegrations = useCallback(async (force = false) => {
+    // Throttle: evita loop com realtime (tarefas inseridas -> scheduleRefresh -> sync novamente).
     const now = Date.now();
     if (integrationsSyncing.current) return;
-    if (now - lastIntegrationsSyncAt.current < 60_000) return;
+    if (!force && now - lastIntegrationsSyncAt.current < 120_000) return;
 
     integrationsSyncing.current = true;
     try {
       await syncAgendaIntegrations();
-      lastIntegrationsSyncAt.current = now;
-    } catch {
-      // Não bloqueia a agenda: integração é "best effort"
+      lastIntegrationsSyncAt.current = Date.now();
+    } catch (e: any) {
+      console.error('[AgendaPage] syncIntegrations error:', e?.message || e);
     } finally {
       integrationsSyncing.current = false;
     }
@@ -460,37 +460,41 @@ export const AgendaPage: React.FC = () => {
     setError(null);
     try {
       await loadListas();
-      // Premium: integrações (contas/folha) entram como tarefas automáticas na agenda
-      await syncIntegrations();
-      await loadCounts();
-      await loadAppearance();
-      await loadTimeline();
-      // Kanban config (não bloqueia)
+      // Premium: integracoes (contas/folha) entram como tarefas automaticas na agenda
+      // force=true no primeiro load para garantir que as contas aparecem
+      await syncIntegrations(true);
+      // Carrega tudo em paralelo APOS o sync (para pegar as tarefas recem-criadas)
+      await Promise.all([
+        loadCounts(),
+        loadAppearance(),
+        loadTimeline(),
+        loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }),
+      ]);
+      // Kanban config (nao bloqueia)
       fetchAgendaKanbanConfig()
         .then((row) => {
           const cols = (row?.columns || []) as any[];
           if (Array.isArray(cols) && cols.length) setKanbanColumns(cols as any);
         })
         .catch(() => {});
-      await loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' });
     } catch (err: any) {
       setError(err?.message || 'Falha ao carregar Agenda');
     } finally {
       setLoading(false);
     }
-  }, [loadListas, loadCounts, loadTarefasForKey, listKey, viewMode]);
+  }, [loadListas, loadCounts, loadTarefasForKey, listKey, viewMode, syncIntegrations, loadTimeline, loadAppearance]);
 
   const scheduleRefresh = useCallback(() => {
     if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
     refreshTimer.current = window.setTimeout(() => {
       loadListas().catch(() => {});
-      syncIntegrations().catch(() => {});
+      syncIntegrations(false).catch(() => {});
       loadCounts().catch(() => {});
       loadAppearance().catch(() => {});
       loadTimeline().catch(() => {});
       loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }).catch(() => {});
     }, 300);
-  }, [listKey, loadListas, loadCounts, loadAppearance, loadTarefasForKey, viewMode]);
+  }, [listKey, loadListas, loadCounts, loadAppearance, loadTarefasForKey, loadTimeline, syncIntegrations, viewMode]);
 
   useEffect(() => {
     loadAll();
