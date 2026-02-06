@@ -252,7 +252,7 @@ export const BistroTab: React.FC<{
   const lucia = useMemo(() => {
     if (!params?.lucia_colaborador_id) return null;
     const consumoLucia = consumos.find((c) => c.colaborador_id === params.lucia_colaborador_id)?.valor || 0;
-    const lancLucia = lancamentosFolha.find((l) => l.colaborador_id === params.lucia_colaborador_id) || null;
+    const lancLucia = luciaLancRemote || lancamentosFolha.find((l) => l.colaborador_id === params.lucia_colaborador_id) || null;
     const vt = lancLucia?.passagem || 0;
     return computeLuciaPagamento({
       params,
@@ -262,35 +262,72 @@ export const BistroTab: React.FC<{
       vt: Number(vt) || 0,
       colaboradoresBruto: consumoTotal,
     });
-  }, [params, consumos, lancamentosFolha, vendas, movs]);
+  }, [params, consumos, luciaLancRemote, lancamentosFolha, vendas, movs]);
 
   const luciaLanc = useMemo(() => {
     if (!params?.lucia_colaborador_id) return null;
     return lancamentosFolha.find((l) => l.colaborador_id === params.lucia_colaborador_id) || null;
   }, [lancamentosFolha, params?.lucia_colaborador_id]);
 
+  // Garante consistência: busca a linha da Lúcia diretamente no banco (evita falso "não encontrei" por dados em memória filtrados/defasados).
+  const [luciaLancRemote, setLuciaLancRemote] = useState<Lancamento | null>(null);
+  const [luciaLancRemoteLoading, setLuciaLancRemoteLoading] = useState(false);
+  useEffect(() => {
+    const colabId = params?.lucia_colaborador_id;
+    if (!colabId) {
+      setLuciaLancRemote(null);
+      return;
+    }
+    let cancelled = false;
+    setLuciaLancRemoteLoading(true);
+    void supabase
+      .from('lancamentos_folha')
+      .select('id,folha_id,colaborador_id,unidade,categoria,salario,bonus,comissao,passagem,reembolso,inss,descontos,total,detalhamento')
+      .eq('folha_id', folhaAtual.id)
+      .eq('colaborador_id', colabId)
+      .limit(1)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn('[bistro] fetch lucia lancamento failed', error);
+          setLuciaLancRemote(null);
+          return;
+        }
+        setLuciaLancRemote((data && data.length ? (data[0] as any) : null) as any);
+      })
+      .finally(() => {
+        if (!cancelled) setLuciaLancRemoteLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folhaAtual.id, params?.lucia_colaborador_id]);
+
+  const luciaLancEffective = luciaLancRemote || luciaLanc;
+
   const [luciaSalarioDraft, setLuciaSalarioDraft] = useState<string>('');
   const [luciaVtDraft, setLuciaVtDraft] = useState<string>('');
-  const luciaDraftInitRef = useRef(false);
+  const lastLuciaLancIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (luciaDraftInitRef.current) return;
-    if (!luciaLanc) return;
-    setLuciaSalarioDraft(String(luciaLanc.salario || ''));
-    setLuciaVtDraft(String(luciaLanc.passagem || ''));
-    luciaDraftInitRef.current = true;
-  }, [luciaLanc]);
+    if (!luciaLancEffective) return;
+    if (lastLuciaLancIdRef.current === luciaLancEffective.id) return;
+    setLuciaSalarioDraft(String(luciaLancEffective.salario || ''));
+    setLuciaVtDraft(String(luciaLancEffective.passagem || ''));
+    lastLuciaLancIdRef.current = luciaLancEffective.id;
+  }, [luciaLancEffective]);
 
   const [luciaApplyLoading, setLuciaApplyLoading] = useState(false);
   const [luciaApplyOk, setLuciaApplyOk] = useState(false);
   async function applyLuciaToFolha() {
-    if (!canEdit || !luciaLanc || !lucia || !params?.lucia_colaborador_id) return;
+    if (!canEdit || !luciaLancEffective || !lucia || !params?.lucia_colaborador_id) return;
     setLuciaApplyLoading(true);
     setLuciaApplyOk(false);
     try {
-      const salario = luciaSalarioDraft.trim() ? parseMoneyBR(luciaSalarioDraft) : Number(luciaLanc.salario || 0);
-      const passagem = luciaVtDraft.trim() ? parseMoneyBR(luciaVtDraft) : Number(luciaLanc.passagem || 0);
+      const salario = luciaSalarioDraft.trim() ? parseMoneyBR(luciaSalarioDraft) : Number(luciaLancEffective.salario || 0);
+      const passagem = luciaVtDraft.trim() ? parseMoneyBR(luciaVtDraft) : Number(luciaLancEffective.passagem || 0);
 
-      await api.updateLancamento(luciaLanc.id, {
+      await api.updateLancamento(luciaLancEffective.id, {
         salario,
         passagem,
         comissao: lucia.comissao,
@@ -709,7 +746,7 @@ export const BistroTab: React.FC<{
                   placeholder={params ? formatMoneyBR(Number((params as any).lucia_salario_base || 0)) : '0,00'}
                   className={inputBase}
                   inputMode="decimal"
-                  disabled={!luciaLanc}
+                  disabled={!luciaLancEffective}
                 />
               </div>
               <div>
@@ -720,7 +757,7 @@ export const BistroTab: React.FC<{
                   placeholder="0,00"
                   className={inputBase}
                   inputMode="decimal"
-                  disabled={!luciaLanc}
+                  disabled={!luciaLancEffective}
                 />
               </div>
             </div>
@@ -759,9 +796,11 @@ export const BistroTab: React.FC<{
               )}
             </div>
 
-            {!luciaLanc ? (
+            {!luciaLancEffective ? (
               <div className="mt-3 text-[10px] font-bold text-amber-300">
-                Não encontrei a linha da Lúcia na folha atual. Crie a linha em Folha → Lançamentos e volte aqui.
+                {luciaLancRemoteLoading
+                  ? 'Verificando a linha da Lúcia na folha atual…'
+                  : 'Não encontrei a linha da Lúcia na folha atual. Provavelmente este mês ainda não foi duplicado para a Folha. Vá em Folha → Lançamentos e duplique/crie a linha da Lúcia e volte aqui.'}
               </div>
             ) : null}
 
