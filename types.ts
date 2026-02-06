@@ -88,6 +88,7 @@ export interface Lancamento {
   total: number;
   observacao?: string;
   alert_checked?: boolean;
+  detalhamento?: Record<string, string>;
   colaboradores?: Colaborador;
 }
 

@@ -381,6 +381,7 @@ export default function App() {
   const [editingLancamento, setEditingLancamento] = useState<Lancamento | null>(null);
   const [isCreatingLancamento, setIsCreatingLancamento] = useState(false);
   const [draftLancamento, setDraftLancamento] = useState<Partial<Lancamento>>({});
+  const [activeNoteField, setActiveNoteField] = useState<string | null>(null);
   
   // Data State
   const [loading, setLoading] = useState(true);
@@ -2038,12 +2039,27 @@ export default function App() {
                         ['INSS', 'inss'],
                         ['Descontos', 'descontos'],
                       ] as const).map(([label, key]) => (
-                        <div key={key}>
-                          <label className="block text-xs text-slate-400 mb-1">{label}</label>
+                        <div key={key} className="relative group">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</label>
+                            <button
+                              type="button"
+                              onClick={() => setActiveNoteField(activeNoteField === key ? null : key)}
+                              className={cn(
+                                "p-1 rounded-md transition-all",
+                                (isCreatingLancamento ? draftLancamento.detalhamento?.[key] : editingLancamento?.detalhamento?.[key])
+                                  ? "text-violet-400 bg-violet-500/10"
+                                  : "text-slate-600 hover:text-slate-400 hover:bg-slate-800"
+                              )}
+                              title="Adicionar detalhamento (estilo nota do Excel)"
+                            >
+                              <Sparkles size={12} />
+                            </button>
+                          </div>
                           <input
                             type="number"
                             step="0.01"
-                            className="w-full bg-slate-900/40 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500"
+                            className="w-full bg-slate-900/40 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500 text-sm font-bold"
                             value={
                               isCreatingLancamento
                                 ? (draftLancamento as any)[key] === 0 ? '' : (draftLancamento as any)[key]
@@ -2059,7 +2075,46 @@ export default function App() {
                               }
                             }}
                           />
-                    </div>
+                          
+                          {/* Nota de Detalhamento (Estilo Excel) */}
+                          {activeNoteField === key && (
+                            <div className="absolute top-full left-0 right-0 z-50 mt-2 p-3 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl animate-in zoom-in-95 duration-200">
+                              <div className="text-[9px] font-black text-violet-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                <Sparkles size={10} /> Detalhar {label}
+                              </div>
+                              <textarea
+                                autoFocus
+                                value={
+                                  isCreatingLancamento
+                                    ? draftLancamento.detalhamento?.[key] || ''
+                                    : editingLancamento?.detalhamento?.[key] || ''
+                                }
+                                onChange={(e) => {
+                                  const note = e.target.value;
+                                  if (isCreatingLancamento) {
+                                    setDraftLancamento(prev => ({
+                                      ...prev,
+                                      detalhamento: { ...(prev.detalhamento || {}), [key]: note }
+                                    }));
+                                  } else if (editingLancamento) {
+                                    setEditingLancamento(prev => prev ? ({
+                                      ...prev,
+                                      detalhamento: { ...(prev.detalhamento || {}), [key]: note }
+                                    } as any) : prev);
+                                  }
+                                }}
+                                placeholder={`Ex: ${key === 'reembolso' ? 'Café p/ unidade' : key === 'bonus' ? 'Meta batida' : 'Motivo...'}`}
+                                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 outline-none focus:ring-1 focus:ring-violet-500 min-h-[60px] resize-none"
+                              />
+                              <button 
+                                onClick={() => setActiveNoteField(null)}
+                                className="w-full mt-2 py-1 text-[9px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-tighter"
+                              >
+                                Fechar nota
+                              </button>
+                            </div>
+                          )}
+                        </div>
                  ))}
                     </div>
 
