@@ -147,10 +147,12 @@ export const CalendarioView: React.FC<{
                 )}
                 style={{ backgroundColor: bg }}
                 onClick={(e) => {
-                  // Só dispara se o clique for na própria célula (fundo), não nos filhos (badges)
-                  if (e.target === e.currentTarget) {
-                    handleCellClick(iso, inMonth);
-                  }
+                  if (!inMonth) return;
+                  const el = e.target as HTMLElement | null;
+                  // Se clicou em badge/menu/controles, não abre "criar tarefa"
+                  if (el?.closest?.('[data-agenda-badge="1"]')) return;
+                  if (el?.closest?.('[data-agenda-cell-control="1"]')) return;
+                  handleCellClick(iso, inMonth);
                 }}
                 role={inMonth ? 'button' : undefined}
                 tabIndex={inMonth ? 0 : -1}
@@ -169,6 +171,7 @@ export const CalendarioView: React.FC<{
                     disabled={!inMonth}
                     onClick={() => handleCellClick(iso, inMonth)}
                     className="flex items-center justify-between mb-1 px-1 w-full text-left hover:opacity-80 transition-opacity"
+                    data-agenda-cell-control="1"
                   >
                     <span
                       className={cn(
@@ -213,6 +216,7 @@ export const CalendarioView: React.FC<{
                               type="button"
                               onClick={(e) => handleBadgeClick(e, t)}
                               onMouseDown={(e) => e.stopPropagation()}
+                              data-agenda-badge="1"
                               className={cn(
                                 'w-full px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold leading-tight shadow-sm rounded-[4px] flex items-center gap-1 cursor-pointer transition-all hover:brightness-125 hover:scale-[1.03] active:scale-95 relative z-20',
                                 isContaPendente
@@ -235,6 +239,7 @@ export const CalendarioView: React.FC<{
                           type="button"
                           onClick={() => handleCellClick(iso, inMonth)}
                           className="text-[9px] font-black text-slate-500 px-1 pt-0.5 hover:text-slate-300 transition-colors"
+                          data-agenda-cell-control="1"
                         >
                           + {items.length - (isMobileView ? 2 : 4)} mais
                         </button>
