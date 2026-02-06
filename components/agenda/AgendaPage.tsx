@@ -86,6 +86,7 @@ export const AgendaPage: React.FC = () => {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [tarefasHoje, setTarefasHoje] = useState<Tarefa[]>([]);
   const [tarefasAtrasadas, setTarefasAtrasadas] = useState<Tarefa[]>([]);
+  const [tarefasTimeline, setTarefasTimeline] = useState<Tarefa[]>([]);
 
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -344,6 +345,25 @@ export const AgendaPage: React.FC = () => {
     []
   );
 
+  const loadTimeline = useCallback(async () => {
+    // Timeline = base para calendário (mostra compromissos futuros, não só Meu Dia)
+    try {
+      const hoje = new Date();
+      const start = new Date(hoje);
+      start.setDate(start.getDate() - 90);
+      const end = new Date(hoje);
+      end.setDate(end.getDate() + 45);
+      const rows = await fetchTarefas({
+        vencimento_inicio: start.toISOString(),
+        vencimento_fim: end.toISOString(),
+        includeConcluidas: true,
+      });
+      setTarefasTimeline(rows);
+    } catch {
+      // best effort (não bloqueia)
+    }
+  }, []);
+
   const openNovaLista = useCallback(() => {
     setListaEditando(null);
     setNovaListaNome('');
@@ -444,6 +464,7 @@ export const AgendaPage: React.FC = () => {
       await syncIntegrations();
       await loadCounts();
       await loadAppearance();
+      await loadTimeline();
       // Kanban config (não bloqueia)
       fetchAgendaKanbanConfig()
         .then((row) => {
@@ -466,6 +487,7 @@ export const AgendaPage: React.FC = () => {
       syncIntegrations().catch(() => {});
       loadCounts().catch(() => {});
       loadAppearance().catch(() => {});
+      loadTimeline().catch(() => {});
       loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }).catch(() => {});
     }, 300);
   }, [listKey, loadListas, loadCounts, loadAppearance, loadTarefasForKey, viewMode]);
@@ -595,11 +617,12 @@ export const AgendaPage: React.FC = () => {
     const start = startOfDay(parseISO(`${selectedDateISO}T00:00:00`)).toISOString();
     const end = startOfDay(addDays(parseISO(`${selectedDateISO}T00:00:00`), 1)).toISOString();
 
-    const base = listKey === SMART_MEUDIA ? [...tarefasHoje, ...tarefasAtrasadas] : tarefas;
+    const isCalendarMode = viewMode === 'mes' || ['dia', '3dias', 'semana'].includes(viewMode as any) || (viewMode as any) === 'calendario';
+    const base = isCalendarMode ? tarefasTimeline : (listKey === SMART_MEUDIA ? [...tarefasHoje, ...tarefasAtrasadas] : tarefas);
     return base
       .filter((t) => !!t.vencimento_em && t.vencimento_em >= start && t.vencimento_em < end)
       .sort((a, b) => (a.vencimento_em || '').localeCompare(b.vencimento_em || ''));
-  }, [selectedDateISO, tarefas, tarefasHoje, tarefasAtrasadas, listKey]);
+  }, [selectedDateISO, tarefas, tarefasHoje, tarefasAtrasadas, tarefasTimeline, listKey, viewMode]);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -721,6 +744,7 @@ export const AgendaPage: React.FC = () => {
             tarefas={tarefas}
             tarefasHoje={tarefasHoje}
             tarefasAtrasadas={tarefasAtrasadas}
+            tarefasTimeline={tarefasTimeline}
             tarefaSelecionadaId={selectedTarefaId}
             onSelectTarefa={(t) => setSelectedTarefaId(t?.id || null)}
             selectedDateISO={selectedDateISO}

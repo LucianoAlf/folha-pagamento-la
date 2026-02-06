@@ -34,6 +34,7 @@ export const AgendaContent: React.FC<{
   tarefas: Tarefa[];
   tarefasHoje: Tarefa[];
   tarefasAtrasadas: Tarefa[];
+  tarefasTimeline?: Tarefa[];
   tarefaSelecionadaId: string | null;
   onSelectTarefa: (t: Tarefa | null) => void;
   selectedDateISO: string | null;
@@ -62,6 +63,7 @@ export const AgendaContent: React.FC<{
   tarefas,
   tarefasHoje,
   tarefasAtrasadas,
+  tarefasTimeline,
   tarefaSelecionadaId,
   onSelectTarefa,
   selectedDateISO,
@@ -101,6 +103,7 @@ export const AgendaContent: React.FC<{
 
   const showMeuDia = listKey === 'smart:meu-dia';
   const isSmartView = listKey.startsWith('smart:');
+  const timeline = (tarefasTimeline && tarefasTimeline.length ? tarefasTimeline : (showMeuDia ? [...tarefasAtrasadas, ...tarefasHoje] : tarefas));
 
   const tarefaSelecionada = useMemo(() => {
     const all = showMeuDia ? [...tarefasAtrasadas, ...tarefasHoje] : tarefas;
@@ -247,7 +250,7 @@ export const AgendaContent: React.FC<{
           ) : viewMode === 'mes' || (viewMode as any) === 'calendario' ? (
             <div className="p-4 md:p-6 overflow-auto h-full pb-24">
               <CalendarioView
-                tarefas={showMeuDia ? [...tarefasAtrasadas, ...tarefasHoje] : tarefas}
+                tarefas={timeline}
                 selectedDateISO={selectedDateISO}
                 onSelectDate={handleSelectDate}
               />
@@ -255,7 +258,7 @@ export const AgendaContent: React.FC<{
           ) : ['dia', '3dias', 'semana'].includes(viewMode) ? (
             <div className="p-4 md:p-6 h-full pb-24">
               <ScheduleView
-                tarefas={showMeuDia ? [...tarefasAtrasadas, ...tarefasHoje] : tarefas}
+                tarefas={timeline}
                 viewMode={viewMode as any}
                 selectedDate={selectedDateISO ? parseISO(selectedDateISO) : new Date()}
                 onSelectDate={(d) => onSelectDate(d.toISOString().split('T')[0])}
