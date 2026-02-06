@@ -251,6 +251,11 @@ export const BistroTab: React.FC<{
 
   const vendasCalc = useMemo(() => {
     // Garantir que os valores brutos sejam tratados como números antes do cálculo
+    const normalizePctUI = (x: any, fallback: number) => {
+      const n = Number(String(x ?? '').replace(',', '.'));
+      if (!Number.isFinite(n) || n <= 0) return fallback;
+      return n >= 0.1 ? n / 100 : n;
+    };
     const vNorm = vendas ? {
       ...vendas,
       pix_bruto: parseMoneyBR(String((vendas as any)?.pix_bruto || '')),
@@ -258,18 +263,9 @@ export const BistroTab: React.FC<{
       credito_bruto: parseMoneyBR(String((vendas as any)?.credito_bruto || '')),
       dinheiro_bruto: parseMoneyBR(String((vendas as any)?.dinheiro_bruto || '')),
       // Taxas também precisam ser normalizadas para o cálculo em tempo real
-      pix_taxa_pct: (() => {
-        const n = Number(String((vendas as any)?.pix_taxa_pct || '').replace(',', '.'));
-        return n > 1 ? n / 100 : n || 0.0099;
-      })(),
-      debito_taxa_pct: (() => {
-        const n = Number(String((vendas as any)?.debito_taxa_pct || '').replace(',', '.'));
-        return n > 1 ? n / 100 : n || 0.0168;
-      })(),
-      credito_taxa_pct: (() => {
-        const n = Number(String((vendas as any)?.credito_taxa_pct || '').replace(',', '.'));
-        return n > 1 ? n / 100 : n || 0.0368;
-      })(),
+      pix_taxa_pct: normalizePctUI((vendas as any)?.pix_taxa_pct, 0.0099),
+      debito_taxa_pct: normalizePctUI((vendas as any)?.debito_taxa_pct, 0.0168),
+      credito_taxa_pct: normalizePctUI((vendas as any)?.credito_taxa_pct, 0.0368),
     } : null;
     return computeVendasResumo(vNorm as any, consumoTotal);
   }, [vendas, consumoTotal]);
@@ -568,7 +564,9 @@ export const BistroTab: React.FC<{
     const normalizePct = (x: any, fallback: number) => {
       const n = Number(String(x ?? '').replace(',', '.'));
       if (!Number.isFinite(n) || n <= 0) return fallback;
-      return n > 1 ? n / 100 : n;
+      // Padrão esperado na UI: taxa em percentual (ex.: 0,99 / 1,68 / 3,68).
+      // Se alguém já digitar a fração (ex.: 0.0099), ela fica < 0.1 e preservamos.
+      return n >= 0.1 ? n / 100 : n;
     };
 
     await upsertBistroVendasResumo({
