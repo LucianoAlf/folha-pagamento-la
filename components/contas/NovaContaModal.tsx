@@ -36,13 +36,6 @@ export const NovaContaModal: React.FC<{
   const [launchType, setLaunchType] = useState<LaunchType>('unica');
   const [parcelas, setParcelas] = useState<number>(2);
 
-  const [dataLancamento, setDataLancamento] = useState<string>(() => {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  });
   const [vencimento, setVencimento] = useState<string>('');
   const [competencia, setCompetencia] = useState<string>(() => {
     const d = new Date();
@@ -117,18 +110,21 @@ export const NovaContaModal: React.FC<{
               !categoriaId ||
               !vencimento ||
               !competencia ||
-              !dataLancamento ||
               !(valorNum > 0)
             }
             onClick={async () => {
               setSaving(true);
               try {
+                // Data de lançamento automática (hoje)
+                const d = new Date();
+                const dataLancamentoAuto = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
                 const payload: Partial<ContaPagar> = {
                   descricao: descricao.trim(),
                   categoria_id: categoriaId,
                   unidade: unidade as any,
                   valor: valorNum,
-                  data_lancamento: dataLancamento,
+                  data_lancamento: dataLancamentoAuto,
                   data_vencimento: vencimento,
                   competencia,
                   status,
@@ -270,18 +266,25 @@ export const NovaContaModal: React.FC<{
             Prazos e Competência
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Data Lançamento *</label>
-              <DatePicker value={dataLancamento} onChange={(v) => setDataLancamento(v || '')} />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Vencimento *</label>
               <DatePicker value={vencimento} onChange={(v) => setVencimento(v || '')} />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Competência *</label>
-              <DatePicker value={competencia} onChange={(v) => setCompetencia(v || '')} />
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Mês de Competência *</label>
+              <CustomSelect
+                value={competencia}
+                onValueChange={(v) => setCompetencia(v)}
+                options={Array.from({ length: 12 }).map((_, i) => {
+                  const d = new Date();
+                  const target = new Date(d.getFullYear(), d.getMonth() - 6 + i, 1);
+                  const yyyy = target.getFullYear();
+                  const mm = String(target.getMonth() + 1).padStart(2, '0');
+                  const label = target.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                  return { value: `${yyyy}-${mm}-01`, label: label.charAt(0).toUpperCase() + label.slice(1) };
+                })}
+              />
             </div>
           </div>
         </div>

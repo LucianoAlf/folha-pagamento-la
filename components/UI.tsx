@@ -548,10 +548,6 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           position="popper"
           sideOffset={8}
         >
-          <Select.ScrollUpButton className="flex items-center justify-center h-8 text-slate-500 bg-slate-900">
-            <ChevronUp size={16} />
-          </Select.ScrollUpButton>
-
           <Select.Viewport className="p-1.5 max-h-[280px] overflow-y-auto">
             {options.map((opt) => (
               <Select.Item
@@ -569,10 +565,6 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               </Select.Item>
             ))}
           </Select.Viewport>
-
-          <Select.ScrollDownButton className="flex items-center justify-center h-8 text-slate-500 bg-slate-900">
-            <ChevronDown size={16} />
-          </Select.ScrollDownButton>
         </Select.Content>
       </Select.Portal>
     </Select.Root>
