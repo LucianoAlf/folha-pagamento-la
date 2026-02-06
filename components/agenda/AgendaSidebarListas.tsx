@@ -113,7 +113,8 @@ export const AgendaSidebarListas: React.FC<{
                       <Popover.Content
                         sideOffset={8}
                         align="end"
-                        className="z-[9999] w-56 rounded-2xl border border-slate-800 bg-slate-950/95 shadow-2xl overflow-hidden"
+                          // Precisa ficar acima do Modal (z ~12000/13000)
+                          className="z-[20000] w-56 rounded-2xl border border-slate-800 bg-slate-950/95 shadow-2xl overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
