@@ -198,6 +198,15 @@ export async function upsertBistroConsumos(
   if (error) throw error;
 }
 
+export async function deleteBistroConsumo(input: { competencia_id: string; colaborador_id: number }) {
+  const { error } = await supabase
+    .from('bistro_consumos')
+    .delete()
+    .eq('competencia_id', input.competencia_id)
+    .eq('colaborador_id', input.colaborador_id);
+  if (error) throw error;
+}
+
 export async function fetchBistroVendasResumo(competenciaId: string) {
   const { data, error } = await supabase.from('bistro_vendas_resumo').select('*').eq('competencia_id', competenciaId).single();
   if (error && error.code !== 'PGRST116') throw error; // no rows

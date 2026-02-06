@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Copy, Loader2, Pencil, Plus, Save, Trash2, Undo2 } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, Pencil, Plus, Save, Trash2, Undo2, X } from 'lucide-react';
 import type { Colaborador, FolhaMensal, Lancamento } from '../../types';
 import { Badge, Card, ConfirmDialog, CustomSelect, DatePicker, Modal, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
@@ -21,6 +21,7 @@ import {
   parseConsumosText,
   revertBistroDiscountsFromFolha,
   upsertBistroConsumos,
+  deleteBistroConsumo,
   upsertBistroParametros,
   upsertBistroVendasResumo,
   createBistroMovimentacao,
@@ -715,6 +716,18 @@ export const BistroTab: React.FC<{
   const [movDeleteOpen, setMovDeleteOpen] = useState(false);
   const [movToDelete, setMovToDelete] = useState<BistroMovimentacao | null>(null);
 
+  // CRUD Consumos (editar/excluir)
+  const [consumoEditOpen, setConsumoEditOpen] = useState(false);
+  const [consumoEditDraft, setConsumoEditDraft] = useState<{
+    colaborador_id: number;
+    nome: string;
+    valor: string;
+  } | null>(null);
+  const [consumoEditSaving, setConsumoEditSaving] = useState(false);
+
+  const [consumoDeleteOpen, setConsumoDeleteOpen] = useState(false);
+  const [consumoToDelete, setConsumoToDelete] = useState<{ colaborador_id: number; nome: string; valor: number } | null>(null);
+
   // UX: campos de taxa (%) devem aparecer no formato humano (0,99 / 1,68 / 3,68),
   // mesmo quando persistimos no banco como fração (0.0099 / 0.0168 / 0.0368).
   const [focusedPctKey, setFocusedPctKey] = useState<null | 'pix_taxa_pct' | 'debito_taxa_pct' | 'credito_taxa_pct'>(null);
@@ -775,6 +788,44 @@ export const BistroTab: React.FC<{
     if (!movToDelete) return;
     await deleteBistroMovimentacao(movToDelete.id);
     setMovToDelete(null);
+    await loadAll();
+  }
+
+  function openEditConsumo(colaborador_id: number) {
+    const col = colaboradores.find((c) => c.id === colaborador_id);
+    const nome = col?.nome || `#${colaborador_id}`;
+    const row = consumos.find((x) => x.colaborador_id === colaborador_id);
+    setConsumoEditDraft({
+      colaborador_id,
+      nome,
+      valor: String(row?.valor ?? '').replace('.', ','),
+    });
+    setConsumoEditOpen(true);
+  }
+
+  async function saveEditConsumo() {
+    if (!competenciaId || !consumoEditDraft) return;
+    setConsumoEditSaving(true);
+    try {
+      await upsertBistroConsumos([
+        {
+          competencia_id: competenciaId,
+          colaborador_id: consumoEditDraft.colaborador_id,
+          valor: parseMoneyBR(consumoEditDraft.valor),
+        },
+      ]);
+      setConsumoEditOpen(false);
+      setConsumoEditDraft(null);
+      await loadAll();
+    } finally {
+      setConsumoEditSaving(false);
+    }
+  }
+
+  async function confirmDeleteConsumo() {
+    if (!competenciaId || !consumoToDelete) return;
+    await deleteBistroConsumo({ competencia_id: competenciaId, colaborador_id: consumoToDelete.colaborador_id });
+    setConsumoToDelete(null);
     await loadAll();
   }
 
@@ -900,6 +951,81 @@ export const BistroTab: React.FC<{
         variant="danger"
       />
 
+      {/* Edit Consumo */}
+      <Modal
+        isOpen={consumoEditOpen}
+        onClose={() => {
+          setConsumoEditOpen(false);
+          setConsumoEditDraft(null);
+        }}
+        title="Editar consumo"
+        subtitle="Ajuste o valor do consumo do mês"
+        className="max-w-2xl"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setConsumoEditOpen(false);
+                setConsumoEditDraft(null);
+              }}
+              className="px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 font-black"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveEditConsumo()}
+              disabled={!canEdit || !consumoEditDraft || consumoEditSaving}
+              className={cn(
+                'px-4 py-2 rounded-xl font-black border transition-all disabled:opacity-60 flex items-center gap-2',
+                !canEdit
+                  ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
+                  : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30'
+              )}
+            >
+              {consumoEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Salvar
+            </button>
+          </div>
+        }
+      >
+        {consumoEditDraft ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Colaborador</div>
+              <div className="px-4 py-3 rounded-2xl border border-slate-800/60 bg-slate-950/30 text-slate-100 font-black">
+                {consumoEditDraft.nome}
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Valor (mês)</div>
+              <input
+                value={consumoEditDraft.valor}
+                onChange={(e) => setConsumoEditDraft((p) => (p ? ({ ...p, valor: e.target.value } as any) : p))}
+                className={inputBase}
+                placeholder="0,00"
+                inputMode="decimal"
+              />
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={consumoDeleteOpen}
+        onClose={() => {
+          setConsumoDeleteOpen(false);
+          setConsumoToDelete(null);
+        }}
+        onConfirm={() => void confirmDeleteConsumo()}
+        title="Excluir consumo?"
+        message={`Tem certeza que deseja excluir o consumo de "${consumoToDelete?.nome || 'colaborador'}" (${formatMoneyBR(consumoToDelete?.valor || 0)})? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        variant="danger"
+      />
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card className="p-5 xl:col-span-2">
           <div className="flex items-center justify-between gap-3">
@@ -916,6 +1042,7 @@ export const BistroTab: React.FC<{
                 <tr className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                   <th className="px-4 py-3">Colaborador</th>
                   <th className="px-4 py-3 text-right">Valor</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -932,12 +1059,36 @@ export const BistroTab: React.FC<{
                       <tr key={c.colaborador_id} className="border-t border-slate-800/60">
                         <td className="px-4 py-3 text-slate-200 font-bold">{col?.nome || `#${c.colaborador_id}`}</td>
                         <td className="px-4 py-3 text-right text-slate-200 font-mono font-bold">{formatMoneyBR(c.valor)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEditConsumo(c.colaborador_id)}
+                              className="px-2.5 py-2 rounded-xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900/70 text-slate-200 transition-all"
+                              title="Editar"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nome = col?.nome || `#${c.colaborador_id}`;
+                                setConsumoToDelete({ colaborador_id: c.colaborador_id, nome, valor: Number(c.valor) || 0 });
+                                setConsumoDeleteOpen(true);
+                              }}
+                              className="px-2.5 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15 text-rose-200 transition-all"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
                 {consumos.length === 0 ? (
                   <tr>
-                    <td colSpan={2} className="px-4 py-6 text-center text-slate-500 font-bold">
+                    <td colSpan={3} className="px-4 py-6 text-center text-slate-500 font-bold">
                       Nenhum consumo lançado ainda.
                     </td>
                   </tr>
