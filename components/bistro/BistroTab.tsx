@@ -59,18 +59,14 @@ function copyToClipboard(text: string) {
   return navigator.clipboard.writeText(text);
 }
 
-function buildWhatsText(input: {
+function buildRelatorioFinanceiroText(input: {
   ymRef: string;
   consumoTotal: number;
-  movs: BistroMovimentacao[];
   vendasRaw: BistroVendasResumo | null;
   vendasCalc: ReturnType<typeof computeVendasResumo>;
-  saldoInicialEmla: number;
-  saldoFinalEmla: number;
   lucia?: ReturnType<typeof computeLuciaPagamento> | null;
 }) {
   const lines: string[] = [];
-  const monthName = monthLabelPt(input.ymRef).split('/')[0];
   lines.push(`*BISTRÔ ${monthLabelPt(input.ymRef).toUpperCase()}*`);
   lines.push('');
 
@@ -140,16 +136,29 @@ function buildWhatsText(input: {
     lines.push('');
   }
 
-  // =========================================================
-  // RELATÓRIO DE REPASSES / EMLA
-  // =========================================================
+  return lines.join('\n');
+}
+
+function buildRelatorioRepassesText(input: {
+  ymRef: string;
+  consumoTotal: number;
+  movs: BistroMovimentacao[];
+  saldoFinalEmla: number;
+}) {
+  const lines: string[] = [];
+  const monthName = monthLabelPt(input.ymRef).split('/')[0];
+
   lines.push(`*BISTRÔ ${monthLabelPt(input.ymRef).toUpperCase()}*`);
   lines.push('');
   lines.push('*Valores a serem repassados, consumo Colaboradores*');
-  lines.push(`☆ ${formatMoneyBR(input.consumoTotal)}`);
+  lines.push(`☆ ${formatMoneyBR(input.consumoTotal)} (Sem contar gastos Lucia, Anne e Luciano)`);
   lines.push('');
 
-  const contabilizaRepasse = input.movs.filter((m) => m.tipo === 'repasse_bistro' || m.tipo === 'despesa');
+  const contabilizaRepasse = input.movs
+    .filter((m) => m.tipo === 'repasse_bistro' || m.tipo === 'despesa')
+    .slice()
+    .sort((a, b) => String(a.data_mov).localeCompare(String(b.data_mov)));
+
   lines.push('*Valores repassados ao Bistrô*');
   if (contabilizaRepasse.length === 0) {
     lines.push('- (nenhum repasse/despesa registrada)');
@@ -168,7 +177,6 @@ function buildWhatsText(input: {
   lines.push('');
   lines.push(`*BISTRÔ DEVE A EMLA:* ${formatMoneyBR(input.saldoFinalEmla)}`);
   lines.push('');
-
   return lines.join('\n');
 }
 
@@ -240,18 +248,24 @@ export const BistroTab: React.FC<{
     });
   }, [params, consumos, lancamentosFolha, vendas, movs]);
 
-  const reportText = useMemo(() => {
-    return buildWhatsText({
+  const reportFinanceiroText = useMemo(() => {
+    return buildRelatorioFinanceiroText({
+      ymRef,
+      consumoTotal,
+      vendasRaw: vendas,
+      vendasCalc,
+      lucia,
+    });
+  }, [ymRef, consumoTotal, vendas, vendasCalc, lucia]);
+
+  const reportRepassesText = useMemo(() => {
+    return buildRelatorioRepassesText({
       ymRef,
       consumoTotal,
       movs,
-      vendasRaw: vendas,
-      vendasCalc,
-      saldoInicialEmla,
       saldoFinalEmla,
-      lucia,
     });
-  }, [ymRef, consumoTotal, movs, vendas, vendasCalc, saldoInicialEmla, saldoFinalEmla, lucia]);
+  }, [ymRef, consumoTotal, movs, saldoFinalEmla]);
 
   async function loadAll() {
     setLoading(true);
@@ -434,7 +448,19 @@ export const BistroTab: React.FC<{
   }
 
   const [reportOpen, setReportOpen] = useState(false);
-  const [copyOk, setCopyOk] = useState(false);
+  const [copyOk, setCopyOk] = useState<null | 'financeiro' | 'repasses'>(null);
+  const [reportKind, setReportKind] = useState<'financeiro' | 'repasses'>('financeiro');
+  const [reportDraftFinanceiro, setReportDraftFinanceiro] = useState('');
+  const [reportDraftRepasses, setReportDraftRepasses] = useState('');
+
+  useEffect(() => {
+    if (!reportOpen) return;
+    setReportKind('financeiro');
+    setCopyOk(null);
+    setReportDraftFinanceiro(reportFinanceiroText);
+    setReportDraftRepasses(reportRepassesText);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportOpen]);
 
   if (loading) {
     return (
@@ -879,25 +905,72 @@ export const BistroTab: React.FC<{
         className="max-w-4xl"
         footer={
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-slate-500 font-bold">{copyOk ? <span className="text-emerald-300 font-black">Copiado!</span> : 'WhatsApp: copiar e colar no grupo'}</div>
-            <button
-              type="button"
-              onClick={() => {
-                void copyToClipboard(reportText).then(() => {
-                  setCopyOk(true);
-                  setTimeout(() => setCopyOk(false), 1500);
-                });
-              }}
-              className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center gap-2"
-            >
-              <Copy className="w-4 h-4" /> Copiar
-            </button>
+            <div className="text-xs text-slate-500 font-bold">
+              {copyOk ? <span className="text-emerald-300 font-black">Copiado ({copyOk})!</span> : 'WhatsApp: copiar e colar no grupo'}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void copyToClipboard(reportDraftFinanceiro).then(() => {
+                    setCopyOk('financeiro');
+                    setTimeout(() => setCopyOk(null), 1500);
+                  });
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 font-black flex items-center gap-2"
+              >
+                <Copy className="w-4 h-4" /> Copiar Financeiro
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void copyToClipboard(reportDraftRepasses).then(() => {
+                    setCopyOk('repasses');
+                    setTimeout(() => setCopyOk(null), 1500);
+                  });
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center gap-2"
+              >
+                <Copy className="w-4 h-4" /> Copiar Repasses
+              </button>
+            </div>
           </div>
         }
       >
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            type="button"
+            onClick={() => setReportKind('financeiro')}
+            className={cn(
+              'px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
+              reportKind === 'financeiro'
+                ? 'bg-violet-600 text-white border-violet-500/30'
+                : 'bg-slate-900/40 text-slate-300 border-slate-800 hover:bg-slate-900/60'
+            )}
+          >
+            Financeiro (taxas)
+          </button>
+          <button
+            type="button"
+            onClick={() => setReportKind('repasses')}
+            className={cn(
+              'px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
+              reportKind === 'repasses'
+                ? 'bg-violet-600 text-white border-violet-500/30'
+                : 'bg-slate-900/40 text-slate-300 border-slate-800 hover:bg-slate-900/60'
+            )}
+          >
+            Repasses (Ana)
+          </button>
+        </div>
+
         <textarea
-          value={reportText}
-          readOnly
+          value={reportKind === 'financeiro' ? reportDraftFinanceiro : reportDraftRepasses}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (reportKind === 'financeiro') setReportDraftFinanceiro(v);
+            else setReportDraftRepasses(v);
+          }}
           className="w-full min-h-[380px] bg-slate-950/40 border border-slate-800/60 rounded-2xl p-4 text-slate-100 font-mono text-sm"
         />
       </Modal>
