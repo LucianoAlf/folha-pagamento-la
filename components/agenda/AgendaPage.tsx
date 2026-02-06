@@ -12,6 +12,7 @@ import {
   fetchTarefasImportantes,
   fetchNotificacaoConfig,
 } from '../../services/agendaService';
+import { syncAgendaIntegrations } from '../../services/agendaIntegrations';
 import { AgendaSidebarListas } from './AgendaSidebarListas';
 import { AgendaContent } from './AgendaContent';
 import { TarefaDetailPanel } from './TarefaDetailPanel';
@@ -139,6 +140,8 @@ export const AgendaPage: React.FC = () => {
   const [confirmDeleteLista, setConfirmDeleteLista] = useState<TarefaLista | null>(null);
 
   const refreshTimer = useRef<number | null>(null);
+  const lastIntegrationsSyncAt = useRef<number>(0);
+  const integrationsSyncing = useRef<boolean>(false);
 
   const smartLists = useMemo(() => listas.filter((l) => l.is_smart), [listas]);
   const regularLists = useMemo(() => listas.filter((l) => !l.is_smart), [listas]);
@@ -210,9 +213,27 @@ export const AgendaPage: React.FC = () => {
     setListas(rows);
 
     // Se a Agenda for carregada pela primeira vez, tenta focar em "Meu Dia"
-    if (!rows.length) return;
-    if (listKey === SMART_MEUDIA) return;
+    if (!rows.length) return rows;
+    if (listKey === SMART_MEUDIA) return rows;
+    return rows;
   }, [listKey]);
+
+  const syncIntegrations = useCallback(async () => {
+    // Throttle: evita loop com realtime (tarefas inseridas → scheduleRefresh → sync novamente).
+    const now = Date.now();
+    if (integrationsSyncing.current) return;
+    if (now - lastIntegrationsSyncAt.current < 60_000) return;
+    lastIntegrationsSyncAt.current = now;
+
+    integrationsSyncing.current = true;
+    try {
+      await syncAgendaIntegrations();
+    } catch {
+      // Não bloqueia a agenda: integração é "best effort"
+    } finally {
+      integrationsSyncing.current = false;
+    }
+  }, []);
 
   const loadCounts = useCallback(async () => {
     const { data, error } = await supabase.from('tarefas').select('id,status,prioridade,lista_id,vencimento_em');
@@ -412,6 +433,8 @@ export const AgendaPage: React.FC = () => {
     setError(null);
     try {
       await loadListas();
+      // Premium: integrações (contas/folha) entram como tarefas automáticas na agenda
+      await syncIntegrations();
       await loadCounts();
       await loadAppearance();
       // Kanban config (não bloqueia)
@@ -433,6 +456,7 @@ export const AgendaPage: React.FC = () => {
     if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
     refreshTimer.current = window.setTimeout(() => {
       loadListas().catch(() => {});
+      syncIntegrations().catch(() => {});
       loadCounts().catch(() => {});
       loadAppearance().catch(() => {});
       loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }).catch(() => {});
