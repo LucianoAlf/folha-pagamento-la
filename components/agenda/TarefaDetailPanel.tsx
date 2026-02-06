@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Badge, CustomSelect, DatePicker, Tooltip } from '../UI';
+import { Badge, CustomSelect, DatePicker, Modal, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import {
   Check,
@@ -26,9 +26,19 @@ import {
   reabrirTarefa,
 } from '../../services/agendaService';
 import { SubtarefaItem } from './SubtarefaItem';
+import type { ContaPagar } from '../../types/contasPagar';
+import { fetchContasPendentesForAgenda } from '../../services/contasPagarService';
 
 const navigateTo = (module: 'folha' | 'contas' | 'agenda' | 'notificacoes', page?: string) => {
   window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module, page } }));
+};
+
+const formatCurrencyBR = (n: number) => {
+  try {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
+  } catch {
+    return `R$ ${Number(n || 0).toFixed(2)}`;
+  }
 };
 
 const toDatePart = (iso?: string | null) => {
@@ -71,12 +81,35 @@ export const TarefaDetailPanel: React.FC<{
   const saveTimer = useRef<number | null>(null);
   const [newSub, setNewSub] = useState('');
 
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkContas, setLinkContas] = useState<ContaPagar[]>([]);
+  const [selectedContaId, setSelectedContaId] = useState<string>('');
+
   // sync when selection changes
   useEffect(() => {
     setDraft(tarefa);
     setError(null);
     setNewSub('');
   }, [tarefa.id]);
+
+  // Keep subtasks in sync when the tarefa prop updates via realtime/refresh,
+  // without clobbering edits in other fields.
+  useEffect(() => {
+    setDraft((prev) => {
+      if (prev.id !== tarefa.id) return tarefa;
+      return {
+        ...prev,
+        status: tarefa.status,
+        data_conclusao: tarefa.data_conclusao,
+        subtarefas: tarefa.subtarefas,
+        vinculo_tipo: tarefa.vinculo_tipo,
+        vinculo_id: tarefa.vinculo_id,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tarefa.updated_at, tarefa.status, tarefa.data_conclusao, tarefa.subtarefas?.length, tarefa.vinculo_tipo, tarefa.vinculo_id]);
 
   const datePart = useMemo(() => toDatePart(draft.vencimento_em), [draft.vencimento_em]);
   const timePart = useMemo(() => toTimePart(draft.vencimento_em), [draft.vencimento_em]);
@@ -269,7 +302,48 @@ export const TarefaDetailPanel: React.FC<{
                 </div>
               ) : null}
             </div>
-          ) : null}
+          ) : (
+            // Cinematográfico: se a tarefa é Financeiro mas não está vinculada, oferecer vínculo (pra liberar pagamento 1-clique)
+            draft.categoria === 'financeiro' ? (
+              <div className="rounded-2xl border border-dashed border-slate-800/70 bg-slate-950/40 p-4">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+                  Integração Financeiro
+                </div>
+                <div className="text-xs text-slate-500 font-bold mb-3">
+                  Essa tarefa ainda não está conectada a uma conta do “Contas a Pagar”. Vincule para liberar “Registrar pagamento”.
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setLinkModalOpen(true);
+                    setLinkLoading(true);
+                    setLinkError(null);
+                    try {
+                      const hoje = new Date();
+                      const start = new Date(hoje);
+                      start.setDate(start.getDate() - 90);
+                      const end = new Date(hoje);
+                      end.setDate(end.getDate() + 45);
+                      const rows = await fetchContasPendentesForAgenda({
+                        startYmd: start.toISOString().slice(0, 10),
+                        endYmd: end.toISOString().slice(0, 10),
+                        limit: 200,
+                      });
+                      setLinkContas(rows);
+                      setSelectedContaId('');
+                    } catch (e: any) {
+                      setLinkError(e?.message || 'Falha ao carregar contas pendentes');
+                    } finally {
+                      setLinkLoading(false);
+                    }
+                  }}
+                  className="w-full px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black"
+                >
+                  Vincular a uma conta
+                </button>
+              </div>
+            ) : null
+          )}
 
           {/* Due */}
           <div>
@@ -356,7 +430,9 @@ export const TarefaDetailPanel: React.FC<{
                   const titulo = newSub.trim();
                   if (!titulo) return;
                   setNewSub('');
-                  await createSubtarefa({ tarefa_id: draft.id, titulo, ordem: (draft.subtarefas?.length || 0) });
+                  const created = await createSubtarefa({ tarefa_id: draft.id, titulo, ordem: (draft.subtarefas?.length || 0) });
+                  // optimistic append
+                  setDraft((p) => ({ ...p, subtarefas: [...(p.subtarefas || []), created] }));
                   onSaved();
                 }}
                 placeholder="Adicionar subtarefa…"
@@ -368,7 +444,8 @@ export const TarefaDetailPanel: React.FC<{
                   const titulo = newSub.trim();
                   if (!titulo) return;
                   setNewSub('');
-                  await createSubtarefa({ tarefa_id: draft.id, titulo, ordem: (draft.subtarefas?.length || 0) });
+                  const created = await createSubtarefa({ tarefa_id: draft.id, titulo, ordem: (draft.subtarefas?.length || 0) });
+                  setDraft((p) => ({ ...p, subtarefas: [...(p.subtarefas || []), created] }));
                   onSaved();
                 }}
                 className="w-11 h-11 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center shrink-0"
@@ -389,8 +466,24 @@ export const TarefaDetailPanel: React.FC<{
                     <SubtarefaItem
                       key={s.id}
                       item={s}
-                      onToggle={(next) => toggleSubtarefa(s.id, next).then(onSaved)}
-                      onDelete={() => deleteSubtarefa(s.id).then(onSaved)}
+                      onToggle={async (next) => {
+                        // optimistic toggle
+                        setDraft((p) => ({
+                          ...p,
+                          subtarefas: (p.subtarefas || []).map((it) => (it.id === s.id ? { ...it, concluida: next } : it)),
+                        }));
+                        await toggleSubtarefa(s.id, next);
+                        onSaved();
+                      }}
+                      onDelete={async () => {
+                        // optimistic remove
+                        setDraft((p) => ({
+                          ...p,
+                          subtarefas: (p.subtarefas || []).filter((it) => it.id !== s.id),
+                        }));
+                        await deleteSubtarefa(s.id);
+                        onSaved();
+                      }}
                     />
                   ))
               )}
@@ -459,6 +552,91 @@ export const TarefaDetailPanel: React.FC<{
           {error ? <div className="text-xs font-bold text-rose-300">{error}</div> : null}
         </div>
       </div>
+
+      {/* Vincular conta (Financeiro) */}
+      <Modal
+        isOpen={linkModalOpen}
+        onClose={() => {
+          setLinkModalOpen(false);
+          setSelectedContaId('');
+          setLinkError(null);
+        }}
+        title="Vincular a uma conta"
+        subtitle="Conecte esta tarefa a uma conta do Contas a Pagar para liberar ações rápidas."
+        className="max-w-3xl"
+        footer={
+          <div className="flex items-center justify-between gap-4 w-full">
+            <div className="text-xs text-slate-500 font-bold">
+              {linkError ? <span className="text-rose-300">{linkError}</span> : null}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setLinkModalOpen(false)}
+                className="px-5 py-3 rounded-2xl bg-slate-900/40 border border-slate-800 text-slate-200 font-black hover:bg-slate-900/60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!selectedContaId || linkLoading}
+                onClick={async () => {
+                  if (!selectedContaId) return;
+                  setLinkLoading(true);
+                  setLinkError(null);
+                  try {
+                    await updateTarefa(draft.id, { vinculo_tipo: 'conta_pagar', vinculo_id: selectedContaId } as any);
+                    setDraft((p) => ({ ...p, vinculo_tipo: 'conta_pagar', vinculo_id: selectedContaId } as any));
+                    onSaved();
+                    setLinkModalOpen(false);
+                  } catch (e: any) {
+                    setLinkError(e?.message || 'Falha ao vincular');
+                  } finally {
+                    setLinkLoading(false);
+                  }
+                }}
+                className="px-6 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black disabled:opacity-50"
+              >
+                Vincular
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-800/70 bg-slate-950/60 p-4">
+            <div className="text-xs text-slate-400 font-bold">
+              Tarefa: <span className="text-white">{draft.titulo}</span>
+            </div>
+          </div>
+
+          {linkLoading ? (
+            <div className="text-sm text-slate-400 font-bold">Carregando contas pendentes…</div>
+          ) : linkContas.length === 0 ? (
+            <div className="text-sm text-slate-400 font-bold">
+              Nenhuma conta pendente encontrada na janela (últimos 90 dias e próximos 45 dias).
+            </div>
+          ) : (
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+                Selecione a conta
+              </div>
+              <CustomSelect
+                value={selectedContaId}
+                onValueChange={(v) => setSelectedContaId(v)}
+                placeholder="Escolha uma conta…"
+                options={linkContas.map((c) => ({
+                  value: c.id,
+                  label: `${c.descricao} • ${c.data_vencimento} • ${formatCurrencyBR(Number(c.valor) || 0)}`,
+                }))}
+              />
+              <div className="text-[11px] text-slate-500 font-bold mt-2">
+                Dica: após vincular, o menu ⋮ e o painel vão mostrar “Registrar pagamento”.
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
     </aside>
   );
 };

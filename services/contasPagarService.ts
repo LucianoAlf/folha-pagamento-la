@@ -113,6 +113,30 @@ export async function fetchContaPagarById(contaId: string): Promise<ContaPagar |
   return (data || null) as any;
 }
 
+export async function fetchContasPendentesForAgenda(input?: {
+  startYmd?: string; // yyyy-mm-dd
+  endYmd?: string; // yyyy-mm-dd
+  limit?: number;
+}): Promise<ContaPagar[]> {
+  const limit = Math.min(400, Math.max(50, Number(input?.limit || 200)));
+
+  const today = new Date().toISOString().slice(0, 10);
+  const start = input?.startYmd || today;
+  const end = input?.endYmd || today;
+
+  const { data, error } = await supabase
+    .from('contas_pagar')
+    .select('*, categoria:categorias_despesa(*)')
+    .eq('status', 'pendente')
+    .neq('status', 'cancelado')
+    .gte('data_vencimento', start)
+    .lte('data_vencimento', end)
+    .order('data_vencimento', { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return (data || []) as any;
+}
+
 export async function createContaPagar(conta: Partial<ContaPagar>): Promise<ContaPagar> {
   const { data: user } = await supabase.auth.getUser();
 

@@ -534,6 +534,20 @@ export const AgendaPage: React.FC = () => {
     return () => window.removeEventListener('agenda:quickpay', onQuickPay as EventListener);
   }, []);
 
+  // Ação rápida: abrir modal de vínculo (quando a tarefa ainda não tem vinculo_id)
+  useEffect(() => {
+    const onLinkConta = (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as { tarefaId?: string } | undefined;
+      const tarefaId = String(detail?.tarefaId || '');
+      if (!tarefaId) return;
+      setSelectedTarefaId(tarefaId);
+      // O painel de detalhes já tem o botão "Vincular a uma conta"
+      // (isso só garante que o usuário caiu na tarefa certa).
+    };
+    window.addEventListener('agenda:linkconta', onLinkConta as EventListener);
+    return () => window.removeEventListener('agenda:linkconta', onLinkConta as EventListener);
+  }, []);
+
   // Atualização imediata (sem depender de Realtime): Configurações dispara evento após salvar.
   useEffect(() => {
     const onEvt = (ev: Event) => {

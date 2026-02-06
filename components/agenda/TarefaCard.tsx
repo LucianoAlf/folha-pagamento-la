@@ -186,6 +186,22 @@ export const TarefaCard: React.FC<{
                         </button>
                         <div className="h-px bg-slate-800/70" />
                       </>
+                    ) : tarefa.categoria === 'financeiro' ? (
+                      <>
+                        <button
+                          type="button"
+                          className="w-full px-4 py-3 text-left text-sm font-bold text-violet-200 hover:bg-violet-500/10 flex items-center gap-2"
+                          onClick={() => {
+                            window.dispatchEvent(
+                              new CustomEvent('agenda:linkconta', { detail: { tarefaId: tarefa.id } })
+                            );
+                          }}
+                        >
+                          <ExternalLink className="w-4 h-4 text-violet-300" />
+                          Vincular a uma conta
+                        </button>
+                        <div className="h-px bg-slate-800/70" />
+                      </>
                     ) : null}
                     <button
                       type="button"
