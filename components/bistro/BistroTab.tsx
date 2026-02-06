@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Copy, Loader2, Plus, RefreshCw } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Copy, Loader2, Plus } from 'lucide-react';
 import type { Colaborador, FolhaMensal, Lancamento } from '../../types';
 import { Badge, Card, Modal, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
+import { supabase } from '../../services/supabase';
 import {
   addMonthsToYM,
   applyBistroDiscountsToFolha,
@@ -225,6 +226,32 @@ export const BistroTab: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ymRef]);
 
+  // Auto-refresh via Realtime (padrão de mercado): qualquer mudança nas tabelas bistro_* recarrega a tab.
+  const rtTimer = useRef<number | null>(null);
+  useEffect(() => {
+    const schedule = () => {
+      if (rtTimer.current) window.clearTimeout(rtTimer.current);
+      rtTimer.current = window.setTimeout(() => {
+        void loadAll();
+      }, 250);
+    };
+
+    const ch = supabase
+      .channel(`bistro-realtime:${ymRef}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bistro_competencias' }, schedule)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bistro_consumos' }, schedule)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bistro_vendas_resumo' }, schedule)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bistro_movimentacoes' }, schedule)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bistro_parametros' }, schedule)
+      .subscribe();
+
+    return () => {
+      if (rtTimer.current) window.clearTimeout(rtTimer.current);
+      supabase.removeChannel(ch);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ymRef]);
+
   const colabByNorm = useMemo(() => {
     const map = new Map<string, Colaborador>();
     for (const c of colaboradores) {
@@ -335,13 +362,6 @@ export const BistroTab: React.FC<{
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void loadAll()}
-              className="px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 font-black hover:bg-slate-900/70 transition-all flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" /> Atualizar
-            </button>
             <button
               type="button"
               onClick={() => setPasteOpen(true)}
