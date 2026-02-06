@@ -53,13 +53,14 @@ export const CalendarioView: React.FC<{
     return m;
   }, [statsByDay]);
 
-  const weekDays = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+  const weekDays = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'DOM'];
 
-  /** Clique num badge de tarefa dentro da celula do calendario */
+  /** Clique num badge de tarefa */
   const handleBadgeClick = (e: React.MouseEvent, t: Tarefa) => {
-    e.stopPropagation(); // nao propaga para o onClick da celula (que abre "criar tarefa")
+    e.preventDefault();
+    e.stopPropagation();
 
-    // Se eh conta vinculada -> abrir modal de pagamento
+    // Conta vinculada pendente -> abrir modal de pagamento
     if (t.vinculo_tipo === 'conta_pagar' && t.vinculo_id && t.status !== 'concluida') {
       window.dispatchEvent(
         new CustomEvent('agenda:quickpay', {
@@ -69,63 +70,16 @@ export const CalendarioView: React.FC<{
       return;
     }
 
-    // Caso contrario -> abrir detalhes da tarefa
+    // Qualquer outra tarefa -> abrir detalhes
     if (onSelectTarefa) {
       onSelectTarefa(t);
     }
   };
 
-  const dayTooltip = (iso: string) => {
-    const row = statsByDay.get(iso);
-    if (!row) return null;
-    const parts: Array<{ key: keyof typeof PRIORIDADES; label: string; n: number }> = [
-      { key: 'urgente', label: 'Urgente', n: row.urgente },
-      { key: 'alta', label: 'Alta', n: row.alta },
-      { key: 'media', label: 'Média', n: row.media },
-      { key: 'baixa', label: 'Baixa', n: row.baixa },
-    ];
-    const filtered = parts.filter((p) => p.n > 0);
-    return (
-      <div className="min-w-[260px] max-w-[340px]">
-        <div className="text-[11px] font-black text-white mb-2">
-          {iso} • {row.total} tarefa{row.total === 1 ? '' : 's'}
-        </div>
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {filtered.map((p) => (
-            <span
-              key={p.key}
-              className={cn('px-2 py-0.5 rounded-full border border-slate-800 text-[10px] font-black', PRIORIDADES[p.key].bg, PRIORIDADES[p.key].text)}
-            >
-              <span className="inline-flex items-center gap-1">
-                {(() => {
-                  const Icon = prioridadeIcon(p.key as any);
-                  return <Icon className="w-3.5 h-3.5" />;
-                })()}
-                {p.label} ({p.n})
-              </span>
-            </span>
-          ))}
-        </div>
-        <div className={cn('space-y-1.5', row.items.length > 5 && 'max-h-[220px] overflow-auto pr-1')}>
-          {row.items.slice(0, 8).map((t) => (
-            <div key={t.id} className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[11px] text-slate-200 font-bold truncate">{t.titulo}</div>
-                <div className="text-[10px] text-slate-500 font-bold truncate">
-                  {t.vinculo_tipo === 'conta_pagar' ? 'Conta a Pagar' : t.categoria}
-                </div>
-              </div>
-              <div className="text-[10px] text-slate-400 font-black whitespace-nowrap">
-                {t.vencimento_em ? new Date(t.vencimento_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
-              </div>
-            </div>
-          ))}
-          {row.items.length > 8 ? (
-            <div className="text-[10px] text-slate-400 font-black pt-1">+ {row.items.length - 8} outra(s)…</div>
-          ) : null}
-        </div>
-      </div>
-    );
+  /** Clique na celula (area vazia ou numero) -> criar tarefa nesse dia */
+  const handleCellClick = (iso: string, inMonth: boolean) => {
+    if (!inMonth) return;
+    onSelectDate(iso);
   };
 
   // Cores por prioridade
@@ -181,8 +135,9 @@ export const CalendarioView: React.FC<{
             const intensity = row && maxTotal > 0 ? Math.min(1, row.total / maxTotal) : 0;
             const bg = row && row.total > 0 ? `rgba(139,92,246,${0.08 + intensity * 0.22})` : 'transparent';
 
-            const cell = (
+            return (
               <div
+                key={iso}
                 className={cn(
                   'w-full relative transition-all text-left px-1.5 py-1.5 h-[100px] md:h-[120px] overflow-hidden rounded-[5px] border',
                   inMonth
@@ -194,40 +149,47 @@ export const CalendarioView: React.FC<{
                 style={{ backgroundColor: bg }}
               >
                 <div className="flex flex-col h-full">
-                  {/* Numero do dia - clicar aqui abre "Tarefas do dia" (criar) */}
+                  {/* Numero do dia - clicavel para abrir "Tarefas do dia" */}
                   <button
                     type="button"
                     disabled={!inMonth}
-                    onClick={() => {
-                      if (!inMonth) return;
-                      onSelectDate(iso);
-                    }}
-                    className="flex items-center justify-between mb-1 px-1 w-full text-left"
+                    onClick={() => handleCellClick(iso, inMonth)}
+                    className="flex items-center justify-between mb-1 px-1 w-full text-left hover:opacity-80 transition-opacity"
                   >
-                    <div
+                    <span
                       className={cn(
                         'text-[11px] md:text-xs font-black',
                         today && inMonth ? 'text-violet-400' : inMonth ? 'text-slate-200' : 'text-slate-600'
                       )}
                     >
                       {format(d, 'd')}
-                    </div>
+                    </span>
+                    {row && row.total > 0 && (
+                      <span className="text-[9px] font-black text-slate-500">{row.total}</span>
+                    )}
                   </button>
 
-                  {/* Badges de tarefas - cada um eh clicavel individualmente */}
+                  {/* Badges de tarefas - cada um clicavel individualmente */}
                   {inMonth && items.length > 0 ? (
                     <div className="space-y-0.5 flex-1 min-h-0">
                       {items.slice(0, isMobileView ? 2 : 4).map((t) => {
                         const isConta = t.vinculo_tipo === 'conta_pagar';
+                        const isContaPendente = isConta && t.status !== 'concluida';
                         const Icon = categoriaIcon(t.categoria);
                         return (
                           <Tooltip
                             key={t.id}
                             content={
-                              <div>
+                              <div className="max-w-[200px]">
                                 <div className="font-bold text-xs">{t.titulo}</div>
-                                {isConta && t.status !== 'concluida' && (
-                                  <div className="text-[10px] text-emerald-300 mt-0.5">Clique para pagar</div>
+                                {t.descricao && (
+                                  <div className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{t.descricao.split('\n')[0]}</div>
+                                )}
+                                {isContaPendente && (
+                                  <div className="text-[10px] text-emerald-300 font-bold mt-1">Clique para registrar pagamento</div>
+                                )}
+                                {!isConta && (
+                                  <div className="text-[10px] text-slate-400 mt-1">Clique para ver detalhes</div>
                                 )}
                               </div>
                             }
@@ -237,9 +199,9 @@ export const CalendarioView: React.FC<{
                               type="button"
                               onClick={(e) => handleBadgeClick(e, t)}
                               className={cn(
-                                'w-full px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold leading-tight shadow-sm !rounded-[5px] flex items-center gap-1 cursor-pointer transition-all hover:brightness-110 hover:scale-[1.02]',
-                                isConta && t.status !== 'concluida'
-                                  ? 'bg-emerald-600 text-white'
+                                'w-full px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold leading-tight shadow-sm rounded-[4px] flex items-center gap-1 cursor-pointer transition-all hover:brightness-125 hover:scale-[1.03] active:scale-95',
+                                isContaPendente
+                                  ? 'bg-emerald-600 text-white hover:bg-emerald-500'
                                   : getPrioColors(t.prioridade)
                               )}
                             >
@@ -256,9 +218,7 @@ export const CalendarioView: React.FC<{
                       {items.length > (isMobileView ? 2 : 4) ? (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (inMonth) onSelectDate(iso);
-                          }}
+                          onClick={() => handleCellClick(iso, inMonth)}
                           className="text-[9px] font-black text-slate-500 px-1 pt-0.5 hover:text-slate-300 transition-colors"
                         >
                           + {items.length - (isMobileView ? 2 : 4)} mais
@@ -266,32 +226,15 @@ export const CalendarioView: React.FC<{
                       ) : null}
                     </div>
                   ) : inMonth ? (
-                    // Area vazia clicavel para criar tarefa
+                    /* Area vazia clicavel para criar tarefa */
                     <button
                       type="button"
-                      onClick={() => onSelectDate(iso)}
+                      onClick={() => handleCellClick(iso, inMonth)}
                       className="flex-1 w-full"
                       aria-label={`Criar tarefa em ${iso}`}
                     />
                   ) : null}
                 </div>
-              </div>
-            );
-
-            const tip = row && row.total > 0 ? dayTooltip(iso) : null;
-
-            return tip ? (
-              <Tooltip
-                key={iso}
-                content={tip}
-                className="p-3 rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl"
-                side="top"
-              >
-                {cell}
-              </Tooltip>
-            ) : (
-              <div key={iso} className="w-full">
-                {cell}
               </div>
             );
           })}

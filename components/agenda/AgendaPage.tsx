@@ -533,6 +533,7 @@ export const AgendaPage: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tarefas_subtarefas' }, scheduleRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notas_rapidas' }, scheduleRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notificacao_config' }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contas_pagar' }, scheduleRefresh)
       .subscribe();
 
     return () => {
@@ -946,10 +947,14 @@ export const AgendaPage: React.FC = () => {
           if (!quickPay?.contaId || !quickPay?.tarefaId) return;
           await registrarPagamento(quickPay.contaId, input);
           await updateTarefa(quickPay.tarefaId, { status: 'concluida', data_conclusao: new Date().toISOString() } as any);
-          // Re-sincroniza contagens/listas/tarefas para refletir instantaneamente
-          scheduleRefresh();
           setQuickPay(null);
           setQuickPayConta(null);
+          // Refresh imediato: recarrega tudo para refletir pagamento no calendario/listas
+          await Promise.all([
+            loadCounts(),
+            loadTimeline(),
+            loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }),
+          ]).catch(() => {});
         }}
       />
 
