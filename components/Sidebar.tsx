@@ -142,36 +142,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
           const ModuleIcon = module.icon;
           const isActiveModule = activeModuleId === module.id;
 
+          const button = (
+            <button
+              type="button"
+              onClick={() => {
+                if (module.disabled) return;
+                handleNav({ module: module.id });
+              }}
+              disabled={module.disabled}
+              className={[
+                'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200',
+                module.disabled
+                  ? 'opacity-50 cursor-not-allowed text-slate-500'
+                  : isActiveModule
+                    ? 'bg-violet-500/15 text-violet-300 border border-violet-500/20 shadow-lg shadow-violet-500/5'
+                    : 'text-slate-400 hover:bg-slate-800/40 hover:text-white border border-transparent',
+              ].join(' ')}
+            >
+              <ModuleIcon className="w-5 h-5 shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 text-left text-sm font-bold">{module.label}</span>
+                  {module.disabled && (
+                    <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-400">
+                      Em breve
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
+          );
+
           return (
             <div key={module.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (module.disabled) return;
-                  handleNav({ module: module.id });
-                }}
-                disabled={module.disabled}
-                className={[
-                  'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200',
-                  module.disabled
-                    ? 'opacity-50 cursor-not-allowed text-slate-500'
-                    : isActiveModule
-                      ? 'bg-violet-500/15 text-violet-300 border border-violet-500/20 shadow-lg shadow-violet-500/5'
-                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-white border border-transparent',
-                ].join(' ')}
-              >
-                <ModuleIcon className="w-5 h-5 shrink-0" />
-                {!collapsed && (
-                  <>
-                    <span className="flex-1 text-left text-sm font-bold">{module.label}</span>
-                    {module.disabled && (
-                      <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-400">
-                        Em breve
-                      </span>
-                    )}
-                  </>
-                )}
-              </button>
+              {collapsed ? (
+                <Tooltip content={module.label} side="right">
+                  {button}
+                </Tooltip>
+              ) : (
+                button
+              )}
             </div>
           );
         })}
@@ -208,16 +218,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </Tooltip>
 
-        <button
-          type="button"
-          onClick={onLogout}
-          className={[
-            'w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors',
-          ].join(' ')}
-        >
-          <LogOut className="w-4 h-4" />
-          {!collapsed && <span className="text-sm font-bold">Sair</span>}
-        </button>
+        <div key="logout">
+          {collapsed ? (
+            <Tooltip content="Sair" side="right">
+              <button
+                type="button"
+                onClick={onLogout}
+                className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </Tooltip>
+          ) : (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm font-bold">Sair</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Collapse Toggle (desktop only) */}
