@@ -82,23 +82,40 @@ export async function getOrCreateBistroCompetencia(input: { ym: string; unidade?
   const unidade: BistroUnidade = input.unidade || 'cg';
   const { ano, mes } = ymToParts(input.ym);
 
-  const { data: existing, error: selErr } = await supabase
-    .from('bistro_competencias')
-    .select('*')
-    .eq('unidade', unidade)
-    .eq('ano', ano)
-    .eq('mes', mes)
-    .limit(1);
-  if (selErr) throw selErr;
-  if (existing && existing.length) return existing[0] as BistroCompetencia;
+  const selectOne = async () => {
+    const { data, error } = await supabase
+      .from('bistro_competencias')
+      .select('*')
+      .eq('unidade', unidade)
+      .eq('ano', ano)
+      .eq('mes', mes)
+      .limit(1);
+    if (error) throw error;
+    return (data && data.length ? (data[0] as BistroCompetencia) : null) as BistroCompetencia | null;
+  };
 
-  const { data, error } = await supabase
+  const existing = await selectOne();
+  if (existing) return existing;
+
+  // Concorrência: duas abas/sessões podem tentar criar ao mesmo tempo.
+  const { data: inserted, error: insErr } = await supabase
     .from('bistro_competencias')
     .insert({ unidade, ano, mes, status: 'aberta', saldo_inicial_emla: 0 })
     .select('*')
     .single();
-  if (error) throw error;
-  return data as BistroCompetencia;
+
+  if (!insErr) return inserted as BistroCompetencia;
+
+  // Se falhou por duplicidade (unique constraint), apenas busca novamente.
+  const msg = String((insErr as any)?.message || '');
+  const code = String((insErr as any)?.code || '');
+  const isDup = code === '23505' || msg.toLowerCase().includes('duplicate key value') || msg.includes('bistro_competencias_unidade_ano_mes_key');
+  if (isDup) {
+    const after = await selectOne();
+    if (after) return after;
+  }
+
+  throw insErr;
 }
 
 export async function fetchBistroConsumos(competenciaId: string) {
