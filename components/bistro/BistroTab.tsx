@@ -249,21 +249,6 @@ export const BistroTab: React.FC<{
 
   const vendasCalc = useMemo(() => computeVendasResumo(vendas, consumoTotal), [vendas, consumoTotal]);
 
-  const lucia = useMemo(() => {
-    if (!params?.lucia_colaborador_id) return null;
-    const consumoLucia = consumos.find((c) => c.colaborador_id === params.lucia_colaborador_id)?.valor || 0;
-    const lancLucia = luciaLancRemote || lancamentosFolha.find((l) => l.colaborador_id === params.lucia_colaborador_id) || null;
-    const vt = lancLucia?.passagem || 0;
-    return computeLuciaPagamento({
-      params,
-      vendas,
-      movs,
-      consumoLucia: Number(consumoLucia) || 0,
-      vt: Number(vt) || 0,
-      colaboradoresBruto: consumoTotal,
-    });
-  }, [params, consumos, luciaLancRemote, lancamentosFolha, vendas, movs]);
-
   const luciaLanc = useMemo(() => {
     if (!params?.lucia_colaborador_id) return null;
     return lancamentosFolha.find((l) => l.colaborador_id === params.lucia_colaborador_id) || null;
@@ -305,6 +290,20 @@ export const BistroTab: React.FC<{
   }, [folhaAtual.id, params?.lucia_colaborador_id]);
 
   const luciaLancEffective = luciaLancRemote || luciaLanc;
+
+  const lucia = useMemo(() => {
+    if (!params?.lucia_colaborador_id) return null;
+    const consumoLucia = consumos.find((c) => c.colaborador_id === params.lucia_colaborador_id)?.valor || 0;
+    const vt = luciaLancEffective?.passagem || 0;
+    return computeLuciaPagamento({
+      params,
+      vendas,
+      movs,
+      consumoLucia: Number(consumoLucia) || 0,
+      vt: Number(vt) || 0,
+      colaboradoresBruto: consumoTotal,
+    });
+  }, [params, consumos, luciaLancEffective, vendas, movs, consumoTotal]);
 
   const [luciaSalarioDraft, setLuciaSalarioDraft] = useState<string>('');
   const [luciaVtDraft, setLuciaVtDraft] = useState<string>('');
