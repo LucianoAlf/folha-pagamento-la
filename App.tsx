@@ -11,7 +11,7 @@ import {
   Calendar, Bell, BarChart3, FileText, 
   TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database, ShieldCheck, CreditCard,
   LineChart as LineChartIcon,
-  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, LogOut, Menu, X
+  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, ChefHat, LogOut, Menu, X
 } from 'lucide-react';
 import { 
   CollaboratorCard, 
@@ -252,7 +252,7 @@ export default function App() {
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
         { id: 'colaboradores', label: 'Colaboradores', icon: Users },
         { id: 'lancamentos', label: 'Lançamentos', icon: FileText },
-        { id: 'bistro', label: 'Bistrô', icon: Coins },
+        { id: 'bistro', label: 'Bistrô', icon: ChefHat },
         { id: 'comparativo', label: 'Comparativo', icon: TrendingUp },
       ]
     },
