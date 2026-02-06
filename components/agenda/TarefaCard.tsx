@@ -162,6 +162,8 @@ export const TarefaCard: React.FC<{
                             type="button"
                             className="w-full px-4 py-3 text-left text-sm font-bold text-emerald-200 hover:bg-emerald-500/10 flex items-center gap-2"
                             onClick={() => {
+                              // Se estiver dentro do modal "Tarefas do dia", fecha antes de abrir o fluxo
+                              window.dispatchEvent(new CustomEvent('agenda:close-daymodal'));
                               window.dispatchEvent(
                                 new CustomEvent('agenda:quickpay', {
                                   detail: { tarefaId: tarefa.id, contaId: String(tarefa.vinculo_id) }
@@ -178,6 +180,7 @@ export const TarefaCard: React.FC<{
                           type="button"
                           className="w-full px-4 py-3 text-left text-sm font-bold text-slate-200 hover:bg-slate-900/60 flex items-center gap-2"
                           onClick={() => {
+                            window.dispatchEvent(new CustomEvent('agenda:close-daymodal'));
                             if (tarefa.vinculo_tipo === 'conta_pagar') navigateTo('contas', 'visao-geral');
                             if (tarefa.vinculo_tipo === 'folha_pagamento') navigateTo('folha', 'dashboard');
                           }}
@@ -193,6 +196,8 @@ export const TarefaCard: React.FC<{
                           type="button"
                           className="w-full px-4 py-3 text-left text-sm font-bold text-violet-200 hover:bg-violet-500/10 flex items-center gap-2"
                           onClick={() => {
+                            // Fecha o modal do dia para não ficar "atrás"
+                            window.dispatchEvent(new CustomEvent('agenda:close-daymodal'));
                             window.dispatchEvent(
                               new CustomEvent('agenda:linkconta', { detail: { tarefaId: tarefa.id } })
                             );

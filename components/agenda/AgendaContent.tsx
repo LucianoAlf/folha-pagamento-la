@@ -177,6 +177,13 @@ export const AgendaContent: React.FC<{
     if (!selectedDateISO) setDayModalOpen(false);
   }, [selectedDateISO]);
 
+  // Permite que ações (ex.: "Vincular a uma conta") fechem o modal do dia antes de abrir outros fluxos.
+  useEffect(() => {
+    const onClose = () => setDayModalOpen(false);
+    window.addEventListener('agenda:close-daymodal', onClose as any);
+    return () => window.removeEventListener('agenda:close-daymodal', onClose as any);
+  }, []);
+
   return (
     <section className="flex-1 min-w-0 bg-slate-950/85 relative">
       <div className="h-full flex flex-col">
