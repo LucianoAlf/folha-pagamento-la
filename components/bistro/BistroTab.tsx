@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Loader2, Plus } from 'lucide-react';
 import type { Colaborador, FolhaMensal, Lancamento } from '../../types';
-import { Badge, Card, Modal, Tooltip } from '../UI';
+import { Badge, Card, CustomSelect, DatePicker, Modal, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { supabase } from '../../services/supabase';
 import {
@@ -261,6 +261,36 @@ export const BistroTab: React.FC<{
     return map;
   }, [colaboradores]);
 
+  const inputBase =
+    'w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50 placeholder:text-slate-600';
+
+  const colaboradoresOptions = useMemo(() => {
+    return colaboradores
+      .slice()
+      .sort((a, b) => a.nome.localeCompare(b.nome))
+      .map((c) => ({ value: String(c.id), label: c.nome }));
+  }, [colaboradores]);
+
+  const movTipoOptions = useMemo(
+    () => [
+      { value: 'despesa', label: 'Despesa' },
+      { value: 'repasse_bistro', label: 'Repasse Bistrô' },
+      { value: 'aporte_emla', label: 'Aporte EMLA' },
+      { value: 'abatimento_emla', label: 'Abatimento EMLA' },
+    ],
+    []
+  );
+
+  const movCategoriaOptions = useMemo(
+    () => [
+      { value: 'insumos', label: 'Insumos' },
+      { value: 'salario_lucia', label: 'Salário Lúcia' },
+      { value: 'outros', label: 'Outros' },
+      { value: '', label: '—' },
+    ],
+    []
+  );
+
   function refreshPastePreview(text: string) {
     const parsed = parseConsumosText(text);
     const preview = parsed.map((r) => {
@@ -367,7 +397,7 @@ export const BistroTab: React.FC<{
               onClick={() => setPasteOpen(true)}
               disabled={!canEdit}
               className={cn(
-                'px-4 py-2 rounded-xl font-black transition-all flex items-center gap-2 border',
+                'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
                 canEdit
                   ? 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30'
                   : 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
@@ -378,7 +408,7 @@ export const BistroTab: React.FC<{
             <button
               type="button"
               onClick={() => setReportOpen(true)}
-              className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
               <Copy className="w-4 h-4" /> Gerar Relatório (Copiar)
             </button>
@@ -387,7 +417,7 @@ export const BistroTab: React.FC<{
               onClick={() => void applyDiscounts()}
               disabled={!canEdit || applyLoading}
               className={cn(
-                'px-4 py-2 rounded-xl font-black transition-all flex items-center gap-2 border',
+                'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
                 !canEdit
                   ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/30',
@@ -456,21 +486,12 @@ export const BistroTab: React.FC<{
           <div className="mt-4 space-y-3">
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Colaboradora</div>
-              <select
-                value={params?.lucia_colaborador_id ?? ''}
-                onChange={(e) => void saveParametros({ lucia_colaborador_id: e.target.value ? Number(e.target.value) : null })}
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3 py-2 text-slate-100 font-bold"
-              >
-                <option value="">Selecione…</option>
-                {colaboradores
-                  .slice()
-                  .sort((a, b) => a.nome.localeCompare(b.nome))
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nome}
-                    </option>
-                  ))}
-              </select>
+              <CustomSelect
+                value={params?.lucia_colaborador_id ? String(params.lucia_colaborador_id) : ''}
+                onValueChange={(v) => void saveParametros({ lucia_colaborador_id: v ? Number(v) : null })}
+                options={[{ value: '', label: 'Selecione...' }, ...colaboradoresOptions]}
+                className="w-full"
+              />
             </div>
           </div>
 
@@ -511,7 +532,8 @@ export const BistroTab: React.FC<{
                   value={String((vendas as any)?.[k] ?? '')}
                   onChange={(e) => setVendas((p) => ({ ...(p || ({} as any)), [k]: e.target.value } as any))}
                   placeholder="0,00"
-                  className="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3 py-2 text-slate-100 font-bold"
+                  className={inputBase}
+                  inputMode="decimal"
                 />
               </div>
             ))}
@@ -536,7 +558,7 @@ export const BistroTab: React.FC<{
               disabled={!canEdit}
               onClick={() => void saveVendas()}
               className={cn(
-                'px-4 py-2 rounded-xl font-black border transition-all',
+                'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60',
                 canEdit ? 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-800 text-slate-200' : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
               )}
             >
@@ -557,29 +579,19 @@ export const BistroTab: React.FC<{
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Tipo</div>
-              <select
+              <CustomSelect
                 value={movDraft.tipo}
-                onChange={(e) => setMovDraft((p) => ({ ...p, tipo: e.target.value as any }))}
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3 py-2 text-slate-100 font-bold"
-              >
-                <option value="despesa">Despesa</option>
-                <option value="repasse_bistro">Repasse Bistrô</option>
-                <option value="aporte_emla">Aporte EMLA</option>
-                <option value="abatimento_emla">Abatimento EMLA</option>
-              </select>
+                onValueChange={(v) => setMovDraft((p) => ({ ...p, tipo: v as any }))}
+                options={movTipoOptions}
+              />
             </div>
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Categoria</div>
-              <select
+              <CustomSelect
                 value={movDraft.categoria}
-                onChange={(e) => setMovDraft((p) => ({ ...p, categoria: e.target.value as any }))}
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3 py-2 text-slate-100 font-bold"
-              >
-                <option value="insumos">Insumos</option>
-                <option value="salario_lucia">Salário Lúcia</option>
-                <option value="outros">Outros</option>
-                <option value="">—</option>
-              </select>
+                onValueChange={(v) => setMovDraft((p) => ({ ...p, categoria: v as any }))}
+                options={movCategoriaOptions}
+              />
             </div>
             <div className="col-span-2">
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Descrição</div>
@@ -587,7 +599,7 @@ export const BistroTab: React.FC<{
                 value={movDraft.descricao}
                 onChange={(e) => setMovDraft((p) => ({ ...p, descricao: e.target.value }))}
                 placeholder="Ex.: Insumos; Repasse; Reparo Micro-ondas…"
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3 py-2 text-slate-100 font-bold"
+                className={inputBase}
               />
             </div>
             <div>
@@ -596,16 +608,17 @@ export const BistroTab: React.FC<{
                 value={movDraft.valor}
                 onChange={(e) => setMovDraft((p) => ({ ...p, valor: e.target.value }))}
                 placeholder="0,00"
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3 py-2 text-slate-100 font-bold"
+                className={inputBase}
+                inputMode="decimal"
               />
             </div>
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Data</div>
-              <input
-                type="date"
+              <DatePicker
                 value={movDraft.data_mov}
-                onChange={(e) => setMovDraft((p) => ({ ...p, data_mov: e.target.value }))}
-                className="w-full bg-slate-900/40 border border-slate-700/60 rounded-xl px-3 py-2 text-slate-100 font-bold"
+                onChange={(v) => setMovDraft((p) => ({ ...p, data_mov: v || '' }))}
+                placeholder="Selecione..."
+                className="bg-slate-900/40 border-slate-700/60 text-slate-100"
               />
             </div>
             <div className="col-span-2 flex justify-end">
@@ -614,7 +627,7 @@ export const BistroTab: React.FC<{
                 disabled={!canEdit}
                 onClick={() => void addMov()}
                 className={cn(
-                  'px-4 py-2 rounded-xl font-black border transition-all',
+                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60',
                   canEdit ? 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-800 text-slate-200' : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
                 )}
               >
