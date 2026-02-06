@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Copy, Loader2, Plus } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Colaborador, FolhaMensal, Lancamento } from '../../types';
-import { Badge, Card, CustomSelect, DatePicker, Modal, Tooltip } from '../UI';
+import { Badge, Card, ConfirmDialog, CustomSelect, DatePicker, Modal, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { supabase } from '../../services/supabase';
 import { api } from '../../services/api';
@@ -22,6 +22,8 @@ import {
   upsertBistroParametros,
   upsertBistroVendasResumo,
   createBistroMovimentacao,
+  updateBistroMovimentacao,
+  deleteBistroMovimentacao,
   updateBistroCompetencia,
   type BistroMovimentacao,
   type BistroMovimentacaoCategoria,
@@ -597,6 +599,60 @@ export const BistroTab: React.FC<{
   const [reportDraftRepasses, setReportDraftRepasses] = useState('');
   const [luciaPickerOpen, setLuciaPickerOpen] = useState(false);
 
+  // CRUD Movimentações (editar/excluir com confirmação)
+  const [movEditOpen, setMovEditOpen] = useState(false);
+  const [movEditDraft, setMovEditDraft] = useState<{
+    id: string;
+    tipo: BistroMovimentacaoTipo;
+    categoria: BistroMovimentacaoCategoria | '' | null;
+    descricao: string;
+    valor: string;
+    data_mov: string;
+  } | null>(null);
+  const [movEditSaving, setMovEditSaving] = useState(false);
+
+  const [movDeleteOpen, setMovDeleteOpen] = useState(false);
+  const [movToDelete, setMovToDelete] = useState<BistroMovimentacao | null>(null);
+
+  function openEditMov(m: BistroMovimentacao) {
+    setMovEditDraft({
+      id: m.id,
+      tipo: m.tipo,
+      categoria: (m.categoria || '') as any,
+      descricao: m.descricao || '',
+      valor: String(m.valor ?? '').replace('.', ','),
+      data_mov: m.data_mov,
+    });
+    setMovEditOpen(true);
+  }
+
+  async function saveEditMov() {
+    if (!movEditDraft) return;
+    setMovEditSaving(true);
+    try {
+      await updateBistroMovimentacao({
+        id: movEditDraft.id,
+        tipo: movEditDraft.tipo,
+        categoria: movEditDraft.tipo === 'despesa' ? ((movEditDraft.categoria || null) as any) : null,
+        descricao: (movEditDraft.descricao || '').trim(),
+        valor: parseMoneyBR(movEditDraft.valor),
+        data_mov: movEditDraft.data_mov,
+      });
+      setMovEditOpen(false);
+      setMovEditDraft(null);
+      await loadAll();
+    } finally {
+      setMovEditSaving(false);
+    }
+  }
+
+  async function confirmDeleteMov() {
+    if (!movToDelete) return;
+    await deleteBistroMovimentacao(movToDelete.id);
+    setMovToDelete(null);
+    await loadAll();
+  }
+
   useEffect(() => {
     if (!reportOpen) return;
     setReportKind('financeiro');
@@ -1100,6 +1156,7 @@ export const BistroTab: React.FC<{
                   <th className="px-4 py-3">Tipo</th>
                   <th className="px-4 py-3">Desc.</th>
                   <th className="px-4 py-3 text-right">Valor</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -1109,11 +1166,34 @@ export const BistroTab: React.FC<{
                     <td className="px-4 py-3 text-slate-200 font-bold text-sm">{m.tipo}</td>
                     <td className="px-4 py-3 text-slate-200 font-bold text-sm">{m.descricao}</td>
                     <td className="px-4 py-3 text-right text-slate-200 font-mono font-bold">{formatMoneyBR(m.valor)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditMov(m)}
+                          className="px-2.5 py-2 rounded-xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900/70 text-slate-200 transition-all"
+                          title="Editar"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMovToDelete(m);
+                            setMovDeleteOpen(true);
+                          }}
+                          className="px-2.5 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15 text-rose-200 transition-all"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {movs.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-slate-500 font-bold">
+                    <td colSpan={5} className="px-4 py-6 text-center text-slate-500 font-bold">
                       Nenhuma movimentação registrada.
                     </td>
                   </tr>
@@ -1123,6 +1203,123 @@ export const BistroTab: React.FC<{
           </div>
         </Card>
       </div>
+
+      {/* Edit Movimentação */}
+      <Modal
+        isOpen={movEditOpen}
+        onClose={() => {
+          setMovEditOpen(false);
+          setMovEditDraft(null);
+        }}
+        title="Editar movimentação"
+        subtitle="Ajuste os dados e salve"
+        className="max-w-2xl"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setMovEditOpen(false);
+                setMovEditDraft(null);
+              }}
+              className="px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 font-black"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveEditMov()}
+              disabled={!movEditDraft || movEditSaving || !canEdit}
+              className={cn(
+                'px-4 py-2 rounded-xl font-black border transition-all disabled:opacity-60 flex items-center gap-2',
+                !canEdit ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30'
+              )}
+            >
+              {movEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Salvar
+            </button>
+          </div>
+        }
+      >
+        {movEditDraft ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Tipo</div>
+              <CustomSelect
+                value={movEditDraft.tipo}
+                onValueChange={(v) =>
+                  setMovEditDraft((p) =>
+                    p
+                      ? ({
+                          ...p,
+                          tipo: v as any,
+                          categoria: v === 'despesa' ? p.categoria : '',
+                        } as any)
+                      : p
+                  )
+                }
+                options={movTipoOptions}
+              />
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Categoria</div>
+              {movEditDraft.tipo === 'despesa' ? (
+                <CustomSelect
+                  value={(movEditDraft.categoria || '') as any}
+                  onValueChange={(v) => setMovEditDraft((p) => (p ? ({ ...p, categoria: v as any } as any) : p))}
+                  options={movCategoriaOptions}
+                />
+              ) : (
+                <div className="px-4 py-3 rounded-2xl border border-slate-800/60 bg-slate-950/30 text-slate-500 font-black">
+                  — (somente para Despesa)
+                </div>
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Descrição</div>
+              <input
+                value={movEditDraft.descricao}
+                onChange={(e) => setMovEditDraft((p) => (p ? ({ ...p, descricao: e.target.value } as any) : p))}
+                className={inputBase}
+                placeholder="Ex.: Repasse; Insumos; Reparo…"
+              />
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Valor</div>
+              <input
+                value={movEditDraft.valor}
+                onChange={(e) => setMovEditDraft((p) => (p ? ({ ...p, valor: e.target.value } as any) : p))}
+                className={inputBase}
+                placeholder="0,00"
+                inputMode="decimal"
+              />
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Data</div>
+              <DatePicker
+                value={movEditDraft.data_mov}
+                onChange={(v) => setMovEditDraft((p) => (p ? ({ ...p, data_mov: v || '' } as any) : p))}
+                placeholder="Selecione..."
+                className="bg-slate-900/40 border-slate-700/60 text-slate-100"
+              />
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={movDeleteOpen}
+        onClose={() => {
+          setMovDeleteOpen(false);
+          setMovToDelete(null);
+        }}
+        onConfirm={() => void confirmDeleteMov()}
+        title="Excluir movimentação?"
+        message={`Tem certeza que deseja excluir "${movToDelete?.descricao || 'movimentação'}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        variant="danger"
+      />
 
       {/* Paste modal */}
       <Modal

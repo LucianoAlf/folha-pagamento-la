@@ -230,6 +230,32 @@ export async function createBistroMovimentacao(input: Omit<BistroMovimentacao, '
   return data as BistroMovimentacao;
 }
 
+export async function updateBistroMovimentacao(input: {
+  id: string;
+  tipo: BistroMovimentacaoTipo;
+  categoria?: BistroMovimentacaoCategoria | null;
+  descricao: string;
+  valor: number;
+  data_mov: string; // yyyy-mm-dd
+}) {
+  const patch = {
+    tipo: input.tipo,
+    categoria: input.categoria ?? null,
+    descricao: input.descricao,
+    valor: Number(input.valor) || 0,
+    data_mov: input.data_mov,
+    updated_at: new Date().toISOString(),
+  };
+  const { data, error } = await supabase.from('bistro_movimentacoes').update(patch).eq('id', input.id).select('*').single();
+  if (error) throw error;
+  return data as BistroMovimentacao;
+}
+
+export async function deleteBistroMovimentacao(id: string) {
+  const { error } = await supabase.from('bistro_movimentacoes').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export async function fetchBistroParametros(unidade: BistroUnidade = 'cg') {
   const { data, error } = await supabase.from('bistro_parametros').select('*').eq('unidade', unidade).single();
   if (error && error.code !== 'PGRST116') throw error;
