@@ -327,7 +327,7 @@ export const Modal: React.FC<{
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[12000] flex overflow-hidden bg-black/60",
+        "fixed inset-0 z-[12000] flex overflow-hidden bg-black/60 backdrop-blur-sm",
         position === 'bottom' ? "items-end justify-center p-0 sm:p-4" : 
         position === 'left' ? "items-stretch justify-start p-0" :
         "items-center justify-center p-4",
@@ -339,7 +339,7 @@ export const Modal: React.FC<{
     >
       <Card
         className={cn(
-          "w-full flex flex-col p-0 overflow-hidden shadow-2xl animate-in duration-200",
+          "w-full flex flex-col p-0 overflow-visible shadow-2xl animate-in duration-200",
           position === 'bottom' ? "max-w-none rounded-t-3xl rounded-b-none max-h-[85vh] slide-in-from-bottom" : 
           position === 'left' ? "w-[280px] max-w-[85vw] h-full rounded-none slide-in-from-left" :
           "max-w-2xl max-h-[90vh] zoom-in fade-in",
