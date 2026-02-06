@@ -721,22 +721,23 @@ export const BistroTab: React.FC<{
             >
               <Copy className="w-4 h-4" /> Gerar Relatório (Copiar)
             </button>
-            <button
-              type="button"
-              onClick={() => void applyDiscounts()}
-              disabled={!canEdit || applyLoading}
-              className={cn(
-                'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
-                !canEdit
-                  ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/30',
-                applyLoading && 'opacity-70'
-              )}
-              title={!canEdit ? 'A folha precisa estar em rascunho para aplicar descontos.' : 'Aplicar desconto na coluna Descontos (com meta __bistro)'}
-            >
-              {applyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              Aplicar descontos na Folha ({monthLabelPt(ymFolha)})
-            </button>
+            <Tooltip content={!canEdit ? 'A folha precisa estar em rascunho para aplicar descontos.' : 'Aplicar desconto na coluna Descontos (com meta __bistro)'}>
+              <button
+                type="button"
+                onClick={() => void applyDiscounts()}
+                disabled={!canEdit || applyLoading}
+                className={cn(
+                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
+                  !canEdit
+                    ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/30',
+                  applyLoading && 'opacity-70'
+                )}
+              >
+                {applyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Aplicar descontos na Folha ({monthLabelPt(ymFolha)})
+              </button>
+            </Tooltip>
           </div>
         </div>
       </Card>
@@ -924,6 +925,7 @@ export const BistroTab: React.FC<{
                   <CheckCircle2 size={14} /> Aplicado na Folha
                 </div>
               ) : null}
+            <Tooltip content={!canEdit ? 'A folha precisa estar em rascunho para preencher automaticamente.' : 'Preenche salário/VT/comissão/bônus na folha da Lúcia'}>
               <button
                 type="button"
                 onClick={() => void applyLuciaToFolha()}
@@ -935,11 +937,11 @@ export const BistroTab: React.FC<{
                     : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 shadow-lg shadow-violet-600/10 active:scale-95',
                   luciaApplyLoading && 'opacity-70'
                 )}
-                title={!canEdit ? 'A folha precisa estar em rascunho para preencher automaticamente.' : 'Preenche salário/VT/comissão/bônus na folha da Lúcia'}
               >
                 {luciaApplyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Preencher na Folha
               </button>
+            </Tooltip>
             </div>
           </Card>
 
@@ -1079,21 +1081,22 @@ export const BistroTab: React.FC<{
 
               {movDraft.tipo === 'repasse_bistro' ? (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setMovDraft((p) => ({
-                        ...p,
-                        descricao: p.descricao?.trim() ? p.descricao : 'Repasse consumo colaboradores',
-                        valor: p.valor?.trim() ? p.valor : String(consumoTotal || '').replace('.', ','),
-                      }))
-                    }
-                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-cyan-500/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 transition-all flex items-center gap-2"
-                    title="Atalho: preenche descrição e sugere o valor do consumo do mês"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Repasse consumo (sugestão)
-                  </button>
+                  <Tooltip content="Atalho: preenche descrição e sugere o valor do consumo do mês">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMovDraft((p) => ({
+                          ...p,
+                          descricao: p.descricao?.trim() ? p.descricao : 'Repasse consumo colaboradores',
+                          valor: p.valor?.trim() ? p.valor : String(consumoTotal || '').replace('.', ','),
+                        }))
+                      }
+                      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-cyan-500/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 transition-all flex items-center gap-2"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Repasse consumo (sugestão)
+                    </button>
+                  </Tooltip>
                   <div className="text-[10px] text-slate-500 font-bold self-center">
                     Consumo do mês: <span className="text-slate-300">{formatMoneyBR(consumoTotal)}</span>
                   </div>
