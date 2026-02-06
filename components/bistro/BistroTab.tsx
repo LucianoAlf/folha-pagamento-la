@@ -932,7 +932,7 @@ export const BistroTab: React.FC<{
                   'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2',
                   !canEdit || !luciaLanc || !lucia
                     ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                    : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30',
+                    : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 shadow-lg shadow-violet-600/10 active:scale-95',
                   luciaApplyLoading && 'opacity-70'
                 )}
                 title={!canEdit ? 'A folha precisa estar em rascunho para preencher automaticamente.' : 'Preenche salário/VT/comissão/bônus na folha da Lúcia'}
@@ -1031,7 +1031,7 @@ export const BistroTab: React.FC<{
                 disabled={!canEdit}
                 onClick={() => void saveVendas()}
                 className={cn(
-                  'px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-violet-600/10',
+                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-violet-600/10',
                   canEdit 
                     ? 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 active:scale-95' 
                     : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
@@ -1148,7 +1148,7 @@ export const BistroTab: React.FC<{
                 disabled={!canEdit}
                 onClick={() => void addMov()}
                 className={cn(
-                  'px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2 shadow-lg shadow-violet-600/10',
+                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2 shadow-lg shadow-violet-600/10',
                   canEdit 
                     ? 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 active:scale-95' 
                     : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
