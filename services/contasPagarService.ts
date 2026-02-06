@@ -38,6 +38,52 @@ export async function fetchContasPagar(filtros?: {
   status?: 'todas' | 'pendente' | 'pago';
   unidade?: 'todas' | 'cg' | 'rec' | 'bar';
 }): Promise<ContaPagar[]> {
+  // 1. Garantir que contas recorrentes existam para o mês atual
+  try {
+    const hoje = new Date();
+    const yyyy = hoje.getFullYear();
+    const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+    const competenciaAtual = `${yyyy}-${mm}-01`;
+
+    // Busca modelos recorrentes
+    const { data: recorrentes } = await supabase
+      .from('contas_pagar')
+      .select('*')
+      .eq('tipo_lancamento', 'recorrente')
+      .neq('status', 'cancelado');
+
+    if (recorrentes && recorrentes.length > 0) {
+      for (const modelo of recorrentes) {
+        // Verifica se já existe lançamento para esta competência baseado no modelo
+        const { count } = await supabase
+          .from('contas_pagar')
+          .select('*', { count: 'exact', head: true })
+          .eq('descricao', modelo.descricao)
+          .eq('competencia', competenciaAtual)
+          .eq('unidade', modelo.unidade);
+
+        if (count === 0) {
+          // Calcula novo vencimento mantendo o dia original
+          const dataVencOriginal = new Date(`${modelo.data_vencimento}T00:00:00`);
+          const novoVencimento = `${yyyy}-${mm}-${String(dataVencOriginal.getDate()).padStart(2, '0')}`;
+
+          await supabase.from('contas_pagar').insert([{
+            ...modelo,
+            id: undefined, // Novo ID
+            competencia: competenciaAtual,
+            data_vencimento: novoVencimento,
+            status: 'pendente',
+            data_pagamento: null,
+            metodo_pagamento: null,
+            created_at: new Date().toISOString(),
+          }]);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao processar recorrentes automáticos:', err);
+  }
+
   let query = supabase
     .from('contas_pagar')
     .select('*, categoria:categorias_despesa(*)')
