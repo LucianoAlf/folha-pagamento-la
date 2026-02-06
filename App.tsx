@@ -2046,11 +2046,12 @@ export default function App() {
                             className="w-full bg-slate-900/40 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500"
                             value={
                               isCreatingLancamento
-                                ? (Number((draftLancamento as any)[key] ?? 0))
-                                : (Number((editingLancamento as any)?.[key] ?? 0))
+                                ? (draftLancamento as any)[key] === 0 ? '' : (draftLancamento as any)[key]
+                                : (editingLancamento as any)?.[key] === 0 ? '' : (editingLancamento as any)?.[key]
                             }
+                            placeholder="R$ 0,00"
                             onChange={(e) => {
-                              const val = Number(e.target.value);
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
                               if (isCreatingLancamento) {
                                 setDraftLancamento(prev => ({ ...prev, [key]: val } as any));
                               } else if (editingLancamento) {
