@@ -71,7 +71,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
       onClose={onClose} 
       title={initialData ? 'EDITAR CATEGORIA' : 'NOVA CATEGORIA'}
       className="max-w-md"
-      position="bottom"
+      position="center"
     >
       <div className="space-y-6">
         {/* Nome */}
