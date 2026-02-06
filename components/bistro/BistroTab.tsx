@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Copy, Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, Pencil, Plus, Save, Trash2, Undo2 } from 'lucide-react';
 import type { Colaborador, FolhaMensal, Lancamento } from '../../types';
 import { Badge, Card, ConfirmDialog, CustomSelect, DatePicker, Modal, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
@@ -19,6 +19,7 @@ import {
   getOrCreateBistroCompetencia,
   normalizeName,
   parseConsumosText,
+  revertBistroDiscountsFromFolha,
   upsertBistroConsumos,
   upsertBistroParametros,
   upsertBistroVendasResumo,
@@ -662,6 +663,9 @@ export const BistroTab: React.FC<{
   }
 
   const [applyLoading, setApplyLoading] = useState(false);
+  const [revertOpen, setRevertOpen] = useState(false);
+  const [revertLoading, setRevertLoading] = useState(false);
+  const [revertOk, setRevertOk] = useState(false);
   async function applyDiscounts() {
     if (!competenciaId) return;
     setApplyLoading(true);
@@ -671,6 +675,21 @@ export const BistroTab: React.FC<{
       await loadAll();
     } finally {
       setApplyLoading(false);
+    }
+  }
+
+  async function revertDiscounts() {
+    if (!competenciaId) return;
+    setRevertLoading(true);
+    setRevertOk(false);
+    try {
+      await revertBistroDiscountsFromFolha({ folhaId: folhaAtual.id, refYm: ymRef });
+      await onRefreshLancamentos();
+      await loadAll();
+      setRevertOk(true);
+      window.setTimeout(() => setRevertOk(false), 1800);
+    } finally {
+      setRevertLoading(false);
     }
   }
 
@@ -820,9 +839,42 @@ export const BistroTab: React.FC<{
                 Aplicar descontos na Folha ({monthLabelPt(ymFolha)})
               </button>
             </Tooltip>
+            <Tooltip content={!canEdit ? 'A folha precisa estar em rascunho para desfazer.' : 'Remove somente os descontos aplicados automaticamente pelo Bistrô'}>
+              <button
+                type="button"
+                onClick={() => setRevertOpen(true)}
+                disabled={!canEdit || revertLoading}
+                className={cn(
+                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
+                  !canEdit
+                    ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
+                    : 'bg-rose-600 hover:bg-rose-500 text-white border-rose-500/30',
+                  revertLoading && 'opacity-70'
+                )}
+              >
+                {revertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
+                Desfazer descontos
+              </button>
+            </Tooltip>
+            {revertOk ? (
+              <div className="text-[10px] text-emerald-300 font-black flex items-center gap-2">
+                <CheckCircle2 size={14} /> Desfeito
+              </div>
+            ) : null}
           </div>
         </div>
       </Card>
+
+      <ConfirmDialog
+        isOpen={revertOpen}
+        onClose={() => setRevertOpen(false)}
+        onConfirm={() => void revertDiscounts()}
+        title="Desfazer descontos do Bistrô?"
+        message={`Isso vai remover somente os descontos aplicados automaticamente pelo Bistrô na folha de ${monthLabelPt(ymFolha)} (referência ${monthLabelPt(ymRef)}). Descontos manuais permanecem.`}
+        confirmLabel="Desfazer"
+        cancelLabel="Cancelar"
+        variant="danger"
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card className="p-5 xl:col-span-2">

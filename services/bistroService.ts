@@ -351,6 +351,47 @@ export async function applyBistroDiscountsToFolha(input: { folhaId: number; refY
   return { updated: updates.length, competencia_id: competencia.id };
 }
 
+export async function revertBistroDiscountsFromFolha(input: { folhaId: number; refYm: string }) {
+  const { data: lancs, error } = await supabase
+    .from('lancamentos_folha')
+    .select('id, descontos, detalhamento')
+    .eq('folha_id', input.folhaId);
+  if (error) throw error;
+
+  const updates: Array<{ id: number; descontos: number; detalhamento: any }> = [];
+
+  for (const row of (lancs || []) as any[]) {
+    const id = Number(row.id);
+    const descontosAtual = safeNumber(row.descontos);
+    const det = (row.detalhamento || {}) as any;
+
+    const meta = getBistroMetaFromDetalhamento(det as any);
+    if (!meta.ref_ym || meta.ref_ym !== input.refYm) continue;
+
+    const oldBistro = safeNumber(meta.valor);
+    const nextDescontos = Math.max(0, descontosAtual - oldBistro);
+    const nextDet = { ...(det || {}) };
+    // Remove somente a marca do Bistrô, preservando outros detalhamentos do lançamento
+    try {
+      delete (nextDet as any).__bistro;
+    } catch {
+      // ignore
+    }
+
+    updates.push({ id, descontos: nextDescontos, detalhamento: nextDet });
+  }
+
+  for (const u of updates) {
+    const { error: upErr } = await supabase
+      .from('lancamentos_folha')
+      .update({ descontos: u.descontos, detalhamento: u.detalhamento, updated_at: new Date().toISOString() } as any)
+      .eq('id', u.id);
+    if (upErr) throw upErr;
+  }
+
+  return { reverted: updates.length };
+}
+
 export function formatMoneyBR(value: number) {
   try {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
