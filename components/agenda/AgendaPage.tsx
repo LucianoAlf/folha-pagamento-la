@@ -170,9 +170,9 @@ export const AgendaPage: React.FC = () => {
   }, [listKey, listas, smartLists]);
 
   const selectedTarefa = useMemo(() => {
-    const all = [...tarefas, ...tarefasHoje, ...tarefasAtrasadas];
+    const all = [...tarefas, ...tarefasHoje, ...tarefasAtrasadas, ...tarefasTimeline];
     return all.find((t) => t.id === selectedTarefaId) || null;
-  }, [tarefas, tarefasHoje, tarefasAtrasadas, selectedTarefaId]);
+  }, [tarefas, tarefasHoje, tarefasAtrasadas, tarefasTimeline, selectedTarefaId]);
 
   const tituloTopo = useMemo(() => {
     if (listKey === 'config') return 'Configurações';
