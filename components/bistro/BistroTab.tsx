@@ -225,7 +225,14 @@ export const BistroTab: React.FC<{
   // Colar lista
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState('');
-  const [pastePreview, setPastePreview] = useState<Array<{ nome: string; valor: number; colaborador_id: number | null }>>([]);
+  const [pastePreview, setPastePreview] = useState<
+    Array<{
+      nome: string;
+      valor: number;
+      colaborador_id: number | null;
+      sugestoes?: Array<{ id: number; nome: string }>;
+    }>
+  >([]);
 
   // Movimentação quick add
   const [movDraft, setMovDraft] = useState<{ tipo: BistroMovimentacaoTipo; categoria: BistroMovimentacaoCategoria | ''; descricao: string; valor: string; data_mov: string }>({
@@ -546,6 +553,18 @@ export const BistroTab: React.FC<{
     return map;
   }, [colaboradores]);
 
+  const colabNormIndex = useMemo(() => {
+    return colaboradores.map((c) => {
+      const norms = new Set<string>();
+      norms.add(normalizeName(c.nome));
+      if (c.nome_completo) norms.add(normalizeName(c.nome_completo));
+      const normAll = Array.from(norms);
+      const words = new Set<string>();
+      for (const n of normAll) for (const w of n.split(' ')) if (w) words.add(w);
+      return { c, norms: normAll, words: Array.from(words) };
+    });
+  }, [colaboradores]);
+
   const inputBase =
     'w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50 placeholder:text-slate-600';
 
@@ -579,8 +598,41 @@ export const BistroTab: React.FC<{
   function refreshPastePreview(text: string) {
     const parsed = parseConsumosText(text);
     const preview = parsed.map((r) => {
-      const c = colabByNorm.get(normalizeName(r.nome)) || null;
-      return { ...r, colaborador_id: c?.id ?? null };
+      const wanted = normalizeName(r.nome);
+      const exact = colabByNorm.get(wanted) || null;
+      if (exact) return { ...r, colaborador_id: exact.id };
+
+      // Match “premium”: permite primeiro nome / prefixo (Jeremias -> Jeremias Junior),
+      // mas evita escolher errado quando houver ambiguidade.
+      const candidates = colabNormIndex
+        .filter(({ norms, words }) => {
+          if (!wanted) return false;
+          // prefixo do nome completo ou do nome curto
+          if (norms.some((n) => n.startsWith(wanted))) return true;
+          // prefixo de qualquer palavra (ex.: "jer" casa com "jeremias")
+          if (words.some((w) => w.startsWith(wanted))) return true;
+          // tokens: "jer junior" deve casar com palavras do candidato
+          const tokens = wanted.split(' ').filter(Boolean);
+          if (tokens.length >= 2) {
+            return tokens.every((t) => words.some((w) => w.startsWith(t)));
+          }
+          return false;
+        })
+        .map(({ c }) => c);
+
+      if (candidates.length === 1) {
+        return { ...r, colaborador_id: candidates[0].id };
+      }
+
+      if (candidates.length > 1) {
+        return {
+          ...r,
+          colaborador_id: null,
+          sugestoes: candidates.slice(0, 6).map((c) => ({ id: c.id, nome: c.nome })),
+        };
+      }
+
+      return { ...r, colaborador_id: null };
     });
     setPastePreview(preview);
   }
@@ -1713,8 +1765,30 @@ export const BistroTab: React.FC<{
                       <div className="text-xs text-slate-500 font-bold truncate">
                         {p.colaborador_id
                           ? `→ ${colaboradores.find((c) => c.id === p.colaborador_id)?.nome || `#${p.colaborador_id}`}`
-                          : 'Não reconhecido (ajuste o nome na lista)'}
+                          : p.sugestoes?.length
+                            ? 'Não reconhecido. Sugestões:'
+                            : 'Não reconhecido (ajuste o nome na lista)'}
                       </div>
+                      {!p.colaborador_id && p.sugestoes?.length ? (
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          {p.sugestoes.map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => {
+                                setPastePreview((prev) =>
+                                  prev.map((row, i) =>
+                                    i === idx ? ({ ...row, colaborador_id: s.id, sugestoes: undefined } as any) : row
+                                  )
+                                );
+                              }}
+                              className="px-2 py-1 rounded-xl bg-slate-900/40 border border-slate-700/60 text-slate-200 text-[10px] font-black hover:bg-slate-900/60 transition-all"
+                            >
+                              {s.nome}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="text-slate-200 font-mono font-black">{formatMoneyBR(p.valor)}</div>
                   </div>
