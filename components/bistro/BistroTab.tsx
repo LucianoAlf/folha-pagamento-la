@@ -249,7 +249,30 @@ export const BistroTab: React.FC<{
 
   const saldoFinalEmla = useMemo(() => saldoInicialEmla + movTotals.aporte - movTotals.abatimento, [saldoInicialEmla, movTotals.aporte, movTotals.abatimento]);
 
-  const vendasCalc = useMemo(() => computeVendasResumo(vendas, consumoTotal), [vendas, consumoTotal]);
+  const vendasCalc = useMemo(() => {
+    // Garantir que os valores brutos sejam tratados como números antes do cálculo
+    const vNorm = vendas ? {
+      ...vendas,
+      pix_bruto: parseMoneyBR(String((vendas as any)?.pix_bruto || '')),
+      debito_bruto: parseMoneyBR(String((vendas as any)?.debito_bruto || '')),
+      credito_bruto: parseMoneyBR(String((vendas as any)?.credito_bruto || '')),
+      dinheiro_bruto: parseMoneyBR(String((vendas as any)?.dinheiro_bruto || '')),
+      // Taxas também precisam ser normalizadas para o cálculo em tempo real
+      pix_taxa_pct: (() => {
+        const n = Number(String((vendas as any)?.pix_taxa_pct || '').replace(',', '.'));
+        return n > 1 ? n / 100 : n || 0.0099;
+      })(),
+      debito_taxa_pct: (() => {
+        const n = Number(String((vendas as any)?.debito_taxa_pct || '').replace(',', '.'));
+        return n > 1 ? n / 100 : n || 0.0168;
+      })(),
+      credito_taxa_pct: (() => {
+        const n = Number(String((vendas as any)?.credito_taxa_pct || '').replace(',', '.'));
+        return n > 1 ? n / 100 : n || 0.0368;
+      })(),
+    } : null;
+    return computeVendasResumo(vNorm as any, consumoTotal);
+  }, [vendas, consumoTotal]);
 
   const luciaLanc = useMemo(() => {
     if (!params?.lucia_colaborador_id) return null;
@@ -551,6 +574,10 @@ export const BistroTab: React.FC<{
     await upsertBistroVendasResumo({
       competencia_id: competenciaId,
       ...vendas,
+      pix_bruto: parseMoneyBR(String((vendas as any)?.pix_bruto || '')),
+      debito_bruto: parseMoneyBR(String((vendas as any)?.debito_bruto || '')),
+      credito_bruto: parseMoneyBR(String((vendas as any)?.credito_bruto || '')),
+      dinheiro_bruto: parseMoneyBR(String((vendas as any)?.dinheiro_bruto || '')),
       pix_taxa_pct: normalizePct((vendas as any)?.pix_taxa_pct, 0.0099),
       debito_taxa_pct: normalizePct((vendas as any)?.debito_taxa_pct, 0.0168),
       credito_taxa_pct: normalizePct((vendas as any)?.credito_taxa_pct, 0.0368),
