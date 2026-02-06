@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, Loader2, Plus } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, Plus } from 'lucide-react';
 import type { Colaborador, FolhaMensal, Lancamento } from '../../types';
 import { Badge, Card, CustomSelect, DatePicker, Modal, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { supabase } from '../../services/supabase';
+import { api } from '../../services/api';
 import {
   addMonthsToYM,
   applyBistroDiscountsToFolha,
@@ -57,6 +58,17 @@ function monthLabelPt(ym: string) {
 
 function copyToClipboard(text: string) {
   return navigator.clipboard.writeText(text);
+}
+
+function parseMoneyBR(raw: string) {
+  const cleaned = String(raw || '')
+    .trim()
+    .replace(/^R\$\s?/i, '')
+    .replace(/\s/g, '')
+    .replace(/[^\d.,-]/g, '');
+  if (!cleaned) return 0;
+  if (cleaned.includes(',')) return Number(cleaned.replace(/\./g, '').replace(',', '.')) || 0;
+  return Number(cleaned) || 0;
 }
 
 function buildRelatorioFinanceiroText(input: {
@@ -251,6 +263,47 @@ export const BistroTab: React.FC<{
       colaboradoresBruto: consumoTotal,
     });
   }, [params, consumos, lancamentosFolha, vendas, movs]);
+
+  const luciaLanc = useMemo(() => {
+    if (!params?.lucia_colaborador_id) return null;
+    return lancamentosFolha.find((l) => l.colaborador_id === params.lucia_colaborador_id) || null;
+  }, [lancamentosFolha, params?.lucia_colaborador_id]);
+
+  const [luciaSalarioDraft, setLuciaSalarioDraft] = useState<string>('');
+  const [luciaVtDraft, setLuciaVtDraft] = useState<string>('');
+  const luciaDraftInitRef = useRef(false);
+  useEffect(() => {
+    if (luciaDraftInitRef.current) return;
+    if (!luciaLanc) return;
+    setLuciaSalarioDraft(String(luciaLanc.salario || ''));
+    setLuciaVtDraft(String(luciaLanc.passagem || ''));
+    luciaDraftInitRef.current = true;
+  }, [luciaLanc]);
+
+  const [luciaApplyLoading, setLuciaApplyLoading] = useState(false);
+  const [luciaApplyOk, setLuciaApplyOk] = useState(false);
+  async function applyLuciaToFolha() {
+    if (!canEdit || !luciaLanc || !lucia || !params?.lucia_colaborador_id) return;
+    setLuciaApplyLoading(true);
+    setLuciaApplyOk(false);
+    try {
+      const salario = luciaSalarioDraft.trim() ? parseMoneyBR(luciaSalarioDraft) : Number(luciaLanc.salario || 0);
+      const passagem = luciaVtDraft.trim() ? parseMoneyBR(luciaVtDraft) : Number(luciaLanc.passagem || 0);
+
+      await api.updateLancamento(luciaLanc.id, {
+        salario,
+        passagem,
+        comissao: lucia.comissao,
+        bonus: lucia.bonus,
+      } as any);
+
+      await onRefreshLancamentos();
+      setLuciaApplyOk(true);
+      window.setTimeout(() => setLuciaApplyOk(false), 1500);
+    } finally {
+      setLuciaApplyLoading(false);
+    }
+  }
 
   const reportFinanceiroText = useMemo(() => {
     const bonusLabel = (() => {
@@ -605,34 +658,12 @@ export const BistroTab: React.FC<{
           </div>
         </Card>
 
-        <Card className="p-5">
-          <div className="text-white font-black">EMLA (saldo acumulado)</div>
-          <div className="text-xs text-slate-500 font-bold mt-1">Dívida/adiantamentos do Bistrô com a LA (EMLA)</div>
+        <div className="space-y-6">
+          <Card className="p-5">
+            <div className="text-white font-black">Pagamento da Lúcia (Folha)</div>
+            <div className="text-xs text-slate-500 font-bold mt-1">Resolve o Bistrô inteiro aqui: calcula e já preenche na Folha</div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Saldo inicial (mês)</div>
-              <input
-                defaultValue={String(saldoInicialEmla ?? '')}
-                onBlur={(e) => void saveSaldoInicialEmla(e.target.value)}
-                placeholder="0,00"
-                className={inputBase}
-                inputMode="decimal"
-              />
-              <div className="mt-1 text-[10px] text-slate-500 font-bold">* Salva automaticamente ao sair do campo</div>
-            </div>
-            <div className="rounded-2xl border border-slate-800/60 bg-slate-950/30 p-4">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Saldo final (mês)</div>
-              <div className="mt-1 text-lg font-black text-white font-mono">{formatMoneyBR(saldoFinalEmla)}</div>
-              <div className="mt-1 text-xs text-slate-500 font-bold">Saldo inicial + aportes − abatimentos</div>
-            </div>
-          </div>
-
-          <div className="mt-6 text-white font-black">Pagamento da Lúcia</div>
-          <div className="text-xs text-slate-500 font-bold mt-1">Usado para o preview e para o relatório financeiro</div>
-
-          <div className="mt-4 space-y-3">
-            <div>
+            <div className="mt-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Colaboradora</div>
                 <button
@@ -643,8 +674,6 @@ export const BistroTab: React.FC<{
                   Alterar
                 </button>
               </div>
-
-              {/* Mostra o nome fixo (para não confundir a Ana); a lista só aparece ao clicar em "Alterar" */}
               <div className="mt-2 px-4 py-3 rounded-2xl border border-slate-800/60 bg-slate-950/30 text-slate-100 font-black">
                 {params?.lucia_colaborador_id
                   ? colaboradores.find((c) => c.id === params.lucia_colaborador_id)?.nome || `#${params.lucia_colaborador_id}`
@@ -658,6 +687,8 @@ export const BistroTab: React.FC<{
                     onValueChange={(v) => {
                       void saveParametros({ lucia_colaborador_id: v ? Number(v) : null });
                       setLuciaPickerOpen(false);
+                      // Se mudar, permite reinicializar drafts na próxima renderização
+                      luciaDraftInitRef.current = false;
                     }}
                     options={[{ value: '', label: 'Selecione...' }, ...colaboradoresOptions]}
                     className="w-full"
@@ -668,30 +699,121 @@ export const BistroTab: React.FC<{
                 </div>
               ) : null}
             </div>
-          </div>
 
-          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Pagamento (preview)</div>
-            {lucia ? (
-              <div className="mt-2 space-y-1 text-sm">
-                <div className="flex items-center justify-between text-slate-300 font-bold">
-                  <span>Total líquido</span>
-                  <span className="text-emerald-300 font-black">{formatMoneyBR(lucia.totalLiquidoLucia)}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-500 font-bold text-xs">
-                  <span>Salário + VT + comissão + bônus</span>
-                  <span>{formatMoneyBR(lucia.totalBrutoLucia)}</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-500 font-bold text-xs">
-                  <span>Consumo do mês</span>
-                  <span>- {formatMoneyBR(lucia.consumo)}</span>
-                </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Salário (Folha)</div>
+                <input
+                  value={luciaSalarioDraft}
+                  onChange={(e) => setLuciaSalarioDraft(e.target.value)}
+                  placeholder={params ? formatMoneyBR(Number((params as any).lucia_salario_base || 0)) : '0,00'}
+                  className={inputBase}
+                  inputMode="decimal"
+                  disabled={!luciaLanc}
+                />
               </div>
-            ) : (
-              <div className="mt-2 text-slate-500 font-bold text-sm">Selecione a Lúcia para ver o cálculo.</div>
-            )}
-          </div>
-        </Card>
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">VT (Passagem)</div>
+                <input
+                  value={luciaVtDraft}
+                  onChange={(e) => setLuciaVtDraft(e.target.value)}
+                  placeholder="0,00"
+                  className={inputBase}
+                  inputMode="decimal"
+                  disabled={!luciaLanc}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Pagamento (calculado)</div>
+              {lucia ? (
+                <div className="mt-2 space-y-2 text-sm">
+                  <div className="flex items-center justify-between text-slate-300 font-bold">
+                    <span>Total líquido</span>
+                    <span className="text-emerald-300 font-black">{formatMoneyBR(lucia.totalLiquidoLucia)}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-500">
+                    <div className="flex items-center justify-between">
+                      <span>Comissão</span>
+                      <span className="text-slate-200 font-mono">{formatMoneyBR(lucia.comissao)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Bônus</span>
+                      <span className="text-slate-200 font-mono">{formatMoneyBR(lucia.bonus)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Consumo (mês)</span>
+                      <span className="text-slate-200 font-mono">- {formatMoneyBR(lucia.consumo)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Lucro líquido</span>
+                      <span className="text-slate-200 font-mono">{formatMoneyBR(lucia.lucroLiquido)}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 text-slate-500 font-bold text-sm">
+                  Selecione a Lúcia para ver o cálculo.
+                </div>
+              )}
+            </div>
+
+            {!luciaLanc ? (
+              <div className="mt-3 text-[10px] font-bold text-amber-300">
+                Não encontrei a linha da Lúcia na folha atual. Crie a linha em Folha → Lançamentos e volte aqui.
+              </div>
+            ) : null}
+
+            <div className="mt-4 flex items-center justify-end gap-3">
+              {luciaApplyOk ? (
+                <div className="text-[10px] text-emerald-300 font-black flex items-center gap-2">
+                  <CheckCircle2 size={14} /> Aplicado na Folha
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void applyLuciaToFolha()}
+                disabled={!canEdit || !luciaLanc || !lucia || luciaApplyLoading}
+                className={cn(
+                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2',
+                  !canEdit || !luciaLanc || !lucia
+                    ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
+                    : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30',
+                  luciaApplyLoading && 'opacity-70'
+                )}
+                title={!canEdit ? 'A folha precisa estar em rascunho para preencher automaticamente.' : 'Preenche salário/VT/comissão/bônus na folha da Lúcia'}
+              >
+                {luciaApplyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Preencher na Folha
+              </button>
+            </div>
+          </Card>
+
+          <Card className="p-5">
+            <div className="text-white font-black">EMLA (saldo acumulado)</div>
+            <div className="text-xs text-slate-500 font-bold mt-1">Dívida/adiantamentos do Bistrô com a LA (EMLA)</div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Saldo inicial (mês)</div>
+                <input
+                  defaultValue={String(saldoInicialEmla ?? '')}
+                  onBlur={(e) => void saveSaldoInicialEmla(e.target.value)}
+                  placeholder="0,00"
+                  className={inputBase}
+                  inputMode="decimal"
+                />
+                <div className="mt-1 text-[10px] text-slate-500 font-bold">* Salva automaticamente ao sair do campo</div>
+              </div>
+              <div className="rounded-2xl border border-slate-800/60 bg-slate-950/30 p-4">
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Saldo final (mês)</div>
+                <div className="mt-1 text-lg font-black text-white font-mono">{formatMoneyBR(saldoFinalEmla)}</div>
+                <div className="mt-1 text-xs text-slate-500 font-bold">Saldo inicial + aportes − abatimentos</div>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
