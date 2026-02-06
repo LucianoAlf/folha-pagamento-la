@@ -147,6 +147,16 @@ export const CalendarioView: React.FC<{
                   today && inMonth ? 'z-10 border-violet-500/50 bg-violet-500/5' : ''
                 )}
                 style={{ backgroundColor: bg }}
+                onClick={() => handleCellClick(iso, inMonth)}
+                role={inMonth ? 'button' : undefined}
+                tabIndex={inMonth ? 0 : -1}
+                onKeyDown={(e) => {
+                  if (!inMonth) return;
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCellClick(iso, inMonth);
+                  }
+                }}
               >
                 <div className="flex flex-col h-full">
                   {/* Numero do dia - clicavel para abrir "Tarefas do dia" */}
