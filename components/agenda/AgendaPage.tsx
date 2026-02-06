@@ -21,6 +21,10 @@ import type { AgendaKanbanColumnConfig } from '../../types/agenda';
 import { Modal, Badge, ConfirmDialog, Tooltip } from '../UI';
 import { createLista, updateLista, deleteLista } from '../../services/agendaService';
 import { AGENDA_BG_PRESETS, type AgendaBackgroundPresetId } from '../../types/agenda';
+import type { ContaPagar } from '../../types/contasPagar';
+import { PagarContaModal } from '../contas/PagarContaModal';
+import { fetchContaPagarById, registrarPagamento } from '../../services/contasPagarService';
+import { updateTarefa } from '../../services/agendaService';
 
 // Emojis simples e úteis (sem scroll, ~15 opções)
 const EMOJI_OPTIONS = [
@@ -138,6 +142,9 @@ export const AgendaPage: React.FC = () => {
   const [novaListaError, setNovaListaError] = useState<string | null>(null);
   const [listaEditando, setListaEditando] = useState<TarefaLista | null>(null);
   const [confirmDeleteLista, setConfirmDeleteLista] = useState<TarefaLista | null>(null);
+  const [quickPay, setQuickPay] = useState<{ tarefaId: string; contaId: string } | null>(null);
+  const [quickPayConta, setQuickPayConta] = useState<ContaPagar | null>(null);
+  const [quickPayLoading, setQuickPayLoading] = useState(false);
 
   const refreshTimer = useRef<number | null>(null);
   const lastIntegrationsSyncAt = useRef<number>(0);
@@ -501,6 +508,32 @@ export const AgendaPage: React.FC = () => {
     };
   }, [scheduleRefresh]);
 
+  // Ação rápida: registrar pagamento a partir de uma tarefa vinculada
+  useEffect(() => {
+    const onQuickPay = async (ev: Event) => {
+      const detail = (ev as CustomEvent).detail as { tarefaId?: string; contaId?: string } | undefined;
+      const tarefaId = String(detail?.tarefaId || '');
+      const contaId = String(detail?.contaId || '');
+      if (!tarefaId || !contaId) return;
+
+      setQuickPay({ tarefaId, contaId });
+      setQuickPayLoading(true);
+      try {
+        const conta = await fetchContaPagarById(contaId);
+        setQuickPayConta(conta as any);
+      } catch (e: any) {
+        setQuickPay(null);
+        setQuickPayConta(null);
+        setError(e?.message || 'Falha ao carregar conta para pagamento');
+      } finally {
+        setQuickPayLoading(false);
+      }
+    };
+
+    window.addEventListener('agenda:quickpay', onQuickPay as EventListener);
+    return () => window.removeEventListener('agenda:quickpay', onQuickPay as EventListener);
+  }, []);
+
   // Atualização imediata (sem depender de Realtime): Configurações dispara evento após salvar.
   useEffect(() => {
     const onEvt = (ev: Event) => {
@@ -851,6 +884,26 @@ export const AgendaPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Quick Pay Modal (cinematográfico) */}
+      <PagarContaModal
+        isOpen={!!quickPayConta}
+        conta={quickPayConta}
+        onClose={() => {
+          setQuickPay(null);
+          setQuickPayConta(null);
+          setQuickPayLoading(false);
+        }}
+        onConfirm={async (input) => {
+          if (!quickPay?.contaId || !quickPay?.tarefaId) return;
+          await registrarPagamento(quickPay.contaId, input);
+          await updateTarefa(quickPay.tarefaId, { status: 'concluida', data_conclusao: new Date().toISOString() } as any);
+          // Re-sincroniza contagens/listas/tarefas para refletir instantaneamente
+          scheduleRefresh();
+          setQuickPay(null);
+          setQuickPayConta(null);
+        }}
+      />
 
       <ConfirmDialog
         isOpen={!!confirmDeleteLista}

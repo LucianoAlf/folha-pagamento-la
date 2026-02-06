@@ -1,11 +1,15 @@
 import React, { useMemo } from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import { Building2, Calendar, Check, ChevronRight, MoreVertical, Pencil, Star, Trash2 } from 'lucide-react';
+import { Calendar, Check, ChevronRight, CreditCard, ExternalLink, MoreVertical, Pencil, Star, Trash2 } from 'lucide-react';
 import { Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import type { Tarefa, TarefaLista } from '../../types/agenda';
 import { CATEGORIAS, PRIORIDADES, STATUS_TAREFA } from '../../types/agenda';
 import { categoriaIcon, prioridadeIcon } from './agendaIcons';
+
+const navigateTo = (module: 'folha' | 'contas' | 'agenda' | 'notificacoes', page?: string) => {
+  window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module, page } }));
+};
 
 const formatWhen = (iso?: string | null) => {
   if (!iso) return null;
@@ -150,6 +154,39 @@ export const TarefaCard: React.FC<{
                     className="z-[9999] w-56 rounded-2xl border border-slate-800 bg-slate-950/95 shadow-2xl overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                   >
+                    {tarefa.vinculo_tipo && tarefa.vinculo_id ? (
+                      <>
+                        {tarefa.vinculo_tipo === 'conta_pagar' ? (
+                          <button
+                            type="button"
+                            className="w-full px-4 py-3 text-left text-sm font-bold text-emerald-200 hover:bg-emerald-500/10 flex items-center gap-2"
+                            onClick={() => {
+                              window.dispatchEvent(
+                                new CustomEvent('agenda:quickpay', {
+                                  detail: { tarefaId: tarefa.id, contaId: String(tarefa.vinculo_id) }
+                                })
+                              );
+                            }}
+                          >
+                            <CreditCard className="w-4 h-4 text-emerald-300" />
+                            Registrar pagamento
+                          </button>
+                        ) : null}
+
+                        <button
+                          type="button"
+                          className="w-full px-4 py-3 text-left text-sm font-bold text-slate-200 hover:bg-slate-900/60 flex items-center gap-2"
+                          onClick={() => {
+                            if (tarefa.vinculo_tipo === 'conta_pagar') navigateTo('contas', 'visao-geral');
+                            if (tarefa.vinculo_tipo === 'folha_pagamento') navigateTo('folha', 'dashboard');
+                          }}
+                        >
+                          <ExternalLink className="w-4 h-4 text-slate-400" />
+                          Ir para origem
+                        </button>
+                        <div className="h-px bg-slate-800/70" />
+                      </>
+                    ) : null}
                     <button
                       type="button"
                       className="w-full px-4 py-3 text-left text-sm font-bold text-slate-200 hover:bg-slate-900/60 flex items-center gap-2"

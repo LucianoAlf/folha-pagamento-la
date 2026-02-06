@@ -5,6 +5,8 @@ import {
   Check,
   ChevronRight,
   Clock,
+  CreditCard,
+  ExternalLink,
   Plus,
   Save,
   Trash2,
@@ -24,6 +26,10 @@ import {
   reabrirTarefa,
 } from '../../services/agendaService';
 import { SubtarefaItem } from './SubtarefaItem';
+
+const navigateTo = (module: 'folha' | 'contas' | 'agenda' | 'notificacoes', page?: string) => {
+  window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module, page } }));
+};
 
 const toDatePart = (iso?: string | null) => {
   if (!iso) return undefined;
@@ -216,6 +222,54 @@ export const TarefaDetailPanel: React.FC<{
               />
             </div>
           </div>
+
+          {/* Linked actions (premium) */}
+          {draft.vinculo_tipo && draft.vinculo_id ? (
+            <div className="rounded-2xl border border-slate-800/60 bg-slate-950/60 p-4">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">
+                Ações rápidas
+              </div>
+
+              {draft.vinculo_tipo === 'conta_pagar' ? (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new CustomEvent('agenda:quickpay', {
+                          detail: { tarefaId: draft.id, contaId: String(draft.vinculo_id) }
+                        })
+                      );
+                    }}
+                    className="w-full px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/10"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Registrar pagamento
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigateTo('contas', 'visao-geral')}
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 text-slate-200 font-black flex items-center justify-center gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4 text-slate-400" />
+                    Ir para Contas a Pagar
+                  </button>
+                </div>
+              ) : draft.vinculo_tipo === 'folha_pagamento' ? (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => navigateTo('folha', 'dashboard')}
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 text-slate-200 font-black flex items-center justify-center gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4 text-slate-400" />
+                    Ir para Folha de Pagamento
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Due */}
           <div>

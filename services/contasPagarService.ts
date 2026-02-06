@@ -102,6 +102,17 @@ export async function fetchContasPagar(filtros?: {
   return (data || []) as ContaPagar[];
 }
 
+export async function fetchContaPagarById(contaId: string): Promise<ContaPagar | null> {
+  if (!contaId) return null;
+  const { data, error } = await supabase
+    .from('contas_pagar')
+    .select('*, categoria:categorias_despesa(*)')
+    .eq('id', contaId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data || null) as any;
+}
+
 export async function createContaPagar(conta: Partial<ContaPagar>): Promise<ContaPagar> {
   const { data: user } = await supabase.auth.getUser();
 
