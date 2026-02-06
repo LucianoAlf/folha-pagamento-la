@@ -998,21 +998,56 @@ export const BistroTab: React.FC<{
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Tipo</div>
               <CustomSelect
                 value={movDraft.tipo}
-                onValueChange={(v) => setMovDraft((p) => ({ ...p, tipo: v as any }))}
+                onValueChange={(v) =>
+                  setMovDraft((p) => ({
+                    ...p,
+                    tipo: v as any,
+                    // Categoria só faz sentido para Despesa. Para repasse/aporte/abatimento, deixamos nulo.
+                    categoria: v === 'despesa' ? p.categoria : '',
+                  }))
+                }
                 options={movTipoOptions}
               />
               <div className="mt-1 text-[10px] text-slate-500 font-bold">
                 * Use <span className="text-slate-300">Aporte EMLA</span> quando a LA paga algo do Bistrô (vira dívida). Use{' '}
                 <span className="text-slate-300">Abatimento EMLA</span> quando essa dívida é abatida.
               </div>
+
+              {movDraft.tipo === 'repasse_bistro' ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMovDraft((p) => ({
+                        ...p,
+                        descricao: p.descricao?.trim() ? p.descricao : 'Repasse consumo colaboradores',
+                        valor: p.valor?.trim() ? p.valor : String(consumoTotal || '').replace('.', ','),
+                      }))
+                    }
+                    className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-800 bg-slate-900/40 text-slate-200 hover:bg-slate-900/60 transition-all"
+                    title="Atalho: preenche descrição e sugere o valor do consumo do mês"
+                  >
+                    Repasse consumo (sugestão)
+                  </button>
+                  <div className="text-[10px] text-slate-500 font-bold self-center">
+                    Consumo do mês: <span className="text-slate-300">{formatMoneyBR(consumoTotal)}</span>
+                  </div>
+                </div>
+              ) : null}
             </div>
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Categoria</div>
-              <CustomSelect
-                value={movDraft.categoria}
-                onValueChange={(v) => setMovDraft((p) => ({ ...p, categoria: v as any }))}
-                options={movCategoriaOptions}
-              />
+              {movDraft.tipo === 'despesa' ? (
+                <CustomSelect
+                  value={movDraft.categoria}
+                  onValueChange={(v) => setMovDraft((p) => ({ ...p, categoria: v as any }))}
+                  options={movCategoriaOptions}
+                />
+              ) : (
+                <div className="px-4 py-3 rounded-2xl border border-slate-800/60 bg-slate-950/30 text-slate-500 font-black">
+                  — (somente para Despesa)
+                </div>
+              )}
             </div>
             <div className="col-span-2">
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Descrição</div>
