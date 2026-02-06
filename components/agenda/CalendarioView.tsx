@@ -57,7 +57,6 @@ export const CalendarioView: React.FC<{
 
   /** Clique num badge de tarefa */
   const handleBadgeClick = (e: React.MouseEvent, t: Tarefa) => {
-    e.preventDefault();
     e.stopPropagation();
 
     // Conta vinculada pendente -> abrir modal de pagamento
@@ -147,7 +146,12 @@ export const CalendarioView: React.FC<{
                   today && inMonth ? 'z-10 border-violet-500/50 bg-violet-500/5' : ''
                 )}
                 style={{ backgroundColor: bg }}
-                onClick={() => handleCellClick(iso, inMonth)}
+                onClick={(e) => {
+                  // Só dispara se o clique for na própria célula (fundo), não nos filhos (badges)
+                  if (e.target === e.currentTarget) {
+                    handleCellClick(iso, inMonth);
+                  }
+                }}
                 role={inMonth ? 'button' : undefined}
                 tabIndex={inMonth ? 0 : -1}
                 onKeyDown={(e) => {
@@ -208,8 +212,9 @@ export const CalendarioView: React.FC<{
                             <button
                               type="button"
                               onClick={(e) => handleBadgeClick(e, t)}
+                              onMouseDown={(e) => e.stopPropagation()}
                               className={cn(
-                                'w-full px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold leading-tight shadow-sm rounded-[4px] flex items-center gap-1 cursor-pointer transition-all hover:brightness-125 hover:scale-[1.03] active:scale-95',
+                                'w-full px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold leading-tight shadow-sm rounded-[4px] flex items-center gap-1 cursor-pointer transition-all hover:brightness-125 hover:scale-[1.03] active:scale-95 relative z-20',
                                 isContaPendente
                                   ? 'bg-emerald-600 text-white hover:bg-emerald-500'
                                   : getPrioColors(t.prioridade)
