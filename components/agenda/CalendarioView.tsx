@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { addDays, format, isSameMonth, startOfMonth, startOfWeek, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, DollarSign } from 'lucide-react';
 import { Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import type { Tarefa } from '../../types/agenda';
@@ -21,11 +21,11 @@ export const CalendarioView: React.FC<{
   tarefas: Tarefa[];
   selectedDateISO: string | null;
   onSelectDate: (iso: string) => void;
-}> = ({ tarefas, selectedDateISO, onSelectDate }) => {
+  onSelectTarefa?: (tarefa: Tarefa) => void;
+}> = ({ tarefas, selectedDateISO, onSelectDate, onSelectTarefa }) => {
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
 
   const monthStart = useMemo(() => startOfMonth(cursor), [cursor]);
-  // Semana começa na segunda (padrão Google Calendar)
   const gridStart = useMemo(() => startOfWeek(monthStart, { weekStartsOn: 1 }), [monthStart]);
   const days = useMemo(() => Array.from({ length: 42 }, (_, i) => addDays(gridStart, i)), [gridStart]);
 
@@ -53,8 +53,27 @@ export const CalendarioView: React.FC<{
     return m;
   }, [statsByDay]);
 
-  // Abreviações premium (sem pontuação) e começando na segunda
   const weekDays = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+
+  /** Clique num badge de tarefa dentro da celula do calendario */
+  const handleBadgeClick = (e: React.MouseEvent, t: Tarefa) => {
+    e.stopPropagation(); // nao propaga para o onClick da celula (que abre "criar tarefa")
+
+    // Se eh conta vinculada -> abrir modal de pagamento
+    if (t.vinculo_tipo === 'conta_pagar' && t.vinculo_id && t.status !== 'concluida') {
+      window.dispatchEvent(
+        new CustomEvent('agenda:quickpay', {
+          detail: { tarefaId: t.id, contaId: t.vinculo_id },
+        })
+      );
+      return;
+    }
+
+    // Caso contrario -> abrir detalhes da tarefa
+    if (onSelectTarefa) {
+      onSelectTarefa(t);
+    }
+  };
 
   const dayTooltip = (iso: string) => {
     const row = statsByDay.get(iso);
@@ -92,7 +111,9 @@ export const CalendarioView: React.FC<{
             <div key={t.id} className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-[11px] text-slate-200 font-bold truncate">{t.titulo}</div>
-                <div className="text-[10px] text-slate-500 font-bold truncate">{t.categoria}</div>
+                <div className="text-[10px] text-slate-500 font-bold truncate">
+                  {t.vinculo_tipo === 'conta_pagar' ? 'Conta a Pagar' : t.categoria}
+                </div>
               </div>
               <div className="text-[10px] text-slate-400 font-black whitespace-nowrap">
                 {t.vencimento_em ? new Date(t.vencimento_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
@@ -107,6 +128,14 @@ export const CalendarioView: React.FC<{
     );
   };
 
+  // Cores por prioridade
+  const getPrioColors = (p: Tarefa['prioridade']) => {
+    if (p === 'urgente') return 'bg-rose-600 text-white';
+    if (p === 'alta') return 'bg-amber-500 text-slate-950';
+    if (p === 'media') return 'bg-blue-600 text-white';
+    return 'bg-slate-600 text-white';
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex items-center justify-between p-2 bg-slate-900/40 backdrop-blur-xl rounded-3xl border border-slate-800/60 shadow-xl">
@@ -114,7 +143,7 @@ export const CalendarioView: React.FC<{
           type="button"
           onClick={() => setCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
           className="w-11 h-11 rounded-2xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900/60 text-slate-300 flex items-center justify-center transition-all active:scale-90"
-          aria-label="Mês anterior"
+          aria-label="Mes anterior"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -125,7 +154,7 @@ export const CalendarioView: React.FC<{
           type="button"
           onClick={() => setCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
           className="w-11 h-11 rounded-2xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900/60 text-slate-300 flex items-center justify-center transition-all active:scale-90"
-          aria-label="Próximo mês"
+          aria-label="Proximo mes"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
@@ -149,31 +178,15 @@ export const CalendarioView: React.FC<{
             const items = row?.items || [];
             const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768;
 
-            // Heatmap violeta (volume do dia). As bolinhas indicam prioridade.
             const intensity = row && maxTotal > 0 ? Math.min(1, row.total / maxTotal) : 0;
             const bg = row && row.total > 0 ? `rgba(139,92,246,${0.08 + intensity * 0.22})` : 'transparent';
 
-            // Estilo de bloco sólido (Google Calendar style)
-            const getPrioColors = (p: Tarefa['prioridade']) => {
-              if (p === 'urgente') return 'bg-rose-600 text-white';
-              if (p === 'alta') return 'bg-amber-500 text-slate-950';
-              if (p === 'media') return 'bg-blue-600 text-white';
-              return 'bg-slate-600 text-white';
-            };
-
-            const btn = (
-              <button
-                type="button"
-                disabled={!inMonth}
-                onClick={() => {
-                  if (!inMonth) return;
-                  onSelectDate(iso);
-                }}
+            const cell = (
+              <div
                 className={cn(
-                  // Visual refinado: bordas arredondadas moderadas e espaçamento harmônico
                   'w-full relative transition-all text-left px-1.5 py-1.5 h-[100px] md:h-[120px] overflow-hidden rounded-[5px] border',
-                  inMonth 
-                    ? 'border-slate-800 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700' 
+                  inMonth
+                    ? 'border-slate-800 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700'
                     : 'border-slate-900/20 bg-slate-950/20 opacity-40 cursor-default',
                   isSelected ? 'z-10 ring-2 ring-violet-500 border-violet-500 bg-violet-500/10' : '',
                   today && inMonth ? 'z-10 border-violet-500/50 bg-violet-500/5' : ''
@@ -181,7 +194,16 @@ export const CalendarioView: React.FC<{
                 style={{ backgroundColor: bg }}
               >
                 <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-1 px-1">
+                  {/* Numero do dia - clicar aqui abre "Tarefas do dia" (criar) */}
+                  <button
+                    type="button"
+                    disabled={!inMonth}
+                    onClick={() => {
+                      if (!inMonth) return;
+                      onSelectDate(iso);
+                    }}
+                    className="flex items-center justify-between mb-1 px-1 w-full text-left"
+                  >
                     <div
                       className={cn(
                         'text-[11px] md:text-xs font-black',
@@ -190,37 +212,70 @@ export const CalendarioView: React.FC<{
                     >
                       {format(d, 'd')}
                     </div>
-                  </div>
+                  </button>
 
-                  {/* Blocos de texto (estilo Google Calendar) */}
+                  {/* Badges de tarefas - cada um eh clicavel individualmente */}
                   {inMonth && items.length > 0 ? (
-                    <div className="space-y-0.5">
-                      {items.slice(0, isMobileView ? 2 : 4).map((t) => (
-                        <Tooltip key={t.id} content={t.titulo} side="top">
-                          <div 
-                            className={cn(
-                              'px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold leading-tight shadow-sm !rounded-[5px] flex items-center gap-2',
-                              getPrioColors(t.prioridade)
-                            )}
-                            aria-label={t.titulo}
+                    <div className="space-y-0.5 flex-1 min-h-0">
+                      {items.slice(0, isMobileView ? 2 : 4).map((t) => {
+                        const isConta = t.vinculo_tipo === 'conta_pagar';
+                        const Icon = categoriaIcon(t.categoria);
+                        return (
+                          <Tooltip
+                            key={t.id}
+                            content={
+                              <div>
+                                <div className="font-bold text-xs">{t.titulo}</div>
+                                {isConta && t.status !== 'concluida' && (
+                                  <div className="text-[10px] text-emerald-300 mt-0.5">Clique para pagar</div>
+                                )}
+                              </div>
+                            }
+                            side="top"
                           >
-                            {(() => {
-                              const Icon = categoriaIcon(t.categoria);
-                              return <Icon className="w-3.5 h-3.5 opacity-95 shrink-0" />;
-                            })()}
-                            <span className="sr-only">{t.titulo}</span>
-                          </div>
-                        </Tooltip>
-                      ))}
+                            <button
+                              type="button"
+                              onClick={(e) => handleBadgeClick(e, t)}
+                              className={cn(
+                                'w-full px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold leading-tight shadow-sm !rounded-[5px] flex items-center gap-1 cursor-pointer transition-all hover:brightness-110 hover:scale-[1.02]',
+                                isConta && t.status !== 'concluida'
+                                  ? 'bg-emerald-600 text-white'
+                                  : getPrioColors(t.prioridade)
+                              )}
+                            >
+                              {isConta ? (
+                                <DollarSign className="w-3 h-3 shrink-0" />
+                              ) : (
+                                <Icon className="w-3 h-3 opacity-95 shrink-0" />
+                              )}
+                              <span className="truncate">{t.titulo}</span>
+                            </button>
+                          </Tooltip>
+                        );
+                      })}
                       {items.length > (isMobileView ? 2 : 4) ? (
-                        <div className="text-[9px] font-black text-slate-500 px-1 pt-0.5">
-                          + {items.length - (isMobileView ? 2 : 4)}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (inMonth) onSelectDate(iso);
+                          }}
+                          className="text-[9px] font-black text-slate-500 px-1 pt-0.5 hover:text-slate-300 transition-colors"
+                        >
+                          + {items.length - (isMobileView ? 2 : 4)} mais
+                        </button>
                       ) : null}
                     </div>
+                  ) : inMonth ? (
+                    // Area vazia clicavel para criar tarefa
+                    <button
+                      type="button"
+                      onClick={() => onSelectDate(iso)}
+                      className="flex-1 w-full"
+                      aria-label={`Criar tarefa em ${iso}`}
+                    />
                   ) : null}
                 </div>
-              </button>
+              </div>
             );
 
             const tip = row && row.total > 0 ? dayTooltip(iso) : null;
@@ -232,19 +287,16 @@ export const CalendarioView: React.FC<{
                 className="p-3 rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl"
                 side="top"
               >
-                {btn}
+                {cell}
               </Tooltip>
             ) : (
               <div key={iso} className="w-full">
-                {btn}
+                {cell}
               </div>
             );
           })}
         </div>
       </div>
-
-      {/* A lista do dia e criação rápida ficam no modal "Tarefas do dia" (AgendaContent) */}
     </div>
   );
 };
-

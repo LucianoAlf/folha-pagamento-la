@@ -226,22 +226,41 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                   ) : (
                     <div className="space-y-0.5">
                       {dayAllDay.slice(0, 3).map((t) => {
+                        const isConta = t.vinculo_tipo === 'conta_pagar' && t.status !== 'concluida';
                         const isFinanceiro = t.categoria === 'financeiro';
+                        const handleAllDayClick = () => {
+                          if (isConta && t.vinculo_id) {
+                            window.dispatchEvent(
+                              new CustomEvent('agenda:quickpay', {
+                                detail: { tarefaId: t.id, contaId: t.vinculo_id },
+                              })
+                            );
+                          } else {
+                            onSelectTarefa(t);
+                          }
+                        };
                         return (
-                          <Tooltip key={t.id} content={t.titulo} side="bottom">
+                          <Tooltip key={t.id} content={
+                            <div>
+                              <div className="font-bold text-xs">{t.titulo}</div>
+                              {isConta && <div className="text-[10px] text-emerald-300 mt-0.5">Clique para pagar</div>}
+                            </div>
+                          } side="bottom">
                             <button
                               type="button"
-                              onClick={() => onSelectTarefa(t)}
+                              onClick={handleAllDayClick}
                               className={cn(
-                                'w-full text-left px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold leading-tight truncate border-l-2',
+                                'w-full text-left px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold leading-tight truncate border-l-2 transition-all hover:brightness-110',
                                 t.status === 'concluida'
                                   ? 'bg-emerald-900/30 text-emerald-300 border-emerald-500'
-                                  : isFinanceiro
-                                    ? 'bg-violet-900/30 text-violet-200 border-violet-500'
-                                    : 'bg-slate-800/60 text-slate-200 border-slate-500'
+                                  : isConta
+                                    ? 'bg-emerald-900/40 text-emerald-200 border-emerald-500'
+                                    : isFinanceiro
+                                      ? 'bg-violet-900/30 text-violet-200 border-violet-500'
+                                      : 'bg-slate-800/60 text-slate-200 border-slate-500'
                               )}
                             >
-                              {isFinanceiro && <DollarSign size={10} className="inline mr-0.5 -mt-0.5" />}
+                              {(isConta || isFinanceiro) && <DollarSign size={10} className="inline mr-0.5 -mt-0.5" />}
                               {t.titulo}
                             </button>
                           </Tooltip>
@@ -343,6 +362,19 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
                     const isFinanceiro = t.categoria === 'financeiro' || (t as any).lista?.nome?.toLowerCase().includes('finance');
 
+                    const isConta = t.vinculo_tipo === 'conta_pagar' && t.status !== 'concluida' && !!t.vinculo_id;
+                    const handleScheduledClick = () => {
+                      if (isConta) {
+                        window.dispatchEvent(
+                          new CustomEvent('agenda:quickpay', {
+                            detail: { tarefaId: t.id, contaId: t.vinculo_id },
+                          })
+                        );
+                      } else {
+                        onSelectTarefa(t);
+                      }
+                    };
+
                     return (
                       <Tooltip
                         key={t.id}
@@ -352,13 +384,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                               {format(date, 'HH:mm')}
                             </div>
                             <div className="font-bold text-xs">{t.titulo}</div>
-                            {t.descricao && <div className="text-[10px] text-slate-400 mt-1 line-clamp-2">{t.descricao}</div>}
+                            {isConta && <div className="text-[10px] text-emerald-300 mt-0.5">Clique para pagar</div>}
+                            {!isConta && t.descricao && <div className="text-[10px] text-slate-400 mt-1 line-clamp-2">{t.descricao}</div>}
                           </div>
                         }
                         side="top"
                       >
                         <div
-                          onClick={() => onSelectTarefa(t)}
+                          onClick={handleScheduledClick}
                           className={cn(
                             "absolute rounded-lg p-1.5 border-l-2 shadow-xl cursor-pointer transition-all hover:scale-[1.02] hover:z-10 group overflow-hidden md:rounded-xl md:p-2 md:border-l-4",
                             CATEGORIAS[t.categoria]?.bg || "bg-slate-800/80",

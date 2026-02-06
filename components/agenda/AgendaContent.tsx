@@ -253,6 +253,7 @@ export const AgendaContent: React.FC<{
                 tarefas={timeline}
                 selectedDateISO={selectedDateISO}
                 onSelectDate={handleSelectDate}
+                onSelectTarefa={openDetails}
               />
             </div>
           ) : ['dia', '3dias', 'semana'].includes(viewMode) ? (

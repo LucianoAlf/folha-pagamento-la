@@ -509,12 +509,18 @@ export const AgendaPage: React.FC = () => {
     loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }).catch((err: any) =>
       setError(err?.message || 'Falha ao carregar tarefas')
     );
+    // Recarregar timeline ao trocar de lista (garante calendario atualizado)
+    loadTimeline().catch(() => {});
   }, [listKey]);
 
-  // troca de view (kanban precisa das concluídas)
+  // troca de view (kanban precisa das concluidas; calendario/schedule precisa da timeline)
   useEffect(() => {
     if (listKey === 'config') return;
     loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }).catch(() => {});
+    // Ao trocar para visualizacoes de calendario/schedule, recarregar timeline
+    if (['mes', 'semana', '3dias', 'dia'].includes(viewMode)) {
+      loadTimeline().catch(() => {});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode]);
 
