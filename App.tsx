@@ -3237,7 +3237,26 @@ export default function App() {
                                             )}
                                         </div>
                                         <div>
-                                          <div className="font-medium text-sm text-slate-200">{colab.nome || 'N/A'}</div>
+                                          <div className="flex items-center gap-2">
+                                            <div className="font-medium text-sm text-slate-200">{colab.nome || 'N/A'}</div>
+                                            {l.detalhamento && Object.values(l.detalhamento).some(v => v?.trim()) && (
+                                              <Tooltip content={
+                                                <div className="space-y-2 p-1">
+                                                  <div className="text-[10px] font-black text-violet-400 uppercase tracking-widest border-b border-white/10 pb-1 mb-1">Detalhamento do Lançamento</div>
+                                                  {Object.entries(l.detalhamento).filter(([_, v]) => v?.trim()).map(([k, v]) => (
+                                                    <div key={k} className="flex flex-col gap-0.5">
+                                                      <span className="text-[9px] font-bold text-slate-500 uppercase">{k}:</span>
+                                                      <span className="text-xs text-slate-200">{v}</span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              }>
+                                                <div className="p-1 rounded-md bg-violet-500/10 text-violet-400">
+                                                  <Sparkles size={10} />
+                                                </div>
+                                              </Tooltip>
+                                            )}
+                                          </div>
                                           <div className="text-[10px] text-slate-500 uppercase">{colab.funcao || ''}</div>
                                         </div>
                                         </div>
