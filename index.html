@@ -61,19 +61,6 @@
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "@radix-ui/react-select": "https://esm.sh/@radix-ui/react-select@^2.1.0",
-    "@radix-ui/react-tooltip": "https://esm.sh/@radix-ui/react-tooltip@^1.1.0"
-  }
-}
-</script>
 </head>
   <body>
     <div id="root"></div>
@@ -83,6 +70,17 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
+        const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+        // Em dev (localhost), o SW costuma causar cache "fantasma" e tela branca.
+        // Então a gente garante que ele fique desativado nesse ambiente.
+        if (isLocalhost) {
+          navigator.serviceWorker.getRegistrations()
+            .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+            .catch(() => {});
+          return;
+        }
+
         navigator.serviceWorker.register('/sw.js')
           .then((reg) => console.log('✅ SW registered:', reg.scope))
           .catch((err) => console.error('❌ SW failed:', err));

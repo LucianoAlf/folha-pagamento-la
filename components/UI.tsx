@@ -28,7 +28,8 @@ export const Tooltip: React.FC<{
           side={side}
           sideOffset={5}
           className={cn(
-            "z-[9999] overflow-hidden rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xl animate-in fade-in zoom-in-95 duration-200",
+            // Precisa ficar acima de Modals/Dialogs (que usam z ~12000-13000)
+            "z-[14000] overflow-hidden rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xl animate-in fade-in zoom-in-95 duration-200",
             className
           )}
         >
@@ -76,7 +77,7 @@ export const DatePicker: React.FC<{
         <Popover.Content
           sideOffset={10}
           align="start"
-          className="z-[12500] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
+          className="z-[14000] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
         >
           <div className="rdp-modern">
             <DayPicker
@@ -543,7 +544,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
       <Select.Portal>
         <Select.Content 
-          className="overflow-hidden bg-slate-900 rounded-xl border border-slate-700 shadow-2xl shadow-black/60 z-[9999] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
+          className="overflow-hidden bg-slate-900 rounded-xl border border-slate-700 shadow-2xl shadow-black/60 z-[14000] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
           position="popper"
           sideOffset={8}
         >

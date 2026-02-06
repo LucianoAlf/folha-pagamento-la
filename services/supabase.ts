@@ -1,10 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-declare const __SUPABASE_URL__: string | undefined;
-declare const __SUPABASE_ANON_KEY__: string | undefined;
-
-export const SUPABASE_URL = __SUPABASE_URL__ || (import.meta as any).env?.VITE_SUPABASE_URL;
-export const SUPABASE_ANON_KEY = __SUPABASE_ANON_KEY__ || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+// IMPORTANT:
+// - Vite só expõe variáveis com prefixo configurado em `envPrefix`.
+// - Neste projeto usamos `.env.local` com `NEXT_PUBLIC_SUPABASE_*`, então garantimos
+//   compatibilidade lendo tanto `VITE_` quanto `NEXT_PUBLIC_`.
+export const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+  (import.meta as any).env?.SUPABASE_URL;
+export const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  (import.meta as any).env?.SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error(

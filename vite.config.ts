@@ -10,6 +10,8 @@ export default defineConfig(({ mode }) => {
       env.VITE_SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '';
 
     return {
+      // Expor apenas variáveis "publicáveis" no client (NÃO inclui GEMINI_API_KEY).
+      envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
       server: {
         port: 3000,
         host: '0.0.0.0',
