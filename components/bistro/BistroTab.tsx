@@ -987,9 +987,10 @@ export const BistroTab: React.FC<{
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-white font-black">Movimentações (repasses / despesas / EMLA)</div>
-              <div className="text-xs text-slate-500 font-bold mt-1">Base para dívida e auditoria</div>
+              <div className="text-xs text-slate-500 font-bold mt-1">
+                Repasses/despesas entram no relatório. <span className="text-slate-400">Saldo EMLA só muda com Aporte/Abatimento.</span>
+              </div>
             </div>
-            <Badge variant="purple">{formatMoneyBR(saldoFinalEmla)}</Badge>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1000,6 +1001,10 @@ export const BistroTab: React.FC<{
                 onValueChange={(v) => setMovDraft((p) => ({ ...p, tipo: v as any }))}
                 options={movTipoOptions}
               />
+              <div className="mt-1 text-[10px] text-slate-500 font-bold">
+                * Use <span className="text-slate-300">Aporte EMLA</span> quando a LA paga algo do Bistrô (vira dívida). Use{' '}
+                <span className="text-slate-300">Abatimento EMLA</span> quando essa dívida é abatida.
+              </div>
             </div>
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Categoria</div>
