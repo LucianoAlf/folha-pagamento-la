@@ -468,6 +468,7 @@ export const BistroTab: React.FC<{
   const [reportKind, setReportKind] = useState<'financeiro' | 'repasses'>('financeiro');
   const [reportDraftFinanceiro, setReportDraftFinanceiro] = useState('');
   const [reportDraftRepasses, setReportDraftRepasses] = useState('');
+  const [luciaPickerOpen, setLuciaPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!reportOpen) return;
@@ -627,18 +628,45 @@ export const BistroTab: React.FC<{
             </div>
           </div>
 
-          <div className="mt-6 text-white font-black">Configuração (Lúcia)</div>
-          <div className="text-xs text-slate-500 font-bold mt-1">Necessário para cálculo automático</div>
+          <div className="mt-6 text-white font-black">Pagamento da Lúcia</div>
+          <div className="text-xs text-slate-500 font-bold mt-1">Usado para o preview e para o relatório financeiro</div>
 
           <div className="mt-4 space-y-3">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Colaboradora</div>
-              <CustomSelect
-                value={params?.lucia_colaborador_id ? String(params.lucia_colaborador_id) : ''}
-                onValueChange={(v) => void saveParametros({ lucia_colaborador_id: v ? Number(v) : null })}
-                options={[{ value: '', label: 'Selecione...' }, ...colaboradoresOptions]}
-                className="w-full"
-              />
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Colaboradora</div>
+                <button
+                  type="button"
+                  onClick={() => setLuciaPickerOpen((v) => !v)}
+                  className="text-[10px] font-black uppercase tracking-widest text-violet-300 hover:text-violet-200 transition-colors"
+                >
+                  Alterar
+                </button>
+              </div>
+
+              {/* Mostra o nome fixo (para não confundir a Ana); a lista só aparece ao clicar em "Alterar" */}
+              <div className="mt-2 px-4 py-3 rounded-2xl border border-slate-800/60 bg-slate-950/30 text-slate-100 font-black">
+                {params?.lucia_colaborador_id
+                  ? colaboradores.find((c) => c.id === params.lucia_colaborador_id)?.nome || `#${params.lucia_colaborador_id}`
+                  : 'Não configurado'}
+              </div>
+
+              {luciaPickerOpen ? (
+                <div className="mt-2">
+                  <CustomSelect
+                    value={params?.lucia_colaborador_id ? String(params.lucia_colaborador_id) : ''}
+                    onValueChange={(v) => {
+                      void saveParametros({ lucia_colaborador_id: v ? Number(v) : null });
+                      setLuciaPickerOpen(false);
+                    }}
+                    options={[{ value: '', label: 'Selecione...' }, ...colaboradoresOptions]}
+                    className="w-full"
+                  />
+                  <div className="mt-1 text-[10px] text-slate-500 font-bold">
+                    * Você só precisa mexer nisso se um dia a Lúcia mudar de cadastro
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
