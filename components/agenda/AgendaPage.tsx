@@ -230,11 +230,11 @@ export const AgendaPage: React.FC = () => {
     const now = Date.now();
     if (integrationsSyncing.current) return;
     if (now - lastIntegrationsSyncAt.current < 60_000) return;
-    lastIntegrationsSyncAt.current = now;
 
     integrationsSyncing.current = true;
     try {
       await syncAgendaIntegrations();
+      lastIntegrationsSyncAt.current = now;
     } catch {
       // Não bloqueia a agenda: integração é "best effort"
     } finally {

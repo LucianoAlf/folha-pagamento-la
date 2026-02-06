@@ -22,6 +22,34 @@ type FolhaRow = {
   updated_at?: string | null;
 };
 
+function fnv1a64(str: string) {
+  // FNV-1a 64-bit (BigInt) — suficiente para UUID estável em client
+  let hash = 0xcbf29ce484222325n;
+  const prime = 0x100000001b3n;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= BigInt(str.charCodeAt(i));
+    hash = (hash * prime) & 0xffffffffffffffffn;
+  }
+  return hash;
+}
+
+function hex64(n: bigint) {
+  return n.toString(16).padStart(16, '0');
+}
+
+function stableUuidFromString(input: string) {
+  // Gera um UUID estável (formato UUID v4-like) a partir de uma string.
+  // Não é criptográfico; objetivo é idempotência para vinculo_id (uuid).
+  const a = fnv1a64(input);
+  const b = fnv1a64(input.split('').reverse().join(''));
+  const hex = (hex64(a) + hex64(b)).slice(0, 32);
+  // set version to 4 and variant to 8
+  const withVersion = hex.slice(0, 12) + '4' + hex.slice(13);
+  const variantNibble = ((parseInt(withVersion.slice(16, 17), 16) & 0x3) | 0x8).toString(16);
+  const withVariant = withVersion.slice(0, 16) + variantNibble + withVersion.slice(17);
+  return `${withVariant.slice(0, 8)}-${withVariant.slice(8, 12)}-${withVariant.slice(12, 16)}-${withVariant.slice(16, 20)}-${withVariant.slice(20, 32)}`;
+}
+
 function chunk<T>(arr: T[], size: number) {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
@@ -239,9 +267,10 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
   const latest = folhas[0];
   const pending = folhas.filter((f) => f.status === 'pendente');
 
+  // vinculo_id é UUID na tabela `tarefas`, então geramos um uuid estável para cada folha
   const vinculos: string[] = [];
-  if (latest?.id) vinculos.push(String(latest.id));
-  for (const f of pending) vinculos.push(String(f.id));
+  if (latest?.id) vinculos.push(stableUuidFromString(`folha:${latest.id}`));
+  for (const f of pending) vinculos.push(stableUuidFromString(`folha:${f.id}`));
   const existing = await fetchExistingLinkedTasks({ vinculo_tipo: 'folha_pagamento', vinculo_ids: vinculos });
   const byVinculo = new Map(existing.map((t) => [String(t.vinculo_id), t]));
 
@@ -253,6 +282,7 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
 
   // 1) Fechamento do mês (tarefa planejada)
   if (fechamentoAtivo && latest?.id) {
+    const folhaVinculoId = stableUuidFromString(`folha:${latest.id}`);
     const mm = String(latest.mes).padStart(2, '0');
     const dd = String(Math.min(28, Math.max(1, fechamentoDia))).padStart(2, '0');
     const dueYmd = `${latest.ano}-${mm}-${dd}`;
@@ -260,7 +290,7 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
     const titulo = `Fechar Folha: ${monthLabelPt(latest.ano, latest.mes)}`;
     const patch: Partial<Tarefa> = {
       titulo,
-      descricao: `Origem: Folha de Pagamento (tarefa automática)\nStatus atual: ${String(latest.status)}`,
+      descricao: `Origem: Folha de Pagamento (tarefa automática)\nFolha ID: ${latest.id}\nStatus atual: ${String(latest.status)}`,
       lista_id: input.listaRhId,
       categoria: 'rh',
       prioridade: 'alta',
@@ -270,7 +300,7 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
       status: latest.status === 'aprovada' ? 'concluida' : 'pendente',
       data_conclusao: latest.status === 'aprovada' ? new Date().toISOString() : null,
       vinculo_tipo: 'folha_pagamento',
-      vinculo_id: String(latest.id),
+      vinculo_id: folhaVinculoId,
       lembrete_minutos: [30],
       is_recorrente: false,
       recorrencia: null,
@@ -279,17 +309,18 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
       ordem: 20,
     };
 
-    const found = byVinculo.get(String(latest.id));
+    const found = byVinculo.get(String(folhaVinculoId));
     if (!found) inserts.push(patch as any);
     else updates.push({ id: found.id, ...patch } as any);
   }
 
   // 2) Aprovação pendente (se existir)
   for (const f of pending) {
+    const folhaVinculoId = stableUuidFromString(`folha:${f.id}`);
     const titulo = `Aprovar Folha: ${monthLabelPt(f.ano, f.mes)}`;
     const patch: Partial<Tarefa> = {
       titulo,
-      descricao: `Origem: Folha de Pagamento (tarefa automática)\nStatus atual: ${String(f.status)}`,
+      descricao: `Origem: Folha de Pagamento (tarefa automática)\nFolha ID: ${f.id}\nStatus atual: ${String(f.status)}`,
       lista_id: input.listaRhId,
       categoria: 'rh',
       prioridade: 'urgente',
@@ -299,7 +330,7 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
       status: f.status === 'aprovada' ? 'concluida' : 'pendente',
       data_conclusao: f.status === 'aprovada' ? new Date().toISOString() : null,
       vinculo_tipo: 'folha_pagamento',
-      vinculo_id: String(f.id),
+      vinculo_id: folhaVinculoId,
       lembrete_minutos: [30],
       is_recorrente: false,
       recorrencia: null,
@@ -308,7 +339,7 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
       ordem: 10,
     };
 
-    const found = byVinculo.get(String(f.id));
+    const found = byVinculo.get(String(folhaVinculoId));
     if (!found) inserts.push(patch as any);
     else updates.push({ id: found.id, ...patch } as any);
   }
@@ -366,9 +397,12 @@ export async function syncAgendaIntegrations(): Promise<void> {
     cor: '#a78bfa',
   });
 
-  await Promise.all([
-    syncContasAsAgendaTasks({ listaFinanceiroId: financeiro.id, cfg }),
-    syncFolhaAsAgendaTasks({ listaRhId: rh.id, cfg }),
-  ]);
+  // Importante: não deixe RH derrubar Financeiro (cada sync é best-effort)
+  await syncContasAsAgendaTasks({ listaFinanceiroId: financeiro.id, cfg });
+  try {
+    await syncFolhaAsAgendaTasks({ listaRhId: rh.id, cfg });
+  } catch {
+    // ignore
+  }
 }
 
