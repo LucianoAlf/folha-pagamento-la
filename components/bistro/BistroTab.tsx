@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Copy, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Copy, Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import type { Colaborador, FolhaMensal, Lancamento } from '../../types';
 import { Badge, Card, ConfirmDialog, CustomSelect, DatePicker, Modal, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
@@ -910,9 +910,9 @@ export const BistroTab: React.FC<{
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'folha', page: 'lancamentos' } }))}
-                    className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-800 bg-slate-900/40 text-slate-200 hover:bg-slate-900/60 transition-all"
+                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-700 bg-slate-800/50 text-white hover:bg-slate-700 transition-all flex items-center gap-2"
                   >
-                    Ir para Lançamentos
+                    Ir para Lançamentos (Folha)
                   </button>
                 </div>
               </div>
@@ -1025,17 +1025,25 @@ export const BistroTab: React.FC<{
           </div>
 
           <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              disabled={!canEdit}
-              onClick={() => void saveVendas()}
-              className={cn(
-                'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60',
-                canEdit ? 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-800 text-slate-200' : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
-              )}
-            >
-              Salvar vendas
-            </button>
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                disabled={!canEdit}
+                onClick={() => void saveVendas()}
+                className={cn(
+                  'px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-violet-600/10',
+                  canEdit 
+                    ? 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 active:scale-95' 
+                    : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
+                )}
+              >
+                <Save className="w-4 h-4" />
+                Salvar vendas do mês
+              </button>
+              <div className="text-[10px] text-slate-500 font-bold text-center italic">
+                * Necessário para calcular lucro e comissões
+              </div>
+            </div>
           </div>
         </Card>
 
@@ -1080,9 +1088,10 @@ export const BistroTab: React.FC<{
                         valor: p.valor?.trim() ? p.valor : String(consumoTotal || '').replace('.', ','),
                       }))
                     }
-                    className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-800 bg-slate-900/40 text-slate-200 hover:bg-slate-900/60 transition-all"
+                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-cyan-500/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 transition-all flex items-center gap-2"
                     title="Atalho: preenche descrição e sugere o valor do consumo do mês"
                   >
+                    <Plus className="w-3 h-3" />
                     Repasse consumo (sugestão)
                   </button>
                   <div className="text-[10px] text-slate-500 font-bold self-center">
@@ -1133,16 +1142,19 @@ export const BistroTab: React.FC<{
                 className="bg-slate-900/40 border-slate-700/60 text-slate-100"
               />
             </div>
-            <div className="col-span-2 flex justify-end">
+            <div className="col-span-2 flex justify-end mt-2">
               <button
                 type="button"
                 disabled={!canEdit}
                 onClick={() => void addMov()}
                 className={cn(
-                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60',
-                  canEdit ? 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-800 text-slate-200' : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
+                  'px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2 shadow-lg shadow-violet-600/10',
+                  canEdit 
+                    ? 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 active:scale-95' 
+                    : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
                 )}
               >
+                <Plus className="w-4 h-4" />
                 Adicionar movimentação
               </button>
             </div>
