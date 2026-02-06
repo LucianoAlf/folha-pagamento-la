@@ -544,7 +544,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
       <Select.Portal>
         <Select.Content 
-          className="overflow-hidden bg-slate-900 rounded-xl border border-slate-700 shadow-2xl shadow-black/60 z-[14000] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
+          className="overflow-hidden bg-slate-900 rounded-xl border border-slate-700 shadow-2xl shadow-black/60 z-[99999] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
           position="popper"
           sideOffset={8}
         >
