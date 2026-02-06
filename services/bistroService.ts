@@ -82,6 +82,18 @@ export async function getOrCreateBistroCompetencia(input: { ym: string; unidade?
   const unidade: BistroUnidade = input.unidade || 'cg';
   const { ano, mes } = ymToParts(input.ym);
 
+  const computeSaldoFinalFrom = async (comp: BistroCompetencia) => {
+    const { data, error } = await supabase
+      .from('bistro_movimentacoes')
+      .select('tipo,valor')
+      .eq('competencia_id', comp.id);
+    if (error) throw error;
+    const movs = (data || []) as Array<{ tipo: BistroMovimentacaoTipo; valor: any }>;
+    const aporte = movs.filter((m) => m.tipo === 'aporte_emla').reduce((acc, m) => acc + safeNumber(m.valor), 0);
+    const abat = movs.filter((m) => m.tipo === 'abatimento_emla').reduce((acc, m) => acc + safeNumber(m.valor), 0);
+    return safeNumber(comp.saldo_inicial_emla) + aporte - abat;
+  };
+
   const selectOne = async () => {
     const { data, error } = await supabase
       .from('bistro_competencias')
@@ -97,10 +109,29 @@ export async function getOrCreateBistroCompetencia(input: { ym: string; unidade?
   const existing = await selectOne();
   if (existing) return existing;
 
+  // Ao criar uma nova competência, tenta carregar o saldo inicial EMLA do mês anterior automaticamente.
+  let saldoInicial = 0;
+  try {
+    const prevYm = addMonthsToYM(input.ym, -1);
+    const { ano: pa, mes: pm } = ymToParts(prevYm);
+    const { data: prevData, error: prevErr } = await supabase
+      .from('bistro_competencias')
+      .select('*')
+      .eq('unidade', unidade)
+      .eq('ano', pa)
+      .eq('mes', pm)
+      .limit(1);
+    if (!prevErr && prevData && prevData.length) {
+      saldoInicial = await computeSaldoFinalFrom(prevData[0] as BistroCompetencia);
+    }
+  } catch {
+    // best-effort (não bloqueia criação)
+  }
+
   // Concorrência: duas abas/sessões podem tentar criar ao mesmo tempo.
   const { data: inserted, error: insErr } = await supabase
     .from('bistro_competencias')
-    .insert({ unidade, ano, mes, status: 'aberta', saldo_inicial_emla: 0 })
+    .insert({ unidade, ano, mes, status: 'aberta', saldo_inicial_emla: saldoInicial })
     .select('*')
     .single();
 
@@ -126,6 +157,15 @@ export async function fetchBistroConsumos(competenciaId: string) {
     .order('updated_at', { ascending: false });
   if (error) throw error;
   return (data || []) as BistroConsumo[];
+}
+
+export async function updateBistroCompetencia(input: { competencia_id: string; saldo_inicial_emla?: number; observacoes?: string | null }) {
+  const patch: any = { updated_at: new Date().toISOString() };
+  if (typeof input.saldo_inicial_emla === 'number') patch.saldo_inicial_emla = input.saldo_inicial_emla;
+  if (input.observacoes !== undefined) patch.observacoes = input.observacoes;
+  const { data, error } = await supabase.from('bistro_competencias').update(patch).eq('id', input.competencia_id).select('*').single();
+  if (error) throw error;
+  return data as BistroCompetencia;
 }
 
 export async function upsertBistroConsumos(
@@ -315,12 +355,15 @@ export function pickBonusFromTiers(totalVendasBrutas: number, tiers: Array<{ min
   return best;
 }
 
-export function computeVendasResumo(v: BistroVendasResumo | null) {
+export function computeVendasResumo(v: BistroVendasResumo | null, colaboradoresBruto: number = 0) {
   const pix = safeNumber(v?.pix_bruto);
   const deb = safeNumber(v?.debito_bruto);
   const cred = safeNumber(v?.credito_bruto);
   const din = safeNumber(v?.dinheiro_bruto);
-  const totalBruto = pix + deb + cred + din;
+  // Regra de negócio: "Colaboradores" entra no total de vendas do mês,
+  // porém NÃO gera taxa de maquininha (desconto acontece via folha).
+  const colab = safeNumber(colaboradoresBruto);
+  const totalBruto = pix + deb + cred + din + colab;
   const taxaPix = pix * safeNumber(v?.pix_taxa_pct ?? 0.0099);
   const taxaDeb = deb * safeNumber(v?.debito_taxa_pct ?? 0.0168);
   const taxaCred = cred * safeNumber(v?.credito_taxa_pct ?? 0.0368);
@@ -335,8 +378,9 @@ export function computeLuciaPagamento(input: {
   movs: BistroMovimentacao[];
   consumoLucia: number;
   vt: number;
+  colaboradoresBruto: number;
 }) {
-  const { totalBruto, totalTaxas, recebLiquido } = computeVendasResumo(input.vendas);
+  const { totalBruto, totalTaxas, recebLiquido } = computeVendasResumo(input.vendas, input.colaboradoresBruto);
 
   const despesasInsumosOutros = (input.movs || [])
     .filter((m) => m.tipo === 'despesa' && m.categoria !== 'salario_lucia')

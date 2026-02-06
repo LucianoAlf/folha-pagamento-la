@@ -21,6 +21,7 @@ import {
   upsertBistroParametros,
   upsertBistroVendasResumo,
   createBistroMovimentacao,
+  updateBistroCompetencia,
   type BistroMovimentacao,
   type BistroMovimentacaoCategoria,
   type BistroMovimentacaoTipo,
@@ -62,57 +63,111 @@ function buildWhatsText(input: {
   ymRef: string;
   consumoTotal: number;
   movs: BistroMovimentacao[];
-  vendas: ReturnType<typeof computeVendasResumo>;
+  vendasRaw: BistroVendasResumo | null;
+  vendasCalc: ReturnType<typeof computeVendasResumo>;
   saldoInicialEmla: number;
   saldoFinalEmla: number;
   lucia?: ReturnType<typeof computeLuciaPagamento> | null;
 }) {
   const lines: string[] = [];
+  const monthName = monthLabelPt(input.ymRef).split('/')[0];
+  lines.push(`*BISTRÔ ${monthLabelPt(input.ymRef).toUpperCase()}*`);
+  lines.push('');
+
+  // =========================================================
+  // RELATÓRIO FINANCEIRO (vendas, taxas, lucro e pagamento Lúcia)
+  // =========================================================
+  lines.push('*Relatório Financeiro do Bistrô*');
+  lines.push('');
+  lines.push('*Desconto de taxa de máquininha*');
+  lines.push('');
+
+  const raw = input.vendasRaw;
+  const pix = Number(raw?.pix_bruto) || 0;
+  const deb = Number(raw?.debito_bruto) || 0;
+  const cred = Number(raw?.credito_bruto) || 0;
+  const din = Number(raw?.dinheiro_bruto) || 0;
+
+  const pixPct = Number(raw?.pix_taxa_pct) || 0.0099;
+  const debPct = Number(raw?.debito_taxa_pct) || 0.0168;
+  const credPct = Number(raw?.credito_taxa_pct) || 0.0368;
+
+  const taxPix = input.vendasCalc.taxaPix;
+  const taxDeb = input.vendasCalc.taxaDeb;
+  const taxCred = input.vendasCalc.taxaCred;
+
+  const pushMetodo = (label: string, bruto: number, pct: number, taxa: number, recebido: number) => {
+    if (bruto <= 0.00001) return;
+    lines.push(`- ${label}: ${formatMoneyBR(bruto)} (${(pct * 100).toFixed(2)}%)`);
+    lines.push(`⛔ Taxa ${formatMoneyBR(taxa)}`);
+    lines.push(`✅ Recebido ${formatMoneyBR(recebido)}`);
+    lines.push('');
+  };
+
+  pushMetodo('Pix', pix, pixPct, taxPix, pix - taxPix);
+  pushMetodo('Débito', deb, debPct, taxDeb, deb - taxDeb);
+  pushMetodo('Crédito', cred, credPct, taxCred, cred - taxCred);
+  if (din > 0.00001) lines.push(`- Dinheiro ${formatMoneyBR(din)}`);
+  lines.push(`- Colaboradores ${formatMoneyBR(input.consumoTotal)}`);
+  lines.push('');
+  lines.push(`Total de taxas ${formatMoneyBR(input.vendasCalc.totalTaxas)}`);
+  lines.push('');
+
+  lines.push(`* Total de vendas no mês ${formatMoneyBR(input.vendasCalc.totalBruto)}`);
+  lines.push(`* ⛔Taxas ${formatMoneyBR(input.vendasCalc.totalTaxas)}`);
+  lines.push(`* ✅ Recebimento sem taxas ${formatMoneyBR(input.vendasCalc.recebLiquido)}`);
+  lines.push('');
+
+  if (input.lucia) {
+    lines.push(`- Despesa com insumos e compras ${formatMoneyBR(input.lucia.despesasInsumosOutros)}`);
+    lines.push('');
+    lines.push(`= ${formatMoneyBR(input.lucia.lucroLiquido)}`);
+    lines.push('Comissão Lucia');
+    lines.push(`☆ 15% do lucro líquido = ${formatMoneyBR(input.lucia.comissao)}`);
+    lines.push('');
+    lines.push(`Salário ${formatMoneyBR(input.lucia.salario)}`);
+    lines.push(`Comissão: ${formatMoneyBR(input.lucia.comissao)}`);
+    lines.push(`Bonificação: ${formatMoneyBR(input.lucia.bonus)}`);
+    lines.push('');
+    lines.push('Total a Receber');
+    lines.push(`= *${formatMoneyBR(input.lucia.totalBrutoLucia)}*`);
+    lines.push('');
+    lines.push('Desconto de consumo do mês da Lucia no bistrô');
+    lines.push(`${formatMoneyBR(input.lucia.consumo)}`);
+    lines.push('');
+    lines.push('Total a receber líquido');
+    lines.push(`*${formatMoneyBR(input.lucia.totalLiquidoLucia)}*`);
+    lines.push('');
+  }
+
+  // =========================================================
+  // RELATÓRIO DE REPASSES / EMLA
+  // =========================================================
   lines.push(`*BISTRÔ ${monthLabelPt(input.ymRef).toUpperCase()}*`);
   lines.push('');
   lines.push('*Valores a serem repassados, consumo Colaboradores*');
   lines.push(`☆ ${formatMoneyBR(input.consumoTotal)}`);
   lines.push('');
 
-  const repasses = input.movs.filter((m) => m.tipo === 'repasse_bistro');
+  const contabilizaRepasse = input.movs.filter((m) => m.tipo === 'repasse_bistro' || m.tipo === 'despesa');
   lines.push('*Valores repassados ao Bistrô*');
-  if (repasses.length === 0) {
-    lines.push('- (nenhum repasse registrado)');
+  if (contabilizaRepasse.length === 0) {
+    lines.push('- (nenhum repasse/despesa registrada)');
   } else {
-    repasses.forEach((m, idx) => {
+    contabilizaRepasse.forEach((m, idx) => {
       lines.push(`${idx + 1}- ${m.descricao} ${formatMoneyBR(m.valor)} (CG)`);
     });
   }
-  const totalRepasse = repasses.reduce((acc, m) => acc + (m.valor || 0), 0);
+  const totalRepasse = contabilizaRepasse.reduce((acc, m) => acc + (m.valor || 0), 0);
   lines.push('');
-  lines.push(`Total repassado em ${monthLabelPt(input.ymRef).split('/')[0]}: ${formatMoneyBR(totalRepasse)}`);
+  lines.push(`Total repassado em ${monthName}: ${formatMoneyBR(totalRepasse)}`);
   const diff = totalRepasse - input.consumoTotal;
   if (Math.abs(diff) > 0.009) {
-    lines.push(`OBS.: ${diff >= 0 ? 'Foi repassado a mais' : 'Faltou repassar'} ${formatMoneyBR(Math.abs(diff))}`);
+    lines.push(`OBS.: ${diff >= 0 ? 'Foi repassado a mais para o bistrô em' : 'Faltou repassar para o bistrô em'} ${monthName} ${formatMoneyBR(Math.abs(diff))}`);
   }
   lines.push('');
   lines.push(`*BISTRÔ DEVE A EMLA:* ${formatMoneyBR(input.saldoFinalEmla)}`);
   lines.push('');
-
-  if (input.lucia) {
-    lines.push('*Pagamento da Lúcia*');
-    lines.push(`- Total de vendas no mês ${formatMoneyBR(input.lucia.totalVendasBrutas)}`);
-    lines.push(`- ⛔Taxas ${formatMoneyBR(input.lucia.totalTaxas)}`);
-    lines.push(`- ✅ Recebimento sem taxas ${formatMoneyBR(input.lucia.recebLiquido)}`);
-    lines.push('');
-    lines.push(`- Despesa com insumos e compras ${formatMoneyBR(input.lucia.despesasInsumosOutros)}`);
-    lines.push('');
-    lines.push(`Lucro líquido: ${formatMoneyBR(input.lucia.lucroLiquido)}`);
-    lines.push(`Comissão (15% do lucro líquido): ${formatMoneyBR(input.lucia.comissao)}`);
-    lines.push(`Salário: ${formatMoneyBR(input.lucia.salario)}`);
-    lines.push(`VT: ${formatMoneyBR(input.lucia.vt)}`);
-    lines.push(`Bônus: ${formatMoneyBR(input.lucia.bonus)}`);
-    lines.push('');
-    lines.push(`Desconto de consumo do mês: ${formatMoneyBR(input.lucia.consumo)}`);
-    lines.push('');
-    lines.push(`*Total líquido a receber:* ${formatMoneyBR(input.lucia.totalLiquidoLucia)}`);
-    lines.push('');
-  }
 
   return lines.join('\n');
 }
@@ -168,7 +223,7 @@ export const BistroTab: React.FC<{
 
   const saldoFinalEmla = useMemo(() => saldoInicialEmla + movTotals.aporte - movTotals.abatimento, [saldoInicialEmla, movTotals.aporte, movTotals.abatimento]);
 
-  const vendasCalc = useMemo(() => computeVendasResumo(vendas), [vendas]);
+  const vendasCalc = useMemo(() => computeVendasResumo(vendas, consumoTotal), [vendas, consumoTotal]);
 
   const lucia = useMemo(() => {
     if (!params?.lucia_colaborador_id) return null;
@@ -181,6 +236,7 @@ export const BistroTab: React.FC<{
       movs,
       consumoLucia: Number(consumoLucia) || 0,
       vt: Number(vt) || 0,
+      colaboradoresBruto: consumoTotal,
     });
   }, [params, consumos, lancamentosFolha, vendas, movs]);
 
@@ -189,12 +245,13 @@ export const BistroTab: React.FC<{
       ymRef,
       consumoTotal,
       movs,
-      vendas: vendasCalc,
+      vendasRaw: vendas,
+      vendasCalc,
       saldoInicialEmla,
       saldoFinalEmla,
       lucia,
     });
-  }, [ymRef, consumoTotal, movs, vendasCalc, saldoInicialEmla, saldoFinalEmla, lucia]);
+  }, [ymRef, consumoTotal, movs, vendas, vendasCalc, saldoInicialEmla, saldoFinalEmla, lucia]);
 
   async function loadAll() {
     setLoading(true);
@@ -215,10 +272,23 @@ export const BistroTab: React.FC<{
       setVendas(rowVendas);
       setParams(rowParams);
     } catch (e: any) {
-      setError(e?.message || 'Falha ao carregar dados do Bistrô');
+      const msg = String(e?.message || '');
+      const denied =
+        msg.toLowerCase().includes('row-level security') ||
+        msg.toLowerCase().includes('permission denied') ||
+        msg.toLowerCase().includes('not allowed');
+      setError(denied ? 'Você não tem permissão para acessar o Bistrô.' : msg || 'Falha ao carregar dados do Bistrô');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function saveSaldoInicialEmla(next: string) {
+    if (!competenciaId) return;
+    const n = Number(String(next || '').replace(/\./g, '').replace(',', '.'));
+    if (!Number.isFinite(n)) return;
+    await updateBistroCompetencia({ competencia_id: competenciaId, saldo_inicial_emla: n });
+    await loadAll();
   }
 
   useEffect(() => {
@@ -312,7 +382,20 @@ export const BistroTab: React.FC<{
 
   async function saveVendas() {
     if (!competenciaId) return;
-    await upsertBistroVendasResumo({ competencia_id: competenciaId, ...vendas });
+    // As taxas podem vir em "%" (ex.: 0,99) ou em fração (0.0099). Normalizamos.
+    const normalizePct = (x: any, fallback: number) => {
+      const n = Number(String(x ?? '').replace(',', '.'));
+      if (!Number.isFinite(n) || n <= 0) return fallback;
+      return n > 1 ? n / 100 : n;
+    };
+
+    await upsertBistroVendasResumo({
+      competencia_id: competenciaId,
+      ...vendas,
+      pix_taxa_pct: normalizePct((vendas as any)?.pix_taxa_pct, 0.0099),
+      debito_taxa_pct: normalizePct((vendas as any)?.debito_taxa_pct, 0.0168),
+      credito_taxa_pct: normalizePct((vendas as any)?.credito_taxa_pct, 0.0368),
+    } as any);
     await loadAll();
   }
 
@@ -480,7 +563,29 @@ export const BistroTab: React.FC<{
         </Card>
 
         <Card className="p-5">
-          <div className="text-white font-black">Configuração (Lúcia)</div>
+          <div className="text-white font-black">EMLA (saldo acumulado)</div>
+          <div className="text-xs text-slate-500 font-bold mt-1">Dívida/adiantamentos do Bistrô com a LA (EMLA)</div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Saldo inicial (mês)</div>
+              <input
+                defaultValue={String(saldoInicialEmla ?? '')}
+                onBlur={(e) => void saveSaldoInicialEmla(e.target.value)}
+                placeholder="0,00"
+                className={inputBase}
+                inputMode="decimal"
+              />
+              <div className="mt-1 text-[10px] text-slate-500 font-bold">* Salva automaticamente ao sair do campo</div>
+            </div>
+            <div className="rounded-2xl border border-slate-800/60 bg-slate-950/30 p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Saldo final (mês)</div>
+              <div className="mt-1 text-lg font-black text-white font-mono">{formatMoneyBR(saldoFinalEmla)}</div>
+              <div className="mt-1 text-xs text-slate-500 font-bold">Saldo inicial + aportes − abatimentos</div>
+            </div>
+          </div>
+
+          <div className="mt-6 text-white font-black">Configuração (Lúcia)</div>
           <div className="text-xs text-slate-500 font-bold mt-1">Necessário para cálculo automático</div>
 
           <div className="mt-4 space-y-3">
@@ -532,6 +637,28 @@ export const BistroTab: React.FC<{
                   value={String((vendas as any)?.[k] ?? '')}
                   onChange={(e) => setVendas((p) => ({ ...(p || ({} as any)), [k]: e.target.value } as any))}
                   placeholder="0,00"
+                  className={inputBase}
+                  inputMode="decimal"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {([
+              { k: 'pix_taxa_pct', label: 'Taxa Pix (%)' },
+              { k: 'debito_taxa_pct', label: 'Taxa Débito (%)' },
+              { k: 'credito_taxa_pct', label: 'Taxa Crédito (%)' },
+            ] as const).map(({ k, label }) => (
+              <div key={k}>
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{label}</div>
+                <input
+                  value={String((vendas as any)?.[k] ?? '')}
+                  onChange={(e) => {
+                    const raw = String(e.target.value || '').replace(',', '.');
+                    setVendas((p) => ({ ...(p || ({} as any)), [k]: raw } as any));
+                  }}
+                  placeholder={k === 'pix_taxa_pct' ? '0,99' : k === 'debito_taxa_pct' ? '1,68' : '3,68'}
                   className={inputBase}
                   inputMode="decimal"
                 />
