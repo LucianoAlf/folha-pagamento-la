@@ -12,6 +12,7 @@ import {
   computeVendasResumo,
   fetchBistroMovimentacoes,
   fetchBistroParametros,
+  fetchBistroCompetenciaByYM,
   fetchBistroConsumos,
   fetchBistroVendasResumo,
   formatMoneyBR,
@@ -447,8 +448,42 @@ export const BistroTab: React.FC<{
       ]);
       setConsumos(rowsConsumo.map((r) => ({ colaborador_id: r.colaborador_id, valor: Number(r.valor) || 0 })));
       setMovs(rowsMov);
-      setVendas(rowVendas);
       setParams(rowParams);
+
+      // Persistência das taxas: se ainda não existe vendas_resumo no mês, herda as taxas do mês anterior (ou defaults) e cria o registro.
+      if (!rowVendas) {
+        const prevYm = addMonthsToYM(ymRef, -1);
+        let pixTax = 0.0099;
+        let debTax = 0.0168;
+        let credTax = 0.0368;
+        try {
+          const prevComp = await fetchBistroCompetenciaByYM({ ym: prevYm, unidade: 'cg' });
+          if (prevComp) {
+            const prevVendas = await fetchBistroVendasResumo(prevComp.id);
+            if (prevVendas) {
+              pixTax = Number(prevVendas.pix_taxa_pct) || pixTax;
+              debTax = Number(prevVendas.debito_taxa_pct) || debTax;
+              credTax = Number(prevVendas.credito_taxa_pct) || credTax;
+            }
+          }
+        } catch {
+          // best-effort: mantém defaults
+        }
+
+        const created = await upsertBistroVendasResumo({
+          competencia_id: comp.id,
+          pix_bruto: 0,
+          debito_bruto: 0,
+          credito_bruto: 0,
+          dinheiro_bruto: 0,
+          pix_taxa_pct: pixTax,
+          debito_taxa_pct: debTax,
+          credito_taxa_pct: credTax,
+        } as any);
+        setVendas(created);
+      } else {
+        setVendas(rowVendas);
+      }
     } catch (e: any) {
       const msg = String(e?.message || '');
       const denied =
@@ -581,6 +616,28 @@ export const BistroTab: React.FC<{
       credito_taxa_pct: normalizePct((vendas as any)?.credito_taxa_pct, 0.0368),
     } as any);
     await loadAll();
+  }
+
+  async function autoSaveTaxas() {
+    if (!competenciaId) return;
+    const normalizePct = (x: any, fallback: number) => {
+      const n = Number(String(x ?? '').replace(',', '.'));
+      if (!Number.isFinite(n) || n <= 0) return fallback;
+      return n >= 0.1 ? n / 100 : n;
+    };
+    const saved = await upsertBistroVendasResumo({
+      competencia_id: competenciaId,
+      ...(vendas || ({} as any)),
+      // mantém brutos (se já preenchidos) e garante que taxas fiquem persistidas
+      pix_bruto: parseMoneyBR(String((vendas as any)?.pix_bruto || '')),
+      debito_bruto: parseMoneyBR(String((vendas as any)?.debito_bruto || '')),
+      credito_bruto: parseMoneyBR(String((vendas as any)?.credito_bruto || '')),
+      dinheiro_bruto: parseMoneyBR(String((vendas as any)?.dinheiro_bruto || '')),
+      pix_taxa_pct: normalizePct((vendas as any)?.pix_taxa_pct, 0.0099),
+      debito_taxa_pct: normalizePct((vendas as any)?.debito_taxa_pct, 0.0168),
+      credito_taxa_pct: normalizePct((vendas as any)?.credito_taxa_pct, 0.0368),
+    } as any);
+    setVendas(saved);
   }
 
   async function saveParametros(next: Partial<BistroParametros>) {
@@ -1030,6 +1087,7 @@ export const BistroTab: React.FC<{
                     const raw = String(e.target.value || '').replace(',', '.');
                     setVendas((p) => ({ ...(p || ({} as any)), [k]: raw } as any));
                   }}
+                  onBlur={() => void autoSaveTaxas()}
                   placeholder={k === 'pix_taxa_pct' ? '0,99' : k === 'debito_taxa_pct' ? '1,68' : '3,68'}
                   className={inputBase}
                   inputMode="decimal"

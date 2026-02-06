@@ -159,6 +159,20 @@ export async function fetchBistroConsumos(competenciaId: string) {
   return (data || []) as BistroConsumo[];
 }
 
+export async function fetchBistroCompetenciaByYM(input: { ym: string; unidade?: BistroUnidade }) {
+  const unidade: BistroUnidade = input.unidade || 'cg';
+  const { ano, mes } = ymToParts(input.ym);
+  const { data, error } = await supabase
+    .from('bistro_competencias')
+    .select('*')
+    .eq('unidade', unidade)
+    .eq('ano', ano)
+    .eq('mes', mes)
+    .limit(1);
+  if (error) throw error;
+  return (data && data.length ? (data[0] as BistroCompetencia) : null) as BistroCompetencia | null;
+}
+
 export async function updateBistroCompetencia(input: { competencia_id: string; saldo_inicial_emla?: number; observacoes?: string | null }) {
   const patch: any = { updated_at: new Date().toISOString() };
   if (typeof input.saldo_inicial_emla === 'number') patch.saldo_inicial_emla = input.saldo_inicial_emla;
