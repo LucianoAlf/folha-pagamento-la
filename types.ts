@@ -72,6 +72,19 @@ export interface UserProfile {
   created_at?: string;
 }
 
+export type BistroDescontoMeta = {
+  ref_ym: string; // yyyy-mm (mês de consumo)
+  valor: number;
+  updated_at?: string;
+};
+
+export type LancamentoDetalhamento = {
+  // Notas livres (UI premium)
+  [key: string]: string | BistroDescontoMeta | null | undefined;
+  // Metadado do desconto do Bistrô (para coluna e geração idempotente)
+  __bistro?: BistroDescontoMeta;
+};
+
 export interface Lancamento {
   id: number;
   folha_id: number;
@@ -88,7 +101,7 @@ export interface Lancamento {
   total: number;
   observacao?: string;
   alert_checked?: boolean;
-  detalhamento?: Record<string, string>;
+  detalhamento?: LancamentoDetalhamento | null;
   colaboradores?: Colaborador;
 }
 

@@ -27,6 +27,7 @@ import { Sidebar } from './components/Sidebar';
 import { ContasPagarPage } from './components/contas/ContasPagarPage';
 import { AgendaPage } from './components/agenda/AgendaPage';
 import { NotificacoesPage } from './components/notificacoes/NotificacoesPage';
+import { BistroTab } from './components/bistro/BistroTab';
 import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
 
 
@@ -251,6 +252,7 @@ export default function App() {
         { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
         { id: 'colaboradores', label: 'Colaboradores', icon: Users },
         { id: 'lancamentos', label: 'Lançamentos', icon: FileText },
+        { id: 'bistro', label: 'Bistrô', icon: Coins },
         { id: 'comparativo', label: 'Comparativo', icon: TrendingUp },
       ]
     },
@@ -3249,6 +3251,7 @@ export default function App() {
                             <th className="py-4 px-2 text-right">Reembolso</th>
                           <th className="py-4 px-2 text-right">Passagem</th>
                           <th className="py-4 px-2 text-right">INSS</th>
+                          <th className="py-4 px-2 text-right">Bistrô</th>
                           <th className="py-4 px-2 text-right">Descontos</th>
                           <th className="py-4 px-4 text-right text-white font-bold">Total</th>
                         </tr>
@@ -3273,7 +3276,7 @@ export default function App() {
                                 className="bg-slate-900/50 cursor-pointer hover:bg-slate-800 transition-colors"
                                 onClick={() => setExpandedDept(prev => ({ ...prev, [dept]: !prev[dept] }))}
                               >
-                                <td colSpan={11} className="py-3 px-4">
+                                <td colSpan={12} className="py-3 px-4">
                                   <div className="flex items-center gap-2">
                                     {expandedDept[dept] ? <ChevronDown size={14} className="text-slate-500" /> : <ChevronUp size={14} className="text-slate-500" />}
                                     <span className={`font-bold text-xs uppercase tracking-widest ${deptColors[dept]}`}>
@@ -3289,6 +3292,9 @@ export default function App() {
                               
                               {expandedDept[dept] && lancs.map(l => {
                                 const colab = l.colaboradores || {} as Colaborador;
+                                const bistroMeta = (l.detalhamento as any)?.__bistro as any;
+                                const bistroVal = typeof bistroMeta?.valor === 'number' ? bistroMeta.valor : Number(bistroMeta?.valor) || 0;
+                                const bistroRefYm = typeof bistroMeta?.ref_ym === 'string' ? bistroMeta.ref_ym : null;
                                 return (
                                   <tr key={l.id} className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors group">
                                     <td className="py-3 px-4">
@@ -3306,14 +3312,19 @@ export default function App() {
                                         <div>
                                           <div className="flex items-center gap-2">
                                             <div className="font-medium text-sm text-slate-200">{colab.nome || 'N/A'}</div>
-                                            {l.detalhamento && Object.values(l.detalhamento).some(v => v?.trim()) && (
+                                            {l.detalhamento &&
+                                              Object.entries(l.detalhamento)
+                                                .filter(([k]) => k !== '__bistro')
+                                                .some(([_, v]) => typeof v === 'string' && v.trim()) && (
                                               <Tooltip content={
                                                 <div className="space-y-2 p-1">
                                                   <div className="text-[10px] font-black text-violet-400 uppercase tracking-widest border-b border-white/10 pb-1 mb-1">Detalhamento do Lançamento</div>
-                                                  {Object.entries(l.detalhamento).filter(([_, v]) => v?.trim()).map(([k, v]) => (
+                                                  {Object.entries(l.detalhamento)
+                                                    .filter(([k, v]) => k !== '__bistro' && typeof v === 'string' && v.trim())
+                                                    .map(([k, v]) => (
                                                     <div key={k} className="flex flex-col gap-0.5">
                                                       <span className="text-[9px] font-bold text-slate-500 uppercase">{k}:</span>
-                                                      <span className="text-xs text-slate-200">{v}</span>
+                                                      <span className="text-xs text-slate-200">{String(v)}</span>
                                                     </div>
                                                   ))}
                                                 </div>
@@ -3398,6 +3409,24 @@ export default function App() {
                                         disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
                                         onSave={(val) => saveLancamentoPatch(l, { inss: val })} 
                                       />
+                                    </td>
+                                    <td className="py-3 px-2 text-right">
+                                      <Tooltip
+                                        content={
+                                          <div className="space-y-1">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-300">Desconto Bistrô</div>
+                                            <div className="text-xs text-slate-200">
+                                              {bistroRefYm ? `Ref. ${bistroRefYm}` : 'Não aplicado'}
+                                            </div>
+                                            <div className="text-xs text-slate-200 font-black">{formatCurrency(bistroVal)}</div>
+                                          </div>
+                                        }
+                                        side="top"
+                                      >
+                                        <span className={cn('font-mono text-xs font-bold', bistroVal > 0 ? 'text-emerald-300' : 'text-slate-600')}>
+                                          {bistroVal > 0 ? formatCurrency(bistroVal) : '—'}
+                                        </span>
+                                      </Tooltip>
                                     </td>
                                     <td className="py-3 px-1 text-rose-400/80">
                                       <CellInput 
@@ -3833,6 +3862,19 @@ export default function App() {
               </div>
             )}
             
+            {/* Bistrô Tab (descontos ref. mês anterior) */}
+            {activeTab === 'bistro' && folhaAtual ? (
+              <BistroTab
+                folhaAtual={folhaAtual}
+                statusFolha={statusFolha}
+                colaboradores={colaboradores}
+                lancamentosFolha={lancamentos}
+                onRefreshLancamentos={async () => {
+                  await refetchLancamentosSilent();
+                }}
+              />
+            ) : null}
+
             {activeTab === 'comparativo' && (
               <div className="space-y-6">
                 {!comparativoMensal ? (
