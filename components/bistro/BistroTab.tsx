@@ -65,16 +65,12 @@ function buildRelatorioFinanceiroText(input: {
   vendasRaw: BistroVendasResumo | null;
   vendasCalc: ReturnType<typeof computeVendasResumo>;
   lucia?: ReturnType<typeof computeLuciaPagamento> | null;
+  bonusLabel?: string | null;
 }) {
   const lines: string[] = [];
   lines.push(`*BISTRÔ ${monthLabelPt(input.ymRef).toUpperCase()}*`);
   lines.push('');
 
-  // =========================================================
-  // RELATÓRIO FINANCEIRO (vendas, taxas, lucro e pagamento Lúcia)
-  // =========================================================
-  lines.push('*Relatório Financeiro do Bistrô*');
-  lines.push('');
   lines.push('*Desconto de taxa de máquininha*');
   lines.push('');
 
@@ -92,18 +88,26 @@ function buildRelatorioFinanceiroText(input: {
   const taxDeb = input.vendasCalc.taxaDeb;
   const taxCred = input.vendasCalc.taxaCred;
 
-  const pushMetodo = (label: string, bruto: number, pct: number, taxa: number, recebido: number) => {
-    if (bruto <= 0.00001) return;
-    lines.push(`- ${label}: ${formatMoneyBR(bruto)} (${(pct * 100).toFixed(2)}%)`);
-    lines.push(`⛔ Taxa ${formatMoneyBR(taxa)}`);
-    lines.push(`✅ Recebido ${formatMoneyBR(recebido)}`);
-    lines.push('');
-  };
+  const pctLabel = (pct: number) => (pct * 100).toFixed(2).replace(/\.00$/, '');
 
-  pushMetodo('Pix', pix, pixPct, taxPix, pix - taxPix);
-  pushMetodo('Débito', deb, debPct, taxDeb, deb - taxDeb);
-  pushMetodo('Crédito', cred, credPct, taxCred, cred - taxCred);
-  if (din > 0.00001) lines.push(`- Dinheiro ${formatMoneyBR(din)}`);
+  // Sempre renderiza o template completo (mesmo com 0), para ficar igual ao WhatsApp.
+  lines.push(`- Pix: ${formatMoneyBR(pix)} (${pctLabel(pixPct)}%)`);
+  lines.push(`⛔ Taxa ${formatMoneyBR(taxPix)}`);
+  lines.push(`✅ Recebido ${formatMoneyBR(pix - taxPix)}`);
+  lines.push('');
+
+  lines.push(`- Débito: ${formatMoneyBR(deb)} (${pctLabel(debPct)}%)`);
+  lines.push(`⛔Taxa ${formatMoneyBR(taxDeb)}`);
+  lines.push(`✅ Recebido ${formatMoneyBR(deb - taxDeb)}`);
+  lines.push('');
+
+  lines.push(`- Crédito ${formatMoneyBR(cred)}`);
+  lines.push(`(taxa${pctLabel(credPct)}%)`);
+  lines.push(`⛔Taxa ${formatMoneyBR(taxCred)}`);
+  lines.push(`✅ Recebido ${formatMoneyBR(cred - taxCred)}`);
+  lines.push('');
+
+  lines.push(`- Dinheiro ${formatMoneyBR(din)}`);
   lines.push(`- Colaboradores ${formatMoneyBR(input.consumoTotal)}`);
   lines.push('');
   lines.push(`Total de taxas ${formatMoneyBR(input.vendasCalc.totalTaxas)}`);
@@ -111,7 +115,7 @@ function buildRelatorioFinanceiroText(input: {
 
   lines.push(`* Total de vendas no mês ${formatMoneyBR(input.vendasCalc.totalBruto)}`);
   lines.push(`* ⛔Taxas ${formatMoneyBR(input.vendasCalc.totalTaxas)}`);
-  lines.push(`* ✅ Recebimento sem taxas ${formatMoneyBR(input.vendasCalc.recebLiquido)}`);
+  lines.push(`* ✅ Recebimento sem taxas ${formatMoneyBR(input.vendasCalc.recebLiquido)} `);
   lines.push('');
 
   if (input.lucia) {
@@ -123,7 +127,7 @@ function buildRelatorioFinanceiroText(input: {
     lines.push('');
     lines.push(`Salário ${formatMoneyBR(input.lucia.salario)}`);
     lines.push(`Comissão: ${formatMoneyBR(input.lucia.comissao)}`);
-    lines.push(`Bonificação: ${formatMoneyBR(input.lucia.bonus)}`);
+    lines.push(`${input.bonusLabel || 'Bonificação'} ${formatMoneyBR(input.lucia.bonus)}`);
     lines.push('');
     lines.push('Total a Receber');
     lines.push(`= *${formatMoneyBR(input.lucia.totalBrutoLucia)}*`);
@@ -249,14 +253,26 @@ export const BistroTab: React.FC<{
   }, [params, consumos, lancamentosFolha, vendas, movs]);
 
   const reportFinanceiroText = useMemo(() => {
+    const bonusLabel = (() => {
+      const bonus = Number(lucia?.bonus || 0);
+      const tiers = (params?.bonus_tiers || []) as Array<{ min: number; valor: number }>;
+      if (!bonus || !tiers.length) return 'Bonificação:';
+      const sorted = tiers.slice().sort((a, b) => a.min - b.min);
+      const hit = sorted.filter((t) => Number(t.valor) === bonus).sort((a, b) => b.min - a.min)[0];
+      if (!hit?.min) return 'Bonificação:';
+      // Mantém o texto como a Ana escreve no WhatsApp (ex.: "Bonificação acima de 13k:")
+      return `Bonificação acima de ${Math.round(hit.min / 1000)}k:`;
+    })();
+
     return buildRelatorioFinanceiroText({
       ymRef,
       consumoTotal,
       vendasRaw: vendas,
       vendasCalc,
       lucia,
+      bonusLabel,
     });
-  }, [ymRef, consumoTotal, vendas, vendasCalc, lucia]);
+  }, [ymRef, consumoTotal, vendas, vendasCalc, lucia, params?.bonus_tiers]);
 
   const reportRepassesText = useMemo(() => {
     return buildRelatorioRepassesText({
