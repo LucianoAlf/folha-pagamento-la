@@ -359,6 +359,20 @@ export const FERIAS_PROGRAMACAO_STATUS_LABELS: Record<FeriasProgramacaoStatus, s
 };
 
 /**
+ * Cores para Status de Programação (Badge variants do design system)
+ */
+export const FERIAS_PROGRAMACAO_STATUS_COLORS: Record<
+  FeriasProgramacaoStatus,
+  'success' | 'warning' | 'info' | 'danger'
+> = {
+  programado: 'info',
+  aprovado: 'success',
+  em_gozo: 'warning',
+  concluido: 'success',
+  cancelado: 'danger',
+};
+
+/**
  * Labels para Status Geral
  */
 export const FERIAS_STATUS_GERAL_LABELS: Record<FeriasStatusGeral, string> = {
