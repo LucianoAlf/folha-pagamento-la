@@ -60,6 +60,7 @@ export const DatePicker: React.FC<{
   fromYear,
   toYear
 }) => {
+  const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const currentYear = new Date().getFullYear();
   const selected = (() => {
@@ -68,6 +69,9 @@ export const DatePicker: React.FC<{
     const d = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
     return isValid(d) ? d : undefined;
   })();
+  const minYear = fromYear ?? currentYear - 80;
+  const maxYear = toYear ?? currentYear + 5;
+  const [month, setMonth] = useState<Date>(() => selected ?? new Date());
 
   useEffect(() => {
     if (selected) {
@@ -76,6 +80,11 @@ export const DatePicker: React.FC<{
       setInputValue('');
     }
   }, [value]); // selected derives from value
+
+  useEffect(() => {
+    if (!open) return;
+    setMonth(selected ?? new Date());
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replace(/\D/g, '');
@@ -105,7 +114,7 @@ export const DatePicker: React.FC<{
   };
 
   return (
-    <Popover.Root>
+    <Popover.Root open={open} onOpenChange={setOpen}>
       <div className="relative w-full group">
         <input
           type="text"
@@ -140,15 +149,87 @@ export const DatePicker: React.FC<{
           align="start"
           className="z-[14000] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
         >
-          <div className="rdp-modern">
+          {variant === 'monthYear' && (
+            <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100/60 dark:border-slate-800/80">
+              <button
+                type="button"
+                disabled={month <= new Date(minYear, 0, 1)}
+                onClick={() => {
+                  const prev = new Date(month.getFullYear(), month.getMonth() - 1, 1);
+                  if (prev < new Date(minYear, 0, 1)) return;
+                  setMonth(prev);
+                }}
+                className={cn(
+                  "w-10 h-10 rounded-2xl border flex items-center justify-center transition-all",
+                  "border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-100 dark:hover:bg-slate-900 active:scale-95",
+                  (month <= new Date(minYear, 0, 1)) && "opacity-40 pointer-events-none"
+                )}
+                aria-label="Mês anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="flex-1 grid grid-cols-2 gap-3">
+                <CustomSelect
+                  value={String(month.getMonth())}
+                  onValueChange={(v) => {
+                    const m = Number(v);
+                    const next = new Date(month.getFullYear(), m, 1);
+                    setMonth(next);
+                  }}
+                  options={Array.from({ length: 12 }).map((_, idx) => ({
+                    value: String(idx),
+                    label: format(new Date(2020, idx, 1), 'MMMM', { locale: ptBR }).toUpperCase(),
+                  }))}
+                  className="py-2.5 rounded-2xl"
+                />
+                <CustomSelect
+                  value={String(month.getFullYear())}
+                  onValueChange={(v) => {
+                    const y = Number(v);
+                    const next = new Date(y, month.getMonth(), 1);
+                    setMonth(next);
+                  }}
+                  options={Array.from({ length: maxYear - minYear + 1 }).map((_, i) => {
+                    const y = minYear + i;
+                    return { value: String(y), label: String(y) };
+                  })}
+                  className="py-2.5 rounded-2xl"
+                />
+              </div>
+
+              <button
+                type="button"
+                disabled={month >= new Date(maxYear, 11, 1)}
+                onClick={() => {
+                  const next = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+                  if (next > new Date(maxYear, 11, 1)) return;
+                  setMonth(next);
+                }}
+                className={cn(
+                  "w-10 h-10 rounded-2xl border flex items-center justify-center transition-all",
+                  "border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-300",
+                  "hover:bg-slate-100 dark:hover:bg-slate-900 active:scale-95",
+                  (month >= new Date(maxYear, 11, 1)) && "opacity-40 pointer-events-none"
+                )}
+                aria-label="Próximo mês"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className={cn("rdp-modern", variant === 'monthYear' && "sf-monthyear")}>
             <DayPicker
               mode="single"
+              month={variant === 'monthYear' ? month : undefined}
+              onMonthChange={variant === 'monthYear' ? setMonth : undefined}
               selected={selected}
               {...(variant === 'monthYear'
                 ? {
-                    captionLayout: 'dropdown' as const,
-                    fromYear: fromYear ?? currentYear - 80,
-                    toYear: toYear ?? currentYear + 5,
+                    // We render our own Month/Year header to avoid native <select> dropdown quirks.
+                    hideNavigation: true,
                   }
                 : {})}
               onSelect={(d) => {
@@ -157,6 +238,7 @@ export const DatePicker: React.FC<{
                 const mm = String(d.getMonth() + 1).padStart(2, '0');
                 const dd = String(d.getDate()).padStart(2, '0');
                 onChange(`${yyyy}-${mm}-${dd}`);
+                if (variant === 'monthYear') setMonth(new Date(yyyy, d.getMonth(), 1));
               }}
               weekStartsOn={0}
               locale={ptBR}
@@ -210,6 +292,10 @@ export const DatePicker: React.FC<{
               text-transform: uppercase;
               letter-spacing: 0.1em;
               color: var(--slate-900);
+            }
+            .sf-monthyear .rdp-month_caption,
+            .sf-monthyear .rdp-nav {
+              display: none !important;
             }
             .dark .rdp-month_caption {
               color: white;
