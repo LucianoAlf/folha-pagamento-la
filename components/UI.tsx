@@ -242,7 +242,8 @@ export const DatePicker: React.FC<{
               }}
               weekStartsOn={0}
               locale={ptBR}
-              showOutsideDays
+              // For Nascimento/Admissão, showing outside-days looks like the calendar is "jumping" months.
+              showOutsideDays={variant !== 'monthYear'}
               components={{
                 Chevron: ({ orientation }) => {
                   const Icon = orientation === 'left' ? ChevronLeft : ChevronRight;
@@ -698,6 +699,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 
       <Select.Portal>
         <Select.Content 
+          // Inline zIndex to avoid any stacking-context edge cases inside other overlays/popovers.
+          style={{ zIndex: 999999 }}
           className="overflow-hidden bg-slate-900 rounded-xl border border-slate-700 shadow-2xl shadow-black/60 z-[99999] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
           position="popper"
           sideOffset={8}
