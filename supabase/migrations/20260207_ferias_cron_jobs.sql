@@ -36,8 +36,7 @@ BEGIN
     GREATEST(0, CURRENT_DATE - pa.concessivo_fim)::INT as dias_vencidos
   FROM ferias_periodos_aquisitivos pa
   JOIN colaboradores c ON c.id = pa.colaborador_id
-  WHERE pa.user_id = p_user_id
-    AND pa.esta_vencido = true
+  WHERE pa.esta_vencido = true
     AND pa.dias_saldo > 0
   ORDER BY pa.concessivo_fim ASC;
 END;
