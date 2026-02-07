@@ -44,6 +44,8 @@ export const CONTRACT_LABELS: Record<CollaboratorContractType, string> = {
   rpa: 'RPA'
 };
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 // --- Helpers ---
 
 export const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
@@ -570,6 +572,9 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   value={form.data_nascimento}
                   onChange={(v) => updateForm({ data_nascimento: v })}
                   placeholder="Selecione a data..."
+                  variant="monthYear"
+                  fromYear={1940}
+                  toYear={CURRENT_YEAR}
                 />
               </div>
             </>
@@ -621,6 +626,9 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   value={form.data_admissao}
                   onChange={(v) => updateForm({ data_admissao: v })}
                   placeholder="Selecione a data..."
+                  variant="monthYear"
+                  fromYear={1990}
+                  toYear={CURRENT_YEAR + 1}
                 />
               </div>
             </>
@@ -1099,6 +1107,9 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     value={form.data_nascimento}
                     onChange={(v) => updateForm({ data_nascimento: v })}
                     placeholder="Selecione a data..."
+                    variant="monthYear"
+                    fromYear={1940}
+                    toYear={CURRENT_YEAR}
                   />
                 </div>
               </div>
@@ -1150,6 +1161,9 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     value={form.data_admissao}
                     onChange={(v) => updateForm({ data_admissao: v })}
                     placeholder="Selecione a data..."
+                    variant="monthYear"
+                    fromYear={1990}
+                    toYear={CURRENT_YEAR + 1}
                   />
                 </div>
               </div>

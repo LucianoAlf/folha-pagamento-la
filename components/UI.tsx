@@ -47,8 +47,21 @@ export const DatePicker: React.FC<{
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-}> = ({ value, onChange, placeholder = 'Selecione...', className = '', disabled }) => {
+  variant?: 'default' | 'monthYear';
+  fromYear?: number;
+  toYear?: number;
+}> = ({
+  value,
+  onChange,
+  placeholder = 'Selecione...',
+  className = '',
+  disabled,
+  variant = 'default',
+  fromYear,
+  toYear
+}) => {
   const [inputValue, setInputValue] = useState('');
+  const currentYear = new Date().getFullYear();
   const selected = (() => {
     if (!value) return undefined;
     // Accepts either "yyyy-mm-dd" or ISO strings from DB (e.g. "2026-02-07T00:00:00.000Z")
@@ -131,6 +144,13 @@ export const DatePicker: React.FC<{
             <DayPicker
               mode="single"
               selected={selected}
+              {...(variant === 'monthYear'
+                ? {
+                    captionLayout: 'dropdown' as const,
+                    fromYear: fromYear ?? currentYear - 80,
+                    toYear: toYear ?? currentYear + 5,
+                  }
+                : {})}
               onSelect={(d) => {
                 if (!d) return onChange(undefined);
                 const yyyy = d.getFullYear();
