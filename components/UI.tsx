@@ -362,6 +362,34 @@ export const DatePicker: React.FC<{
   );
 };
 
+export const Button: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: 'primary' | 'outline' | 'ghost';
+  }
+> = ({ variant = 'ghost', className = '', disabled, children, ...props }) => {
+  const base =
+    'inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50 disabled:pointer-events-none';
+
+  const variants = {
+    primary:
+      'bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/20 border border-violet-500/30',
+    outline:
+      'bg-slate-900/30 hover:bg-slate-800/50 text-slate-200 border border-slate-700/60 hover:border-slate-600',
+    ghost: 'bg-slate-900/20 hover:bg-slate-800/40 text-slate-200 border border-slate-800/50',
+  } satisfies Record<NonNullable<React.ComponentProps<typeof Button>['variant']>, string>;
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className={cn(base, variants[variant], className)}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
+
 export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => {
   // Se className contém bg-slate-950, não aplicar o bg padrão do dark mode
   const hasCustomBg = className.includes('bg-slate-950') || className.includes('bg-slate-900');
