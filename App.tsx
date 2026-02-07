@@ -8,7 +8,7 @@ import { MobileCollaboratorList } from './components/colaboradores/MobileCollabo
 import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
-  Calendar, Bell, BarChart3, FileText, 
+  Calendar, CalendarCheck, Bell, BarChart3, FileText, 
   TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database, ShieldCheck, CreditCard,
   LineChart as LineChartIcon,
   Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, ChefHat, LogOut, Menu, X
@@ -27,6 +27,7 @@ import { Sidebar } from './components/Sidebar';
 import { ContasPagarPage } from './components/contas/ContasPagarPage';
 import { AgendaPage } from './components/agenda/AgendaPage';
 import { NotificacoesPage } from './components/notificacoes/NotificacoesPage';
+import { FeriasPage } from './components/ferias/FeriasPage';
 import { BistroTab } from './components/bistro/BistroTab';
 import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
 
@@ -184,7 +185,7 @@ export default function App() {
     return null;
   };
 
-  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'agenda' | 'notificacoes'>('folha');
+  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias'>('folha');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -278,6 +279,12 @@ export default function App() {
       title: 'Notificações',
       subtitle: 'WHATSAPP E ALERTAS AUTOMÁTICOS',
       icon: Bell,
+      tabs: []
+    },
+    ferias: {
+      title: 'Férias CLT',
+      subtitle: 'GESTÃO DE PERÍODOS E PROGRAMAÇÕES',
+      icon: CalendarCheck,
       tabs: []
     }
   };
@@ -1207,7 +1214,7 @@ export default function App() {
     }
   };
 
-  const currentModuleConfig = MODULE_CONFIG[currentModule];
+  const currentModuleConfig = MODULE_CONFIG[currentModule] ?? MODULE_CONFIG.folha;
   const getShortLabel = (id: string) => {
     // Mobile cockpit labels dependem do módulo (pra caber sem scroll e manter semântica)
     if (currentModule === 'contas') {
@@ -1232,7 +1239,7 @@ export default function App() {
     return map[id] || id;
   };
 
-  const tabs = currentModuleConfig.tabs;
+  const tabs = currentModuleConfig?.tabs ?? [];
 
   const contasCompetenciaOptions = useMemo(() => {
     // Lista “boa o suficiente” para mobile: últimos 12 meses + próximo mês
@@ -1688,17 +1695,17 @@ export default function App() {
               {/* DESKTOP: Dynamic Module Title & Icon (Hidden on Mobile) */}
               <div className="hidden lg:flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                  {(() => {
-                    const Icon = MODULE_CONFIG[currentModule as keyof typeof MODULE_CONFIG].icon;
-                    return <Icon className="w-5 h-5 text-violet-400" />;
-                  })()}
+                      {(() => {
+                        const Icon = currentModuleConfig.icon;
+                        return <Icon className="w-5 h-5 text-violet-400" />;
+                      })()}
                 </div>
                 <div>
                   <h1 className="text-white font-black text-sm md:text-base tracking-tight leading-tight">
-                    {MODULE_CONFIG[currentModule as keyof typeof MODULE_CONFIG].title}
+                        {currentModuleConfig.title}
                   </h1>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none mt-1">
-                    {MODULE_CONFIG[currentModule as keyof typeof MODULE_CONFIG].subtitle}
+                        {currentModuleConfig.subtitle}
                   </p>
                 </div>
               </div>
@@ -1981,6 +1988,8 @@ export default function App() {
              <AgendaPage />
           ) : currentModule === 'notificacoes' ? (
             <NotificacoesPage />
+          ) : currentModule === 'ferias' ? (
+            <FeriasPage />
           ) : loading ? (
           <LoadingSpinner />
         ) : error ? (
