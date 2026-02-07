@@ -114,12 +114,21 @@ async function registrarLembrete(
   referencia: string,
   mensagem: string
 ): Promise<void> {
+  const agora = new Date().toISOString();
   await supabase.from('lembretes_log').insert({
     user_id: userId,
+    canal: 'whatsapp',
+    // `tipo` possui CHECK no schema atual; usar um valor permitido
+    tipo: 'lembrete',
+    scheduled_for: agora,
+    status: 'enviado',
+    enviado_em: agora,
+    destinatario: null,
+    mensagem,
+    // Campos extras (adicionados via migration) para idempotência
     tipo_lembrete: tipo,
     referencia,
     mensagem_enviada: mensagem,
-    canal: 'whatsapp',
   });
 }
 
@@ -156,7 +165,6 @@ async function buscarFeriasProximasVencer(
   const { data, error } = await supabase
     .from('ferias_periodos_aquisitivos')
     .select('id, colaborador_id, dias_saldo, concessivo_fim, colaboradores(nome)')
-    .eq('user_id', userId)
     .eq('status', 'ativo')
     .gt('dias_saldo', 0)
     .lte('concessivo_fim', dataLimite.toISOString())
@@ -207,7 +215,6 @@ async function buscarPagamentosPendentes(
       colaboradores(nome)
     `
     )
-    .eq('user_id', userId)
     .in('status', ['aprovado', 'em_gozo'])
     .eq('pagamento_efetuado', false)
     .lte('data_limite_pagamento', doisDiasDepois.toISOString());
@@ -321,8 +328,7 @@ async function gerarResumoMensal(
   // Buscar estatísticas
   const { data: status } = await supabase
     .from('v_ferias_colaboradores_status')
-    .select('*')
-    .eq('user_id', userId);
+    .select('*');
 
   if (!status || status.length === 0) {
     return null;
@@ -341,7 +347,6 @@ async function gerarResumoMensal(
   const { data: programacoes } = await supabase
     .from('ferias_programacoes')
     .select('data_inicio, dias_uteis, colaboradores(nome)')
-    .eq('user_id', userId)
     .in('status', ['programado', 'aprovado'])
     .gte('data_inicio', hoje.toISOString())
     .lte('data_inicio', new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString())

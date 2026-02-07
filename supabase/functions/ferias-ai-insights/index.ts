@@ -254,6 +254,25 @@ serve(async (req) => {
   }
 
   try {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return new Response(JSON.stringify({ error: 'Missing Supabase env vars' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+    if (!GEMINI_API_KEY) {
+      return new Response(
+        JSON.stringify({
+          error:
+            'Missing GEMINI_API_KEY secret. Configure it in Supabase Dashboard (Edge Functions → Secrets).',
+        }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        }
+      );
+    }
+
     // Parse body
     const body: RequestBody = await req.json().catch(() => ({}));
     const { periodoReferencia, departamento, unidade, force } = body;
@@ -285,11 +304,8 @@ serve(async (req) => {
       });
     }
 
-    // Buscar colaboradores CLT
-    let query = supabase
-      .from('v_ferias_colaboradores_status')
-      .select('*')
-      .eq('user_id', user.id);
+    // Buscar colaboradores CLT (view não é multi-tenant no schema atual)
+    let query = supabase.from('v_ferias_colaboradores_status').select('*');
 
     if (departamento) {
       query = query.eq('departamento', departamento);
@@ -305,11 +321,10 @@ serve(async (req) => {
       throw new Error(`Erro ao buscar colaboradores: ${colabError.message}`);
     }
 
-    // Buscar programações
+    // Buscar programações (tabela não possui `user_id` no schema atual)
     const { data: programacoes, error: progError } = await supabase
       .from('ferias_programacoes')
       .select('*, colaboradores(nome, departamento)')
-      .eq('user_id', user.id)
       .in('status', ['programado', 'aprovado', 'em_gozo']);
 
     if (progError) {
@@ -331,8 +346,8 @@ serve(async (req) => {
       const { data: cached } = await supabase
         .from('ferias_ai_insights')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('cache_hash', cacheHash)
+        .eq('generated_by', user.id)
+        .eq('input_hash', cacheHash)
         .gte(
           'created_at',
           new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -346,7 +361,7 @@ serve(async (req) => {
           JSON.stringify({
             success: true,
             cached: true,
-            data: cached.insights_json,
+            data: cached.response_json,
             generatedAt: cached.created_at,
           }),
           {
@@ -379,15 +394,16 @@ serve(async (req) => {
       recomendacoes_operacionais: [],
     });
 
-    // Salvar no cache
+    // Salvar no cache (schema atual: input_hash/response_json/summary/model/generated_by)
     const { error: insertError } = await supabase.from('ferias_ai_insights').insert({
-      user_id: user.id,
       periodo_referencia: periodo,
       departamento: departamento || null,
       unidade: unidade || null,
-      cache_hash: cacheHash,
-      insights_json: insights,
-      modelo_ia: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.0-flash-exp',
+      input_hash: cacheHash,
+      summary: insights.analise_executiva || null,
+      response_json: insights as any,
+      generated_by: user.id,
     });
 
     if (insertError) {
