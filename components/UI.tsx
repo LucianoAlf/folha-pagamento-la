@@ -48,30 +48,74 @@ export const DatePicker: React.FC<{
   className?: string;
   disabled?: boolean;
 }> = ({ value, onChange, placeholder = 'Selecione...', className = '', disabled }) => {
+  const [inputValue, setInputValue] = useState('');
   const selected = value ? new Date(`${value}T00:00:00`) : undefined;
   const label = selected ? format(selected, 'dd/MM/yyyy', { locale: ptBR }) : placeholder;
 
+  useEffect(() => {
+    if (selected) {
+      setInputValue(format(selected, 'dd/MM/yyyy'));
+    } else {
+      setInputValue('');
+    }
+  }, [value]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 8) val = val.slice(0, 8);
+    
+    let formatted = val;
+    if (val.length > 2) formatted = val.slice(0, 2) + '/' + val.slice(2);
+    if (val.length > 4) formatted = formatted.slice(0, 5) + '/' + formatted.slice(5);
+    
+    setInputValue(formatted);
+
+    if (val.length === 8) {
+      const day = parseInt(val.slice(0, 2));
+      const month = parseInt(val.slice(2, 4));
+      const year = parseInt(val.slice(4, 8));
+      
+      const date = new Date(year, month - 1, day);
+      if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+        const yyyy = year;
+        const mm = String(month).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        onChange(`${yyyy}-${mm}-${dd}`);
+      }
+    } else if (val.length === 0) {
+      onChange(undefined);
+    }
+  };
+
   return (
     <Popover.Root>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
+      <div className="relative w-full group">
+        <input
+          type="text"
           disabled={disabled}
-          className={[
+          value={inputValue}
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          className={cn(
             'w-full flex items-center justify-between px-5 py-3.5 rounded-2xl border bg-slate-50 dark:bg-slate-800 text-sm font-bold',
             'border-slate-200 dark:border-slate-700',
             'text-slate-900 dark:text-slate-100',
             'focus:outline-none focus:ring-2 focus:ring-violet-500/60',
+            'placeholder:text-slate-400',
             disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-300 dark:hover:border-slate-600',
-            className,
-          ].join(' ')}
-        >
-          <span className={selected ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}>
-            {label}
-          </span>
-          <Calendar size={16} className="text-slate-400" />
-        </button>
-      </Popover.Trigger>
+            className
+          )}
+        />
+        <Popover.Trigger asChild>
+          <button
+            type="button"
+            disabled={disabled}
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-400 group-hover:text-violet-500"
+          >
+            <Calendar size={16} />
+          </button>
+        </Popover.Trigger>
+      </div>
 
       <Popover.Portal>
         <Popover.Content
