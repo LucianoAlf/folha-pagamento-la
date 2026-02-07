@@ -9,9 +9,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const UAZAPI_URL = Deno.env.get('UAZAPI_URL')!;
-const UAZAPI_TOKEN = Deno.env.get('UAZAPI_TOKEN')!;
-const CRON_SECRET = Deno.env.get('CRON_SECRET')!;
 
 interface NotificacaoConfig {
   whatsapp_numero: string;
@@ -24,6 +21,42 @@ interface NotificacaoConfig {
   ferias_resumo_mensal_ativo: boolean;
   ferias_resumo_mensal_dia: number;
   ferias_resumo_mensal_hora: number;
+}
+
+const corsHeaders: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-cron-secret',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function getSecretFromVault(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  name: string
+) {
+  const { data, error } = await supabaseAdmin.rpc('get_vault_secret', {
+    secret_name: name,
+  });
+  if (error) throw error;
+  return (data as any) as string | null;
+}
+
+async function getSecret(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  name: string
+) {
+  const env = Deno.env.get(name);
+  if (env && env.trim()) return env.trim();
+  const fromVault = await getSecretFromVault(supabaseAdmin, name);
+  if (fromVault && String(fromVault).trim()) return String(fromVault).trim();
+  throw new Error(`${name} não configurado (Secrets ou Vault).`);
 }
 
 interface FeriasVencido {
@@ -56,13 +89,18 @@ interface FeriasPagamentoPendente {
 /**
  * Envia mensagem via UAZAPI
  */
-async function sendWhatsApp(numero: string, mensagem: string): Promise<boolean> {
+async function sendWhatsApp(
+  numero: string,
+  mensagem: string,
+  uazapiUrl: string,
+  uazapiToken: string
+): Promise<boolean> {
   try {
-    const response = await fetch(`${UAZAPI_URL}/chat/send/text`, {
+    const response = await fetch(`${uazapiUrl}/chat/send/text`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${UAZAPI_TOKEN}`,
+        Authorization: `Bearer ${uazapiToken}`,
       },
       body: JSON.stringify({
         number: numero,
@@ -400,26 +438,20 @@ async function gerarResumoMensal(
 serve(async (req) => {
   // CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, x-cron-secret',
-      },
-    });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
-    // Validar cron secret
-    const cronSecret = req.headers.get('x-cron-secret');
-    if (cronSecret !== CRON_SECRET) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const uazapiUrl = await getSecret(supabase, 'UAZAPI_URL');
+    const uazapiToken = await getSecret(supabase, 'UAZAPI_TOKEN');
+    const cronSecret = await getSecret(supabase, 'WHATSAPP_CRON_SECRET');
+
+    // Validar cron secret
+    const headerSecret = req.headers.get('x-cron-secret') || '';
+    if (headerSecret !== cronSecret) {
+      return json({ error: 'Unauthorized' }, 401);
+    }
 
     // Buscar configurações de notificação
     const { data: configs, error: configError } = await supabase
@@ -432,14 +464,11 @@ serve(async (req) => {
     }
 
     if (!configs || configs.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Nenhuma configuração de notificação encontrada',
-          enviados: 0,
-        }),
-        { headers: { 'Content-Type': 'application/json' } }
-      );
+      return json({
+        success: true,
+        message: 'Nenhuma configuração de notificação encontrada',
+        enviados: 0,
+      });
     }
 
     let totalEnviados = 0;
@@ -463,7 +492,7 @@ serve(async (req) => {
           }
 
           const mensagem = gerarMensagemVencido(vencido);
-          const enviado = await sendWhatsApp(whatsapp, mensagem);
+          const enviado = await sendWhatsApp(whatsapp, mensagem, uazapiUrl, uazapiToken);
 
           if (enviado) {
             await registrarLembrete(supabase, userId, 'ferias_vencido', ref, mensagem);
@@ -487,7 +516,7 @@ serve(async (req) => {
           }
 
           const mensagem = gerarMensagemConcessivo(proximo);
-          const enviado = await sendWhatsApp(whatsapp, mensagem);
+          const enviado = await sendWhatsApp(whatsapp, mensagem, uazapiUrl, uazapiToken);
 
           if (enviado) {
             await registrarLembrete(
@@ -516,7 +545,7 @@ serve(async (req) => {
           }
 
           const mensagem = gerarMensagemPagamento(pendente);
-          const enviado = await sendWhatsApp(whatsapp, mensagem);
+          const enviado = await sendWhatsApp(whatsapp, mensagem, uazapiUrl, uazapiToken);
 
           if (enviado) {
             await registrarLembrete(
@@ -549,7 +578,7 @@ serve(async (req) => {
             const mensagem = await gerarResumoMensal(supabase, userId);
 
             if (mensagem) {
-              const enviado = await sendWhatsApp(whatsapp, mensagem);
+              const enviado = await sendWhatsApp(whatsapp, mensagem, uazapiUrl, uazapiToken);
 
               if (enviado) {
                 await registrarLembrete(
@@ -571,25 +600,14 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        enviados: totalEnviados,
-        ignorados: totalIgnorados,
-        erros: erros.length > 0 ? erros : undefined,
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
+    return json({
+      success: true,
+      enviados: totalEnviados,
+      ignorados: totalIgnorados,
+      erros: erros.length > 0 ? erros : undefined,
+    });
   } catch (error: any) {
     console.error('Erro no handler:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return json({ error: error.message }, 500);
   }
 });
