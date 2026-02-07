@@ -86,9 +86,11 @@ function safeParseJson<T>(text: string, fallback: T): T {
 /**
  * Chama Gemini API
  */
+const GEMINI_MODEL_ID = 'gemini-2.0-flash';
+
 async function callGemini(prompt: string, geminiKey: string): Promise<string> {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_ID}:generateContent?key=${geminiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -282,29 +284,29 @@ serve(async (req) => {
       });
     }
     // Parse body
-    const body: RequestBody = await req.json().catch(() => ({}));
+    const body: RequestBody & { access_token?: string } = await req.json().catch(() => ({}));
     const { periodoReferencia, departamento, unidade, force } = body;
 
-    // Auth
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    // Auth (allow token via Authorization header or body.access_token)
+    const authHeader = req.headers.get('Authorization') || '';
+    const bearerToken = authHeader.startsWith('Bearer ')
+      ? authHeader.replace('Bearer ', '')
+      : '';
+    const accessToken = bearerToken || body.access_token || '';
+    if (!accessToken) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
-    });
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Get user
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser(accessToken);
     if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -409,7 +411,7 @@ serve(async (req) => {
       periodo_referencia: periodo,
       departamento: departamento || null,
       unidade: unidade || null,
-      model: 'gemini-2.0-flash-exp',
+      model: GEMINI_MODEL_ID,
       input_hash: cacheHash,
       summary: insights.analise_executiva || null,
       response_json: insights as any,
