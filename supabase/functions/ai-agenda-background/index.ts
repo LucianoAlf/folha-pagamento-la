@@ -311,6 +311,7 @@ async function generateImageBase64(args: { apiKey: string; model: string; prompt
 async function generateWithFallbackModels(args: { apiKey: string; prompt: string; preferredModel?: string }) {
   const candidates = [
     args.preferredModel,
+    "gemini-3-flash-preview",
     "gemini-2.5-flash-image",
     "gemini-2.0-flash-preview-image-generation",
     "gemini-2.0-flash-exp-image-generation",
@@ -408,7 +409,7 @@ Deno.serve(async (req) => {
 
     const style = String(body?.style || "dark_abstract").trim();
     const provider = String(body?.provider || "gemini").trim(); // photo | gemini
-    const model = String(body?.model || "").trim();
+    const model = String(body?.model || "gemini-3-flash-preview").trim();
 
     console.log(`🚀 Request: provider=${provider}, style=${style}, prompt="${promptUser.slice(0, 50)}..."`);
 

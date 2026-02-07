@@ -86,7 +86,7 @@ function safeParseJson<T>(text: string, fallback: T): T {
 /**
  * Chama Gemini API
  */
-const GEMINI_MODEL_ID = 'gemini-2.0-flash';
+const GEMINI_MODEL_ID = 'gemini-3-flash-preview';
 
 async function callGemini(prompt: string, geminiKey: string): Promise<string> {
   const response = await fetch(
