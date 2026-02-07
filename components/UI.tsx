@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import * as Select from '@radix-ui/react-select';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import * as Popover from '@radix-ui/react-popover';
@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from './CollaboratorComponents';
 
@@ -49,8 +49,12 @@ export const DatePicker: React.FC<{
   disabled?: boolean;
 }> = ({ value, onChange, placeholder = 'Selecione...', className = '', disabled }) => {
   const [inputValue, setInputValue] = useState('');
-  const selected = value ? new Date(`${value}T00:00:00`) : undefined;
-  const label = selected ? format(selected, 'dd/MM/yyyy', { locale: ptBR }) : placeholder;
+  const selected = (() => {
+    if (!value) return undefined;
+    // Accepts either "yyyy-mm-dd" or ISO strings from DB (e.g. "2026-02-07T00:00:00.000Z")
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
+    return isValid(d) ? d : undefined;
+  })();
 
   useEffect(() => {
     if (selected) {
@@ -58,7 +62,7 @@ export const DatePicker: React.FC<{
     } else {
       setInputValue('');
     }
-  }, [value]);
+  }, [value]); // selected derives from value
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replace(/\D/g, '');
