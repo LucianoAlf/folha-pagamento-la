@@ -86,33 +86,79 @@ function safeParseJson<T>(text: string, fallback: T): T {
 /**
  * Chama Gemini API
  */
-const GEMINI_MODEL_ID = 'gemini-3-flash-preview';
+const GEMINI_PRIMARY_MODEL_ID = 'gemini-3-flash-preview';
+const GEMINI_FALLBACK_MODEL_ID = 'gemini-2.0-flash';
 
-async function callGemini(prompt: string, geminiKey: string): Promise<string> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_ID}:generateContent?key=${geminiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192,
-        },
-      }),
+type GeminiCallResult = { text: string; modelUsed: string };
+
+async function callGeminiOnce(
+  prompt: string,
+  geminiKey: string,
+  modelId: string
+): Promise<string> {
+  const controller = new AbortController();
+  const timeoutMs = 15000; // keep below edge hard limits; our logs show ~18s failures
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API error: ${errorText}`);
     }
-  );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error: ${errorText}`);
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`Gemini API timeout after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
+}
 
-  const data = await response.json();
-  return data.candidates[0]?.content?.parts[0]?.text || '';
+async function callGemini(prompt: string, geminiKey: string): Promise<GeminiCallResult> {
+  try {
+    const text = await callGeminiOnce(prompt, geminiKey, GEMINI_PRIMARY_MODEL_ID);
+    return { text, modelUsed: GEMINI_PRIMARY_MODEL_ID };
+  } catch (error: any) {
+    const msg = String(error?.message || error || '');
+    const looksLikeModelNotFound =
+      msg.includes('not found') ||
+      msg.includes('NOT_FOUND') ||
+      msg.includes('models/') ||
+      msg.includes('model');
+
+    if (!looksLikeModelNotFound) {
+      throw error;
+    }
+
+    console.warn(
+      '[ferias-ai-insights] Primary model failed, trying fallback:',
+      GEMINI_PRIMARY_MODEL_ID
+    );
+    const text = await callGeminiOnce(prompt, geminiKey, GEMINI_FALLBACK_MODEL_ID);
+    return { text, modelUsed: GEMINI_FALLBACK_MODEL_ID };
+  }
 }
 
 async function getSecretFromVault(
@@ -145,6 +191,31 @@ function buildPrompt(
   programacoes: any[],
   periodoReferencia: string
 ): string {
+  // Keep prompt small to avoid timeouts and request-size issues
+  const colabsCompact = (colaboradores || []).slice(0, 200).map((c) => ({
+    colaborador_id: c.colaborador_id,
+    nome: c.nome,
+    departamento: c.departamento,
+    unidade: c.unidade,
+    tipo_contrato: c.tipo_contrato,
+    periodo_aquisitivo_inicio: c.periodo_aquisitivo_inicio,
+    periodo_aquisitivo_fim: c.periodo_aquisitivo_fim,
+    periodo_concessivo_inicio: c.periodo_concessivo_inicio,
+    periodo_concessivo_fim: c.periodo_concessivo_fim,
+    dias_saldo: c.dias_saldo,
+    esta_vencido: c.esta_vencido,
+    dias_para_vencer: c.dias_para_vencer,
+  }));
+
+  const progsCompact = (programacoes || []).slice(0, 300).map((p) => ({
+    id: p.id,
+    colaborador_id: p.colaborador_id,
+    data_inicio: p.data_inicio,
+    data_fim: p.data_fim,
+    dias: p.dias,
+    status: p.status,
+  }));
+
   return `Você é um Especialista em Gestão de RH e CLT da LA Music Group.
 
 # CONTEXTO DO NEGÓCIO
@@ -180,10 +251,10 @@ Analise o cenário de férias dos colaboradores CLT e forneça insights estraté
 Período de Referência: ${periodoReferencia}
 
 ## Colaboradores CLT:
-${JSON.stringify(colaboradores, null, 2)}
+${JSON.stringify(colabsCompact)}
 
 ## Programações Existentes:
-${JSON.stringify(programacoes, null, 2)}
+${JSON.stringify(progsCompact)}
 
 # CONTRATO DE SAÍDA
 
@@ -343,6 +414,7 @@ serve(async (req) => {
     if (colabError) {
       throw new Error(`Erro ao buscar colaboradores: ${colabError.message}`);
     }
+    console.log('[ferias-ai-insights] colaboradores:', colaboradores?.length || 0);
 
     // Buscar programações (tabela não possui `user_id` no schema atual)
     const { data: programacoes, error: progError } = await supabaseAdmin
@@ -353,6 +425,7 @@ serve(async (req) => {
     if (progError) {
       throw new Error(`Erro ao buscar programações: ${progError.message}`);
     }
+    console.log('[ferias-ai-insights] programacoes:', programacoes?.length || 0);
 
     // Gerar hash para cache
     const cacheInput = {
@@ -392,7 +465,12 @@ serve(async (req) => {
     // Chamar Gemini
     const periodo = periodoReferencia || new Date().toISOString().slice(0, 7);
     const prompt = buildPrompt(colaboradores || [], programacoes || [], periodo);
-    const geminiResponse = await callGemini(prompt, geminiKey);
+    console.log('[ferias-ai-insights] prompt length:', prompt.length);
+    if (prompt.length > 120_000) {
+      throw new Error('Prompt muito grande para IA (reduza filtros ou dados).');
+    }
+
+    const { text: geminiResponse, modelUsed } = await callGemini(prompt, geminiKey);
 
     // Parse resposta
     const insights: FeriasAiInsight = safeParseJson(geminiResponse, {
@@ -414,7 +492,7 @@ serve(async (req) => {
       periodo_referencia: periodo,
       departamento: departamento || null,
       unidade: unidade || null,
-      model: GEMINI_MODEL_ID,
+      model: modelUsed,
       input_hash: cacheHash,
       summary: insights.analise_executiva || null,
       response_json: insights as any,
@@ -429,10 +507,16 @@ serve(async (req) => {
       success: true,
       cached: false,
       data: insights,
+      model: modelUsed,
       generatedAt: new Date().toISOString(),
     });
   } catch (error: any) {
     console.error('[ferias-ai-insights] Error:', error?.message || error);
-    return json({ error: error.message || 'Erro interno' }, 500);
+    return json(
+      {
+        error: error?.message || 'Erro interno',
+      },
+      500
+    );
   }
 });
