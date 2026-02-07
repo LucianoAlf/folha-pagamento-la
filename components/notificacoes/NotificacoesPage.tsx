@@ -29,9 +29,9 @@ export const NotificacoesPage: React.FC = () => {
   const [accordionOpen, setAccordionOpen] = useState<Record<string, boolean>>(() => {
     try {
       const stored = localStorage.getItem('notificacoes:accordion');
-      return stored ? JSON.parse(stored) : { whatsapp: true, agenda: false, contas: false, folha: false };
+      return stored ? JSON.parse(stored) : { whatsapp: true, agenda: false, contas: false, folha: false, ferias: false };
     } catch {
-      return { whatsapp: true, agenda: false, contas: false, folha: false };
+      return { whatsapp: true, agenda: false, contas: false, folha: false, ferias: false };
     }
   });
 
@@ -68,6 +68,16 @@ export const NotificacoesPage: React.FC = () => {
     folha_alerta_fechamento_ativo: false,
     folha_alerta_fechamento_dia: 25,
     folha_alerta_aprovacao_pendente_ativo: false,
+
+    ferias_alerta_vencimento_multa: true,
+    ferias_alerta_concessivo_critico: true,
+    ferias_alerta_concessivo_dias: 60,
+    ferias_alerta_pagamento_pendente: true,
+    ferias_alerta_aquisitivo_prox: false,
+    ferias_alerta_aquisitivo_dias: 30,
+    ferias_resumo_mensal_ativo: false,
+    ferias_resumo_mensal_dia: 1,
+    ferias_resumo_mensal_hora: 8,
   });
 
   // Padrão do sistema: Card “dark” com borda (como usamos no resto do app)
@@ -592,6 +602,170 @@ export const NotificacoesPage: React.FC = () => {
                   </div>
                   <div className="text-xs text-slate-500 font-medium leading-relaxed">
                     Envia quando existir folha em status <span className="text-slate-300 font-bold">pendente</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Férias CLT */}
+        <Card className={cn('p-0 overflow-hidden', cardClass)}>
+          <button
+            type="button"
+            onClick={() => isMobile && toggleAccordion('ferias')}
+            className={cn(
+              'w-full px-6 py-4 border-b border-slate-800/70 flex items-center justify-between',
+              isMobile && 'active:bg-slate-900/40 transition-colors'
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-violet-300" />
+              </div>
+              <div className="text-left">
+                <div className="text-white font-black">Férias CLT</div>
+                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Alertas de vencimento</div>
+              </div>
+            </div>
+            {isMobile && (
+              accordionOpen.ferias ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />
+            )}
+          </button>
+          {(!isMobile || accordionOpen.ferias) && (
+            <div className="divide-y divide-slate-800/60">
+              <div className="px-6 py-5 space-y-6">
+                {/* Alerta de férias vencidas (CRÍTICO) */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-slate-300 font-black">🚨 Férias vencidas (MULTA)</div>
+                    <ToggleSwitch
+                      checked={!!config.ferias_alerta_vencimento_multa}
+                      onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_alerta_vencimento_multa: next }))}
+                      variant="rose"
+                      ariaLabel="Ativar alerta de férias vencidas"
+                    />
+                  </div>
+                  <div className="text-xs text-slate-500 font-medium leading-relaxed">
+                    Alerta CRÍTICO quando período concessivo vencer. Férias devem ser pagas em <span className="text-rose-400 font-bold">DOBRO</span>.
+                  </div>
+                </div>
+
+                {/* Alerta de concessivo próximo de vencer */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-slate-300 font-black">⏰ Período concessivo próximo</div>
+                    <ToggleSwitch
+                      checked={!!config.ferias_alerta_concessivo_critico}
+                      onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_alerta_concessivo_critico: next }))}
+                      variant="amber"
+                      ariaLabel="Ativar alerta de concessivo próximo"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Alertar com</div>
+                    <input
+                      type="number"
+                      min={7}
+                      max={90}
+                      value={Number(config.ferias_alerta_concessivo_dias ?? 60)}
+                      onChange={(e) => setConfig((prev) => ({ ...prev, ferias_alerta_concessivo_dias: Number(e.target.value || 60) }))}
+                      className={cn(
+                        'w-20 px-3 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none',
+                        !config.ferias_alerta_concessivo_critico && 'opacity-60 pointer-events-none'
+                      )}
+                    />
+                    <div className="text-xs text-slate-500 font-medium">dias de antecedência</div>
+                  </div>
+                </div>
+
+                {/* Alerta de pagamento pendente */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-slate-300 font-black">💳 Pagamento pendente</div>
+                    <ToggleSwitch
+                      checked={!!config.ferias_alerta_pagamento_pendente}
+                      onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_alerta_pagamento_pendente: next }))}
+                      variant="violet"
+                      ariaLabel="Ativar alerta de pagamento pendente"
+                    />
+                  </div>
+                  <div className="text-xs text-slate-500 font-medium leading-relaxed">
+                    Alerta quando férias programadas estiverem próximas e pagamento não foi efetuado (prazo: 2 dias antes).
+                  </div>
+                </div>
+
+                {/* Alerta de período aquisitivo próximo */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-slate-300 font-black">📅 Período aquisitivo próximo</div>
+                    <ToggleSwitch
+                      checked={!!config.ferias_alerta_aquisitivo_prox}
+                      onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_alerta_aquisitivo_prox: next }))}
+                      variant="cyan"
+                      ariaLabel="Ativar alerta de período aquisitivo"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Alertar com</div>
+                    <input
+                      type="number"
+                      min={7}
+                      max={60}
+                      value={Number(config.ferias_alerta_aquisitivo_dias ?? 30)}
+                      onChange={(e) => setConfig((prev) => ({ ...prev, ferias_alerta_aquisitivo_dias: Number(e.target.value || 30) }))}
+                      className={cn(
+                        'w-20 px-3 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none',
+                        !config.ferias_alerta_aquisitivo_prox && 'opacity-60 pointer-events-none'
+                      )}
+                    />
+                    <div className="text-xs text-slate-500 font-medium">dias de antecedência</div>
+                  </div>
+                </div>
+
+                {/* Resumo mensal */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm text-slate-300 font-black">📊 Resumo mensal</div>
+                    <ToggleSwitch
+                      checked={!!config.ferias_resumo_mensal_ativo}
+                      onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_resumo_mensal_ativo: next }))}
+                      variant="violet"
+                      ariaLabel="Ativar resumo mensal de férias"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Dia</div>
+                      <input
+                        type="number"
+                        min={1}
+                        max={28}
+                        value={Number(config.ferias_resumo_mensal_dia ?? 1)}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, ferias_resumo_mensal_dia: Number(e.target.value || 1) }))}
+                        className={cn(
+                          'w-full px-3 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none',
+                          !config.ferias_resumo_mensal_ativo && 'opacity-60 pointer-events-none'
+                        )}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Hora</div>
+                      <input
+                        type="number"
+                        min={0}
+                        max={23}
+                        value={Number(config.ferias_resumo_mensal_hora ?? 8)}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, ferias_resumo_mensal_hora: Number(e.target.value || 8) }))}
+                        className={cn(
+                          'w-full px-3 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none',
+                          !config.ferias_resumo_mensal_ativo && 'opacity-60 pointer-events-none'
+                        )}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-500 font-medium leading-relaxed">
+                    Resumo executivo com estatísticas gerais, situações críticas e próximas férias programadas.
                   </div>
                 </div>
               </div>

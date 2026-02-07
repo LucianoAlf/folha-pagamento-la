@@ -124,3 +124,8 @@ export interface Alerta {
   titulo: string;
   descricao: string;
 }
+
+// =====================================================
+// FÉRIAS CLT
+// =====================================================
+export * from './types/ferias';

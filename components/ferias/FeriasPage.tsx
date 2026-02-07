@@ -6,6 +6,7 @@ import { ProgramarFeriasModal } from './ProgramarFeriasModal';
 import { EditarProgramacaoModal } from './EditarProgramacaoModal';
 import { RegistrarPagamentoModal } from './RegistrarPagamentoModal';
 import { FeriasProgramacoesList } from './FeriasProgramacoesList';
+import { FeriasAiInsightsPanel } from './FeriasAiInsightsPanel';
 import { Button, ConfirmDialog } from '../UI';
 import { feriasService } from '../../services/feriasService';
 import type {
@@ -420,19 +421,10 @@ export const FeriasPage: React.FC = () => {
         )}
 
         {activeTab === 'insights' && (
-          <div className="text-center py-12">
-            <Sparkles size={48} className="mx-auto text-amber-500 mb-4" />
-            <h3 className="text-lg font-bold text-slate-300 mb-2">
-              Insights de IA (Premium)
-            </h3>
-            <p className="text-sm text-slate-500 mb-4">
-              Análises inteligentes para otimizar distribuição de férias
-            </p>
-            <Button variant="primary" className="!px-6">
-              <Sparkles size={16} />
-              Gerar Insights
-            </Button>
-          </div>
+          <FeriasAiInsightsPanel
+            colaboradores={colaboradores}
+            onProgramarFerias={handleProgramarFerias}
+          />
         )}
       </div>
 

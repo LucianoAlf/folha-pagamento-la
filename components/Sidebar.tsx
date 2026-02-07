@@ -7,6 +7,7 @@ import {
   TrendingUp,
   CreditCard,
   Calendar,
+  CalendarCheck,
   Bell,
   ChevronLeft,
   ChevronRight,
@@ -16,7 +17,7 @@ import {
 
 const SIDEBAR_COLLAPSED_KEY = 'la-music-sidebar-collapsed';
 
-type ModuleId = 'folha' | 'contas' | 'agenda' | 'notificacoes';
+type ModuleId = 'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias';
 type FolhaPageId = 'dashboard' | 'colaboradores' | 'lancamentos' | 'comparativo';
 
 export interface SidebarNavigate {
@@ -46,6 +47,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobileDrawer,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [feriasVencidas, setFeriasVencidas] = useState(0);
+  const [feriasProximasVencer, setFeriasProximasVencer] = useState(0);
 
   useEffect(() => {
     try {
@@ -65,6 +68,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
       // ignore
     }
   };
+
+  // Fetch vacation status for badges
+  useEffect(() => {
+    const fetchFeriasStatus = async () => {
+      try {
+        const { feriasService } = await import('../services/feriasService');
+        const colaboradores = await feriasService.fetchColaboradoresStatus();
+
+        const vencidos = colaboradores.filter((c) => c.tem_ferias_vencidas).length;
+        const proximos = colaboradores.filter((c) => {
+          if (c.tem_ferias_vencidas || !c.proxima_expiracao) return false;
+          const diasRestantes = Math.ceil(
+            (new Date(c.proxima_expiracao).getTime() - Date.now()) /
+              (1000 * 60 * 60 * 24)
+          );
+          return diasRestantes > 0 && diasRestantes <= 30;
+        }).length;
+
+        setFeriasVencidas(vencidos);
+        setFeriasProximasVencer(proximos);
+      } catch (err) {
+        // Silently fail - badges won't show
+        console.error('Erro ao buscar status de férias:', err);
+      }
+    };
+
+    fetchFeriasStatus();
+
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchFeriasStatus, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const modules = useMemo(
     () => [
@@ -87,13 +122,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         disabled: false,
       },
       {
+        id: 'ferias' as const,
+        label: 'Férias CLT',
+        icon: CalendarCheck,
+        disabled: false,
+        badge:
+          feriasVencidas > 0
+            ? { count: feriasVencidas, variant: 'danger' as const, pulse: true }
+            : feriasProximasVencer > 0
+              ? { count: feriasProximasVencer, variant: 'warning' as const }
+              : undefined,
+      },
+      {
         id: 'notificacoes' as const,
         label: 'Notificações',
         icon: Bell,
         disabled: false,
       },
     ],
-    []
+    [feriasVencidas, feriasProximasVencer]
   );
 
   const containerClass = [
@@ -151,7 +198,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }}
               disabled={module.disabled}
               className={[
-                'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200',
+                'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 relative',
                 module.disabled
                   ? 'opacity-50 cursor-not-allowed text-slate-500'
                   : isActiveModule
@@ -168,7 +215,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       Em breve
                     </span>
                   )}
+                  {(module as any).badge && (
+                    <span
+                      className={[
+                        'min-w-[22px] h-[22px] flex items-center justify-center text-[10px] px-1.5 rounded-full font-black',
+                        (module as any).badge.variant === 'danger'
+                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/40',
+                        (module as any).badge.pulse && 'animate-pulse',
+                      ].join(' ')}
+                    >
+                      {(module as any).badge.count}
+                    </span>
+                  )}
                 </>
+              )}
+              {collapsed && (module as any).badge && (
+                <span
+                  className={[
+                    'absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[9px] px-1 rounded-full font-black',
+                    (module as any).badge.variant === 'danger'
+                      ? 'bg-rose-500 text-white border-2 border-[#0a0d14]'
+                      : 'bg-amber-500 text-white border-2 border-[#0a0d14]',
+                    (module as any).badge.pulse && 'animate-pulse',
+                  ].join(' ')}
+                >
+                  {(module as any).badge.count}
+                </span>
               )}
             </button>
           );
