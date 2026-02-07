@@ -37,7 +37,9 @@ CREATE TABLE IF NOT EXISTS public.ferias_periodos_aquisitivos (
 
   -- Alertas e conformidade
   alerta_concessivo_enviado BOOLEAN DEFAULT FALSE,
-  esta_vencido BOOLEAN GENERATED ALWAYS AS (concessivo_fim < CURRENT_DATE AND (dias_direito - dias_gozados - dias_vendidos) > 0) STORED,
+  -- NÃO pode ser coluna GENERATED, pois usa CURRENT_DATE (não-imutável).
+  -- Mantemos como coluna normal e recalculamos via trigger (ver função update_ferias_periodos_before_write).
+  esta_vencido BOOLEAN NOT NULL DEFAULT FALSE,
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -60,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_ferias_periodos_concessivo_fim ON public.ferias_p
 CREATE INDEX IF NOT EXISTS idx_ferias_periodos_vencidos ON public.ferias_periodos_aquisitivos(esta_vencido) WHERE esta_vencido = TRUE;
 
 -- Trigger para atualizar updated_at
-CREATE OR REPLACE FUNCTION update_ferias_periodos_updated_at()
+CREATE OR REPLACE FUNCTION update_updated_at_only()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -68,10 +70,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER ferias_periodos_updated_at_trigger
-BEFORE UPDATE ON public.ferias_periodos_aquisitivos
+-- Trigger BEFORE WRITE específico para períodos: updated_at + flags derivadas (esta_vencido)
+CREATE OR REPLACE FUNCTION update_ferias_periodos_before_write()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  NEW.esta_vencido = (NEW.concessivo_fim < CURRENT_DATE AND (NEW.dias_direito - NEW.dias_gozados - NEW.dias_vendidos) > 0);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER ferias_periodos_before_write_trigger
+BEFORE INSERT OR UPDATE ON public.ferias_periodos_aquisitivos
 FOR EACH ROW
-EXECUTE FUNCTION update_ferias_periodos_updated_at();
+EXECUTE FUNCTION update_ferias_periodos_before_write();
 
 -- Comentários
 COMMENT ON TABLE public.ferias_periodos_aquisitivos IS 'Períodos aquisitivos e concessivos de férias CLT';
@@ -141,7 +153,7 @@ CREATE INDEX IF NOT EXISTS idx_ferias_prog_pagamento_pendente ON public.ferias_p
 CREATE TRIGGER ferias_prog_updated_at_trigger
 BEFORE UPDATE ON public.ferias_programacoes
 FOR EACH ROW
-EXECUTE FUNCTION update_ferias_periodos_updated_at();
+EXECUTE FUNCTION update_updated_at_only();
 
 -- Trigger para atualizar dias_gozados/dias_vendidos no período aquisitivo
 CREATE OR REPLACE FUNCTION update_periodo_aquisitivo_saldos()
@@ -413,6 +425,12 @@ AS $$
 DECLARE
   v_updated INTEGER := 0;
 BEGIN
+  -- Recalcular flag "esta_vencido" para todos os períodos (depende de CURRENT_DATE)
+  UPDATE public.ferias_periodos_aquisitivos
+  SET
+    esta_vencido = (concessivo_fim < CURRENT_DATE AND (dias_direito - dias_gozados - dias_vendidos) > 0),
+    updated_at = NOW();
+
   -- Marcar como vencido os que passaram do período concessivo com saldo
   UPDATE public.ferias_periodos_aquisitivos
   SET status = 'vencido', updated_at = NOW()
