@@ -260,64 +260,75 @@ Retorne APENAS um JSON puro (sem markdown), seguindo esta estrutura:
 Retorne APENAS o JSON, sem texto adicional.`;
 }
 
+// =====================================================
+// CORS headers (must be on EVERY response or browser blocks it)
+// =====================================================
+const corsHeaders: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers':
+    'Content-Type, Authorization, apikey, x-client-info, authorization',
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 /**
  * Handler principal
  */
 serve(async (req) => {
-  // CORS
+  // CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers':
-          'Content-Type, Authorization, apikey, x-client-info',
-      },
-    });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return new Response(JSON.stringify({ error: 'Missing Supabase env vars' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      });
+      return json({ error: 'Missing Supabase env vars' }, 500);
     }
+
     // Parse body
     const body: RequestBody & { access_token?: string } = await req.json().catch(() => ({}));
     const { periodoReferencia, departamento, unidade, force } = body;
 
-    // Auth (allow token via Authorization header or body.access_token)
-    const authHeader = req.headers.get('Authorization') || '';
+    // Auth: extract JWT from Authorization header (sent by supabase.functions.invoke)
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization') || '';
     const bearerToken = authHeader.startsWith('Bearer ')
-      ? authHeader.replace('Bearer ', '')
+      ? authHeader.slice(7)
       : '';
     const accessToken = bearerToken || body.access_token || '';
+
+    console.log('[ferias-ai-insights] Auth header present:', !!authHeader, '| Token length:', accessToken.length);
+
     if (!accessToken) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return json({ error: 'Unauthorized - no token provided' }, 401);
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
 
-    // Get user
+    // Validate user JWT
     const {
       data: { user },
       error: userError,
-    } = await supabase.auth.getUser(accessToken);
+    } = await supabaseAdmin.auth.getUser(accessToken);
+
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      console.error('[ferias-ai-insights] JWT validation failed:', userError?.message);
+      return json({ error: 'Unauthorized - invalid token' }, 401);
     }
 
-    const geminiKey = await getSecret(supabase, 'GEMINI_API_KEY');
+    console.log('[ferias-ai-insights] User authenticated:', user.id);
+
+    const geminiKey = await getSecret(supabaseAdmin, 'GEMINI_API_KEY');
 
     // Buscar colaboradores CLT (view não é multi-tenant no schema atual)
-    let query = supabase.from('v_ferias_colaboradores_status').select('*');
+    let query = supabaseAdmin.from('v_ferias_colaboradores_status').select('*');
 
     if (departamento) {
       query = query.eq('departamento', departamento);
@@ -334,7 +345,7 @@ serve(async (req) => {
     }
 
     // Buscar programações (tabela não possui `user_id` no schema atual)
-    const { data: programacoes, error: progError } = await supabase
+    const { data: programacoes, error: progError } = await supabaseAdmin
       .from('ferias_programacoes')
       .select('*, colaboradores(nome, departamento)')
       .in('status', ['programado', 'aprovado', 'em_gozo']);
@@ -355,7 +366,7 @@ serve(async (req) => {
 
     // Verificar cache (se não forçar)
     if (!force) {
-      const { data: cached } = await supabase
+      const { data: cached } = await supabaseAdmin
         .from('ferias_ai_insights')
         .select('*')
         .eq('generated_by', user.id)
@@ -369,20 +380,12 @@ serve(async (req) => {
         .single();
 
       if (cached) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            cached: true,
-            data: cached.response_json,
-            generatedAt: cached.created_at,
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
-            },
-          }
-        );
+        return json({
+          success: true,
+          cached: true,
+          data: cached.response_json,
+          generatedAt: cached.created_at,
+        });
       }
     }
 
@@ -407,7 +410,7 @@ serve(async (req) => {
     });
 
     // Salvar no cache (schema atual: input_hash/response_json/summary/model/generated_by)
-    const { error: insertError } = await supabase.from('ferias_ai_insights').insert({
+    const { error: insertError } = await supabaseAdmin.from('ferias_ai_insights').insert({
       periodo_referencia: periodo,
       departamento: departamento || null,
       unidade: unidade || null,
@@ -422,33 +425,14 @@ serve(async (req) => {
       console.error('Erro ao salvar insights:', insertError);
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        cached: false,
-        data: insights,
-        generatedAt: new Date().toISOString(),
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
+    return json({
+      success: true,
+      cached: false,
+      data: insights,
+      generatedAt: new Date().toISOString(),
+    });
   } catch (error: any) {
-    console.error('Erro no handler:', error);
-    return new Response(
-      JSON.stringify({
-        error: error.message || 'Erro interno',
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
-    );
+    console.error('[ferias-ai-insights] Error:', error?.message || error);
+    return json({ error: error.message || 'Erro interno' }, 500);
   }
 });
