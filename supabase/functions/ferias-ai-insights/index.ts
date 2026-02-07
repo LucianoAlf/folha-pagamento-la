@@ -9,7 +9,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!;
 
 interface RequestBody {
   periodoReferencia?: string; // "2025-Q2" ou "2025-07"
@@ -87,9 +86,9 @@ function safeParseJson<T>(text: string, fallback: T): T {
 /**
  * Chama Gemini API
  */
-async function callGemini(prompt: string): Promise<string> {
+async function callGemini(prompt: string, geminiKey: string): Promise<string> {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -112,6 +111,28 @@ async function callGemini(prompt: string): Promise<string> {
 
   const data = await response.json();
   return data.candidates[0]?.content?.parts[0]?.text || '';
+}
+
+async function getSecretFromVault(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  name: string
+) {
+  const { data, error } = await supabaseAdmin.rpc('get_vault_secret', {
+    secret_name: name,
+  });
+  if (error) throw error;
+  return (data as any) as string | null;
+}
+
+async function getSecret(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  name: string
+) {
+  const env = Deno.env.get(name);
+  if (env && env.trim()) return env.trim();
+  const fromVault = await getSecretFromVault(supabaseAdmin, name);
+  if (fromVault && String(fromVault).trim()) return String(fromVault).trim();
+  throw new Error(`${name} não configurado (Secrets ou Vault).`);
 }
 
 /**
@@ -260,19 +281,6 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
-    if (!GEMINI_API_KEY) {
-      return new Response(
-        JSON.stringify({
-          error:
-            'Missing GEMINI_API_KEY secret. Configure it in Supabase Dashboard (Edge Functions → Secrets).',
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        }
-      );
-    }
-
     // Parse body
     const body: RequestBody = await req.json().catch(() => ({}));
     const { periodoReferencia, departamento, unidade, force } = body;
@@ -303,6 +311,8 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    const geminiKey = await getSecret(supabase, 'GEMINI_API_KEY');
 
     // Buscar colaboradores CLT (view não é multi-tenant no schema atual)
     let query = supabase.from('v_ferias_colaboradores_status').select('*');
@@ -377,7 +387,7 @@ serve(async (req) => {
     // Chamar Gemini
     const periodo = periodoReferencia || new Date().toISOString().slice(0, 7);
     const prompt = buildPrompt(colaboradores || [], programacoes || [], periodo);
-    const geminiResponse = await callGemini(prompt);
+    const geminiResponse = await callGemini(prompt, geminiKey);
 
     // Parse resposta
     const insights: FeriasAiInsight = safeParseJson(geminiResponse, {
