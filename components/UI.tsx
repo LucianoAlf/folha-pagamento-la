@@ -398,9 +398,9 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string }> =
     : 'bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-2xl';
   return (
     <div className={cn(baseClass, className)}>
-      {children}
-    </div>
-  );
+    {children}
+  </div>
+);
 };
 
 export const ToggleSwitch: React.FC<{

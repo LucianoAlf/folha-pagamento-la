@@ -45,6 +45,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [periodos, setPeriodos] = useState<FeriasPeriodoAquisitivo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingPeriodos, setIsGeneratingPeriodos] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [valorCalculado, setValorCalculado] = useState<FeriasValorCalculado | null>(null);
@@ -103,6 +104,21 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
       setError(err.message || 'Erro ao carregar períodos');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGerarPeriodos = async () => {
+    try {
+      setIsGeneratingPeriodos(true);
+      setError(null);
+      // Gera/atualiza períodos para este colaborador via Edge Function (RPC no banco).
+      await feriasService.calcularPeriodos(colaborador.colaborador_id);
+      await loadPeriodos();
+    } catch (err: any) {
+      console.error('Erro ao gerar períodos aquisitivos:', err);
+      setError(err?.message || 'Erro ao gerar períodos aquisitivos');
+    } finally {
+      setIsGeneratingPeriodos(false);
     }
   };
 
@@ -275,9 +291,31 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
           <div className="w-6 h-6 border-2 border-slate-600 border-t-violet-500 rounded-full animate-spin" />
         </div>
       ) : periodos.length === 0 ? (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm">
-          <AlertCircle size={16} className="inline mr-2" />
-          Nenhum período aquisitivo disponível para este colaborador.
+        <div className="space-y-3">
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm">
+            <AlertCircle size={16} className="inline mr-2" />
+            Nenhum período aquisitivo disponível para este colaborador.
+          </div>
+          <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800">
+            <div className="text-xs text-slate-400 mb-3">
+              Se este colaborador e CLT e possui data de admissao, voce pode gerar os periodos automaticamente.
+            </div>
+            <Button
+              onClick={handleGerarPeriodos}
+              disabled={isGeneratingPeriodos}
+              variant="primary"
+              className="w-full !justify-center"
+            >
+              {isGeneratingPeriodos ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Gerando periodos...
+                </>
+              ) : (
+                'Gerar periodos aquisitivos'
+              )}
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -686,7 +724,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
           {currentStep < 6 ? (
             <Button
               onClick={handleNext}
-              disabled={isLoading}
+              disabled={isLoading || periodos.length === 0}
               variant="primary"
               className="!px-6"
             >

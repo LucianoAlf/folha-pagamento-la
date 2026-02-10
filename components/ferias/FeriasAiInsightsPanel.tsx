@@ -9,8 +9,10 @@ import {
   CheckCircle,
   Loader2,
   RefreshCw,
+  Briefcase,
+  Clock,
 } from 'lucide-react';
-import { Button, Badge } from '../UI';
+import { Button, Badge, CustomSelect } from '../UI';
 import { feriasService } from '../../services/feriasService';
 import type { FeriasAiInsightsJson, FeriasColaboradorStatus } from '../../types';
 
@@ -137,37 +139,41 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Período */}
           <div>
-            <label className="block text-xs font-bold text-slate-400 mb-2">
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 px-1">
               Período de Referência
             </label>
-            <select
+            <CustomSelect
               value={periodoReferencia}
-              onChange={(e) => setPeriodoReferencia(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-amber-500/50 transition-colors"
-            >
-              <option value="2025-Q1">Q1/2025 (Jan-Mar)</option>
-              <option value="2025-Q2">Q2/2025 (Abr-Jun)</option>
-              <option value="2025-Q3">Q3/2025 (Jul-Set)</option>
-              <option value="2025-Q4">Q4/2025 (Out-Dez)</option>
-              <option value="2026-Q1">Q1/2026 (Jan-Mar)</option>
-            </select>
+              onValueChange={setPeriodoReferencia}
+              icon={Clock}
+              options={[
+                { value: '2025-Q1', label: 'Q1/2025 (Jan-Mar)' },
+                { value: '2025-Q2', label: 'Q2/2025 (Abr-Jun)' },
+                { value: '2025-Q3', label: 'Q3/2025 (Jul-Set)' },
+                { value: '2025-Q4', label: 'Q4/2025 (Out-Dez)' },
+                { value: '2026-Q1', label: 'Q1/2026 (Jan-Mar)' },
+              ]}
+              className="bg-slate-950/40 border-slate-800/60"
+            />
           </div>
 
           {/* Departamento */}
           <div>
-            <label className="block text-xs font-bold text-slate-400 mb-2">
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 px-1">
               Departamento
             </label>
-            <select
+            <CustomSelect
               value={departamento}
-              onChange={(e) => setDepartamento(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-amber-500/50 transition-colors"
-            >
-              <option value="">Todos</option>
-              <option value="staff_rateado">Staff</option>
-              <option value="equipe_operacional">Operacional</option>
-              <option value="professores">Professores</option>
-            </select>
+              onValueChange={setDepartamento}
+              icon={Briefcase}
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'staff_rateado', label: 'Staff' },
+                { value: 'equipe_operacional', label: 'Operacional' },
+                { value: 'professores', label: 'Professores' },
+              ]}
+              className="bg-slate-950/40 border-slate-800/60"
+            />
           </div>
 
           {/* Botão Gerar */}
@@ -176,7 +182,7 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
               onClick={() => handleGerarAnalise(false)}
               disabled={isLoading}
               variant="primary"
-              className="w-full !bg-gradient-to-r !from-amber-500 !to-violet-500 hover:!from-amber-600 hover:!to-violet-600"
+              className="w-full !bg-gradient-to-r !from-amber-500 !to-violet-500 hover:!from-amber-600 hover:!to-violet-600 !py-3 font-black uppercase tracking-widest text-[11px]"
             >
               {isLoading ? (
                 <>

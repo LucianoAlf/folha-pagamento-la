@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FeriasColaboradorCard } from './FeriasColaboradorCard';
 import type { FeriasColaboradorStatus, FeriasColaboradorFiltros } from '../../types';
-import { Search, Filter, Users } from 'lucide-react';
+import { Search, Filter, Users, Briefcase, Activity } from 'lucide-react';
+import { CustomSelect } from '../UI';
 
 const PAGE_SIZE = 20;
 
@@ -119,29 +120,33 @@ export const FeriasColaboradorList: React.FC<FeriasColaboradorListProps> = ({
         </div>
 
         {/* Filtro de Departamento */}
-        <select
+        <CustomSelect
           value={filtros.departamento || 'todos'}
-          onChange={(e) => handleDepartamentoChange(e.target.value)}
-          className="px-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
-        >
-          <option value="todos">Todos os Departamentos</option>
-          <option value="staff_rateado">Staff</option>
-          <option value="equipe_operacional">Operacional</option>
-          <option value="professores">Professores</option>
-        </select>
+          onValueChange={handleDepartamentoChange}
+          icon={Briefcase}
+          options={[
+            { value: 'todos', label: 'Todos os Departamentos' },
+            { value: 'staff_rateado', label: 'Staff' },
+            { value: 'equipe_operacional', label: 'Operacional' },
+            { value: 'professores', label: 'Professores' },
+          ]}
+          className="md:w-64"
+        />
 
         {/* Filtro de Status */}
-        <select
+        <CustomSelect
           value={filtros.status_ferias || 'todos'}
-          onChange={(e) => handleStatusChange(e.target.value)}
-          className="px-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
-        >
-          <option value="todos">Todos os Status</option>
-          <option value="critico">🔴 Crítico</option>
-          <option value="alerta">🟡 Alerta</option>
-          <option value="atencao">🔵 Atenção</option>
-          <option value="ok">🟢 OK</option>
-        </select>
+          onValueChange={handleStatusChange}
+          icon={Activity}
+          options={[
+            { value: 'todos', label: 'Todos os Status' },
+            { value: 'critico', label: '🔴 Crítico' },
+            { value: 'alerta', label: '🟡 Alerta' },
+            { value: 'atencao', label: '🔵 Atenção' },
+            { value: 'ok', label: '🟢 OK' },
+          ]}
+          className="md:w-56"
+        />
       </div>
 
       {/* Contador */}

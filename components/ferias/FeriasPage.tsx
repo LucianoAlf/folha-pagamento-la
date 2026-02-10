@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { RefreshCw, Calendar, Users, History, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Calendar, Users, History, Sparkles, AlertCircle, LineChart, BarChart3, FileText, TrendingUp } from 'lucide-react';
 import { FeriasSummaryCards } from './FeriasSummaryCards';
 import { FeriasColaboradorList } from './FeriasColaboradorList';
 import { ProgramarFeriasModal } from './ProgramarFeriasModal';
@@ -8,12 +8,14 @@ import { RegistrarPagamentoModal } from './RegistrarPagamentoModal';
 import { FeriasProgramacoesList } from './FeriasProgramacoesList';
 import { FeriasAiInsightsPanel } from './FeriasAiInsightsPanel';
 import { Button, ConfirmDialog } from '../UI';
+import { cn } from '../CollaboratorComponents';
 import { feriasService } from '../../services/feriasService';
 import type {
   FeriasColaboradorStatus,
   FeriasColaboradorFiltros,
   FeriasProgramacao,
   FeriasPeriodoAquisitivo,
+  FeriasHistoricoAcao,
 } from '../../types';
 
 type TabId = 'dashboard' | 'colaboradores' | 'programacoes' | 'historico' | 'insights';
@@ -30,11 +32,12 @@ export const FeriasPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [colaboradores, setColaboradores] = useState<FeriasColaboradorStatus[]>([]);
   const [programacoes, setProgramacoes] = useState<FeriasProgramacao[]>([]);
+  const [historico, setHistorico] = useState<FeriasHistoricoAcao[]>([]);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
   const [filtros, setFiltros] = useState<FeriasColaboradorFiltros>({
     ordenacao: 'proxima_expiracao',
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [isCalculating, setIsCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modalProgramarOpen, setModalProgramarOpen] = useState(false);
   const [modalEditarOpen, setModalEditarOpen] = useState(false);
@@ -58,12 +61,7 @@ export const FeriasPage: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Carregar dados iniciais
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -84,30 +82,32 @@ export const FeriasPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filtros]);
 
-  // Calcular períodos automaticamente
-  const handleCalcularPeriodos = async () => {
-    try {
-      setIsCalculating(true);
-      setError(null);
+  // Recarregar quando filtros mudarem (ordenacao/busca etc)
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-      const result = await feriasService.calcularPeriodos();
+  // Carregar historico sob demanda (aba)
+  useEffect(() => {
+    if (activeTab !== 'historico') return;
+    if (historicoLoading) return;
+    if (historico.length > 0) return;
 
-      if (result.success) {
-        alert(
-          `✅ ${result.periodosGerados} período(s) calculado(s) para ${result.colaboradoresProcessados} colaborador(es) CLT`
-        );
-        // Recarregar dados
-        await loadData();
+    (async () => {
+      try {
+        setHistoricoLoading(true);
+        const rows = await feriasService.fetchHistorico({ limit: 200 });
+        setHistorico(rows);
+      } catch (err: any) {
+        console.error('Erro ao carregar historico:', err);
+        setError(err?.message || 'Erro ao carregar historico');
+      } finally {
+        setHistoricoLoading(false);
       }
-    } catch (err: any) {
-      console.error('Erro ao calcular períodos:', err);
-      setError(err.message || 'Erro ao calcular períodos');
-    } finally {
-      setIsCalculating(false);
-    }
-  };
+    })();
+  }, [activeTab, historico.length, historicoLoading]);
 
   // Handlers
   const handleProgramarFerias = (colaborador: FeriasColaboradorStatus) => {
@@ -182,8 +182,8 @@ export const FeriasPage: React.FC = () => {
     return [
       {
         id: 'dashboard',
-        label: 'Dashboard',
-        icon: Calendar,
+        label: 'Resumo',
+        icon: LineChart,
         badge: feriasVencidas > 0 ? feriasVencidas : undefined,
       },
       {
@@ -211,75 +211,115 @@ export const FeriasPage: React.FC = () => {
     ];
   }, [colaboradores, programacoes]);
 
+  const getShortLabel = (id: TabId) => {
+    switch (id) {
+      case 'dashboard': return 'Resumo';
+      case 'colaboradores': return 'Colabs';
+      case 'programacoes': return 'Progs';
+      case 'historico': return 'Hist';
+      case 'insights': return 'IA';
+      default: return '';
+    }
+  };
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-slate-950">
       {/* Header */}
-      <div className="shrink-0 px-4 md:px-6 py-4 md:py-5 border-b border-slate-800/50 bg-slate-950/30">
-        <div className="flex items-center justify-between mb-4">
+      <div className="px-4 md:px-6 pt-6 pb-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-xl md:text-2xl font-black text-slate-100 flex items-center gap-2">
-              <Calendar size={24} className="text-violet-400" />
-              Férias CLT
+            <h1 className="text-2xl font-black text-white flex items-center gap-3">
+              <Calendar className="text-violet-500" size={28} />
+              {activeTab === 'dashboard' ? 'Férias CLT' :
+               activeTab === 'colaboradores' ? 'Colaboradores CLT' :
+               activeTab === 'programacoes' ? 'Programações de Férias' :
+               activeTab === 'historico' ? 'Histórico de Férias' :
+               activeTab === 'insights' ? 'IA de Férias' :
+               'Férias CLT'}
             </h1>
-            <p className="text-xs md:text-sm text-slate-400 mt-0.5">
-              Gestão completa de férias de colaboradores CLT
+            <p className="text-sm text-slate-500 font-bold mt-1">
+              {activeTab === 'dashboard' ? 'Gestão completa de férias de colaboradores CLT' :
+               activeTab === 'colaboradores' ? 'Gerencie o status e períodos aquisitivos dos colaboradores' :
+               activeTab === 'programacoes' ? 'Acompanhe as férias programadas e em gozo' :
+               activeTab === 'historico' ? 'Histórico completo de férias e auditoria' :
+               activeTab === 'insights' ? 'Insights inteligentes e previsões sobre férias' :
+               'Gestão completa de férias de colaboradores CLT'}
             </p>
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              onClick={loadData}
-              disabled={isLoading}
-              className="!px-3 !py-2 text-xs md:text-sm"
-              variant="outline"
-            >
-              <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-              <span className="hidden md:inline">Atualizar</span>
-            </Button>
-
-            <Button
-              onClick={handleCalcularPeriodos}
-              disabled={isCalculating || isLoading}
-              className="!px-3 !py-2 text-xs md:text-sm"
-              variant="primary"
-            >
-              <Calendar size={14} className={isCalculating ? 'animate-pulse' : ''} />
-              <span className="hidden md:inline">
-                {isCalculating ? 'Calculando...' : 'Calcular Períodos'}
-              </span>
-            </Button>
+          <div className="flex items-center gap-2">
+            {/* Botões de sincronização removidos - o banco de dados processa automaticamente */}
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                shrink-0 flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all
-                ${
-                  activeTab === tab.id
-                    ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30'
-                    : 'bg-slate-900/40 text-slate-400 border border-slate-800 hover:text-slate-300 hover:border-slate-700'
-                }
-              `}
-            >
-              <tab.icon size={14} />
-              <span>{tab.label}</span>
-              {tab.premium && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  PRO
-                </span>
-              )}
-              {tab.badge !== undefined && tab.badge > 0 && (
-                <span className="min-w-[18px] h-[18px] flex items-center justify-center text-[10px] px-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+          {/* Desktop Tabs (MusiClass Style) */}
+          <div className="hidden lg:block border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
+            <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
+                    activeTab === tab.id 
+                      ? "text-violet-400" 
+                      : "text-slate-500 hover:text-slate-200"
+                  )}
+                >
+                  <tab.icon size={16} className={cn(
+                    "transition-colors",
+                    activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
+                  )} />
+                  {tab.label}
+                  {tab.premium && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 ml-1">
+                      PRO
+                    </span>
+                  )}
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="min-w-[18px] h-[18px] flex items-center justify-center text-[10px] px-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 ml-1">
+                      {tab.badge}
+                    </span>
+                  )}
+                  {activeTab === tab.id && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile Tabs (Cockpit Premium Style) */}
+          <div className="lg:hidden mb-6">
+            <div className="relative flex bg-[#0f172a] p-1 rounded-xl border border-slate-800/50 shadow-inner overflow-hidden">
+              {/* Indicador Deslizante (Sliding Background) */}
+              <div 
+                className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-slate-800/80 rounded-lg border border-slate-700/30 shadow-lg"
+                style={{
+                  width: `calc(${100 / Math.max(tabs.length, 1)}% - 10px)`,
+                  left: `calc(${(tabs.findIndex(t => t.id === activeTab) * 100) / Math.max(tabs.length, 1)}% + 5px)`,
+                }}
+              />
+              
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "relative z-10 flex-1 py-3 font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap",
+                    tabs.length >= 5 ? "text-[10px]" : "text-[11px]",
+                    activeTab === tab.id 
+                      ? "text-violet-400 scale-[1.02]" 
+                      : "text-slate-500 hover:text-slate-200"
+                  )}
+                >
+                  {getShortLabel(tab.id)}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -411,12 +451,68 @@ export const FeriasPage: React.FC = () => {
         )}
 
         {activeTab === 'historico' && (
-          <div className="text-center py-12">
-            <History size={48} className="mx-auto text-slate-600 mb-4" />
-            <h3 className="text-lg font-bold text-slate-300 mb-2">Histórico</h3>
-            <p className="text-sm text-slate-500">
-              Histórico de férias e auditoria em desenvolvimento
-            </p>
+          <div>
+            <div className="mb-4">
+              <h2 className="text-lg font-bold text-slate-200">Histórico e Auditoria</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Registro de acoes (programacao, aprovacao, pagamentos, cancelamentos)
+              </p>
+            </div>
+
+            {historicoLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-20 rounded-xl bg-slate-800/30 border border-slate-800 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : historico.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
+                  <History size={32} className="text-slate-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-300 mb-1">
+                  Nenhuma acao registrada
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Quando voce programar/editar/pagar ferias, as acoes aparecem aqui
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {historico.map((h) => (
+                  <div
+                    key={h.id}
+                    className="p-4 rounded-xl bg-slate-900/40 border border-slate-800 hover:border-slate-700 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-slate-200">
+                          {h.acao}
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {h.created_at
+                            ? new Date(h.created_at).toLocaleString('pt-BR')
+                            : ''}
+                          {h.colaborador_id ? ` • Colaborador ID ${h.colaborador_id}` : ''}
+                          {h.entidade_tipo ? ` • ${h.entidade_tipo}` : ''}
+                        </div>
+                        {h.observacao && (
+                          <div className="text-xs text-slate-400 mt-2">
+                            {h.observacao}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-600 font-bold">
+                        {h.entidade_id ? String(h.entidade_id).slice(0, 8) : ''}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

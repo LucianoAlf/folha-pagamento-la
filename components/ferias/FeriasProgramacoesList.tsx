@@ -245,14 +245,13 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
                 )}
 
                 {podeCancelar && (
-                  <Button
+                  <button
                     onClick={() => onCancelar(prog)}
-                    variant="danger"
-                    className="!text-xs !py-1.5 !px-3 whitespace-nowrap"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black transition-all bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 whitespace-nowrap active:scale-95"
                   >
                     <X size={12} />
                     <span className="hidden md:inline">Cancelar</span>
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>

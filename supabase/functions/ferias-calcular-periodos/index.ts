@@ -77,8 +77,8 @@ Deno.serve(async (req: Request) => {
     const { data: colaboradores, error: colabErr } = await supabase
       .from("colaboradores")
       .select("id, nome, data_admissao")
-      // No schema atual, o vínculo CLT é armazenado em `tipo_contrato`
-      .eq("tipo_contrato", "clt")
+      // No schema atual, o vínculo CLT está em `tipo` (ver view v_ferias_colaboradores_status)
+      .eq("tipo", "clt")
       .eq("status", "active")
       .not("data_admissao", "is", null);
 
