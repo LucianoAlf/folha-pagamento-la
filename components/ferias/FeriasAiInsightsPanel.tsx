@@ -126,9 +126,8 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
             <Sparkles size={24} className="text-amber-400" />
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-black text-slate-100 flex items-center gap-2">
+            <h2 className="text-xl font-black text-slate-100">
               Insights de IA
-              <Badge variant="warning">PREMIUM</Badge>
             </h2>
             <p className="text-sm text-slate-400 mt-1">
               Análise inteligente para otimizar distribuição de férias e evitar multas
