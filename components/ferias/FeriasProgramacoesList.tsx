@@ -136,6 +136,9 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
                       {prog.dias_abono} dias vendidos
                     </Badge>
                   )}
+                  {(prog.pagamento_modalidade || 'completo') === 'somente_terco' && (
+                    <Badge variant="info">Somente 1/3</Badge>
+                  )}
                 </div>
 
                 {/* Datas */}

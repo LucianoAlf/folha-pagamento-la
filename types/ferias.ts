@@ -12,6 +12,7 @@ export type FeriasPeriodoStatus = 'ativo' | 'em_gozo' | 'concluido' | 'vencido';
 export type FeriasProgramacaoStatus = 'programado' | 'aprovado' | 'em_gozo' | 'concluido' | 'cancelado';
 export type FeriasStatusGeral = 'ok' | 'atencao' | 'alerta' | 'critico';
 export type FeriasPeriodoIdeal = 'ferias_fim_ano' | 'carnaval' | 'julho' | 'outro';
+export type FeriasPagamentoModalidade = 'completo' | 'somente_terco';
 
 // =====================================================
 // 2. INTERFACES PRINCIPAIS
@@ -80,11 +81,13 @@ export interface FeriasProgramacao {
   pagamento_efetuado: boolean;
   data_pagamento?: string; // ISO date
   valor_pagamento?: number;
+  pagamento_modalidade?: FeriasPagamentoModalidade; // Preferência/registro do tipo de pagamento
 
   // Aprovação
   aprovado_por?: string; // UUID do usuário
   aprovado_em?: string; // ISO timestamp
   observacoes?: string;
+  observacoes_pagamento?: string | null;
 
   // Alertas
   alerta_pagamento_enviado: boolean;
@@ -238,6 +241,7 @@ export interface FeriasProgramacaoInput {
   dias_uteis: number;
   vendeu_abono: boolean;
   dias_abono: number;
+  pagamento_modalidade?: FeriasPagamentoModalidade;
   observacoes?: string;
 }
 

@@ -780,7 +780,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
             <>
               <p className="text-sm text-slate-400 mb-4">Selecione os instrumentos que este professor leciona:</p>
               <div className="grid grid-cols-2 gap-3">
-                {['Piano', 'Violão', 'Guitarra', 'Bateria', 'Canto', 'Teclado', 'Baixo', 'Violino', 'Musicalização', 'Produção Musical', 'Bandas', 'Ukulelê'].map(instr => {
+                {['Piano', 'Violão', 'Guitarra', 'Bateria', 'Canto', 'Teclado', 'Baixo', 'Violino', 'Musicalização', 'Produção Musical', 'Bandas', 'Ukulelê', 'Cavaquinho'].map(instr => {
                   const isSelected = (form.instrumentos || []).includes(instr);
                   return (
                     <button
@@ -1311,7 +1311,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
               <div className="max-w-2xl space-y-6">
                 <p className="text-xs text-slate-500">Selecione os instrumentos que este professor leciona.</p>
                 <div className="grid grid-cols-3 gap-3">
-                  {['Piano', 'Violão', 'Guitarra', 'Bateria', 'Canto', 'Teclado', 'Baixo', 'Violino', 'Musicalização', 'Produção Musical', 'Bandas', 'Ukulelê'].map(instr => {
+                  {['Piano', 'Violão', 'Guitarra', 'Bateria', 'Canto', 'Teclado', 'Baixo', 'Violino', 'Musicalização', 'Produção Musical', 'Bandas', 'Ukulelê', 'Cavaquinho'].map(instr => {
                     const isSelected = (form.instrumentos || []).includes(instr);
                     return (
                       <button

@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Calendar, AlertCircle, Clock, CalendarCheck, ChevronRight } from 'lucide-react';
+import { User, Calendar, AlertCircle, Clock, CalendarCheck, Pencil } from 'lucide-react';
 import { Card, Badge, Tooltip } from '../UI';
 import type { FeriasColaboradorStatus } from '../../types';
 import {
@@ -125,7 +125,7 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
               }`}
             />
             <span className="text-slate-400">
-              {colaborador.tem_ferias_vencidas ? 'Venceu em:' : 'Vence em:'}
+              Concessivo atual vence em:
             </span>
             <span
               className={`font-bold ${
@@ -150,6 +150,9 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
             <AlertCircle size={14} className="text-rose-500 shrink-0 mt-0.5" />
             <div className="text-xs">
               <div className="text-rose-400 font-bold">CRÍTICO - Férias Vencidas</div>
+              <div className="text-rose-300/70 text-[10px] mt-0.5">
+                {colaborador.periodos_vencidos} período{colaborador.periodos_vencidos === 1 ? '' : 's'} vencido(s)
+              </div>
               <div className="text-rose-300/70 text-[10px] mt-0.5">
                 Multa: pagamento em DOBRO!
               </div>
@@ -181,12 +184,12 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
           Programar Férias
         </button>
 
-        <Tooltip content="Ver Histórico">
+        <Tooltip content="Ajustar Períodos">
           <button
             onClick={() => onVerHistorico(colaborador)}
             className="w-9 h-9 flex items-center justify-center bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 rounded-xl text-slate-400 hover:text-slate-300 transition-all active:scale-95"
           >
-            <ChevronRight size={14} />
+            <Pencil size={14} />
           </button>
         </Tooltip>
       </div>

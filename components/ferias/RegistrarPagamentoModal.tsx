@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, DollarSign, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
-import { Modal, DatePicker, Button } from '../UI';
+import { Modal, DatePicker, Button, CustomSelect, Badge } from '../UI';
 import { feriasService } from '../../services/feriasService';
 import { calcularDataLimitePagamento, toISODate } from '../../utils/feriasCalculations';
-import type { FeriasProgramacao, FeriasColaboradorStatus } from '../../types';
+import type { FeriasProgramacao, FeriasColaboradorStatus, FeriasValorCalculado } from '../../types';
 
 interface RegistrarPagamentoModalProps {
   isOpen: boolean;
@@ -20,25 +20,30 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
   colaborador,
   onSuccess,
 }) => {
-  const [dataPagamento, setDataPagamento] = useState<Date | null>(new Date());
+  const [dataPagamento, setDataPagamento] = useState<string | undefined>(toISODate(new Date()));
   const [valorPago, setValorPago] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [valorCalculado, setValorCalculado] = useState<number | null>(null);
+  const [valorCalculado, setValorCalculado] = useState<FeriasValorCalculado | null>(null);
+  const [pagamentoModalidade, setPagamentoModalidade] = useState<'completo' | 'somente_terco'>(
+    programacao.pagamento_modalidade || 'completo'
+  );
   const [erro, setErro] = useState<string | null>(null);
 
   // Calcular valor estimado ao abrir
   useEffect(() => {
     if (isOpen) {
-      calcularValor();
-      setDataPagamento(new Date());
+      const modalidade = programacao.pagamento_modalidade || 'completo';
+      setDataPagamento(toISODate(new Date()));
       setObservacoes('');
       setErro(null);
+      setPagamentoModalidade(modalidade);
+      calcularValor(modalidade);
     }
   }, [isOpen]);
 
-  const calcularValor = async () => {
+  const calcularValor = async (modalidade: 'completo' | 'somente_terco' = pagamentoModalidade) => {
     try {
       setIsCalculating(true);
       const valor = await feriasService.calcularValorFerias(
@@ -47,7 +52,12 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
         programacao.vendeu_abono ? programacao.dias_abono : 0
       );
       setValorCalculado(valor);
-      setValorPago(valor.toFixed(2));
+      // Valor padrão ao abrir: depende da modalidade selecionada
+      const sugerido =
+        modalidade === 'somente_terco'
+          ? valor.valor_terco + (programacao.vendeu_abono ? valor.valor_abono : 0)
+          : valor.valor_total;
+      setValorPago(sugerido.toFixed(2));
     } catch (err: any) {
       console.error('Erro ao calcular valor:', err);
       setValorCalculado(null);
@@ -55,6 +65,16 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
       setIsCalculating(false);
     }
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!valorCalculado) return;
+    const sugerido =
+      pagamentoModalidade === 'somente_terco'
+        ? valorCalculado.valor_terco + (programacao.vendeu_abono ? valorCalculado.valor_abono : 0)
+        : valorCalculado.valor_total;
+    setValorPago(sugerido.toFixed(2));
+  }, [pagamentoModalidade, isOpen, valorCalculado]);
 
   const formatarMoeda = (valor: string): string => {
     // Remove tudo exceto números e vírgula/ponto
@@ -86,8 +106,9 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
       setErro(null);
 
       await feriasService.registrarPagamento(programacao.id!, {
-        data_pagamento: toISODate(dataPagamento),
+        data_pagamento: dataPagamento,
         valor_pagamento: valorNumerico,
+        pagamento_modalidade: pagamentoModalidade,
         observacoes_pagamento: observacoes || null,
       });
 
@@ -101,13 +122,17 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
     }
   };
 
-  const dataLimitePagamento = calcularDataLimitePagamento(
-    new Date(programacao.data_inicio)
+  const dataLimitePagamento = useMemo(
+    () => calcularDataLimitePagamento(new Date(programacao.data_inicio)),
+    [programacao.data_inicio]
   );
   const hoje = new Date();
-  const estaDentroPrazo = dataPagamento
-    ? dataPagamento <= dataLimitePagamento
-    : false;
+  const dataPagamentoDate = useMemo(() => {
+    if (!dataPagamento) return null;
+    // Parse as UTC midnight to avoid timezone shifts
+    return new Date(`${dataPagamento}T00:00:00.000Z`);
+  }, [dataPagamento]);
+  const estaDentroPrazo = dataPagamentoDate ? dataPagamentoDate <= dataLimitePagamento : false;
   const estaAtrasado = hoje > dataLimitePagamento;
 
   return (
@@ -204,7 +229,7 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
                 💰 Valor Calculado (Estimado)
               </div>
               <div className="text-2xl font-black text-slate-100">
-                R$ {valorCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {valorCalculado.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
               <div className="text-xs text-slate-400 mt-1">
                 Férias + 1/3 constitucional
@@ -213,17 +238,42 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
             </div>
           ) : null}
 
+          {/* Modalidade */}
+          <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div className="text-sm font-black text-slate-200">Modalidade de Pagamento</div>
+              {pagamentoModalidade === 'somente_terco' ? (
+                <Badge variant="info">1/3</Badge>
+              ) : (
+                <Badge variant="default">Completo</Badge>
+              )}
+            </div>
+            <CustomSelect
+              value={pagamentoModalidade}
+              onValueChange={(v) => setPagamentoModalidade(v as any)}
+              options={[
+                { value: 'completo', label: 'Completo (ferias + 1/3)' },
+                { value: 'somente_terco', label: 'Somente adicional de 1/3' },
+              ]}
+              className="bg-slate-950/40 border-slate-800/60"
+            />
+            <div className="text-xs text-slate-500 mt-2">
+              Sugerido: {' '}
+              {valorCalculado
+                ? (pagamentoModalidade === 'somente_terco'
+                    ? valorCalculado.valor_terco + (programacao.vendeu_abono ? valorCalculado.valor_abono : 0)
+                    : valorCalculado.valor_total
+                  ).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                : '—'}
+            </div>
+          </div>
+
           {/* Data de Pagamento */}
           <div>
             <label className="block text-sm font-bold text-slate-200 mb-2">
               📅 Data do Pagamento
             </label>
-            <DatePicker
-              selected={dataPagamento}
-              onChange={setDataPagamento}
-              maxDate={new Date()}
-              className="w-full"
-            />
+            <DatePicker value={dataPagamento} onChange={setDataPagamento} className="w-full" />
             {dataPagamento && !estaDentroPrazo && !estaAtrasado && (
               <p className="text-xs text-amber-400 mt-2">
                 ⚠️ Data após o prazo legal. Certifique-se de que o pagamento foi

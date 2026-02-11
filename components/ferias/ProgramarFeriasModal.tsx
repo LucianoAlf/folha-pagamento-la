@@ -33,6 +33,7 @@ interface FormData {
   dias_uteis: number;
   vendeu_abono: boolean;
   dias_abono: number;
+  pagamento_modalidade: 'completo' | 'somente_terco';
   observacoes: string;
 }
 
@@ -58,6 +59,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
     dias_uteis: 0,
     vendeu_abono: false,
     dias_abono: 0,
+    pagamento_modalidade: 'completo',
     observacoes: '',
   });
 
@@ -76,6 +78,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
         dias_uteis: 0,
         vendeu_abono: false,
         dias_abono: 0,
+        pagamento_modalidade: 'completo',
         observacoes: '',
       });
       setError(null);
@@ -232,6 +235,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
         dias_uteis: formData.dias_uteis,
         vendeu_abono: formData.vendeu_abono,
         dias_abono: formData.vendeu_abono ? formData.dias_abono : 0,
+        pagamento_modalidade: formData.pagamento_modalidade,
         observacoes: formData.observacoes || undefined,
       });
 
@@ -504,8 +508,64 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
         Confira os valores calculados para as férias.
       </p>
 
+      <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800">
+        <div className="text-sm font-black text-slate-100 mb-2">Modalidade de Pagamento</div>
+        <div className="text-xs text-slate-400 mb-3">
+          O adicional de 1/3 e sempre um valor a mais. Aqui você registra se o pagamento foi completo ou somente do adicional.
+        </div>
+        <div className="space-y-2">
+          <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-950/30 border border-slate-800 cursor-pointer">
+            <input
+              type="radio"
+              name="pagamento_modalidade"
+              checked={formData.pagamento_modalidade === 'completo'}
+              onChange={() => setFormData((p) => ({ ...p, pagamento_modalidade: 'completo' }))}
+              className="mt-1"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-bold text-slate-200">Completo (férias + 1/3)</div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                Recomendado quando o pagamento de férias é adiantado conforme prática padrão.
+              </div>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-950/30 border border-slate-800 cursor-pointer">
+            <input
+              type="radio"
+              name="pagamento_modalidade"
+              checked={formData.pagamento_modalidade === 'somente_terco'}
+              onChange={() => setFormData((p) => ({ ...p, pagamento_modalidade: 'somente_terco' }))}
+              className="mt-1"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-bold text-slate-200">Somente adicional de 1/3</div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                Útil quando vocês evitam adiantar o valor base das férias para não “sumir salário” no mês seguinte.
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
       {valorCalculado ? (
         <div className="space-y-3">
+          <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30">
+            <div className="text-xs text-violet-400 mb-1">Valor sugerido para pagamento</div>
+            <div className="text-2xl font-black text-violet-300">
+              {(
+                formData.pagamento_modalidade === 'somente_terco'
+                  ? valorCalculado.valor_terco +
+                    (formData.vendeu_abono && formData.dias_abono > 0 ? valorCalculado.valor_abono : 0)
+                  : valorCalculado.valor_total
+              ).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </div>
+            <div className="text-xs text-slate-400 mt-1">
+              {formData.pagamento_modalidade === 'somente_terco'
+                ? '1/3 constitucional' + (formData.vendeu_abono ? ' + abono (se houver)' : '')
+                : 'Férias + 1/3' + (formData.vendeu_abono ? ' + abono (se houver)' : '')}
+            </div>
+          </div>
+
           <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
             <div className="text-xs text-slate-500 mb-2">Salário Base</div>
             <div className="text-2xl font-bold text-slate-200">
@@ -640,6 +700,15 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
             </div>
           </div>
         )}
+
+        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+          <div className="text-xs text-slate-500 mb-1">Modalidade de Pagamento</div>
+          <div className="font-bold text-slate-200">
+            {formData.pagamento_modalidade === 'somente_terco'
+              ? 'Somente adicional de 1/3'
+              : 'Completo (férias + 1/3)'}
+          </div>
+        </div>
 
         {valorCalculado && (
           <div className="p-4 rounded-xl bg-violet-500/10 border border-violet-500/30">

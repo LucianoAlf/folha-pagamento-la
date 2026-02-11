@@ -7,6 +7,7 @@ import { EditarProgramacaoModal } from './EditarProgramacaoModal';
 import { RegistrarPagamentoModal } from './RegistrarPagamentoModal';
 import { FeriasProgramacoesList } from './FeriasProgramacoesList';
 import { FeriasAiInsightsPanel } from './FeriasAiInsightsPanel';
+import { AjustarPeriodosModal } from './AjustarPeriodosModal';
 import { Button, ConfirmDialog } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { feriasService } from '../../services/feriasService';
@@ -42,8 +43,11 @@ export const FeriasPage: React.FC = () => {
   const [modalProgramarOpen, setModalProgramarOpen] = useState(false);
   const [modalEditarOpen, setModalEditarOpen] = useState(false);
   const [modalPagamentoOpen, setModalPagamentoOpen] = useState(false);
+  const [modalAjustarPeriodosOpen, setModalAjustarPeriodosOpen] = useState(false);
   const [confirmCancelarOpen, setConfirmCancelarOpen] = useState(false);
   const [colaboradorSelecionado, setColaboradorSelecionado] =
+    useState<FeriasColaboradorStatus | null>(null);
+  const [colaboradorAjusteSelecionado, setColaboradorAjusteSelecionado] =
     useState<FeriasColaboradorStatus | null>(null);
   const [programacaoSelecionada, setProgramacaoSelecionada] =
     useState<FeriasProgramacao | null>(null);
@@ -128,8 +132,10 @@ export const FeriasPage: React.FC = () => {
   };
 
   const handleVerHistorico = (colaborador: FeriasColaboradorStatus) => {
-    // TODO: Abrir modal de histórico
-    console.log('Ver histórico de:', colaborador);
+    // Hoje o maior gargalo operacional é ajustar períodos antigos (gozados/vendidos/status).
+    // Então o botão "Ver" vira um atalho para o ajuste dos períodos aquisitivos.
+    setColaboradorAjusteSelecionado(colaborador);
+    setModalAjustarPeriodosOpen(true);
   };
 
   const handleModalSuccess = () => {
@@ -387,10 +393,12 @@ export const FeriasPage: React.FC = () => {
                           <div className="text-sm font-bold text-slate-200">{c.nome}</div>
                           <div className="text-xs text-slate-400">
                             {c.total_dias_saldo} dias pendentes •{' '}
-                            {c.proxima_expiracao &&
-                              `Venceu em ${new Date(c.proxima_expiracao).toLocaleDateString(
-                                'pt-BR'
-                              )}`}
+                            {c.periodos_vencidos} período{c.periodos_vencidos === 1 ? '' : 's'} vencido
+                            {c.proxima_expiracao
+                              ? ` • Concessivo atual vence em ${new Date(c.proxima_expiracao).toLocaleDateString(
+                                  'pt-BR'
+                                )}`
+                              : ''}
                           </div>
                         </div>
                         <Button
@@ -591,6 +599,22 @@ export const FeriasPage: React.FC = () => {
           confirmText="Sim, Cancelar"
           cancelText="Não, Manter"
           variant="danger"
+        />
+      )}
+
+      {/* Ajuste de Períodos Aquisitivos */}
+      {colaboradorAjusteSelecionado && (
+        <AjustarPeriodosModal
+          isOpen={modalAjustarPeriodosOpen}
+          onClose={() => {
+            setModalAjustarPeriodosOpen(false);
+            setColaboradorAjusteSelecionado(null);
+          }}
+          colaborador={colaboradorAjusteSelecionado}
+          onSuccess={() => {
+            // Recarrega agregados/alertas após ajuste de períodos.
+            loadData();
+          }}
         />
       )}
     </div>

@@ -181,6 +181,7 @@ export const feriasService = {
         ...input,
         status: 'programado',
         pagamento_efetuado: false,
+        pagamento_modalidade: input.pagamento_modalidade || 'completo',
         alerta_pagamento_enviado: false,
         alerta_inicio_enviado: false,
         created_at: new Date().toISOString(),
@@ -242,6 +243,7 @@ export const feriasService = {
     data: {
       data_pagamento: string;
       valor_pagamento: number;
+      pagamento_modalidade?: 'completo' | 'somente_terco';
       observacoes_pagamento?: string | null;
     }
   ): Promise<FeriasProgramacao> {
