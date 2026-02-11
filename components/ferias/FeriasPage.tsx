@@ -95,19 +95,31 @@ export const FeriasPage: React.FC = () => {
     if (historicoLoading) return;
     if (historico.length > 0) return;
 
+    let isMounted = true;
+
     (async () => {
       try {
         setHistoricoLoading(true);
         const rows = await feriasService.fetchHistorico({ limit: 200 });
-        setHistorico(rows);
+        if (isMounted) {
+          setHistorico(rows);
+        }
       } catch (err: any) {
         console.error('Erro ao carregar historico:', err);
-        setError(err?.message || 'Erro ao carregar historico');
+        if (isMounted) {
+          setError(err?.message || 'Erro ao carregar historico');
+        }
       } finally {
-        setHistoricoLoading(false);
+        if (isMounted) {
+          setHistoricoLoading(false);
+        }
       }
     })();
-  }, [activeTab, historico.length, historicoLoading]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab]); // Removido historico.length e historicoLoading das dependências para evitar loop
 
   // Handlers
   const handleProgramarFerias = (colaborador: FeriasColaboradorStatus) => {
