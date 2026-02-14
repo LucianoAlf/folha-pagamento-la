@@ -143,7 +143,7 @@ type ContaRow = {
   valor: number;
   data_vencimento: string;
   competencia: string;
-  status: "pendente" | "pago" | "cancelado";
+  status: "pendente" | "pago" | "cancelado" | "finalizado";
   tipo_lancamento: "unica" | "recorrente" | "parcelada";
   categoria?: { id: string; nome: string; icone: string; tipo_custo: string | null } | null;
 };
@@ -266,6 +266,7 @@ Deno.serve(async (req: Request) => {
           "id,descricao,categoria_id,unidade,valor,data_vencimento,competencia,status,tipo_lancamento,categoria:categorias_despesa(id,nome,icone,tipo_custo)",
         )
         .neq("status", "cancelado")
+        .neq("status", "finalizado")
         .eq("competencia", competencia);
 
       if (unidade !== "todas") q = q.in("unidade", [unidade, "todas"]);

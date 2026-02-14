@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Search, DollarSign, Edit2, Bell, CheckCircle2 } from 'lucide-react';
+import { Search, DollarSign, Edit2, Bell, CheckCircle2, Trash2, CheckSquare } from 'lucide-react';
 import { Badge, Card, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { ContaPagar } from '../../types/contasPagar';
@@ -24,7 +24,9 @@ export const ContasTable: React.FC<{
   onBuscaChange: (q: string) => void;
   onPagar: (conta: ContaPagar) => void;
   onEditar: (conta: ContaPagar) => void;
-}> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar }) => {
+  onExcluir: (conta: ContaPagar) => void;
+  onFinalizar: (conta: ContaPagar) => void;
+}> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -58,6 +60,7 @@ export const ContasTable: React.FC<{
     const hojeISO = new Date().toISOString().split('T')[0];
 
     if (c.status === 'pago') return <Badge variant="success">Pago</Badge>;
+    if (c.status === 'finalizado') return <Badge variant="default">Finalizado</Badge>;
     if (c.data_vencimento === hojeISO) return <Badge variant="warning">Hoje</Badge>;
     if (s === 'vencida') return <Badge variant="danger">Vencida</Badge>;
     if (s === 'urgente') return <Badge variant="warning">Urgente</Badge>;
@@ -169,8 +172,24 @@ export const ContasTable: React.FC<{
                           <CheckCircle2 size={14} />
                           Liquidado
                         </div>
+                      ) : c.status === 'finalizado' ? (
+                        <div className="flex items-center gap-2 text-slate-400 font-black text-xs px-4 py-2">
+                          <CheckSquare size={14} />
+                          Finalizado
+                        </div>
                       ) : (
                         <>
+                          {(c.tipo_lancamento === 'parcelada' || c.tipo_lancamento === 'recorrente') && (
+                            <Tooltip content={c.tipo_lancamento === 'parcelada' ? "Finalizar (encerrar parcelamento)" : "Encerrar recorrência"}>
+                              <button
+                                type="button"
+                                onClick={() => onFinalizar(c)}
+                                className="p-2 rounded-xl border border-slate-800 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                              >
+                                <CheckSquare size={14} />
+                              </button>
+                            </Tooltip>
+                          )}
                           <Tooltip content="Editar valor/vencimento">
                             <button
                               type="button"
@@ -178,6 +197,15 @@ export const ContasTable: React.FC<{
                               className="p-2 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
                             >
                               <Edit2 size={14} />
+                            </button>
+                          </Tooltip>
+                          <Tooltip content="Excluir lançamento">
+                            <button
+                              type="button"
+                              onClick={() => onExcluir(c)}
+                              className="p-2 rounded-xl border border-slate-800 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                            >
+                              <Trash2 size={14} />
                             </button>
                           </Tooltip>
                           <button
@@ -257,14 +285,37 @@ export const ContasTable: React.FC<{
                             <Edit2 size={14} />
                           </button>
                           
-                          {c.status !== 'pago' ? (
-                            <button
-                              onClick={() => onPagar(c)}
-                              className="h-9 px-3 rounded-xl bg-violet-600 text-white text-[10px] font-black shadow-lg shadow-violet-600/20 active:scale-95 transition-all flex items-center gap-1.5"
-                            >
-                              <DollarSign size={12} />
-                              Pagar
-                            </button>
+                          {c.status !== 'pago' && c.status !== 'finalizado' ? (
+                            <>
+                              {(c.tipo_lancamento === 'parcelada' || c.tipo_lancamento === 'recorrente') && (
+                                <button
+                                  onClick={() => onFinalizar(c)}
+                                  className="w-9 h-9 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 flex items-center justify-center active:scale-90 transition-all"
+                                  aria-label="Finalizar"
+                                >
+                                  <CheckSquare size={14} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => onExcluir(c)}
+                                className="w-9 h-9 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 flex items-center justify-center active:scale-90 transition-all"
+                                aria-label="Excluir"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => onPagar(c)}
+                                className="h-9 px-3 rounded-xl bg-violet-600 text-white text-[10px] font-black shadow-lg shadow-violet-600/20 active:scale-95 transition-all flex items-center gap-1.5"
+                              >
+                                <DollarSign size={12} />
+                                Pagar
+                              </button>
+                            </>
+                          ) : c.status === 'finalizado' ? (
+                            <div className="h-9 px-3 rounded-xl bg-slate-800 text-slate-400 text-[10px] font-black border border-slate-700 flex items-center gap-1.5">
+                              <CheckSquare size={12} />
+                              Finalizado
+                            </div>
                           ) : (
                             <div className="h-9 px-3 rounded-xl bg-emerald-500/10 text-emerald-400 text-[10px] font-black border border-emerald-500/20 flex items-center gap-1.5">
                               <CheckCircle2 size={12} />

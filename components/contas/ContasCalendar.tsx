@@ -108,7 +108,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
 
       const inStatus = rows.filter((c) => {
         if (status === 'pago') return c.status === 'pago';
-        if (c.status === 'pago' || c.status === 'cancelado') return false;
+        if (c.status === 'pago' || c.status === 'cancelado' || c.status === 'finalizado') return false;
         const visual = getStatusVisual(c);
         if (status === 'vencida') return visual === 'vencida';
         // pendente: tudo que não é vencida nem paga (inclui hoje/urgente/pendente)

@@ -50,7 +50,8 @@ export async function fetchContasPagar(filtros?: {
       .from('contas_pagar')
       .select('*')
       .eq('tipo_lancamento', 'recorrente')
-      .neq('status', 'cancelado');
+      .neq('status', 'cancelado')
+      .neq('status', 'finalizado');
 
     if (recorrentes && recorrentes.length > 0) {
       for (const modelo of recorrentes) {
@@ -88,6 +89,7 @@ export async function fetchContasPagar(filtros?: {
     .from('contas_pagar')
     .select('*, categoria:categorias_despesa(*)')
     .neq('status', 'cancelado')
+    .neq('status', 'finalizado')
     .order('data_vencimento', { ascending: true });
 
   if (filtros?.status && filtros.status !== 'todas') {
@@ -129,6 +131,7 @@ export async function fetchContasPendentesForAgenda(input?: {
     .select('*, categoria:categorias_despesa(*)')
     .eq('status', 'pendente')
     .neq('status', 'cancelado')
+    .neq('status', 'finalizado')
     .gte('data_vencimento', start)
     .lte('data_vencimento', end)
     .order('data_vencimento', { ascending: true })
@@ -228,6 +231,35 @@ export async function updateContaPagar(contaId: string, patch: Partial<ContaPaga
 
 export async function deleteConta(contaId: string): Promise<void> {
   const { error } = await supabase.from('contas_pagar').delete().eq('id', contaId);
+  if (error) throw error;
+}
+
+export async function finalizarConta(contaId: string): Promise<void> {
+  const { error } = await supabase
+    .from('contas_pagar')
+    .update({ status: 'finalizado' })
+    .eq('id', contaId);
+  if (error) throw error;
+}
+
+export async function finalizarParcelamento(conta: ContaPagar): Promise<void> {
+  if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas) {
+    return finalizarConta(conta.id);
+  }
+
+  // Para parcelados, buscamos outras parcelas com a mesma base de descrição e que ainda estejam pendentes
+  // O formato da descrição é "Descrição (1/10)"
+  const baseDesc = conta.descricao.split(' (')[0];
+  
+  const { error } = await supabase
+    .from('contas_pagar')
+    .update({ status: 'finalizado' })
+    .eq('categoria_id', conta.categoria_id)
+    .eq('unidade', conta.unidade)
+    .like('descricao', `${baseDesc} (%`)
+    .eq('status', 'pendente')
+    .gte('data_vencimento', conta.data_vencimento);
+
   if (error) throw error;
 }
 
@@ -370,4 +402,3 @@ export function calcularResumoAuditoria(contas: ContaPagar[]) {
       : 0
   };
 }
-

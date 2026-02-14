@@ -13,6 +13,7 @@ import {
   deleteCategoria,
   deleteConta,
   getStatusVisual,
+  finalizarParcelamento,
 } from '../../services/contasPagarService';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../services/supabase';
 import { ContasSummaryCards } from './ContasSummaryCards';
@@ -158,6 +159,8 @@ export const ContasPagarPage: React.FC<{
   const [novaOpen, setNovaOpen] = useState(false);
   const [pagarConta, setPagarConta] = useState<ContaPagar | null>(null);
   const [editarConta, setEditarConta] = useState<ContaPagar | null>(null);
+  const [contaParaExcluir, setContaParaExcluir] = useState<ContaPagar | null>(null);
+  const [contaParaFinalizar, setContaParaFinalizar] = useState<ContaPagar | null>(null);
   const [categoriaModalOpen, setCategoriaModalOpen] = useState(false);
   const [editingCategoria, setEditingCategoria] = useState<CategoriaDespesa | null>(null);
 
@@ -814,7 +817,7 @@ export const ContasPagarPage: React.FC<{
   // - "Todas" => somente contas do mês selecionado
   // - outros filtros (Hoje/Vencidas/Próx 7/Próx 30) => busca no universo (multi-mês), evitando surpresa de mês futuro em "Todas"
   const contasPendentesBase = useMemo(() => {
-    return contas.filter((c) => c.status !== 'cancelado' && c.status !== 'pago' && matchesCommonFilters(c));
+    return contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && c.status !== 'pago' && matchesCommonFilters(c));
   }, [contas, matchesCommonFilters]);
 
   const contasPendentesMes = useMemo(() => {
@@ -827,7 +830,7 @@ export const ContasPagarPage: React.FC<{
 
   const contasParaCalendario = useMemo(() => {
     // calendário: mostra contas do mês (competência) — pendentes e pagas, para visão geral.
-    return contas.filter((c) => c.status !== 'cancelado' && matchesCommonFiltersNoSearch(c) && matchesCompetencia(c));
+    return contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c) && matchesCompetencia(c));
   }, [contas, matchesCommonFiltersNoSearch, matchesCompetencia]);
 
   const contasParaListaOperacional = useMemo(() => {
@@ -843,8 +846,8 @@ export const ContasPagarPage: React.FC<{
     const prevDate = new Date(Number(cy), Number(cm) - 2, 1);
     const prevYM = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
     
-    const contasMes = contas.filter((c) => c.status !== 'cancelado' && matchesCommonFiltersNoSearch(c) && matchesCompetencia(c));
-    const contasPrev = contas.filter((c) => c.status !== 'cancelado' && matchesCommonFiltersNoSearch(c) && (() => {
+    const contasMes = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c) && matchesCompetencia(c));
+    const contasPrev = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c) && (() => {
       if (!c.competencia) return false;
       const [y, m] = c.competencia.split('-');
       return `${y}-${m}` === prevYM;
@@ -903,7 +906,7 @@ export const ContasPagarPage: React.FC<{
         months.push(`${cy}-${String(month).padStart(2, '0')}`);
       }
       return months.map((ym) => {
-        const rows = contas.filter((c) => c.status !== 'cancelado' && matchesCommonFiltersNoSearch(c) && (() => {
+        const rows = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c) && (() => {
           if (!c.competencia) return false;
           const [y, m] = c.competencia.split('-');
           return `${y}-${m}` === ym;
@@ -1208,7 +1211,7 @@ export const ContasPagarPage: React.FC<{
       return `${unidade}|${cat}|${desc}`;
     };
 
-    const base = contas.filter((c) => c.status !== 'cancelado' && matchesCommonFiltersNoSearch(c));
+    const base = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c));
     const prevRows = base.filter(matchesCompetenciaComparar);
     const currRows = base.filter(matchesCompetencia);
 
@@ -1803,7 +1806,7 @@ export const ContasPagarPage: React.FC<{
   }
 
   if (mode === 'todas') {
-    const auditRows = contasAudit.filter((c) => c.status !== 'cancelado');
+    const auditRows = contasAudit.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado');
     const auditCount = auditRows.length;
     return (
       <div className="w-full">
@@ -2062,6 +2065,8 @@ export const ContasPagarPage: React.FC<{
             onBuscaChange={setBusca}
             onPagar={(c) => setPagarConta(c)}
             onEditar={(c) => setEditarConta(c)}
+            onExcluir={(c) => setContaParaExcluir(c)}
+            onFinalizar={(c) => setContaParaFinalizar(c)}
           />
         )}
 
@@ -2820,6 +2825,8 @@ export const ContasPagarPage: React.FC<{
             onBuscaChange={setBusca}
             onPagar={(c) => setPagarConta(c)}
             onEditar={(c) => setEditarConta(c)}
+            onExcluir={(c) => setContaParaExcluir(c)}
+            onFinalizar={(c) => setContaParaFinalizar(c)}
           />
         </div>
       )}
@@ -2901,6 +2908,40 @@ export const ContasPagarPage: React.FC<{
           setEditarConta(null);
           await refetch();
         }}
+      />
+
+      <ConfirmDialog
+        isOpen={!!contaParaExcluir}
+        onClose={() => setContaParaExcluir(null)}
+        onConfirm={async () => {
+          if (!contaParaExcluir) return;
+          await deleteConta(contaParaExcluir.id);
+          setContaParaExcluir(null);
+          await refetch();
+        }}
+        title="Excluir lançamento"
+        message={`Tem certeza que deseja excluir "${contaParaExcluir?.descricao}"? Esta ação removerá o registro permanentemente.`}
+        confirmLabel="Excluir"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={!!contaParaFinalizar}
+        onClose={() => setContaParaFinalizar(null)}
+        onConfirm={async () => {
+          if (!contaParaFinalizar) return;
+          await finalizarParcelamento(contaParaFinalizar);
+          setContaParaFinalizar(null);
+          await refetch();
+        }}
+        title="Finalizar parcelamento"
+        message={
+          contaParaFinalizar?.tipo_lancamento === 'parcelada'
+            ? `Deseja marcar esta e todas as parcelas futuras de "${contaParaFinalizar?.descricao.split(' (')[0]}" como finalizadas? Elas não aparecerão mais como pendentes.`
+            : `Deseja marcar "${contaParaFinalizar?.descricao}" como finalizada?`
+        }
+        confirmLabel="Finalizar"
+        variant="primary"
       />
     </div>
   );

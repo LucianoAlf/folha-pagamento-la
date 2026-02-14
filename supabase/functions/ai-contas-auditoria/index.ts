@@ -159,7 +159,7 @@ type ContaRow = {
   valor: number;
   data_vencimento: string;
   competencia: string;
-  status: "pendente" | "pago" | "cancelado";
+  status: "pendente" | "pago" | "cancelado" | "finalizado";
   data_pagamento: string | null;
   tipo_lancamento: "unica" | "recorrente" | "parcelada";
   parcela_atual: number | null;
@@ -246,6 +246,7 @@ Deno.serve(async (req: Request) => {
     .from("contas_pagar")
     .select("id,descricao,categoria_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,categoria:categorias_despesa(id,nome,icone,tipo_custo)")
     .neq("status", "cancelado")
+    .neq("status", "finalizado")
     .eq("competencia", competenciaDate);
 
   if (unidade !== "todas") q = q.in("unidade", [unidade, "todas"]);
@@ -267,6 +268,7 @@ Deno.serve(async (req: Request) => {
       .from("contas_pagar")
       .select("id,descricao,categoria_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,categoria:categorias_despesa(id,nome,icone,tipo_custo)")
       .neq("status", "cancelado")
+    .neq("status", "finalizado")
       .eq("competencia", prevDate);
     if (unidade !== "todas") pq = pq.in("unidade", [unidade, "todas"]);
     if (categoriaId !== "all") pq = pq.eq("categoria_id", categoriaId);

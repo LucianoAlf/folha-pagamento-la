@@ -19,7 +19,7 @@ export interface ContaPagar {
   data_lancamento: string;
   data_vencimento: string;
   competencia: string;
-  status: 'pendente' | 'pago' | 'cancelado';
+  status: 'pendente' | 'pago' | 'cancelado' | 'finalizado';
   data_pagamento: string | null;
   metodo_pagamento: string | null;
   tipo_lancamento: 'unica' | 'recorrente' | 'parcelada';
