@@ -229,6 +229,30 @@ export async function updateContaPagar(contaId: string, patch: Partial<ContaPaga
   return data as ContaPagar;
 }
 
+export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch: Partial<ContaPagar>): Promise<void> {
+  // Campos que definem o "modelo" da recorrente
+  const fieldsToUpdate: any = {};
+  if (patch.descricao) fieldsToUpdate.descricao = patch.descricao;
+  if (patch.valor) fieldsToUpdate.valor = patch.valor;
+  if (patch.categoria_id) fieldsToUpdate.categoria_id = patch.categoria_id;
+  if (patch.unidade) fieldsToUpdate.unidade = patch.unidade;
+  if (patch.tipo_lancamento) fieldsToUpdate.tipo_lancamento = patch.tipo_lancamento;
+
+  if (Object.keys(fieldsToUpdate).length === 0) return;
+
+  const { error } = await supabase
+    .from('contas_pagar')
+    .update(fieldsToUpdate)
+    .eq('descricao', contaOriginal.descricao)
+    .eq('categoria_id', contaOriginal.categoria_id)
+    .eq('unidade', contaOriginal.unidade)
+    .eq('tipo_lancamento', 'recorrente')
+    .eq('status', 'pendente')
+    .gt('competencia', contaOriginal.competencia);
+
+  if (error) throw error;
+}
+
 export async function deleteConta(contaId: string): Promise<void> {
   const { error } = await supabase.from('contas_pagar').delete().eq('id', contaId);
   if (error) throw error;

@@ -179,8 +179,8 @@ export const ContasTable: React.FC<{
                         </div>
                       ) : (
                         <>
-                          {(c.tipo_lancamento === 'parcelada' || c.tipo_lancamento === 'recorrente') && (
-                            <Tooltip content={c.tipo_lancamento === 'parcelada' ? "Finalizar (encerrar parcelamento)" : "Encerrar recorrência"}>
+                          {c.tipo_lancamento === 'parcelada' && (
+                            <Tooltip content="Finalizar (encerrar parcelamento)">
                               <button
                                 type="button"
                                 onClick={() => onFinalizar(c)}
@@ -287,7 +287,7 @@ export const ContasTable: React.FC<{
                           
                           {c.status !== 'pago' && c.status !== 'finalizado' ? (
                             <>
-                              {(c.tipo_lancamento === 'parcelada' || c.tipo_lancamento === 'recorrente') && (
+                              {c.tipo_lancamento === 'parcelada' && (
                                 <button
                                   onClick={() => onFinalizar(c)}
                                   className="w-9 h-9 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 flex items-center justify-center active:scale-90 transition-all"

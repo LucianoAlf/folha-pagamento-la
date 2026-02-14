@@ -14,6 +14,7 @@ import {
   deleteConta,
   getStatusVisual,
   finalizarParcelamento,
+  updateFuturasRecorrentes,
 } from '../../services/contasPagarService';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../services/supabase';
 import { ContasSummaryCards } from './ContasSummaryCards';
@@ -2901,10 +2902,19 @@ export const ContasPagarPage: React.FC<{
       <EditarContaModal
         isOpen={!!editarConta}
         conta={editarConta}
+        categorias={categorias}
         onClose={() => setEditarConta(null)}
-        onConfirm={async (patch) => {
+        onConfirm={async (patch, aplicarAFuturos) => {
           if (!editarConta) return;
+          
+          // 1. Atualiza a conta atual
           await updateContaPagar(editarConta.id, patch);
+          
+          // 2. Se for recorrente e o usuário escolheu aplicar a futuros, atualiza os próximos meses
+          if (aplicarAFuturos && editarConta.tipo_lancamento === 'recorrente') {
+            await updateFuturasRecorrentes(editarConta, patch);
+          }
+
           setEditarConta(null);
           await refetch();
         }}
