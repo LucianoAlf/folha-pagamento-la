@@ -44,6 +44,8 @@ export const NovaContaModal: React.FC<{
     return `${yyyy}-${mm}-01`;
   });
 
+  const [competenciaManual, setCompetenciaManual] = useState(false);
+
   const [status, setStatus] = useState<PaymentStatus>('pendente');
   const [observacoes, setObservacoes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -51,9 +53,28 @@ export const NovaContaModal: React.FC<{
   useEffect(() => {
     if (!isOpen) return;
     if (defaultUnidade) setUnidade(defaultUnidade);
-    if (defaultVencimento) setVencimento(defaultVencimento);
-    if (defaultCompetenciaYM) setCompetencia(`${defaultCompetenciaYM}-01`);
+    if (defaultVencimento) {
+      setVencimento(defaultVencimento);
+      if (!competenciaManual) {
+        const [y, m] = defaultVencimento.split('-');
+        if (y && m) setCompetencia(`${y}-${m}-01`);
+      }
+    }
+    if (defaultCompetenciaYM) {
+      setCompetencia(`${defaultCompetenciaYM}-01`);
+      setCompetenciaManual(true);
+    }
   }, [isOpen, defaultVencimento, defaultCompetenciaYM, defaultUnidade]);
+
+  // Sincronização automática Vencimento -> Competência
+  useEffect(() => {
+    if (vencimento && !competenciaManual) {
+      const [y, m] = vencimento.split('-');
+      if (y && m) {
+        setCompetencia(`${y}-${m}-01`);
+      }
+    }
+  }, [vencimento, competenciaManual]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -275,7 +296,10 @@ export const NovaContaModal: React.FC<{
               <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Mês de Competência *</label>
               <CustomSelect
                 value={competencia}
-                onValueChange={(v) => setCompetencia(v)}
+                onValueChange={(v) => {
+                  setCompetencia(v);
+                  setCompetenciaManual(true);
+                }}
                 options={Array.from({ length: 12 }).map((_, i) => {
                   const d = new Date();
                   const target = new Date(d.getFullYear(), d.getMonth() - 6 + i, 1);
@@ -346,4 +370,3 @@ export const NovaContaModal: React.FC<{
     </Modal>
   );
 };
-

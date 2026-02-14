@@ -140,7 +140,14 @@ export const ContasTable: React.FC<{
                     aria-expanded={isOpen}
                   >
                     <div className="col-span-5 min-w-0">
-                      <div className="text-white font-black truncate">{(c.categoria?.nome || '').toUpperCase()}</div>
+                      <div className="text-white font-black truncate">
+                        {(c.categoria?.nome || '').toUpperCase()}
+                        {c.total_parcelas && c.parcela_atual && (
+                          <span className="ml-2 text-[10px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded-md">
+                            {c.parcela_atual}/{c.total_parcelas}
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-slate-500 truncate">{c.descricao}</div>
                     </div>
                     <div className="col-span-2 text-sm font-bold text-slate-300">{formatDateBR(c.data_vencimento)}</div>
@@ -205,6 +212,11 @@ export const ContasTable: React.FC<{
                             )}>
                               {(c.categoria?.nome || 'Sem categoria').toUpperCase()}
                             </span>
+                            {c.total_parcelas && c.parcela_atual && (
+                              <span className="text-[10px] font-black text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded-md">
+                                {c.parcela_atual}/{c.total_parcelas}
+                              </span>
+                            )}
                             <span className="text-[10px] font-bold text-slate-500">
                               {formatDateBR(c.data_vencimento)}
                             </span>
