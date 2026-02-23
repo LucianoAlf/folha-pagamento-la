@@ -75,22 +75,23 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
       periodo,
       dataInicio,
       dataFim,
-      diasUteis,
+      diasCorridos,
       diasAbono: vendeAbono ? diasAbono : 0,
       isPrimeiroPeriodo: false, // Assumimos que já foi criado, não é o primeiro
-      ehPeriodoUnico: diasUteis === periodo.dias_saldo,
+      ehPeriodoUnico: diasCorridos === periodo.dias_saldo,
     });
 
     setErros(validacao.erros);
     setAvisos(validacao.avisos);
-  }, [dataInicio, dataFim, diasUteis, diasAbono, vendeAbono, periodo]);
+  }, [dataInicio, dataFim, diasCorridos, diasAbono, vendeAbono, periodo]);
 
   // Handler de mudança de data início
   const handleDataInicioChange = (date: Date | null) => {
     setDataInicio(date);
-    // Auto-calcular data fim baseado nos dias úteis atuais
-    if (date && diasUteis > 0) {
-      const novaDataFim = adicionarDiasUteis(date, diasUteis - 1);
+    // Auto-calcular data fim baseado nos dias corridos atuais
+    if (date && diasCorridos > 0) {
+      const novaDataFim = new Date(date);
+      novaDataFim.setDate(novaDataFim.getDate() + diasCorridos - 1);
       setDataFim(novaDataFim);
     }
   };
@@ -102,7 +103,7 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
       setDiasAbono(0);
     } else {
       // Sugerir máximo permitido (10 ou 1/3)
-      const maxAbono = Math.min(10, Math.floor(diasUteis / 3));
+      const maxAbono = Math.min(10, Math.floor(diasCorridos / 3));
       setDiasAbono(maxAbono);
     }
   };
@@ -239,7 +240,7 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
                   Duração Calculada
                 </div>
                 <div className="text-sm text-slate-200">
-                  {diasCorridos} dias corridos • {diasUteis} dias úteis
+                  {diasCorridos} dias corridos
                 </div>
               </div>
             )}
@@ -278,8 +279,8 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
                   className="w-full px-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
                 />
                 <p className="text-xs text-slate-400 mt-1">
-                  Máximo: {Math.min(10, Math.floor(diasUteis / 3))} dias (1/3 de{' '}
-                  {diasUteis} dias)
+                  Máximo: {Math.min(10, Math.floor(diasCorridos / 3))} dias (1/3 de{' '}
+                  {diasCorridos} dias)
                 </p>
               </div>
             )}

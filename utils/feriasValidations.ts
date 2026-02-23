@@ -8,17 +8,17 @@ import type { FeriasPeriodoAquisitivo } from '../types';
 
 /**
  * Valida dias mínimos para férias
- * CLT: 1º período deve ter no mínimo 14 dias (se fracionado)
- * Demais períodos: mínimo 5 dias
+ * CLT: 1º período deve ter no mínimo 14 dias corridos (se fracionado)
+ * Demais períodos: mínimo 5 dias corridos
  */
 export function validarDiasMinimos(
-  diasUteis: number,
+  diasCorridos: number,
   isPrimeiroPeriodo: boolean,
   ehPeriodoUnico: boolean
 ): { valido: boolean; erro?: string } {
   // Se for período único, pode ser qualquer quantidade até 30 dias
   if (ehPeriodoUnico) {
-    if (diasUteis < 1 || diasUteis > 30) {
+    if (diasCorridos < 1 || diasCorridos > 30) {
       return {
         valido: false,
         erro: 'Período único deve ter entre 1 e 30 dias',
@@ -27,22 +27,22 @@ export function validarDiasMinimos(
     return { valido: true };
   }
 
-  // Se for o primeiro período fracionado, mínimo 14 dias
+  // Se for o primeiro período fracionado, mínimo 14 dias corridos
   if (isPrimeiroPeriodo) {
-    if (diasUteis < 14) {
+    if (diasCorridos < 14) {
       return {
         valido: false,
-        erro: 'Primeiro período de férias fracionadas deve ter no mínimo 14 dias',
+        erro: 'Primeiro período de férias fracionadas deve ter no mínimo 14 dias corridos',
       };
     }
     return { valido: true };
   }
 
-  // Demais períodos: mínimo 5 dias
-  if (diasUteis < 5) {
+  // Demais períodos: mínimo 5 dias corridos
+  if (diasCorridos < 5) {
     return {
       valido: false,
-      erro: 'Períodos adicionais devem ter no mínimo 5 dias',
+      erro: 'Períodos adicionais devem ter no mínimo 5 dias corridos',
     };
   }
 
@@ -117,14 +117,14 @@ export function validarDentroConcessivo(
 }
 
 /**
- * Valida se há saldo suficiente no período
+ * Valida se há saldo suficiente no período (em dias corridos)
  */
 export function validarSaldo(
-  diasUteis: number,
+  diasCorridos: number,
   diasAbono: number,
   periodo: FeriasPeriodoAquisitivo
 ): { valido: boolean; erro?: string } {
-  const totalNecessario = diasUteis + diasAbono;
+  const totalNecessario = diasCorridos + diasAbono;
 
   if (totalNecessario > periodo.dias_saldo) {
     return {
@@ -181,7 +181,7 @@ export function validarProgramacaoFerias(input: {
   periodo: FeriasPeriodoAquisitivo;
   dataInicio: Date;
   dataFim: Date;
-  diasUteis: number;
+  diasCorridos: number;
   diasAbono: number;
   isPrimeiroPeriodo: boolean;
   ehPeriodoUnico: boolean;
@@ -193,16 +193,16 @@ export function validarProgramacaoFerias(input: {
   const validOrdem = validarOrdemDatas(input.dataInicio, input.dataFim);
   if (!validOrdem.valido) erros.push(validOrdem.erro!);
 
-  // 2. Validar dias mínimos
+  // 2. Validar dias mínimos (CLT usa dias corridos)
   const validDias = validarDiasMinimos(
-    input.diasUteis,
+    input.diasCorridos,
     input.isPrimeiroPeriodo,
     input.ehPeriodoUnico
   );
   if (!validDias.valido) erros.push(validDias.erro!);
 
   // 3. Validar abono
-  const validAbono = validarAbono(input.diasAbono, input.diasUteis);
+  const validAbono = validarAbono(input.diasAbono, input.diasCorridos);
   if (!validAbono.valido) erros.push(validAbono.erro!);
 
   // 4. Validar dentro do concessivo (aviso, não bloqueante)
@@ -215,8 +215,8 @@ export function validarProgramacaoFerias(input: {
     avisos.push(`${validConcessivo.erro!} — período concessivo ultrapassado, férias podem ser devidas em dobro.`);
   }
 
-  // 5. Validar saldo
-  const validSaldo = validarSaldo(input.diasUteis, input.diasAbono, input.periodo);
+  // 5. Validar saldo (em dias corridos)
+  const validSaldo = validarSaldo(input.diasCorridos, input.diasAbono, input.periodo);
   if (!validSaldo.valido) erros.push(validSaldo.erro!);
 
   // 6. Validar data futura (apenas aviso)

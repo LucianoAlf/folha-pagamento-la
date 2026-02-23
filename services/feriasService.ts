@@ -326,7 +326,7 @@ export const feriasService = {
    */
   async calcularValorFerias(
     colaboradorId: number,
-    diasUteis: number,
+    diasCorridos: number,
     diasAbono: number = 0
   ): Promise<FeriasValorCalculado> {
     const headers = await getAuthHeaders();
@@ -335,7 +335,7 @@ export const feriasService = {
       headers,
       body: JSON.stringify({
         p_colaborador_id: colaboradorId,
-        p_dias_uteis: diasUteis,
+        p_dias_corridos: diasCorridos,
         p_dias_abono: diasAbono,
       }),
     });

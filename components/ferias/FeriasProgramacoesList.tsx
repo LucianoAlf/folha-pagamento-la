@@ -149,8 +149,7 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
                     {dataFim.toLocaleDateString('pt-BR')}
                   </span>
                   <span className="text-xs text-slate-500">
-                    ({prog.dias_corridos} dias corridos • {prog.dias_uteis} dias
-                    úteis)
+                    ({prog.dias_corridos} dias corridos)
                   </span>
                 </div>
 

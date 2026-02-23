@@ -48,7 +48,7 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
       setIsCalculating(true);
       const valor = await feriasService.calcularValorFerias(
         colaborador.colaborador_id,
-        programacao.dias_uteis,
+        programacao.dias_corridos,
         programacao.vendeu_abono ? programacao.dias_abono : 0
       );
       setValorCalculado(valor);
@@ -173,8 +173,7 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
               {new Date(programacao.data_fim).toLocaleDateString('pt-BR')}
             </div>
             <div className="text-xs text-slate-400 mt-1">
-              {programacao.dias_corridos} dias corridos • {programacao.dias_uteis} dias
-              úteis
+              {programacao.dias_corridos} dias corridos
               {programacao.vendeu_abono &&
                 ` • ${programacao.dias_abono} dias de abono`}
             </div>

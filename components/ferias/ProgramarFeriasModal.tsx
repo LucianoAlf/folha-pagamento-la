@@ -91,10 +91,13 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
     try {
       setIsLoading(true);
       const data = await feriasService.fetchPeriodosAquisitivos(colaborador.colaborador_id);
-      // Filtrar apenas períodos ativos com saldo
-      const periodosDisponiveis = data.filter(
-        (p) => p.status === 'ativo' && p.dias_saldo > 0
-      );
+      // Filtrar períodos ativos e vencidos com saldo, limitando aos 2 mais recentes
+      const periodosDisponiveis = data
+        .filter(
+          (p) => ['ativo', 'vencido'].includes(p.status) && p.dias_saldo > 0
+        )
+        .sort((a, b) => new Date(b.data_inicio).getTime() - new Date(a.data_inicio).getTime())
+        .slice(0, 2);
       setPeriodos(periodosDisponiveis);
 
       // Se houver apenas um período, selecionar automaticamente
@@ -148,18 +151,18 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
     }
   }, [formData.data_inicio, formData.data_fim]);
 
-  // Calcular valor quando dias úteis ou abono mudam
+  // Calcular valor quando dias corridos ou abono mudam
   useEffect(() => {
-    if (formData.dias_uteis > 0 && currentStep >= 4) {
+    if (formData.dias_corridos > 0 && currentStep >= 4) {
       calcularValor();
     }
-  }, [formData.dias_uteis, formData.dias_abono, currentStep]);
+  }, [formData.dias_corridos, formData.dias_abono, currentStep]);
 
   const calcularValor = async () => {
     try {
       const valor = await feriasService.calcularValorFerias(
         colaborador.colaborador_id,
-        formData.dias_uteis,
+        formData.dias_corridos,
         formData.vendeu_abono ? formData.dias_abono : 0
       );
       setValorCalculado(valor);
@@ -191,10 +194,10 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
           periodo: periodoSelecionado,
           dataInicio: parseISODate(formData.data_inicio),
           dataFim: parseISODate(formData.data_fim),
-          diasUteis: formData.dias_uteis,
+          diasCorridos: formData.dias_corridos,
           diasAbono: formData.vendeu_abono ? formData.dias_abono : 0,
           isPrimeiroPeriodo: true, // TODO: Verificar se é primeiro período
-          ehPeriodoUnico: formData.dias_uteis === periodoSelecionado.dias_saldo,
+          ehPeriodoUnico: formData.dias_corridos === periodoSelecionado.dias_saldo,
         });
 
         if (!validacao.valido) {
@@ -429,15 +432,11 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
             <span className="text-slate-400">Dias corridos:</span>
             <span className="font-bold text-slate-200">{formData.dias_corridos} dias</span>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Dias úteis:</span>
-            <span className="font-bold text-emerald-400">{formData.dias_uteis} dias</span>
-          </div>
           {periodoSelecionado && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-400">Saldo restante:</span>
               <span className="font-bold text-cyan-400">
-                {periodoSelecionado.dias_saldo - formData.dias_uteis} dias
+                {periodoSelecionado.dias_saldo - formData.dias_corridos} dias
               </span>
             </div>
           )}
@@ -484,7 +483,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
             setFormData((prev) => ({
               ...prev,
               vendeu_abono: e.target.checked,
-              dias_abono: e.target.checked ? Math.min(10, Math.floor(prev.dias_uteis / 3)) : 0,
+              dias_abono: e.target.checked ? Math.min(10, Math.floor(prev.dias_corridos / 3)) : 0,
             }))
           }
           className="w-5 h-5 rounded border-2 border-slate-700 text-violet-600 focus:ring-2 focus:ring-violet-500"
@@ -497,12 +496,12 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
       {formData.vendeu_abono && (
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">
-            Quantidade de dias a vender (máximo {Math.min(10, Math.floor(formData.dias_uteis / 3))})
+            Quantidade de dias a vender (máximo {Math.min(10, Math.floor(formData.dias_corridos / 3))})
           </label>
           <input
             type="number"
             min="1"
-            max={Math.min(10, Math.floor(formData.dias_uteis / 3))}
+            max={Math.min(10, Math.floor(formData.dias_corridos / 3))}
             value={formData.dias_abono}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, dias_abono: Number(e.target.value) }))
@@ -510,7 +509,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
             className="w-full px-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-violet-500/50"
           />
           <div className="text-xs text-slate-500 mt-1">
-            Dias de férias descontados: {formData.dias_abono} | Dias de descanso: {formData.dias_uteis - formData.dias_abono}
+            Dias de férias descontados: {formData.dias_abono} | Dias de descanso: {formData.dias_corridos - formData.dias_abono}
           </div>
         </div>
       )}
@@ -593,7 +592,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between p-3 rounded-lg bg-slate-900/40 text-sm">
-              <span className="text-slate-400">Férias ({formData.dias_uteis} dias)</span>
+              <span className="text-slate-400">Férias ({formData.dias_corridos} dias)</span>
               <span className="font-bold text-slate-200">
                 {valorCalculado.valor_ferias.toLocaleString('pt-BR', {
                   style: 'currency',
@@ -703,7 +702,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
             {formData.data_fim && new Date(formData.data_fim).toLocaleDateString('pt-BR')}
           </div>
           <div className="text-xs text-slate-400 mt-1">
-            {formData.dias_uteis} dias úteis • {formData.dias_corridos} dias corridos
+            {formData.dias_corridos} dias corridos
           </div>
         </div>
 

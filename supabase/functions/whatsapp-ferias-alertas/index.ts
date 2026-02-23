@@ -80,7 +80,7 @@ interface FeriasPagamentoPendente {
   colaborador_nome: string;
   data_inicio: string;
   data_fim: string;
-  dias_uteis: number;
+  dias_corridos: number;
   data_limite_pagamento: string;
   dias_ate_limite: number;
   valor_estimado: number;
@@ -247,7 +247,7 @@ async function buscarPagamentosPendentes(
       colaborador_id,
       data_inicio,
       data_fim,
-      dias_uteis,
+      dias_corridos,
       data_limite_pagamento,
       valor_pagamento,
       colaboradores(nome)
@@ -273,7 +273,7 @@ async function buscarPagamentosPendentes(
         colaborador_nome: p.colaboradores.nome,
         data_inicio: p.data_inicio,
         data_fim: p.data_fim,
-        dias_uteis: p.dias_uteis,
+        dias_corridos: p.dias_corridos,
         data_limite_pagamento: p.data_limite_pagamento,
         dias_ate_limite: diasAteLimite,
         valor_estimado: p.valor_pagamento || 0,
@@ -344,7 +344,7 @@ function gerarMensagemPagamento(pag: FeriasPagamentoPendente): string {
 • Prazo: até ${new Date(pag.data_limite_pagamento).toLocaleDateString('pt-BR')} ${
     pag.dias_ate_limite <= 0 ? `(${Math.abs(pag.dias_ate_limite)} dias de atraso!)` : `(${pag.dias_ate_limite} dias)`
   }
-• Dias: ${pag.dias_uteis} dias úteis
+• Dias: ${pag.dias_corridos} dias corridos
 ${pag.valor_estimado > 0 ? `• Valor estimado: R$ ${pag.valor_estimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''}
 
 ⚠️ *LEMBRETE:* Pagar até 2 dias antes do início das férias (CLT Art. 145).
@@ -384,7 +384,7 @@ async function gerarResumoMensal(
   // Buscar programações futuras
   const { data: programacoes } = await supabase
     .from('ferias_programacoes')
-    .select('data_inicio, dias_uteis, colaboradores(nome)')
+    .select('data_inicio, dias_corridos, colaboradores(nome)')
     .in('status', ['programado', 'aprovado'])
     .gte('data_inicio', hoje.toISOString())
     .lte('data_inicio', new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString())
@@ -423,7 +423,7 @@ async function gerarResumoMensal(
     programacoes.forEach((p: any) => {
       mensagem += `\n• ${new Date(p.data_inicio).toLocaleDateString('pt-BR')} — ${
         p.colaboradores.nome
-      } (${p.dias_uteis} dias)`;
+      } (${p.dias_corridos} dias)`;
     });
   }
 
