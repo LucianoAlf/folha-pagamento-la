@@ -147,7 +147,7 @@ export const ContasTable: React.FC<{
                         {(c.categoria?.nome || '').toUpperCase()}
                         {c.total_parcelas && c.parcela_atual && (
                           <span className="ml-2 text-[10px] text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded-md">
-                            {c.parcela_atual}/{c.total_parcelas}
+                            Parcela {c.parcela_atual} de {c.total_parcelas}
                           </span>
                         )}
                       </div>
@@ -242,7 +242,7 @@ export const ContasTable: React.FC<{
                             </span>
                             {c.total_parcelas && c.parcela_atual && (
                               <span className="text-[10px] font-black text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded-md">
-                                {c.parcela_atual}/{c.total_parcelas}
+                                Parcela {c.parcela_atual} de {c.total_parcelas}
                               </span>
                             )}
                             <span className="text-[10px] font-bold text-slate-500">

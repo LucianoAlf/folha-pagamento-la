@@ -49,6 +49,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
   const [isGeneratingPeriodos, setIsGeneratingPeriodos] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [valorCalculado, setValorCalculado] = useState<FeriasValorCalculado | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
@@ -200,6 +201,9 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
           setError(validacao.erros.join('. '));
           return;
         }
+
+        // Mostrar avisos (concessivo, vencido, etc.) sem bloquear
+        setWarnings(validacao.avisos);
       }
     }
 
@@ -437,6 +441,17 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
               </span>
             </div>
           )}
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+          {warnings.map((w, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm text-amber-400">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <span className="text-xs font-bold">{w}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -38,7 +38,9 @@ export const EditarContaModal: React.FC<{
   const [competencia, setCompetencia] = useState<string>('');
   const [launchType, setLaunchType] = useState<'unica' | 'recorrente' | 'parcelada'>('unica');
   const [observacoes, setObservacoes] = useState('');
-  
+  const [parcelaAtual, setParcelaAtual] = useState<number>(1);
+  const [totalParcelas, setTotalParcelas] = useState<number>(1);
+
   const [saving, setSaving] = useState(false);
   const [showConfirmFuturos, setShowConfirmFuturos] = useState(false);
   const [pendingPatch, setPendingPatch] = useState<Partial<ContaPagar> | null>(null);
@@ -53,6 +55,8 @@ export const EditarContaModal: React.FC<{
     setCompetencia(conta.competencia || '');
     setLaunchType(conta.tipo_lancamento || 'unica');
     setObservacoes(conta.observacoes || '');
+    setParcelaAtual(conta.parcela_atual || 1);
+    setTotalParcelas(conta.total_parcelas || 1);
   }, [isOpen, conta]);
 
   const categoriaOptions = useMemo(
@@ -79,6 +83,7 @@ export const EditarContaModal: React.FC<{
       competencia,
       tipo_lancamento: launchType,
       observacoes: observacoes.trim() || null,
+      ...(launchType === 'parcelada' ? { parcela_atual: parcelaAtual, total_parcelas: totalParcelas } : {}),
     };
 
     // Se for recorrente e não confirmou ainda, pergunta
@@ -220,6 +225,39 @@ export const EditarContaModal: React.FC<{
                   </div>
                 </div>
               </div>
+              {launchType === 'parcelada' && (
+                <div className="grid grid-cols-2 gap-5 md:gap-6">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Parcela Atual</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={totalParcelas}
+                      value={parcelaAtual}
+                      onChange={(e) => setParcelaAtual(Math.max(1, Math.min(totalParcelas, Number(e.target.value || 1))))}
+                      className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Total Parcelas</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={totalParcelas}
+                      onChange={(e) => {
+                        const v = Math.max(1, Number(e.target.value || 1));
+                        setTotalParcelas(v);
+                        if (parcelaAtual > v) setParcelaAtual(v);
+                      }}
+                      className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                    />
+                  </div>
+                  <div className="col-span-2 text-[10px] text-slate-500 font-bold px-1 -mt-3">
+                    Exibirá: Parcela {parcelaAtual} de {totalParcelas}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

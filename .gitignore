@@ -26,5 +26,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# MCP
+.mcp.json
+
 # Supabase
 .supabase/functions/
+.vercel

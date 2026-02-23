@@ -146,10 +146,12 @@ export async function createContaPagar(conta: Partial<ContaPagar>): Promise<Cont
   // Parcelada: cria N registros
   if (conta.tipo_lancamento === 'parcelada' && conta.total_parcelas && conta.total_parcelas > 1) {
     const parcelas: Partial<ContaPagar>[] = [];
-    const valorParcela = (conta.valor || 0) / conta.total_parcelas;
+    const parcelaInicial = conta.parcela_atual || 1;
+    const qtdParcelas = conta.total_parcelas - parcelaInicial + 1;
+    const valorParcela = (conta.valor || 0) / qtdParcelas;
     const dataBase = new Date(`${conta.data_vencimento!}T00:00:00`);
 
-    for (let i = 0; i < conta.total_parcelas; i++) {
+    for (let i = 0; i < qtdParcelas; i++) {
       const dataVenc = new Date(dataBase);
       dataVenc.setMonth(dataVenc.getMonth() + i);
 
@@ -159,10 +161,10 @@ export async function createContaPagar(conta: Partial<ContaPagar>): Promise<Cont
 
       parcelas.push({
         ...conta,
-        descricao: `${conta.descricao} (${i + 1}/${conta.total_parcelas})`,
+        descricao: `${conta.descricao} (${parcelaInicial + i}/${conta.total_parcelas})`,
         valor: valorParcela,
         data_vencimento: `${yyyy}-${mm}-${dd}`,
-        parcela_atual: i + 1,
+        parcela_atual: parcelaInicial + i,
         total_parcelas: conta.total_parcelas,
         created_by: user.user?.id,
       });
@@ -171,12 +173,11 @@ export async function createContaPagar(conta: Partial<ContaPagar>): Promise<Cont
     const { data, error } = await supabase
       .from('contas_pagar')
       .insert(parcelas)
-      .select('*, categoria:categorias_despesa(*)')
-      .limit(1)
-      .single();
+      .select('*, categoria:categorias_despesa(*)');
 
     if (error) throw error;
-    return data as ContaPagar;
+    if (!data || data.length === 0) throw new Error('Nenhuma parcela foi criada');
+    return data[0] as ContaPagar;
   }
 
   const { data, error } = await supabase

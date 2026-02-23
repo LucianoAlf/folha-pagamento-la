@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Info, Plus } from 'lucide-react';
+import { AlertCircle, Info, Plus } from 'lucide-react';
 import { CustomSelect, DatePicker, Modal } from '../UI';
 import { CategoriaDespesa, ContaPagar, UNIDADES_CONTA } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
@@ -35,6 +35,7 @@ export const NovaContaModal: React.FC<{
 
   const [launchType, setLaunchType] = useState<LaunchType>('unica');
   const [parcelas, setParcelas] = useState<number>(2);
+  const [parcelaInicial, setParcelaInicial] = useState<number>(1);
 
   const [vencimento, setVencimento] = useState<string>('');
   const [competencia, setCompetencia] = useState<string>(() => {
@@ -49,6 +50,7 @@ export const NovaContaModal: React.FC<{
   const [status, setStatus] = useState<PaymentStatus>('pendente');
   const [observacoes, setObservacoes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -131,10 +133,12 @@ export const NovaContaModal: React.FC<{
               !categoriaId ||
               !vencimento ||
               !competencia ||
-              !(valorNum > 0)
+              !(valorNum > 0) ||
+              (launchType === 'parcelada' && (parcelas < 2 || parcelas > 60))
             }
             onClick={async () => {
               setSaving(true);
+              setError(null);
               try {
                 // Data de lançamento automática (hoje)
                 const d = new Date();
@@ -151,10 +155,12 @@ export const NovaContaModal: React.FC<{
                   status,
                   tipo_lancamento: launchType,
                   total_parcelas: launchType === 'parcelada' ? parcelas : null,
-                  parcela_atual: null,
+                  parcela_atual: launchType === 'parcelada' ? parcelaInicial : null,
                   observacoes: observacoes.trim() || null,
                 };
                 await onConfirm(payload);
+              } catch (err: any) {
+                setError(err?.message || 'Erro ao criar lançamento. Tente novamente.');
               } finally {
                 setSaving(false);
               }
@@ -179,6 +185,16 @@ export const NovaContaModal: React.FC<{
             </div>
           </div>
         </div>
+
+        {error && (
+          <div className="rounded-3xl bg-rose-500/10 border border-rose-500/30 p-4 flex items-start gap-3">
+            <AlertCircle size={16} className="text-rose-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-rose-400">Erro</div>
+              <div className="mt-1 text-xs font-bold text-rose-300 leading-snug">{error}</div>
+            </div>
+          </div>
+        )}
 
         {/* A) Dados principais */}
         <div>
@@ -266,16 +282,36 @@ export const NovaContaModal: React.FC<{
           </div>
 
           {launchType === 'parcelada' && (
-            <div className="mt-6 w-full md:w-[240px] animate-in fade-in slide-in-from-top-2 duration-300">
-              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Nº Parcelas</label>
-              <input
-                type="number"
-                min={2}
-                max={60}
-                value={parcelas}
-                onChange={(e) => setParcelas(Number(e.target.value || 2))}
-                className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
-              />
+            <div className="mt-6 flex gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="w-full md:w-[240px]">
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Nº Total de Parcelas</label>
+                <input
+                  type="number"
+                  min={2}
+                  max={60}
+                  value={parcelas}
+                  onChange={(e) => {
+                    const v = Number(e.target.value || 2);
+                    setParcelas(v);
+                    if (parcelaInicial > v) setParcelaInicial(v);
+                  }}
+                  className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                />
+              </div>
+              <div className="w-full md:w-[240px]">
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Parcela Inicial</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={parcelas}
+                  value={parcelaInicial}
+                  onChange={(e) => setParcelaInicial(Math.max(1, Math.min(parcelas, Number(e.target.value || 1))))}
+                  className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                />
+                <div className="mt-2 text-[10px] text-slate-500 font-bold px-1">
+                  Gera parcelas {parcelaInicial} a {parcelas} de {parcelas}
+                </div>
+              </div>
             </div>
           )}
         </div>

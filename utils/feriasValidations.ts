@@ -205,13 +205,15 @@ export function validarProgramacaoFerias(input: {
   const validAbono = validarAbono(input.diasAbono, input.diasUteis);
   if (!validAbono.valido) erros.push(validAbono.erro!);
 
-  // 4. Validar dentro do concessivo
+  // 4. Validar dentro do concessivo (aviso, não bloqueante)
   const validConcessivo = validarDentroConcessivo(
     input.dataInicio,
     input.dataFim,
     input.periodo
   );
-  if (!validConcessivo.valido) erros.push(validConcessivo.erro!);
+  if (!validConcessivo.valido) {
+    avisos.push(`${validConcessivo.erro!} — período concessivo ultrapassado, férias podem ser devidas em dobro.`);
+  }
 
   // 5. Validar saldo
   const validSaldo = validarSaldo(input.diasUteis, input.diasAbono, input.periodo);

@@ -9,6 +9,8 @@ type RowState = {
   dias_vendidos: number;
   status: FeriasPeriodoStatus;
   observacoes: string;
+  concessivo_inicio: string;
+  concessivo_fim: string;
 };
 
 function clampInt(v: unknown, min: number, max: number) {
@@ -75,6 +77,8 @@ export const AjustarPeriodosModal: React.FC<{
                 dias_vendidos: p.dias_vendidos || 0,
                 status: p.status,
                 observacoes: p.observacoes || '',
+                concessivo_inicio: p.concessivo_inicio,
+                concessivo_fim: p.concessivo_fim,
               },
             ])
           )
@@ -132,6 +136,8 @@ export const AjustarPeriodosModal: React.FC<{
         dias_vendidos: clampInt(d.dias_vendidos, 0, 10),
         status: d.status,
         observacoes: d.observacoes,
+        concessivo_inicio: d.concessivo_inicio,
+        concessivo_fim: d.concessivo_fim,
       });
 
       // Recarrega períodos para refletir triggers (esta_vencido/status/dias_saldo)
@@ -283,6 +289,8 @@ export const AjustarPeriodosModal: React.FC<{
                               dias_vendidos: 0,
                               status: p.status,
                               observacoes: '',
+                              concessivo_inicio: p.concessivo_inicio,
+                              concessivo_fim: p.concessivo_fim,
                             }),
                             dias_gozados: clampInt(e.target.value, 0, Math.max(0, p.dias_direito || 30)),
                           },
@@ -308,6 +316,8 @@ export const AjustarPeriodosModal: React.FC<{
                               dias_vendidos: 0,
                               status: p.status,
                               observacoes: '',
+                              concessivo_inicio: p.concessivo_inicio,
+                              concessivo_fim: p.concessivo_fim,
                             }),
                             dias_vendidos: clampInt(e.target.value, 0, 10),
                           },
@@ -333,6 +343,8 @@ export const AjustarPeriodosModal: React.FC<{
                               dias_vendidos: 0,
                               status: p.status,
                               observacoes: '',
+                              concessivo_inicio: p.concessivo_inicio,
+                              concessivo_fim: p.concessivo_fim,
                             }),
                             status: v as FeriasPeriodoStatus,
                           },
@@ -340,6 +352,61 @@ export const AjustarPeriodosModal: React.FC<{
                       }
                       options={statusOptions}
                       className="bg-slate-950/40 border-slate-800/60"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 px-1">
+                      Concessivo Inicio
+                    </label>
+                    <input
+                      type="date"
+                      value={d?.concessivo_inicio || p.concessivo_inicio}
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          [p.id]: {
+                            ...(prev[p.id] || {
+                              dias_gozados: p.dias_gozados || 0,
+                              dias_vendidos: p.dias_vendidos || 0,
+                              status: p.status,
+                              observacoes: p.observacoes || '',
+                              concessivo_inicio: p.concessivo_inicio,
+                              concessivo_fim: p.concessivo_fim,
+                            }),
+                            concessivo_inicio: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-3 py-2.5 bg-slate-950/40 border border-slate-800/60 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 px-1">
+                      Concessivo Fim
+                    </label>
+                    <input
+                      type="date"
+                      value={d?.concessivo_fim || p.concessivo_fim}
+                      onChange={(e) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          [p.id]: {
+                            ...(prev[p.id] || {
+                              dias_gozados: p.dias_gozados || 0,
+                              dias_vendidos: p.dias_vendidos || 0,
+                              status: p.status,
+                              observacoes: p.observacoes || '',
+                              concessivo_inicio: p.concessivo_inicio,
+                              concessivo_fim: p.concessivo_fim,
+                            }),
+                            concessivo_fim: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-3 py-2.5 bg-slate-950/40 border border-slate-800/60 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
                     />
                   </div>
                 </div>
