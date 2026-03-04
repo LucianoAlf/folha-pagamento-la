@@ -16,6 +16,8 @@ import { syncAgendaIntegrations } from '../../services/agendaIntegrations';
 import { AgendaSidebarListas } from './AgendaSidebarListas';
 import { AgendaContent } from './AgendaContent';
 import { TarefaDetailPanel } from './TarefaDetailPanel';
+import { fetchAniversarios } from '../../services/aniversariosService';
+import type { Aniversario } from '../../types/aniversarios';
 import { fetchAgendaKanbanConfig } from '../../services/agendaService';
 import type { AgendaKanbanColumnConfig } from '../../types/agenda';
 import { Modal, Badge, ConfirmDialog, Tooltip } from '../UI';
@@ -91,6 +93,9 @@ export const AgendaPage: React.FC = () => {
   const [selectedTarefaId, setSelectedTarefaId] = useState<string | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
 
+  const [aniversarios, setAniversarios] = useState<Aniversario[]>([]);
+  const [aniversariosLoading, setAniversariosLoading] = useState(false);
+
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -154,6 +159,15 @@ export const AgendaPage: React.FC = () => {
   const smartLists = useMemo(() => listas.filter((l) => l.is_smart), [listas]);
   const regularLists = useMemo(() => listas.filter((l) => !l.is_smart), [listas]);
 
+  const aniversariosDoMesCount = useMemo(() => {
+    const m = new Date().getMonth();
+    return aniversarios.filter((a) => {
+      const proximo = a._proximoAniversario;
+      if (!proximo) return false;
+      return new Date(proximo).getMonth() === m;
+    }).length;
+  }, [aniversarios]);
+
   const listaAtiva = useMemo(() => {
     if (listKey.startsWith('list:')) {
       const id = listKey.replace('list:', '');
@@ -176,6 +190,7 @@ export const AgendaPage: React.FC = () => {
 
   const tituloTopo = useMemo(() => {
     if (listKey === 'config') return 'Configurações';
+    if (listKey === 'smart:aniversarios') return 'Aniversários';
     if (listKey === SMART_MEUDIA) return 'Meu Dia';
     if (listKey === SMART_IMPORTANTE) return 'Importante';
     if (listKey === SMART_PLANEJADO) return 'Planejado';
@@ -186,6 +201,7 @@ export const AgendaPage: React.FC = () => {
   const tituloIcon = useMemo(() => {
     // Aqui o ícone do título deve seguir os emojis da sidebar (pedido do usuário)
     if (listKey === 'config') return '⚙️';
+    if (listKey === 'smart:aniversarios') return '🎂';
     if (listKey === SMART_MEUDIA) return '☀️';
     if (listKey === SMART_IMPORTANTE) return '⭐';
     if (listKey === SMART_PLANEJADO) return '📅';
@@ -195,6 +211,7 @@ export const AgendaPage: React.FC = () => {
 
   const accentColor = useMemo(() => {
     if (listKey === 'config') return '#94a3b8'; // Slate 400
+    if (listKey === 'smart:aniversarios') return '#ec4899'; // Pink 500
     if (listKey === SMART_MEUDIA) return '#a78bfa'; // Violet 400
     if (listKey === SMART_IMPORTANTE) return '#fbbf24'; // Amber 400
     if (listKey === SMART_PLANEJADO) return '#60a5fa'; // Blue 400
@@ -204,6 +221,11 @@ export const AgendaPage: React.FC = () => {
 
   const subtituloTopo = useMemo(() => {
     if (listKey === 'config') return 'Preferências de lembretes e integrações';
+    if (listKey === 'smart:aniversarios') {
+      const total = aniversarios.length;
+      const hoje = aniversarios.filter((a) => a._diasAteProximo === 0).length;
+      return `${total} aniversário${total !== 1 ? 's' : ''} cadastrado${total !== 1 ? 's' : ''}${hoje > 0 ? ` • ${hoje} hoje!` : ''}`;
+    }
     if (listKey === SMART_MEUDIA) {
       const now = new Date();
       const label = format(now, "EEEE, d 'de' MMMM", { locale: ptBR });
@@ -296,12 +318,32 @@ export const AgendaPage: React.FC = () => {
     }
   }, []);
 
+  const loadAniversarios = useCallback(async () => {
+    try {
+      setAniversariosLoading(true);
+      const rows = await fetchAniversarios();
+      setAniversarios(rows);
+    } catch (e: any) {
+      console.error('[AgendaPage] loadAniversarios error:', e?.message || e);
+    } finally {
+      setAniversariosLoading(false);
+    }
+  }, []);
+
   const loadTarefasForKey = useCallback(
     async (key: ListKey, opts?: { includeConcluidas?: boolean }) => {
       setError(null);
 
       // Configurações é uma tela separada
       if (key === 'config') {
+        setTarefas([]);
+        setTarefasHoje([]);
+        setTarefasAtrasadas([]);
+        return;
+      }
+
+      // Aniversários tem carregamento próprio
+      if (key === 'smart:aniversarios') {
         setTarefas([]);
         setTarefasHoje([]);
         setTarefasAtrasadas([]);
@@ -468,6 +510,7 @@ export const AgendaPage: React.FC = () => {
         loadCounts(),
         loadAppearance(),
         loadTimeline(),
+        loadAniversarios(),
         loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }),
       ]);
       // Kanban config (nao bloqueia)
@@ -482,7 +525,7 @@ export const AgendaPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [loadListas, loadCounts, loadTarefasForKey, listKey, viewMode, syncIntegrations, loadTimeline, loadAppearance]);
+  }, [loadListas, loadCounts, loadTarefasForKey, listKey, viewMode, syncIntegrations, loadTimeline, loadAppearance, loadAniversarios]);
 
   const scheduleRefresh = useCallback(() => {
     if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
@@ -492,9 +535,10 @@ export const AgendaPage: React.FC = () => {
       loadCounts().catch(() => {});
       loadAppearance().catch(() => {});
       loadTimeline().catch(() => {});
+      loadAniversarios().catch(() => {});
       loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }).catch(() => {});
     }, 300);
-  }, [listKey, loadListas, loadCounts, loadAppearance, loadTarefasForKey, loadTimeline, syncIntegrations, viewMode]);
+  }, [listKey, loadListas, loadCounts, loadAppearance, loadTarefasForKey, loadTimeline, loadAniversarios, syncIntegrations, viewMode]);
 
   useEffect(() => {
     loadAll();
@@ -534,6 +578,7 @@ export const AgendaPage: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notas_rapidas' }, scheduleRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notificacao_config' }, scheduleRefresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'contas_pagar' }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'aniversarios' }, scheduleRefresh)
       .subscribe();
 
     return () => {
@@ -666,6 +711,7 @@ export const AgendaPage: React.FC = () => {
             onCreateLista={openNovaLista}
             onEditLista={(l) => openEditarLista(l)}
             onDeleteLista={(l) => setConfirmDeleteLista(l)}
+            aniversariosCount={aniversariosDoMesCount}
           />
         )}
 
@@ -730,6 +776,7 @@ export const AgendaPage: React.FC = () => {
                   setConfirmDeleteLista(l);
                   setIsMobileSidebarOpen(false);
                 }}
+                aniversariosCount={aniversariosDoMesCount}
               />
             </div>
           </div>
@@ -766,11 +813,14 @@ export const AgendaPage: React.FC = () => {
             onRefresh={() => {
               loadListas().catch(() => {});
               loadCounts().catch(() => {});
+              loadAniversarios().catch(() => {});
               loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }).catch(() => {});
             }}
             kanbanColumns={kanbanColumns}
             isMobile={isMobile}
             onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            aniversarios={aniversarios}
+            aniversariosLoading={aniversariosLoading}
           />
         </div>
 

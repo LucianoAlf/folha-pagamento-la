@@ -3,6 +3,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { Badge, Card, Modal } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import type { StatusTarefa, Tarefa, TarefaLista } from '../../types/agenda';
+import type { Aniversario } from '../../types/aniversarios';
 import { concluirTarefa, deleteTarefa, reabrirTarefa, updateTarefa } from '../../services/agendaService';
 import { AgendaHeader, type AgendaMode, type AgendaViewMode } from './AgendaHeader';
 import { TarefaCard } from './TarefaCard';
@@ -13,6 +14,7 @@ import { ScheduleView } from './ScheduleView';
 import { ConfiguracoesAgenda } from './ConfiguracoesAgenda';
 import { TarefasCardsView } from './views/TarefasCardsView';
 import { TarefasKanbanView } from './views/TarefasKanbanView';
+import { AniversariosView } from './AniversariosView';
 import { parseISO } from 'date-fns';
 
 type ListKey = `smart:${string}` | `list:${string}` | 'config';
@@ -46,6 +48,8 @@ export const AgendaContent: React.FC<{
   kanbanColumns?: import('../../types/agenda').AgendaKanbanColumnConfig[];
   isMobile?: boolean;
   onOpenMobileSidebar?: () => void;
+  aniversarios?: Aniversario[];
+  aniversariosLoading?: boolean;
 }> = ({
   loading,
   error,
@@ -75,6 +79,8 @@ export const AgendaContent: React.FC<{
   kanbanColumns,
   isMobile,
   onOpenMobileSidebar,
+  aniversarios,
+  aniversariosLoading,
 }) => {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     try {
@@ -254,6 +260,13 @@ export const AgendaContent: React.FC<{
             <div className="p-6 overflow-auto h-full">
               <ConfiguracoesAgenda onSaved={() => setMode('tarefas')} />
             </div>
+          ) : listKey === 'smart:aniversarios' ? (
+            <AniversariosView
+              aniversarios={aniversarios || []}
+              loading={!!aniversariosLoading}
+              onRefresh={onRefresh}
+              isMobile={isMobile}
+            />
           ) : viewMode === 'mes' || (viewMode as any) === 'calendario' ? (
             <div className="p-4 md:p-6 overflow-auto h-full pb-24">
               <CalendarioView

@@ -1,6 +1,6 @@
 import React from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import { MoreHorizontal, Pencil, Plus, Settings, Trash2 } from 'lucide-react';
+import { Cake, MoreHorizontal, Pencil, Plus, Settings, Trash2 } from 'lucide-react';
 import { cn } from '../CollaboratorComponents';
 import type { TarefaLista } from '../../types/agenda';
 import { Tooltip } from '../UI';
@@ -20,7 +20,8 @@ export const AgendaSidebarListas: React.FC<{
   onEditLista: (lista: TarefaLista) => void;
   onDeleteLista: (lista: TarefaLista) => void;
   isMobile?: boolean;
-}> = ({ listasInteligentes, listas, activeKey, counts, onSelect, onOpenConfig, onCreateLista, onEditLista, onDeleteLista, isMobile }) => {
+  aniversariosCount?: number;
+}> = ({ listasInteligentes, listas, activeKey, counts, onSelect, onOpenConfig, onCreateLista, onEditLista, onDeleteLista, isMobile, aniversariosCount = 0 }) => {
   return (
     <aside className={cn(
       "shrink-0 flex flex-col h-full transition-all duration-300 bg-slate-950/95",
@@ -55,6 +56,23 @@ export const AgendaSidebarListas: React.FC<{
                 </button>
               );
             })}
+
+            {/* Aniversários */}
+            <button
+              type="button"
+              onClick={() => onSelect('smart:aniversarios' as ListKey)}
+              className={cn(
+                'group w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all border',
+                'hover:bg-slate-800/40',
+                activeKey === 'smart:aniversarios' ? 'bg-pink-500/15 text-pink-200 border-pink-500/20' : 'text-slate-300 border-transparent'
+              )}
+            >
+              <span className="text-base shrink-0">🎂</span>
+              <span className="min-w-0 flex-1 text-left text-sm font-bold truncate">Aniversários</span>
+              <span className="ml-auto text-[10px] bg-slate-900/60 border border-slate-800 px-2 py-0.5 rounded-full font-black text-slate-400">
+                {aniversariosCount}
+              </span>
+            </button>
           </div>
         </div>
 
