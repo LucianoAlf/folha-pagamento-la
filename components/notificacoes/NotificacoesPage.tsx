@@ -48,6 +48,7 @@ export const NotificacoesPage: React.FC = () => {
     whatsapp_numero: '',
 
     agenda_lembrete_tarefas_ativo: true,
+    agenda_lembrete_aniversarios_ativo: true,
     lembrete_padrao_minutos: 30,
 
     resumo_diario_ativo: true,
@@ -374,6 +375,22 @@ export const NotificacoesPage: React.FC = () => {
                       onValueChange={(v) => setConfig((prev) => ({ ...prev, lembrete_padrao_minutos: Number(v) }))}
                       options={lembreteOptions}
                       className={cn(config.agenda_lembrete_tarefas_ativo === false && 'opacity-60 pointer-events-none')}
+                    />
+                  </div>
+                </div>
+
+                {/* Lembrete de aniversários */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-slate-300 font-black">Lembrete de aniversários</div>
+                      <div className="text-xs text-slate-500 font-bold mt-0.5">Conforme configuração de cada aniversário</div>
+                    </div>
+                    <ToggleSwitch
+                      checked={config.agenda_lembrete_aniversarios_ativo !== false}
+                      onCheckedChange={(next) => setConfig((prev) => ({ ...prev, agenda_lembrete_aniversarios_ativo: next }))}
+                      variant="violet"
+                      ariaLabel="Ativar lembrete de aniversários"
                     />
                   </div>
                 </div>

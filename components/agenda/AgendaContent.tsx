@@ -193,44 +193,46 @@ export const AgendaContent: React.FC<{
   return (
     <section className="flex-1 min-w-0 bg-slate-950/85 relative">
       <div className="h-full flex flex-col">
-        <div className={cn(
-          "p-4 md:p-6 border-b border-slate-800/60 bg-slate-950/60",
-          isMobile && "sticky top-0 z-20 backdrop-blur-md"
-        )}>
-          <AgendaHeader
-            leftIcon={leftIcon}
-            accentColor={accentColor}
-            title={title}
-            subtitle={subtitle}
-            mode={mode}
-            viewMode={viewMode}
-            onChangeViewMode={setViewMode}
-            onOpenConfig={() => setMode('config')}
-            onGoToToday={onGoToToday}
-            rightSlot={
-              mode === 'tarefas' && viewMode === 'calendario' && selectedDateLabel ? (
-                <Badge variant="info">{selectedDateLabel}</Badge>
-              ) : null
-            }
-            isMobile={isMobile}
-            onOpenMobileSidebar={onOpenMobileSidebar}
-          />
-          {actionError ? (
-            <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 flex items-start justify-between gap-3">
-              <div>
-                <div className="text-rose-200 text-sm font-black">Ação não concluída</div>
-                <div className="text-rose-200/80 text-xs font-bold mt-1">{actionError}</div>
+        {listKey !== 'smart:aniversarios' && (
+          <div className={cn(
+            "p-4 md:p-6 border-b border-slate-800/60 bg-slate-950/60",
+            isMobile && "sticky top-0 z-20 backdrop-blur-md"
+          )}>
+            <AgendaHeader
+              leftIcon={leftIcon}
+              accentColor={accentColor}
+              title={title}
+              subtitle={subtitle}
+              mode={mode}
+              viewMode={viewMode}
+              onChangeViewMode={setViewMode}
+              onOpenConfig={() => setMode('config')}
+              onGoToToday={onGoToToday}
+              rightSlot={
+                mode === 'tarefas' && viewMode === 'calendario' && selectedDateLabel ? (
+                  <Badge variant="info">{selectedDateLabel}</Badge>
+                ) : null
+              }
+              isMobile={isMobile}
+              onOpenMobileSidebar={onOpenMobileSidebar}
+            />
+            {actionError ? (
+              <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-rose-200 text-sm font-black">Ação não concluída</div>
+                  <div className="text-rose-200/80 text-xs font-bold mt-1">{actionError}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActionError(null)}
+                  className="px-3 py-2 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-200 text-xs font-black"
+                >
+                  OK
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setActionError(null)}
-                className="px-3 py-2 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-200 text-xs font-black"
-              >
-                OK
-              </button>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
+        )}
 
         <div className="flex-1 overflow-hidden">
           {loading ? (

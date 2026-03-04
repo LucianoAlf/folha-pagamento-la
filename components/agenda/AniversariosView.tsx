@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Download, Plus, Cake, Trash2, CheckSquare, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, Plus, Cake, Trash2, CheckSquare, X, Loader2, Search, Bell, BellOff } from 'lucide-react';
 import { Badge, ConfirmDialog } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import type { Aniversario } from '../../types/aniversarios';
@@ -41,6 +41,10 @@ export const AniversariosView: React.FC<{
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
 
+  // Filtros
+  const [busca, setBusca] = useState('');
+  const [filtroLembrete, setFiltroLembrete] = useState<'todos' | 'ativo' | 'inativo'>('todos');
+
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (key: string) => setCollapsed((p) => ({ ...p, [key]: !p[key] }));
 
@@ -58,15 +62,27 @@ export const AniversariosView: React.FC<{
     });
   };
 
+  // Lista filtrada
+  const filtrados = useMemo(() => {
+    let lista = aniversarios;
+    if (busca.trim()) {
+      const q = busca.trim().toLowerCase();
+      lista = lista.filter((a) => a.nome.toLowerCase().includes(q));
+    }
+    if (filtroLembrete === 'ativo') lista = lista.filter((a) => a.lembrete_ativo);
+    else if (filtroLembrete === 'inativo') lista = lista.filter((a) => !a.lembrete_ativo);
+    return lista;
+  }, [aniversarios, busca, filtroLembrete]);
+
   const selectAll = () => {
-    setSelectedIds(new Set(aniversarios.map((a) => a.id)));
+    setSelectedIds(new Set(filtrados.map((a) => a.id)));
   };
 
   const deselectAll = () => {
     setSelectedIds(new Set());
   };
 
-  const allSelected = aniversarios.length > 0 && selectedIds.size === aniversarios.length;
+  const allSelected = filtrados.length > 0 && selectedIds.size === filtrados.length;
 
   // Agrupa por proximidade
   const groups = useMemo(() => {
@@ -77,7 +93,7 @@ export const AniversariosView: React.FC<{
 
     const mesAtual = new Date().getMonth();
 
-    for (const a of aniversarios) {
+    for (const a of filtrados) {
       const dias = a._diasAteProximo ?? 999;
       if (dias === 0) hoje.push(a);
       else if (dias <= 7) estaSemana.push(a);
@@ -91,7 +107,7 @@ export const AniversariosView: React.FC<{
       { key: 'mes', label: 'Este Mês', items: esteMes, variant: 'info' as const, accent: 'text-cyan-400' },
       { key: 'proximos', label: 'Próximos', items: proximos, variant: 'default' as const, accent: 'text-slate-400' },
     ].filter((g) => g.items.length > 0);
-  }, [aniversarios]);
+  }, [filtrados]);
 
   const mesLabel = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
   const totalMes = useMemo(() => {
@@ -228,7 +244,7 @@ export const AniversariosView: React.FC<{
           /* Barra de seleção */
           <div className="flex items-center gap-2">
             <span className="text-xs font-black text-slate-400">
-              {selectedIds.size} de {aniversarios.length} selecionado{selectedIds.size !== 1 ? 's' : ''}
+              {selectedIds.size} de {filtrados.length} selecionado{selectedIds.size !== 1 ? 's' : ''}
             </span>
             <button
               type="button"
@@ -295,6 +311,53 @@ export const AniversariosView: React.FC<{
         </div>
       )}
 
+      {/* Filtros */}
+      {aniversarios.length > 0 && !selectMode && (
+        <div className="mb-4 flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome…"
+              className="w-full pl-9 pr-3 py-2.5 rounded-2xl bg-slate-900/60 border border-slate-700 text-sm text-white font-bold placeholder:text-slate-600 focus:outline-none focus:border-pink-500/50 transition-colors"
+            />
+          </div>
+          <div className="flex gap-1">
+            {([
+              { key: 'todos', label: 'Todos', icon: null },
+              { key: 'ativo', label: 'Ativo', icon: Bell },
+              { key: 'inativo', label: 'Inativo', icon: BellOff },
+            ] as const).map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFiltroLembrete(f.key)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2.5 rounded-2xl text-xs font-black border transition-all',
+                  filtroLembrete === f.key
+                    ? 'bg-pink-500/15 border-pink-500/30 text-pink-300'
+                    : 'bg-slate-900/60 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800'
+                )}
+              >
+                {f.icon && <f.icon className="w-3.5 h-3.5" />}
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Syncing overlay */}
+      {syncing && (
+        <div className="mb-4 rounded-2xl border border-pink-500/20 bg-pink-500/5 p-8 flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-8 h-8 text-pink-400 animate-spin" />
+          <div className="text-white font-black text-sm">Importando aniversários do cadastro…</div>
+          <p className="text-xs text-slate-500 font-bold">Isso pode levar alguns segundos</p>
+        </div>
+      )}
+
       {/* Content */}
       {loading ? (
         <div className="text-slate-400 font-bold py-8">Carregando…</div>
@@ -304,6 +367,14 @@ export const AniversariosView: React.FC<{
           <div className="text-white font-black text-lg">Nenhum aniversário cadastrado</div>
           <p className="text-sm text-slate-500 font-bold mt-2">
             Clique em "Importar do Cadastro" para puxar dos colaboradores ou adicione manualmente.
+          </p>
+        </div>
+      ) : filtrados.length === 0 ? (
+        <div className="rounded-2xl border border-slate-800/60 bg-slate-950/95 p-8 text-center">
+          <div className="text-4xl mb-3">🔍</div>
+          <div className="text-white font-black text-lg">Nenhum resultado</div>
+          <p className="text-sm text-slate-500 font-bold mt-2">
+            Nenhum aniversário encontrado com os filtros atuais.
           </p>
         </div>
       ) : (
