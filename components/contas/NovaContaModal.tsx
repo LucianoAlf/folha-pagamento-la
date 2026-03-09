@@ -18,7 +18,7 @@ export const NovaContaModal: React.FC<{
   isOpen: boolean;
   categorias: CategoriaDespesa[];
   onClose: () => void;
-  onConfirm: (conta: Partial<ContaPagar>) => Promise<void>;
+  onConfirm: (conta: Partial<ContaPagar>, options?: { valorPorParcela?: boolean }) => Promise<void>;
   defaultVencimento?: string; // yyyy-mm-dd
   defaultCompetenciaYM?: string; // yyyy-mm
   defaultUnidade?: 'cg' | 'rec' | 'bar';
@@ -36,6 +36,7 @@ export const NovaContaModal: React.FC<{
   const [launchType, setLaunchType] = useState<LaunchType>('unica');
   const [parcelas, setParcelas] = useState<number>(2);
   const [parcelaInicial, setParcelaInicial] = useState<number>(1);
+  const [valorMode, setValorMode] = useState<'por_parcela' | 'total'>('por_parcela');
 
   const [vencimento, setVencimento] = useState<string>('');
   const [competencia, setCompetencia] = useState<string>(() => {
@@ -107,6 +108,7 @@ export const NovaContaModal: React.FC<{
 
   const valorNum = useMemo(() => parseBRL(valor), [valor]);
   const valorLabel = useMemo(() => formatCurrency(valorNum), [valorNum]);
+  const qtdParcelas = useMemo(() => parcelas - parcelaInicial + 1, [parcelas, parcelaInicial]);
 
   const missingFields = useMemo(() => {
     const missing: string[] = [];
@@ -182,7 +184,10 @@ export const NovaContaModal: React.FC<{
                     parcela_atual: launchType === 'parcelada' ? parcelaInicial : null,
                     observacoes: observacoes.trim() || null,
                   };
-                  await onConfirm(payload);
+                  await onConfirm(
+                    payload,
+                    launchType === 'parcelada' ? { valorPorParcela: valorMode === 'por_parcela' } : undefined
+                  );
                 } catch (err: any) {
                   setError(err?.message || 'Erro ao criar lançamento. Tente novamente.');
                 } finally {
@@ -319,7 +324,7 @@ export const NovaContaModal: React.FC<{
             ))}
           </div>
 
-          {launchType === 'parcelada' && (
+          {launchType === 'parcelada' && (<>
             <div className="mt-6 flex gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="w-full md:w-[240px]">
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Nº Total de Parcelas</label>
@@ -351,7 +356,43 @@ export const NovaContaModal: React.FC<{
                 </div>
               </div>
             </div>
-          )}
+
+            <div className="mt-4 animate-in fade-in slide-in-from-top-1 duration-200">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">
+                O valor informado é
+              </label>
+              <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 rounded-2xl p-1 w-full md:w-[520px]">
+                <button
+                  type="button"
+                  onClick={() => setValorMode('por_parcela')}
+                  className={cn(
+                    'flex-1 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all',
+                    valorMode === 'por_parcela' ? 'bg-slate-800 text-violet-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                  )}
+                >
+                  Valor por parcela
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setValorMode('total')}
+                  className={cn(
+                    'flex-1 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all',
+                    valorMode === 'total' ? 'bg-slate-800 text-violet-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                  )}
+                >
+                  Valor total
+                </button>
+              </div>
+              {valorNum > 0 && qtdParcelas > 0 && (
+                <div className="mt-2 text-[10px] text-slate-500 font-bold px-1">
+                  {valorMode === 'por_parcela'
+                    ? `Cada parcela: ${formatCurrency(valorNum)} · Total: ${formatCurrency(valorNum * qtdParcelas)}`
+                    : `Total: ${formatCurrency(valorNum)} · Cada parcela: ${formatCurrency(valorNum / qtdParcelas)}`
+                  }
+                </div>
+              )}
+            </div>
+          </>)}
         </div>
 
         {/* B) Prazos */}

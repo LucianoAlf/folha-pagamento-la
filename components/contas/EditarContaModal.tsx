@@ -71,9 +71,11 @@ export const EditarContaModal: React.FC<{
   const valorNum = useMemo(() => parseBRL(valor), [valor]);
   const valorPreview = useMemo(() => formatCurrency(valorNum), [valorNum]);
 
+  const [showConfirmParceladas, setShowConfirmParceladas] = useState(false);
+
   const handleSave = async (aplicarAFuturos?: boolean) => {
     if (!conta) return;
-    
+
     const patch: Partial<ContaPagar> = {
       descricao: descricao.trim(),
       valor: valorNum,
@@ -88,8 +90,7 @@ export const EditarContaModal: React.FC<{
 
     // Se for recorrente e não confirmou ainda, pergunta
     if (conta.tipo_lancamento === 'recorrente' && aplicarAFuturos === undefined) {
-      // Verifica se mudou algo que impacta o "modelo"
-      const mudouModelo = 
+      const mudouModelo =
         patch.descricao !== conta.descricao ||
         patch.valor !== conta.valor ||
         patch.categoria_id !== conta.categoria_id ||
@@ -102,6 +103,19 @@ export const EditarContaModal: React.FC<{
       }
     }
 
+    // Se for parcelada e não confirmou ainda, pergunta
+    if (conta.tipo_lancamento === 'parcelada' && aplicarAFuturos === undefined) {
+      const mudouRelevante =
+        patch.valor !== conta.valor ||
+        patch.categoria_id !== conta.categoria_id;
+
+      if (mudouRelevante) {
+        setPendingPatch(patch);
+        setShowConfirmParceladas(true);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await onConfirm(patch, aplicarAFuturos);
@@ -109,6 +123,7 @@ export const EditarContaModal: React.FC<{
     } finally {
       setSaving(false);
       setShowConfirmFuturos(false);
+      setShowConfirmParceladas(false);
       setPendingPatch(null);
     }
   };
@@ -153,6 +168,20 @@ export const EditarContaModal: React.FC<{
                 <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-200/80">Conta Recorrente</div>
                 <div className="mt-1 text-xs font-bold text-slate-200 leading-snug">
                   Este lançamento faz parte de uma recorrência. Você pode ajustar apenas este mês ou aplicar a mudança para os próximos.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {conta.tipo_lancamento === 'parcelada' && (
+            <div className="rounded-3xl bg-amber-500/10 border border-amber-500/20 p-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-200 shrink-0">
+                <Info size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-200/80">Conta Parcelada</div>
+                <div className="mt-1 text-xs font-bold text-slate-200 leading-snug">
+                  Parcela {conta.parcela_atual || '?'} de {conta.total_parcelas || '?'}. Ao alterar valor ou categoria, você pode aplicar a todas as parcelas pendentes.
                 </div>
               </div>
             </div>
@@ -305,12 +334,29 @@ export const EditarContaModal: React.FC<{
       {/* Modal de Confirmação para Recorrentes */}
       <ConfirmDialog
         isOpen={showConfirmFuturos}
-        onClose={() => setShowConfirmFuturos(false)}
+        onClose={() => {
+          setShowConfirmFuturos(false);
+          handleSave(false);
+        }}
         onConfirm={() => handleSave(true)}
         title="Atualizar recorrência?"
         message="Você alterou dados que definem esta conta recorrente. Deseja aplicar estas mudanças também para todos os lançamentos futuros desta conta?"
         confirmLabel="Sim, atualizar futuros"
         cancelLabel="Não, apenas este mês"
+      />
+
+      {/* Modal de Confirmação para Parceladas */}
+      <ConfirmDialog
+        isOpen={showConfirmParceladas}
+        onClose={() => {
+          setShowConfirmParceladas(false);
+          handleSave(false);
+        }}
+        onConfirm={() => handleSave(true)}
+        title="Atualizar parcelas pendentes?"
+        message="Você alterou valor ou categoria desta parcela. Deseja aplicar esta mudança a todas as parcelas pendentes deste parcelamento?"
+        confirmLabel="Sim, todas as pendentes"
+        cancelLabel="Não, apenas esta parcela"
       />
     </>
   );

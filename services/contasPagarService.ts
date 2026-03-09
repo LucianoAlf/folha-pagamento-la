@@ -139,7 +139,10 @@ export async function fetchContasPendentesForAgenda(input?: {
   return (data || []) as any;
 }
 
-export async function createContaPagar(conta: Partial<ContaPagar>): Promise<ContaPagar> {
+export async function createContaPagar(
+  conta: Partial<ContaPagar>,
+  options?: { valorPorParcela?: boolean }
+): Promise<ContaPagar> {
   const { data: user } = await supabase.auth.getUser();
 
   // Parcelada: cria N registros
@@ -147,7 +150,8 @@ export async function createContaPagar(conta: Partial<ContaPagar>): Promise<Cont
     const parcelas: Partial<ContaPagar>[] = [];
     const parcelaInicial = conta.parcela_atual || 1;
     const qtdParcelas = conta.total_parcelas - parcelaInicial + 1;
-    const valorParcela = (conta.valor || 0) / qtdParcelas;
+    const valorPorParcela = options?.valorPorParcela ?? true;
+    const valorParcela = valorPorParcela ? (conta.valor || 0) : (conta.valor || 0) / qtdParcelas;
     const dataBase = new Date(`${conta.data_vencimento!}T00:00:00`);
 
     for (let i = 0; i < qtdParcelas; i++) {
@@ -249,6 +253,29 @@ export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch:
     .eq('tipo_lancamento', 'recorrente')
     .eq('status', 'pendente')
     .gt('competencia', contaOriginal.competencia);
+
+  if (error) throw error;
+}
+
+export async function updateFuturasParceladas(contaOriginal: ContaPagar, patch: Partial<ContaPagar>): Promise<void> {
+  const fieldsToUpdate: any = {};
+  if (patch.valor !== undefined) fieldsToUpdate.valor = patch.valor;
+  if (patch.categoria_id) fieldsToUpdate.categoria_id = patch.categoria_id;
+  if (patch.observacoes !== undefined) fieldsToUpdate.observacoes = patch.observacoes;
+
+  if (Object.keys(fieldsToUpdate).length === 0) return;
+
+  // Extract base description without "(X/Y)" suffix
+  const baseDesc = contaOriginal.descricao.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+
+  const { error } = await supabase
+    .from('contas_pagar')
+    .update(fieldsToUpdate)
+    .like('descricao', `${baseDesc} (%`)
+    .eq('unidade', contaOriginal.unidade)
+    .eq('tipo_lancamento', 'parcelada')
+    .eq('status', 'pendente')
+    .gte('data_vencimento', contaOriginal.data_vencimento);
 
   if (error) throw error;
 }

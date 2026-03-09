@@ -15,6 +15,7 @@ import {
   getStatusVisual,
   finalizarParcelamento,
   updateFuturasRecorrentes,
+  updateFuturasParceladas,
 } from '../../services/contasPagarService';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../services/supabase';
 import { ContasSummaryCards } from './ContasSummaryCards';
@@ -1186,8 +1187,8 @@ export const ContasPagarPage: React.FC<{
           isOpen={novaOpen}
           categorias={categorias}
           onClose={() => setNovaOpen(false)}
-          onConfirm={async (payload) => {
-            await createContaPagar(payload);
+          onConfirm={async (payload, options) => {
+            await createContaPagar(payload, options);
             setNovaOpen(false);
             await refetch();
           }}
@@ -2278,8 +2279,8 @@ export const ContasPagarPage: React.FC<{
           isOpen={novaOpen}
           categorias={categorias}
           onClose={() => setNovaOpen(false)}
-          onConfirm={async (payload) => {
-            await createContaPagar(payload);
+          onConfirm={async (payload, options) => {
+            await createContaPagar(payload, options);
             setNovaOpen(false);
             await refetch();
           }}
@@ -2300,10 +2301,19 @@ export const ContasPagarPage: React.FC<{
         <EditarContaModal
           isOpen={!!editarConta}
           conta={editarConta}
+          categorias={categorias}
           onClose={() => setEditarConta(null)}
-          onConfirm={async (patch) => {
+          onConfirm={async (patch, aplicarAFuturos) => {
             if (!editarConta) return;
             await updateContaPagar(editarConta.id, patch);
+
+            if (aplicarAFuturos && editarConta.tipo_lancamento === 'recorrente') {
+              await updateFuturasRecorrentes(editarConta, patch);
+            }
+            if (aplicarAFuturos && editarConta.tipo_lancamento === 'parcelada') {
+              await updateFuturasParceladas(editarConta, patch);
+            }
+
             setEditarConta(null);
             await refetch();
           }}
@@ -2836,8 +2846,8 @@ export const ContasPagarPage: React.FC<{
         isOpen={novaOpen}
         categorias={categorias}
         onClose={() => setNovaOpen(false)}
-        onConfirm={async (payload) => {
-          await createContaPagar(payload);
+        onConfirm={async (payload, options) => {
+          await createContaPagar(payload, options);
           setNovaOpen(false);
           setNovaContaDefaults(null);
           await refetch();
@@ -2906,13 +2916,18 @@ export const ContasPagarPage: React.FC<{
         onClose={() => setEditarConta(null)}
         onConfirm={async (patch, aplicarAFuturos) => {
           if (!editarConta) return;
-          
+
           // 1. Atualiza a conta atual
           await updateContaPagar(editarConta.id, patch);
-          
+
           // 2. Se for recorrente e o usuário escolheu aplicar a futuros, atualiza os próximos meses
           if (aplicarAFuturos && editarConta.tipo_lancamento === 'recorrente') {
             await updateFuturasRecorrentes(editarConta, patch);
+          }
+
+          // 3. Se for parcelada e o usuário escolheu aplicar a todas, atualiza parcelas pendentes
+          if (aplicarAFuturos && editarConta.tipo_lancamento === 'parcelada') {
+            await updateFuturasParceladas(editarConta, patch);
           }
 
           setEditarConta(null);
