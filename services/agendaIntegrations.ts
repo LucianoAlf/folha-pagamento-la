@@ -207,7 +207,7 @@ async function syncContasAsAgendaTasks(input: { listaFinanceiroId: string; cfg: 
       c.status === 'pago' ? 'baixa' : d < 0 ? 'urgente' : d === 0 ? 'alta' : d <= 3 ? 'media' : 'baixa';
 
     const status: Tarefa['status'] = c.status === 'pago' ? 'concluida' : 'pendente';
-    const dataConclusao = c.status === 'pago' ? (c.data_pagamento ? toDueISO(c.data_pagamento, '12:00') : new Date().toISOString()) : null;
+    const dataConclusao = c.status === 'pago' ? (c.data_pagamento ? toDueISO(c.data_pagamento.slice(0, 10), '12:00') : new Date().toISOString()) : null;
 
     const titulo = `Pagar: ${c.descricao}`;
     const descParts = [

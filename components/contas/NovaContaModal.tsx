@@ -51,6 +51,7 @@ export const NovaContaModal: React.FC<{
   const [observacoes, setObservacoes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tried, setTried] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -107,6 +108,24 @@ export const NovaContaModal: React.FC<{
   const valorNum = useMemo(() => parseBRL(valor), [valor]);
   const valorLabel = useMemo(() => formatCurrency(valorNum), [valorNum]);
 
+  const missingFields = useMemo(() => {
+    const missing: string[] = [];
+    if (!descricao.trim()) missing.push('Descrição');
+    if (!(valorNum > 0)) missing.push('Valor');
+    if (!categoriaId) missing.push('Categoria');
+    if (!vencimento) missing.push('Vencimento');
+    if (!competencia) missing.push('Competência');
+    if (launchType === 'parcelada' && (parcelas < 2 || parcelas > 60)) missing.push('Parcelas (2-60)');
+    return missing;
+  }, [descricao, valorNum, categoriaId, vencimento, competencia, launchType, parcelas]);
+
+  const isFormValid = missingFields.length === 0;
+
+  // Reset tried when modal closes
+  useEffect(() => {
+    if (!isOpen) setTried(false);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -117,59 +136,70 @@ export const NovaContaModal: React.FC<{
       position={isMobile ? 'bottom' : 'center'}
       className={cn(isMobile ? 'max-w-none' : 'max-w-3xl')}
       footer={
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 w-full">
-          <button
-            type="button"
-            onClick={onClose}
-            className="sm:w-auto w-full px-6 py-3.5 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            disabled={
-              saving ||
-              !descricao.trim() ||
-              !categoriaId ||
-              !vencimento ||
-              !competencia ||
-              !(valorNum > 0) ||
-              (launchType === 'parcelada' && (parcelas < 2 || parcelas > 60))
-            }
-            onClick={async () => {
-              setSaving(true);
-              setError(null);
-              try {
-                // Data de lançamento automática (hoje)
-                const d = new Date();
-                const dataLancamentoAuto = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        <div className="flex flex-col gap-3 w-full">
+          {tried && !isFormValid && (
+            <div className="flex items-start gap-2 px-1">
+              <AlertCircle size={14} className="text-rose-400 shrink-0 mt-0.5" />
+              <span className="text-[11px] font-bold text-rose-400">
+                Preencha: {missingFields.join(', ')}
+              </span>
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="sm:w-auto w-full px-6 py-3.5 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={async () => {
+                if (!isFormValid) {
+                  setTried(true);
+                  return;
+                }
+                setSaving(true);
+                setError(null);
+                try {
+                  // Data de lançamento automática (hoje)
+                  const d = new Date();
+                  const dataLancamentoAuto = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-                const payload: Partial<ContaPagar> = {
-                  descricao: descricao.trim(),
-                  categoria_id: categoriaId,
-                  unidade: unidade as any,
-                  valor: valorNum,
-                  data_lancamento: dataLancamentoAuto,
-                  data_vencimento: vencimento,
-                  competencia,
-                  status,
-                  tipo_lancamento: launchType,
-                  total_parcelas: launchType === 'parcelada' ? parcelas : null,
-                  parcela_atual: launchType === 'parcelada' ? parcelaInicial : null,
-                  observacoes: observacoes.trim() || null,
-                };
-                await onConfirm(payload);
-              } catch (err: any) {
-                setError(err?.message || 'Erro ao criar lançamento. Tente novamente.');
-              } finally {
-                setSaving(false);
-              }
-            }}
-            className="w-full sm:w-auto px-10 py-4 rounded-[2rem] bg-violet-600 hover:bg-violet-500 text-white font-black shadow-xl shadow-violet-600/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2"
-          >
-            {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
-            Confirmar Lançamento
-          </button>
+                  const payload: Partial<ContaPagar> = {
+                    descricao: descricao.trim(),
+                    categoria_id: categoriaId,
+                    unidade: unidade as any,
+                    valor: valorNum,
+                    data_lancamento: dataLancamentoAuto,
+                    data_vencimento: vencimento,
+                    competencia,
+                    status,
+                    tipo_lancamento: launchType,
+                    total_parcelas: launchType === 'parcelada' ? parcelas : null,
+                    parcela_atual: launchType === 'parcelada' ? parcelaInicial : null,
+                    observacoes: observacoes.trim() || null,
+                  };
+                  await onConfirm(payload);
+                } catch (err: any) {
+                  setError(err?.message || 'Erro ao criar lançamento. Tente novamente.');
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              className={cn(
+                "w-full sm:w-auto px-10 py-4 rounded-[2rem] text-white font-black shadow-xl transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2",
+                isFormValid && !saving
+                  ? "bg-violet-600 hover:bg-violet-500 shadow-violet-600/20"
+                  : "bg-slate-700 cursor-not-allowed shadow-none opacity-60"
+              )}
+            >
+              {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
+              Confirmar Lançamento
+            </button>
+          </div>
         </div>
       }
     >
@@ -205,37 +235,45 @@ export const NovaContaModal: React.FC<{
 
           <div className="grid grid-cols-1 gap-5 md:gap-6">
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">
+              <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !descricao.trim() ? "text-rose-400" : "text-slate-500")}>
                 Descrição do lançamento *
               </label>
               <input
                 value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                onChange={(e) => { setDescricao(e.target.value); if (tried && e.target.value.trim()) setTried(false); }}
+                className={cn(
+                  "w-full rounded-2xl border bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all",
+                  tried && !descricao.trim() ? "border-rose-500/60 focus:ring-rose-500/40" : "border-slate-800 focus:ring-violet-500/40"
+                )}
                 placeholder="Ex: Aluguel Unidade Matriz"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Valor (R$) *</label>
+                <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !(valorNum > 0) ? "text-rose-400" : "text-slate-500")}>Valor (R$) *</label>
                 <input
                   value={valor}
                   onChange={(e) => setValor(e.target.value)}
                   inputMode="decimal"
-                  className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                  className={cn(
+                    "w-full rounded-2xl border bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 transition-all",
+                    tried && !(valorNum > 0) ? "border-rose-500/60 focus:ring-rose-500/40" : "border-slate-800 focus:ring-violet-500/40"
+                  )}
                   placeholder="R$ 0,00"
                 />
                 <div className="mt-2 text-[10px] text-slate-500 font-bold px-1">{valor ? `Preview: ${valorLabel}` : ''}</div>
               </div>
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Categoria *</label>
-                <CustomSelect
-                  value={categoriaId}
-                  onValueChange={(v) => setCategoriaId(v)}
-                  placeholder="Selecione..."
-                  options={categoriaOptions}
-                />
+                <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !categoriaId ? "text-rose-400" : "text-slate-500")}>Categoria *</label>
+                <div className={cn(tried && !categoriaId && "ring-1 ring-rose-500/60 rounded-2xl")}>
+                  <CustomSelect
+                    value={categoriaId}
+                    onValueChange={(v) => setCategoriaId(v)}
+                    placeholder="Selecione..."
+                    options={categoriaOptions}
+                  />
+                </div>
               </div>
             </div>
 
@@ -325,8 +363,10 @@ export const NovaContaModal: React.FC<{
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Vencimento *</label>
-              <DatePicker value={vencimento} onChange={(v) => setVencimento(v || '')} />
+              <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !vencimento ? "text-rose-400" : "text-slate-500")}>Vencimento *</label>
+              <div className={cn(tried && !vencimento && "ring-1 ring-rose-500/60 rounded-2xl")}>
+                <DatePicker value={vencimento} onChange={(v) => setVencimento(v || '')} />
+              </div>
             </div>
             <div>
               <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Mês de Competência *</label>

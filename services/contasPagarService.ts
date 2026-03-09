@@ -68,15 +68,14 @@ export async function fetchContasPagar(filtros?: {
           const dataVencOriginal = new Date(`${modelo.data_vencimento}T00:00:00`);
           const novoVencimento = `${yyyy}-${mm}-${String(dataVencOriginal.getDate()).padStart(2, '0')}`;
 
+          const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = modelo;
           await supabase.from('contas_pagar').insert([{
-            ...modelo,
-            id: undefined, // Novo ID
+            ...rest,
             competencia: competenciaAtual,
             data_vencimento: novoVencimento,
             status: 'pendente',
             data_pagamento: null,
             metodo_pagamento: null,
-            created_at: new Date().toISOString(),
           }]);
         }
       }
