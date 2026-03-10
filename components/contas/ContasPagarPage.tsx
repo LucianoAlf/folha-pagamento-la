@@ -12,6 +12,7 @@ import {
   upsertCategoria,
   deleteCategoria,
   deleteConta,
+  deleteParcelamento,
   getStatusVisual,
   finalizarParcelamento,
   updateFuturasRecorrentes,
@@ -2880,21 +2881,67 @@ export const ContasPagarPage: React.FC<{
       />
 
       {diaModalContaIdToDelete && (
-        <ConfirmDialog
-          isOpen={!!diaModalContaIdToDelete}
-          onClose={() => setDiaModalContaIdToDelete(null)}
-          onConfirm={async () => {
-            const c = diaModalContaIdToDelete;
-            if (!c) return;
-            setDiaModalContaIdToDelete(null);
-            await deleteConta(c.id);
-            await refetch();
-          }}
-          title="Excluir conta"
-          message="Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita."
-          confirmText="Excluir"
-          variant="danger"
-        />
+        <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 bg-rose-500/10 text-rose-500">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Excluir conta</h3>
+              <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
+                {diaModalContaIdToDelete.tipo_lancamento === 'parcelada' && diaModalContaIdToDelete.total_parcelas
+                  ? `"${diaModalContaIdToDelete.descricao.split(' (')[0]}" é um parcelamento com ${diaModalContaIdToDelete.total_parcelas} parcelas. O que deseja fazer?`
+                  : `Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.`}
+              </p>
+              <div className="flex flex-col gap-3">
+                {diaModalContaIdToDelete.tipo_lancamento === 'parcelada' && diaModalContaIdToDelete.total_parcelas ? (
+                  <>
+                    <button
+                      onClick={async () => {
+                        const conta = diaModalContaIdToDelete;
+                        setDiaModalContaIdToDelete(null);
+                        await deleteParcelamento(conta);
+                        await refetch();
+                      }}
+                      className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
+                    >
+                      Excluir todo o parcelamento ({diaModalContaIdToDelete.total_parcelas} parcelas)
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const conta = diaModalContaIdToDelete;
+                        setDiaModalContaIdToDelete(null);
+                        await deleteConta(conta.id);
+                        await refetch();
+                      }}
+                      className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-slate-600 hover:bg-slate-500 transition-all active:scale-95"
+                    >
+                      Excluir somente esta parcela
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      const conta = diaModalContaIdToDelete;
+                      setDiaModalContaIdToDelete(null);
+                      await deleteConta(conta.id);
+                      await refetch();
+                    }}
+                    className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
+                  >
+                    Excluir
+                  </button>
+                )}
+                <button
+                  onClick={() => setDiaModalContaIdToDelete(null)}
+                  className="w-full px-6 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-bold transition-all active:scale-95"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <PagarContaModal
@@ -2935,20 +2982,70 @@ export const ContasPagarPage: React.FC<{
         }}
       />
 
-      <ConfirmDialog
-        isOpen={!!contaParaExcluir}
-        onClose={() => setContaParaExcluir(null)}
-        onConfirm={async () => {
-          if (!contaParaExcluir) return;
-          await deleteConta(contaParaExcluir.id);
-          setContaParaExcluir(null);
-          await refetch();
-        }}
-        title="Excluir lançamento"
-        message={`Tem certeza que deseja excluir "${contaParaExcluir?.descricao}"? Esta ação removerá o registro permanentemente.`}
-        confirmLabel="Excluir"
-        variant="danger"
-      />
+      {!!contaParaExcluir && (
+        <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 bg-rose-500/10 text-rose-500">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Excluir lançamento</h3>
+              <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
+                {contaParaExcluir.tipo_lancamento === 'parcelada' && contaParaExcluir.total_parcelas
+                  ? `"${contaParaExcluir.descricao.split(' (')[0]}" é um parcelamento com ${contaParaExcluir.total_parcelas} parcelas. O que deseja fazer?`
+                  : `Tem certeza que deseja excluir "${contaParaExcluir.descricao}"? Esta ação não pode ser desfeita.`}
+              </p>
+              <div className="flex flex-col gap-3">
+                {contaParaExcluir.tipo_lancamento === 'parcelada' && contaParaExcluir.total_parcelas ? (
+                  <>
+                    <button
+                      onClick={async () => {
+                        const conta = contaParaExcluir;
+                        setContaParaExcluir(null);
+                        const removidos = await deleteParcelamento(conta);
+                        await refetch();
+                        alert(`${removidos} parcela${removidos !== 1 ? 's' : ''} excluída${removidos !== 1 ? 's' : ''}.`);
+                      }}
+                      className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
+                    >
+                      Excluir todo o parcelamento ({contaParaExcluir.total_parcelas} parcelas)
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const conta = contaParaExcluir;
+                        setContaParaExcluir(null);
+                        await deleteConta(conta.id);
+                        await refetch();
+                      }}
+                      className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-slate-600 hover:bg-slate-500 transition-all active:scale-95"
+                    >
+                      Excluir somente esta parcela
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      const conta = contaParaExcluir;
+                      setContaParaExcluir(null);
+                      await deleteConta(conta.id);
+                      await refetch();
+                    }}
+                    className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
+                  >
+                    Excluir
+                  </button>
+                )}
+                <button
+                  onClick={() => setContaParaExcluir(null)}
+                  className="w-full px-6 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-bold transition-all active:scale-95"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         isOpen={!!contaParaFinalizar}

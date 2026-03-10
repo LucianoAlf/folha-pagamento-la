@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Search, DollarSign, Edit2, Bell, CheckCircle2, Trash2, CheckSquare } from 'lucide-react';
 import { Badge, Card, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
@@ -28,6 +28,14 @@ export const ContasTable: React.FC<{
   onFinalizar: (conta: ContaPagar) => void;
 }> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [localBusca, setLocalBusca] = useState(busca);
+
+  useEffect(() => { setLocalBusca(busca); }, [busca]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { if (localBusca !== busca) onBuscaChange(localBusca); }, 300);
+    return () => clearTimeout(timer);
+  }, [localBusca]);
 
   const filtered = useMemo(() => {
     const q = (busca || '').trim().toLowerCase();
@@ -101,8 +109,8 @@ export const ContasTable: React.FC<{
         <div className="relative w-full lg:w-[360px]">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
-            value={busca}
-            onChange={(e) => onBuscaChange(e.target.value)}
+            value={localBusca}
+            onChange={(e) => setLocalBusca(e.target.value)}
             placeholder="Buscar fornecedor ou categoria..."
             className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
           />

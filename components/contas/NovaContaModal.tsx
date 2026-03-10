@@ -117,7 +117,7 @@ export const NovaContaModal: React.FC<{
     if (!categoriaId) missing.push('Categoria');
     if (!vencimento) missing.push('Vencimento');
     if (!competencia) missing.push('Competência');
-    if (launchType === 'parcelada' && (parcelas < 2 || parcelas > 60)) missing.push('Parcelas (2-60)');
+    if (launchType === 'parcelada' && parcelas < 2) missing.push('Parcelas (mín. 2)');
     return missing;
   }, [descricao, valorNum, categoriaId, vencimento, competencia, launchType, parcelas]);
 
@@ -331,7 +331,6 @@ export const NovaContaModal: React.FC<{
                 <input
                   type="number"
                   min={2}
-                  max={60}
                   value={parcelas}
                   onChange={(e) => {
                     const v = Number(e.target.value || 2);

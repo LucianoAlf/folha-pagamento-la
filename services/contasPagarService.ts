@@ -293,6 +293,27 @@ export async function finalizarConta(contaId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function deleteParcelamento(conta: ContaPagar): Promise<number> {
+  if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas) {
+    await deleteConta(conta.id);
+    return 1;
+  }
+
+  const baseDesc = conta.descricao.split(' (')[0];
+
+  const { data, error } = await supabase
+    .from('contas_pagar')
+    .delete()
+    .eq('categoria_id', conta.categoria_id)
+    .eq('unidade', conta.unidade)
+    .like('descricao', `${baseDesc} (%`)
+    .eq('tipo_lancamento', 'parcelada')
+    .select('id');
+
+  if (error) throw error;
+  return data?.length || 0;
+}
+
 export async function finalizarParcelamento(conta: ContaPagar): Promise<void> {
   if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas) {
     return finalizarConta(conta.id);

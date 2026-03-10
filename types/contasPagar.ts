@@ -38,6 +38,7 @@ export const METODOS_PAGAMENTO = [
   'Transferência Bancária',
   'Cartão de Crédito',
   'Cartão de Débito',
+  'Débito Automático',
   'Boleto',
   'Dinheiro',
 ] as const;
