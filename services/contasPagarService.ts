@@ -38,14 +38,14 @@ export async function fetchContasPagar(filtros?: {
   status?: 'todas' | 'pendente' | 'pago';
   unidade?: 'todas' | 'cg' | 'rec' | 'bar';
 }): Promise<ContaPagar[]> {
-  // 1. Garantir que contas recorrentes existam para o mês atual
+  // 1. Garantir que contas recorrentes existam para o mês atual (batch otimizado)
   try {
     const hoje = new Date();
     const yyyy = hoje.getFullYear();
     const mm = String(hoje.getMonth() + 1).padStart(2, '0');
     const competenciaAtual = `${yyyy}-${mm}-01`;
 
-    // Busca modelos recorrentes
+    // 1a. Busca modelos recorrentes ativos (1 query)
     const { data: recorrentes } = await supabase
       .from('contas_pagar')
       .select('*')
@@ -54,30 +54,38 @@ export async function fetchContasPagar(filtros?: {
       .neq('status', 'finalizado');
 
     if (recorrentes && recorrentes.length > 0) {
-      for (const modelo of recorrentes) {
-        // Verifica se já existe lançamento para esta competência baseado no modelo
-        const { count } = await supabase
-          .from('contas_pagar')
-          .select('*', { count: 'exact', head: true })
-          .eq('descricao', modelo.descricao)
-          .eq('competencia', competenciaAtual)
-          .eq('unidade', modelo.unidade);
+      // 1b. Busca TODAS as contas já existentes neste mês (1 query em vez de N)
+      const { data: existentes } = await supabase
+        .from('contas_pagar')
+        .select('descricao, unidade')
+        .eq('competencia', competenciaAtual);
 
-        if (count === 0) {
-          // Calcula novo vencimento mantendo o dia original
+      // 1c. Set de chaves existentes para lookup O(1)
+      const existentesSet = new Set(
+        (existentes || []).map(e => `${e.descricao}\0${e.unidade}`)
+      );
+
+      // 1d. Filtrar recorrentes que ainda não têm lançamento este mês
+      const faltantes = recorrentes.filter(
+        modelo => !existentesSet.has(`${modelo.descricao}\0${modelo.unidade}`)
+      );
+
+      // 1e. Batch INSERT de todos os faltantes (0 ou 1 query)
+      if (faltantes.length > 0) {
+        const novos = faltantes.map(modelo => {
           const dataVencOriginal = new Date(`${modelo.data_vencimento}T00:00:00`);
           const novoVencimento = `${yyyy}-${mm}-${String(dataVencOriginal.getDate()).padStart(2, '0')}`;
-
           const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = modelo;
-          await supabase.from('contas_pagar').insert([{
+          return {
             ...rest,
             competencia: competenciaAtual,
             data_vencimento: novoVencimento,
             status: 'pendente',
             data_pagamento: null,
             metodo_pagamento: null,
-          }]);
-        }
+          };
+        });
+        await supabase.from('contas_pagar').insert(novos);
       }
     }
   } catch (err) {
