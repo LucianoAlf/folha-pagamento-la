@@ -29,6 +29,7 @@ export interface ContaPagar {
   created_at: string;
   updated_at?: string;
   created_by?: string | null;
+  recorrente_modelo_id?: string | null;
 }
 
 export type StatusVisual = 'vencida' | 'urgente' | 'pendente' | 'pago';

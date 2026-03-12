@@ -45,32 +45,34 @@ export async function fetchContasPagar(filtros?: {
     const mm = String(hoje.getMonth() + 1).padStart(2, '0');
     const competenciaAtual = `${yyyy}-${mm}-01`;
 
-    // 1a. Busca modelos recorrentes ativos (1 query)
+    // 1a. Busca SOMENTE modelos recorrentes (recorrente_modelo_id IS NULL)
     const { data: recorrentes } = await supabase
       .from('contas_pagar')
       .select('*')
       .eq('tipo_lancamento', 'recorrente')
       .neq('status', 'cancelado')
-      .neq('status', 'finalizado');
+      .neq('status', 'finalizado')
+      .is('recorrente_modelo_id', null);
 
     if (recorrentes && recorrentes.length > 0) {
-      // 1b. Busca TODAS as contas já existentes neste mês (1 query em vez de N)
+      // 1b. Busca instâncias já geradas neste mês (por modelo_id)
       const { data: existentes } = await supabase
         .from('contas_pagar')
-        .select('descricao, unidade')
-        .eq('competencia', competenciaAtual);
+        .select('recorrente_modelo_id')
+        .eq('competencia', competenciaAtual)
+        .not('recorrente_modelo_id', 'is', null);
 
-      // 1c. Set de chaves existentes para lookup O(1)
-      const existentesSet = new Set(
-        (existentes || []).map(e => `${e.descricao}\0${e.unidade}`)
+      // 1c. Set de modelo_ids já gerados para lookup O(1)
+      const geradosSet = new Set(
+        (existentes || []).map(e => e.recorrente_modelo_id)
       );
 
-      // 1d. Filtrar recorrentes que ainda não têm lançamento este mês
+      // 1d. Filtrar modelos que ainda não têm instância este mês
       const faltantes = recorrentes.filter(
-        modelo => !existentesSet.has(`${modelo.descricao}\0${modelo.unidade}`)
+        modelo => !geradosSet.has(modelo.id)
       );
 
-      // 1e. Batch INSERT de todos os faltantes (0 ou 1 query)
+      // 1e. Batch INSERT com recorrente_modelo_id vinculado
       if (faltantes.length > 0) {
         const novos = faltantes.map(modelo => {
           const dataVencOriginal = new Date(`${modelo.data_vencimento}T00:00:00`);
@@ -78,6 +80,7 @@ export async function fetchContasPagar(filtros?: {
           const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = modelo;
           return {
             ...rest,
+            recorrente_modelo_id: modelo.id,
             competencia: competenciaAtual,
             data_vencimento: novoVencimento,
             status: 'pendente',
@@ -242,7 +245,6 @@ export async function updateContaPagar(contaId: string, patch: Partial<ContaPaga
 }
 
 export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch: Partial<ContaPagar>): Promise<void> {
-  // Campos que definem o "modelo" da recorrente
   const fieldsToUpdate: any = {};
   if (patch.descricao) fieldsToUpdate.descricao = patch.descricao;
   if (patch.valor) fieldsToUpdate.valor = patch.valor;
@@ -252,13 +254,21 @@ export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch:
 
   if (Object.keys(fieldsToUpdate).length === 0) return;
 
+  // Determinar modelo_id: se é o modelo usa próprio id, se é instância usa recorrente_modelo_id
+  const modeloId = contaOriginal.recorrente_modelo_id || contaOriginal.id;
+
+  // Atualizar o modelo original
+  const { error: errModelo } = await supabase
+    .from('contas_pagar')
+    .update(fieldsToUpdate)
+    .eq('id', modeloId);
+  if (errModelo) throw errModelo;
+
+  // Atualizar todas as instâncias futuras pendentes
   const { error } = await supabase
     .from('contas_pagar')
     .update(fieldsToUpdate)
-    .eq('descricao', contaOriginal.descricao)
-    .eq('categoria_id', contaOriginal.categoria_id)
-    .eq('unidade', contaOriginal.unidade)
-    .eq('tipo_lancamento', 'recorrente')
+    .eq('recorrente_modelo_id', modeloId)
     .eq('status', 'pendente')
     .gt('competencia', contaOriginal.competencia);
 
