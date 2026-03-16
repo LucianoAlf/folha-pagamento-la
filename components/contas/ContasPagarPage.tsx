@@ -12,6 +12,7 @@ import {
   upsertCategoria,
   deleteCategoria,
   deleteConta,
+  deleteContasBatch,
   deleteParcelamento,
   getStatusVisual,
   finalizarParcelamento,
@@ -57,7 +58,9 @@ import {
   Sparkles,
   Brain,
   Bot,
-  Bell
+  Bell,
+  CheckSquare,
+  X
 } from 'lucide-react';
 import { cn } from '../CollaboratorComponents';
 import { KPICard, DistributionChart, EvolutionChart } from '../DashboardWidgets';
@@ -164,10 +167,34 @@ export const ContasPagarPage: React.FC<{
   const [editarConta, setEditarConta] = useState<ContaPagar | null>(null);
   const [contaParaExcluir, setContaParaExcluir] = useState<ContaPagar | null>(null);
   const [contaParaFinalizar, setContaParaFinalizar] = useState<ContaPagar | null>(null);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
   const [categoriaModalOpen, setCategoriaModalOpen] = useState(false);
   const [editingCategoria, setEditingCategoria] = useState<CategoriaDespesa | null>(null);
 
   const [busca, setBusca] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback((ids: string[]) => {
+    setSelectedIds((prev) => {
+      const allSelected = ids.every((id) => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(ids);
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  // Limpar seleção quando mudam filtros
+  useEffect(() => { clearSelection(); }, [filtroTab, unidadeFiltro, competenciaFiltro, categoriaFiltro, tipoFiltro]);
   const [competenciaComparar, setCompetenciaComparar] = useState<string>(() => {
     const hoje = new Date();
     const prev = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
@@ -2051,6 +2078,8 @@ export const ContasPagarPage: React.FC<{
                 conta={conta}
                 onPagar={(c) => setPagarConta(c)}
                 onEditar={(c) => setEditarConta(c)}
+                selected={selectedIds.has(conta.id)}
+                onToggleSelect={toggleSelect}
               />
             ))}
             {auditRows.length === 0 && (
@@ -2070,6 +2099,9 @@ export const ContasPagarPage: React.FC<{
             onEditar={(c) => setEditarConta(c)}
             onExcluir={(c) => setContaParaExcluir(c)}
             onFinalizar={(c) => setContaParaFinalizar(c)}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
           />
         )}
 
@@ -2839,6 +2871,9 @@ export const ContasPagarPage: React.FC<{
             onEditar={(c) => setEditarConta(c)}
             onExcluir={(c) => setContaParaExcluir(c)}
             onFinalizar={(c) => setContaParaFinalizar(c)}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
           />
         </div>
       )}
@@ -3037,6 +3072,66 @@ export const ContasPagarPage: React.FC<{
                 )}
                 <button
                   onClick={() => setContaParaExcluir(null)}
+                  className="w-full px-6 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-bold transition-all active:scale-95"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barra flutuante de seleção em lote */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[12000] flex items-center gap-3 px-5 py-3 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl shadow-black/40 animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <CheckSquare size={18} className="text-violet-400 shrink-0" />
+          <span className="text-white font-bold text-sm whitespace-nowrap">
+            {selectedIds.size} {selectedIds.size === 1 ? 'selecionada' : 'selecionadas'}
+          </span>
+          <button
+            onClick={clearSelection}
+            className="ml-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-all"
+          >
+            Limpar
+          </button>
+          <button
+            onClick={() => setBatchDeleteOpen(true)}
+            className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all shadow-lg shadow-rose-600/20"
+          >
+            <span className="flex items-center gap-1.5"><Trash2 size={13} /> Excluir</span>
+          </button>
+        </div>
+      )}
+
+      {/* Dialog de confirmação exclusão em lote */}
+      {batchDeleteOpen && (
+        <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 bg-rose-500/10 text-rose-500">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Excluir em lote</h3>
+              <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
+                Tem certeza que deseja excluir <strong className="text-white">{selectedIds.size}</strong> {selectedIds.size === 1 ? 'conta' : 'contas'}? Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={async () => {
+                    const ids = Array.from(selectedIds);
+                    setBatchDeleteOpen(false);
+                    clearSelection();
+                    const removidos = await deleteContasBatch(ids);
+                    await refetch();
+                    alert(`${removidos} conta${removidos !== 1 ? 's' : ''} excluída${removidos !== 1 ? 's' : ''}.`);
+                  }}
+                  className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
+                >
+                  Excluir {selectedIds.size} {selectedIds.size === 1 ? 'conta' : 'contas'}
+                </button>
+                <button
+                  onClick={() => setBatchDeleteOpen(false)}
                   className="w-full px-6 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-bold transition-all active:scale-95"
                 >
                   Cancelar

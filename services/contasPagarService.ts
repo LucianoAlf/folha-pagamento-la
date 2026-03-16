@@ -303,6 +303,17 @@ export async function deleteConta(contaId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function deleteContasBatch(ids: string[]): Promise<number> {
+  if (!ids.length) return 0;
+  const { data, error } = await supabase
+    .from('contas_pagar')
+    .delete()
+    .in('id', ids)
+    .select('id');
+  if (error) throw error;
+  return data?.length || 0;
+}
+
 export async function finalizarConta(contaId: string): Promise<void> {
   const { error } = await supabase
     .from('contas_pagar')

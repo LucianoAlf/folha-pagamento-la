@@ -11,9 +11,11 @@ interface Props {
   onPagar: (conta: ContaPagar) => void;
   onEditar: (conta: ContaPagar) => void;
   onDelete?: (conta: ContaPagar) => void;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
-export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDelete }) => {
+export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDelete, selected, onToggleSelect }) => {
   const statusVisual = getStatusVisual(conta);
 
   const formatDateShortBR = (iso: string) => {
@@ -54,8 +56,28 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
   return (
     <Card className={cn(
       "group relative flex flex-col p-5 h-full transition-all hover:shadow-xl hover:shadow-black/20 hover:border-slate-700",
-      conta.status === 'pago' ? "border-emerald-500/10 bg-emerald-500/[0.02]" : "border-slate-800 bg-slate-900/40"
+      conta.status === 'pago' ? "border-emerald-500/10 bg-emerald-500/[0.02]" : "border-slate-800 bg-slate-900/40",
+      selected && "border-violet-500/40 bg-violet-500/[0.04]"
     )}>
+      {/* Checkbox de seleção */}
+      {onToggleSelect && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(conta.id); }}
+          className={cn(
+            "absolute top-3 left-3 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all z-10",
+            selected
+              ? "bg-violet-600 border-violet-500 text-white"
+              : "border-slate-600 opacity-0 group-hover:opacity-100 hover:border-violet-400"
+          )}
+          aria-label="Selecionar"
+        >
+          {selected && (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          )}
+        </button>
+      )}
+
       {/* Header: Title and Type */}
       <div className="flex items-start justify-between mb-4">
         <div className="min-w-0 flex-1">

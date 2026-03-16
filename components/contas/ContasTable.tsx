@@ -26,7 +26,11 @@ export const ContasTable: React.FC<{
   onEditar: (conta: ContaPagar) => void;
   onExcluir: (conta: ContaPagar) => void;
   onFinalizar: (conta: ContaPagar) => void;
-}> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar }) => {
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleSelectAll?: (ids: string[]) => void;
+}> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar, selectedIds, onToggleSelect, onToggleSelectAll }) => {
+  const hasSelection = !!selectedIds && !!onToggleSelect;
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [localBusca, setLocalBusca] = useState(busca);
 
@@ -119,7 +123,26 @@ export const ContasTable: React.FC<{
 
       <div className="border-t border-slate-800/70">
         {/* Desktop Header */}
-        <div className="hidden lg:grid grid-cols-12 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 bg-slate-950/30">
+        <div className={cn("hidden lg:grid px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 bg-slate-950/30", hasSelection ? "grid-cols-[40px_repeat(12,minmax(0,1fr))]" : "grid-cols-12")}>
+          {hasSelection && (
+            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => onToggleSelectAll?.(filtered.map((c) => c.id))}
+                className={cn(
+                  "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
+                  filtered.length > 0 && filtered.every((c) => selectedIds!.has(c.id))
+                    ? "bg-violet-600 border-violet-500 text-white"
+                    : "border-slate-600 hover:border-violet-400"
+                )}
+                aria-label="Selecionar todas"
+              >
+                {filtered.length > 0 && filtered.every((c) => selectedIds!.has(c.id)) && (
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                )}
+              </button>
+            </div>
+          )}
           <div className="col-span-5">Descrição / Categoria</div>
           <div className="col-span-2">Vencimento</div>
           <div className="col-span-2 text-right">Valor</div>
@@ -141,7 +164,7 @@ export const ContasTable: React.FC<{
                 <div key={c.id}>
                   {/* Desktop Row */}
                   <div
-                    className="hidden lg:grid grid-cols-12 px-6 py-5 items-center bg-slate-900/10 hover:bg-slate-900/20 transition-colors cursor-pointer"
+                    className={cn("hidden lg:grid px-6 py-5 items-center bg-slate-900/10 hover:bg-slate-900/20 transition-colors cursor-pointer", hasSelection ? "grid-cols-[40px_repeat(12,minmax(0,1fr))]" : "grid-cols-12", hasSelection && selectedIds!.has(c.id) && "bg-violet-500/5")}
                     onClick={() => setExpandedId(isOpen ? null : c.id)}
                     role="button"
                     tabIndex={0}
@@ -150,6 +173,25 @@ export const ContasTable: React.FC<{
                     }}
                     aria-expanded={isOpen}
                   >
+                    {hasSelection && (
+                      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => onToggleSelect!(c.id)}
+                          className={cn(
+                            "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
+                            selectedIds!.has(c.id)
+                              ? "bg-violet-600 border-violet-500 text-white"
+                              : "border-slate-600 hover:border-violet-400"
+                          )}
+                          aria-label="Selecionar"
+                        >
+                          {selectedIds!.has(c.id) && (
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          )}
+                        </button>
+                      </div>
+                    )}
                     <div className="col-span-5 min-w-0">
                       <div className="text-white font-black truncate">
                         {(c.categoria?.nome || '').toUpperCase()}
@@ -230,13 +272,30 @@ export const ContasTable: React.FC<{
                   </div>
 
                   {/* Mobile Premium Card */}
-                  <div 
-                    className="lg:hidden p-4 bg-slate-900/10 active:bg-slate-900/30 transition-all border-b border-slate-800/50 group"
+                  <div
+                    className={cn("lg:hidden p-4 bg-slate-900/10 active:bg-slate-900/30 transition-all border-b border-slate-800/50 group", hasSelection && selectedIds!.has(c.id) && "bg-violet-500/5")}
                     onClick={() => setExpandedId(isOpen ? null : c.id)}
                   >
                     <div className="flex flex-col gap-3">
                       {/* Top Info: Categoria, Data e Unidade */}
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-2">
+                        {hasSelection && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onToggleSelect!(c.id); }}
+                            className={cn(
+                              "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 mt-0.5",
+                              selectedIds!.has(c.id)
+                                ? "bg-violet-600 border-violet-500 text-white"
+                                : "border-slate-600"
+                            )}
+                            aria-label="Selecionar"
+                          >
+                            {selectedIds!.has(c.id) && (
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            )}
+                          </button>
+                        )}
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className={cn(
