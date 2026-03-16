@@ -68,8 +68,10 @@ export async function fetchContasPagar(filtros?: {
       );
 
       // 1d. Filtrar modelos que ainda não têm instância este mês
+      //     e que não foram pagos diretamente no mês atual (previne duplicatas)
       const faltantes = recorrentes.filter(
         modelo => !geradosSet.has(modelo.id)
+          && !(modelo.status === 'pago' && modelo.competencia === competenciaAtual)
       );
 
       // 1e. Batch INSERT com recorrente_modelo_id vinculado
