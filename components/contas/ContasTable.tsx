@@ -6,6 +6,7 @@ import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
+import { ParcelasTimeline } from './ParcelasTimeline';
 
 // Helper simples para formatar data ISO (YYYY-MM-DD) para BR (DD/MM/YYYY)
 const formatDateBR = (isoDate: string) => {
@@ -398,24 +399,28 @@ export const ContasTable: React.FC<{
                   {isOpen && (
                     <div className="px-4 lg:px-6 pb-6 bg-slate-950/30 border-t border-slate-800/50">
                       <div className="pt-5 grid grid-cols-1 lg:grid-cols-[1fr_520px] gap-5">
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/20 p-5 hidden lg:block">
-                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Conta</div>
-                          <div className="text-white font-black mt-1">{c.descricao}</div>
-                          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
-                              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Valor</div>
-                              <div className="text-slate-100 font-black mt-1">{formatCurrency(Number(c.valor) || 0)}</div>
-                            </div>
-                            <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
-                              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Vencimento</div>
-                              <div className="text-slate-100 font-black mt-1">{formatDateBR(c.data_vencimento)}</div>
-                            </div>
-                            <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
-                              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Status</div>
-                              <div className="mt-1">{badgeFor(c)}</div>
+                        {c.tipo_lancamento === 'parcelada' && c.total_parcelas ? (
+                          <ParcelasTimeline conta={c} onPagar={onPagar} />
+                        ) : (
+                          <div className="rounded-2xl border border-slate-800 bg-slate-900/20 p-5 hidden lg:block">
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Conta</div>
+                            <div className="text-white font-black mt-1">{c.descricao}</div>
+                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Valor</div>
+                                <div className="text-slate-100 font-black mt-1">{formatCurrency(Number(c.valor) || 0)}</div>
+                              </div>
+                              <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Vencimento</div>
+                                <div className="text-slate-100 font-black mt-1">{formatDateBR(c.data_vencimento)}</div>
+                              </div>
+                              <div className="rounded-xl border border-slate-800 bg-slate-950/25 p-3">
+                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Status</div>
+                                <div className="mt-1">{badgeFor(c)}</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
 
                         <ContaLembretesWhatsApp contaId={c.id} dense />
                       </div>
