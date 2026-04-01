@@ -56,7 +56,7 @@ export interface Tarefa {
 
   status: 'pendente' | 'em_andamento' | 'concluida' | 'cancelada' | 'adiada';
 
-  vinculo_tipo?: 'conta_pagar' | 'folha_pagamento' | 'reuniao' | null;
+  vinculo_tipo?: 'conta_pagar' | 'folha_pagamento' | 'reuniao' | 'rh_processo' | 'rh_etapa' | 'rh_pdi_checkpoint' | null;
   vinculo_id?: string | null;
 
   google_event_id?: string | null;
@@ -311,4 +311,3 @@ export const CORES_NOTAS = [
 export type Prioridade = keyof typeof PRIORIDADES;
 export type Categoria = keyof typeof CATEGORIAS;
 export type StatusTarefa = keyof typeof STATUS_TAREFA;
-

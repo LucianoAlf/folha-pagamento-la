@@ -17,19 +17,34 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
+  // Cache curto para evitar chamar getSession em toda requisição.
+  // Reduz overhead perceptível quando várias chamadas partem em sequência.
+  if (authHeadersCache && Date.now() < authHeadersCache.expiresAt) {
+    return authHeadersCache.headers;
+  }
+
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) {
     // With RLS hardened to authenticated, any anonymous request will fail.
     throw new Error('Sessão expirada. Faça login novamente.');
   }
-  return {
+  const headers = {
     apikey: SUPABASE_ANON_KEY,
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
     Prefer: 'return=representation',
   };
+
+  authHeadersCache = {
+    headers,
+    expiresAt: Date.now() + 30_000, // 30s é suficiente para bursts de chamadas.
+  };
+
+  return headers;
 }
+
+let authHeadersCache: { headers: Record<string, string>; expiresAt: number } | null = null;
 
 export const api = {
   async fetchUserProfile(userId: string): Promise<UserProfile | null> {
@@ -204,7 +219,12 @@ export const api = {
 
   async fetchLancamentos(folhaId: number): Promise<Lancamento[]> {
     const headers = await getAuthHeaders();
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/lancamentos_folha?select=*,colaboradores(*)&folha_id=eq.${folhaId}&order=categoria,colaborador_id`, { headers });
+    // Evita payload gigante no bootstrap: só os campos realmente usados na UI.
+    // Antes: colaboradores(*) repetia colunas pesadas para cada lançamento.
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/lancamentos_folha?select=*,colaboradores(id,nome,funcao)&folha_id=eq.${folhaId}&order=categoria,colaborador_id`,
+      { headers }
+    );
     if (!res.ok) throw new Error('Erro ao buscar lançamentos');
     return res.json();
   },

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /d/2025/CURSO_VIBE_CODING/dash-folha-pagamento/services/*.ts)"
+    ]
+  }
+}

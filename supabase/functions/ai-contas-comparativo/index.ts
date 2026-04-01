@@ -83,39 +83,27 @@ function safeParseJsonFromText(text: string): any {
   }
 }
 
-async function callGemini(model: string, apiKey: string, prompt: string) {
+async function callGemini(model: string, apiKey: string, prompt: string, timeoutMs = 5_000) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const ac = new AbortController();
+  const timeout = setTimeout(() => ac.abort("gemini-timeout"), timeoutMs);
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal: ac.signal,
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.2,
         topP: 0.9,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 700,
       },
     }),
-  });
+  }).finally(() => clearTimeout(timeout));
 
   if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
   const data = await res.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-}
-
-async function repairToStrictJson(model: string, apiKey: string, rawText: string, contractHint: string) {
-  const prompt = `Você devolveu uma resposta que NÃO é JSON válido.
-
-Tarefa: reescreva a saída como JSON ESTRITAMENTE válido, sem markdown, sem comentários, sem texto extra.
-
-${contractHint}
-
-ENTRADA (texto original):
-${rawText}
-
-SAÍDA: APENAS JSON válido.`;
-
-  return await callGemini(model, apiKey, prompt);
 }
 
 async function sha256Hex(input: string): Promise<string> {
@@ -159,6 +147,61 @@ type Variation = {
   perc: number;
   status: "NOVO" | "SAIU" | "RECORRENTE";
 };
+
+type ComparativoJson = {
+  analise_executiva: string;
+  insights_detalhados: Array<{
+    titulo: string;
+    categoria: string;
+    severidade: "alta" | "media" | "baixa";
+    descricao: string;
+    impacto_financeiro?: number;
+    chave_referencia?: string | null;
+  }>;
+  recomendacoes: string[];
+};
+
+function buildFallbackComparativo(
+  competenciaYM: string,
+  baseYM: string,
+  totalPrev: number,
+  totalCurr: number,
+  totalDiff: number,
+  totalPerc: number,
+  topMudancas: Variation[],
+): ComparativoJson {
+  const top3 = topMudancas.slice(0, 3);
+  const direction = totalDiff >= 0 ? "aumento" : "redução";
+  const analise = [
+    `Comparativo ${baseYM} -> ${competenciaYM}: ${direction} de ${Math.abs(totalPerc).toFixed(1)}% no total das contas.`,
+    `Total base: R$ ${Math.abs(totalPrev).toFixed(2)} | Total atual: R$ ${Math.abs(totalCurr).toFixed(2)}.`,
+    `Variação absoluta: ${totalDiff >= 0 ? "+" : "-"}R$ ${Math.abs(totalDiff).toFixed(2)}.`,
+    `Os maiores drivers estão concentrados em ${top3.map((t) => t.categoria).filter(Boolean).slice(0, 2).join(" e ") || "categorias diversas"}.`,
+  ].join(" ");
+
+  const insights = top3.map((t) => {
+    const absPerc = Math.abs(t.perc);
+    const sev: "alta" | "media" | "baixa" = absPerc >= 35 ? "alta" : absPerc >= 15 ? "media" : "baixa";
+    return {
+      titulo: `${t.status === "NOVO" ? "Novo item" : t.status === "SAIU" ? "Item removido" : "Mudança relevante"}: ${t.descricao || t.categoria}`,
+      categoria: t.status === "RECORRENTE" ? "Variação" : "Novos/Removidos",
+      severidade: sev,
+      descricao: `${t.categoria} em ${t.unidade}: base R$ ${t.prev.toFixed(2)} -> atual R$ ${t.curr.toFixed(2)} (${t.perc >= 0 ? "+" : ""}${t.perc.toFixed(1)}%).`,
+      impacto_financeiro: t.diff,
+      chave_referencia: t.key || null,
+    };
+  });
+
+  return {
+    analise_executiva: analise,
+    insights_detalhados: insights,
+    recomendacoes: [
+      "Validar se as maiores variações possuem justificativa operacional registrada pela Ana.",
+      "Conferir mudanças de contrato/fornecedor nas categorias com maior impacto absoluto.",
+      "Manter memória comparativa atualizada para reduzir falsos alertas nos próximos meses.",
+    ],
+  };
+}
 
 function buildKey(c: ContaRow) {
   const unidade = (c.unidade || "todas") as string;
@@ -322,12 +365,12 @@ Deno.serve(async (req: Request) => {
 
     const topMudancas = [...variations]
       .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
-      .slice(0, 20);
+      .slice(0, 6);
 
     const topAlertas = [...variations]
       .filter((v) => v.status === "RECORRENTE" && v.prev > 0 && v.curr > 0)
       .sort((a, b) => Math.abs(b.perc) - Math.abs(a.perc))
-      .slice(0, 20);
+      .slice(0, 6);
 
     const inputObject = {
       v: ANALYSIS_VERSION,
@@ -385,46 +428,34 @@ Deno.serve(async (req: Request) => {
       if (existing?.length) return jsonResponse({ cached: true, ...existing[0] });
     }
 
-    const contractHint =
-      `CONTRATO DE SAÍDA (JSON): deve conter as chaves: ` +
-      `"analise_executiva" (string), "insights_detalhados" (array), "recomendacoes" (array de strings).`;
-
-    const prompt = `Você é um Analista Financeiro Sênior da LA Music Group.
-
-Sua tarefa é EXPLICAR a variação entre dois meses de Contas a Pagar: BASE=${baseYM} vs ATUAL=${competenciaYM}.
-
-IMPORTANTE:
-- Isso é um COMPARATIVO (mês contra mês). NÃO faça auditoria de integridade do mês (isso existe na aba Auditoria).
-- Foque em: por que mudou, o que isso significa, e o que a Ana deve checar/registrar.
-- Use a memória (notas do mês) para evitar recomendações redundantes.
-
-DADOS (JSON):
-${JSON.stringify(inputObject)}
-
-Responda APENAS JSON puro neste formato:
+    const prompt = `Analise comparativo de contas BASE=${baseYM} vs ATUAL=${competenciaYM}.
+Retorne APENAS JSON válido com:
 {
-  "analise_executiva": "Texto curto (4-8 linhas) explicando a variação e os drivers principais.",
-  "insights_detalhados": [
-    {
-      "titulo": "Título curto",
-      "categoria": "Variação|Novos/Removidos|Categoria|Unidade|Recorrentes|Pagamentos",
-      "severidade": "alta|media|baixa",
-      "descricao": "Descrição clara e prática para a Ana (sem jargão).",
-      "impacto_financeiro": 123.45,
-      "chave_referencia": "key de top_mudancas/top_alertas (se aplicável) ou null"
-    }
-  ],
-  "recomendacoes": ["ação 1", "ação 2"]
-}`;
+  "analise_executiva": string,
+  "insights_detalhados": [{"titulo":string,"categoria":string,"severidade":"alta|media|baixa","descricao":string,"impacto_financeiro":number,"chave_referencia":string|null}],
+  "recomendacoes": string[]
+}
+Sem markdown, sem texto extra.
+Dados:
+${JSON.stringify(inputObject)}`;
 
-    const rawText = await callGemini(model, apiKey, prompt);
-    let parsed = safeParseJsonFromText(rawText);
+    let parsed: any = null;
+    try {
+      const rawText = await callGemini(model, apiKey, prompt, 5_000);
+      parsed = safeParseJsonFromText(rawText);
+    } catch {
+      parsed = null;
+    }
     if (!parsed || !parsed.analise_executiva) {
-      const repairedText = await repairToStrictJson(model, apiKey, rawText, contractHint);
-      parsed = safeParseJsonFromText(repairedText);
-      if (!parsed || !parsed.analise_executiva) {
-        throw new Error("Falha ao processar resposta estruturada da IA (Comparativo)");
-      }
+      parsed = buildFallbackComparativo(
+        competenciaYM,
+        baseYM,
+        totalPrev,
+        totalCurr,
+        totalDiff,
+        totalPerc,
+        topMudancas,
+      );
     }
 
     const { data: inserted, error: insErr } = await supabase

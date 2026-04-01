@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useDeferredValue, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useMemo, useDeferredValue, useRef, useTransition } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { api, formatCurrency, getMesNome } from './services/api';
 import { supabase } from './services/supabase';
@@ -11,7 +11,7 @@ import {
   Calendar, CalendarCheck, Bell, BarChart3, FileText, 
   TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database, ShieldCheck, CreditCard,
   LineChart as LineChartIcon,
-  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, ChefHat, LogOut, Menu, X
+  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, ChefHat, LogOut, Menu, X, UserCheck
 } from 'lucide-react';
 import { 
   CollaboratorCard, 
@@ -24,12 +24,26 @@ import {
   cn
 } from './components/CollaboratorComponents';
 import { Sidebar } from './components/Sidebar';
-import { ContasPagarPage } from './components/contas/ContasPagarPage';
-import { AgendaPage } from './components/agenda/AgendaPage';
-import { NotificacoesPage } from './components/notificacoes/NotificacoesPage';
-import { FeriasPage } from './components/ferias/FeriasPage';
-import { BistroTab } from './components/bistro/BistroTab';
 import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
+
+const ContasPagarPage = lazy(() =>
+  import('./components/contas/ContasPagarPage').then((m) => ({ default: m.ContasPagarPage }))
+);
+const AgendaPage = lazy(() =>
+  import('./components/agenda/AgendaPage').then((m) => ({ default: m.AgendaPage }))
+);
+const NotificacoesPage = lazy(() =>
+  import('./components/notificacoes/NotificacoesPage').then((m) => ({ default: m.NotificacoesPage }))
+);
+const FeriasPage = lazy(() =>
+  import('./components/ferias/FeriasPage').then((m) => ({ default: m.FeriasPage }))
+);
+const RhJornadaPage = lazy(() =>
+  import('./components/rh-jornada/RhJornadaPage').then((m) => ({ default: m.RhJornadaPage }))
+);
+const BistroTab = lazy(() =>
+  import('./components/bistro/BistroTab').then((m) => ({ default: m.BistroTab }))
+);
 
 
 const parseBRL = (raw: string) => {
@@ -170,6 +184,7 @@ const loginStyles = `
 `;
 
 export default function App() {
+  const [, startTabTransition] = useTransition();
   // Auth
   const [authLoading, setAuthLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -185,7 +200,7 @@ export default function App() {
     return null;
   };
 
-  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias'>('folha');
+  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh'>('folha');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -239,7 +254,7 @@ export default function App() {
 
   // Reset filter when changing tabs to avoid UX confusion
   const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
+    startTabTransition(() => setActiveTab(tabId));
     // Reset filter only for Folha, to avoid confusing the Finance module UX
     if (currentModule === 'folha') setUnidadeFiltro('todos');
   };
@@ -261,13 +276,7 @@ export default function App() {
       title: 'Contas a Pagar',
       subtitle: 'CONTROLE OPERACIONAL DE DESPESAS',
       icon: CreditCard,
-      tabs: [
-        { id: 'dashboard', label: 'Resumo', icon: LineChartIcon },
-        { id: 'visao-geral', label: 'Contas a Pagar', icon: BarChart3 },
-        { id: 'todas', label: 'Auditoria', icon: FileText },
-        { id: 'comparativo', label: 'Comparativo', icon: TrendingUp },
-        { id: 'categorias', label: 'Categorias', icon: Calendar },
-      ]
+      tabs: [] // Tabs gerenciadas internamente pelo ContasPagarPage (evita re-render do App)
     },
     agenda: {
       title: 'Agenda',
@@ -286,6 +295,21 @@ export default function App() {
       subtitle: 'GESTÃO DE PERÍODOS E PROGRAMAÇÕES',
       icon: CalendarCheck,
       tabs: []
+    },
+    rh: {
+      title: 'Jornada RH',
+      subtitle: 'RECRUTAMENTO, JORNADA, PDI E DESLIGAMENTO',
+      icon: UserCheck,
+      tabs: [
+        { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+        { id: 'candidatos', label: 'Candidatos', icon: Users },
+        { id: 'onboarding', label: 'Onboarding', icon: UserCheck },
+        { id: 'colaboradores', label: 'Colaboradores', icon: Users },
+        { id: 'desenvolvimento', label: 'Desenvolvimento', icon: Sparkles },
+        { id: 'desligamentos', label: 'Desligamentos', icon: UserX },
+        { id: 'documentos', label: 'Documentos', icon: FileText },
+        { id: 'templates', label: 'Templates', icon: Copy },
+      ]
     }
   };
 
@@ -295,7 +319,7 @@ export default function App() {
       const detail = (e as CustomEvent).detail as { module?: string; page?: string } | undefined;
       if (!detail?.module) return;
 
-      const mod = detail.module as 'folha' | 'contas' | 'agenda' | 'notificacoes';
+      const mod = detail.module as 'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
       setCurrentModule(mod);
 
       if (detail.page) {
@@ -305,6 +329,8 @@ export default function App() {
         if (mod === 'contas') setActiveTab('dashboard');
         if (mod === 'agenda') setActiveTab('agenda');
         if (mod === 'notificacoes') setActiveTab('notificacoes');
+        if (mod === 'ferias') setActiveTab('ferias');
+        if (mod === 'rh') setActiveTab('dashboard');
       }
 
       if (mod === 'folha') setUnidadeFiltro('todos');
@@ -315,7 +341,7 @@ export default function App() {
   }, []);
 
   const handleNavigate = (module: string, page?: string) => {
-    const mod = module as 'folha' | 'contas' | 'agenda' | 'notificacoes';
+    const mod = module as 'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
     setCurrentModule(mod);
     
     if (page) {
@@ -325,6 +351,8 @@ export default function App() {
       if (mod === 'contas') setActiveTab('dashboard');
       if (mod === 'agenda') setActiveTab('agenda');
       if (mod === 'notificacoes') setActiveTab('notificacoes');
+      if (mod === 'ferias') setActiveTab('ferias');
+      if (mod === 'rh') setActiveTab('dashboard');
     }
     
     if (mod === 'folha') setUnidadeFiltro('todos');
@@ -337,7 +365,7 @@ export default function App() {
       const moduleParam = (params.get('module') || '').toLowerCase();
       const pageParam = (params.get('page') || '').toLowerCase();
 
-      if (moduleParam === 'folha' || moduleParam === 'contas' || moduleParam === 'agenda' || moduleParam === 'notificacoes') {
+      if (moduleParam === 'folha' || moduleParam === 'contas' || moduleParam === 'agenda' || moduleParam === 'notificacoes' || moduleParam === 'ferias' || moduleParam === 'rh') {
         handleNavigate(moduleParam, pageParam || undefined);
 
         // Keep URL clean (remove only module/page)
@@ -426,6 +454,11 @@ export default function App() {
   const [mobileLancDetail, setMobileLancDetail] = useState<Lancamento | null>(null);
   const [mobileLancObs, setMobileLancObs] = useState('');
   const [mobileLancObsSaving, setMobileLancObsSaving] = useState(false);
+  const selectedFolhaIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    selectedFolhaIdRef.current = selectedFolhaId;
+  }, [selectedFolhaId]);
 
   // Persist collapse state (Lancamentos)
   useEffect(() => {
@@ -667,17 +700,27 @@ export default function App() {
     }
   };
 
-  const fetchMetadata = async () => {
+  const fetchMetadata = async (opts?: { deferColaboradores?: boolean }) => {
     try {
-      const [colabsData, folhasData] = await Promise.all([
-        api.fetchColaboradores(),
-        api.fetchFolhasMensais()
-      ]);
-      setColaboradores(colabsData);
+      const folhasData = await api.fetchFolhasMensais();
       setFolhas(folhasData);
       if (folhasData.length > 0 && !selectedFolhaId) {
         setSelectedFolhaId(folhasData[0].id);
       }
+
+      if (opts?.deferColaboradores) {
+        // Bootstrap mais rápido: não bloqueia renderização esperando lista completa.
+        void api
+          .fetchColaboradores()
+          .then((colabsData) => setColaboradores(colabsData))
+          .catch(() => {
+            // non-blocking
+          });
+        return { colabsData: colaboradores, folhasData };
+      }
+
+      const colabsData = await api.fetchColaboradores();
+      setColaboradores(colabsData);
       return { colabsData, folhasData };
     } catch (err: any) {
       setError(err.message || 'Falha ao carregar metadados');
@@ -687,27 +730,38 @@ export default function App() {
   };
 
   const loadMonthData = async (folhaId: number, allFolhas: FolhaMensal[]) => {
-    setLoading(true);
+    const shouldBlockInitialPaint = !folhaAtual;
+    if (shouldBlockInitialPaint) setLoading(true);
     setError(null);
     try {
       const currentFolha = allFolhas.find(f => f.id === folhaId) || allFolhas[0];
       setFolhaAtual(currentFolha);
       setStatusFolha(currentFolha.status);
+      // Libera a UI assim que o contexto do mês estiver definido.
+      // Os lançamentos entram logo em seguida sem bloquear a renderização inicial.
+      if (shouldBlockInitialPaint) setLoading(false);
 
       const currentIdx = allFolhas.findIndex(f => f.id === currentFolha.id);
       const prevFolha = currentIdx < allFolhas.length - 1 ? allFolhas[currentIdx + 1] : null;
 
-      const [currentLancData, prevLancData] = await Promise.all([
-        api.fetchLancamentos(currentFolha.id),
-        prevFolha ? api.fetchLancamentos(prevFolha.id) : Promise.resolve([])
-      ]);
-
+      // Prioriza a experiência: renderiza o mês atual primeiro.
+      // O mês anterior carrega em background para não travar a tela inicial.
+      const currentLancData = await api.fetchLancamentos(currentFolha.id);
       setLancamentos(currentLancData);
-      setLancamentosAnteriores(prevLancData);
+
+      if (!prevFolha) {
+        setLancamentosAnteriores([]);
+      } else {
+        api
+          .fetchLancamentos(prevFolha.id)
+          .then((prevLancData) => setLancamentosAnteriores(prevLancData))
+          .catch(() => setLancamentosAnteriores([]));
+      }
     } catch (err: any) {
       setError(err.message || 'Falha ao carregar dados do mês');
+      if (shouldBlockInitialPaint) setLoading(false);
     } finally {
-      setLoading(false);
+      if (!shouldBlockInitialPaint) setLoading(false);
     }
   };
 
@@ -731,19 +785,49 @@ export default function App() {
       setUserId(session?.user?.id ?? null);
     });
 
-    // Supabase Realtime: Intelligent auto-refresh
+    // Supabase Realtime: lightweight auto-refresh to avoid full page reload storms
+    let lancamentosRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleLancamentosRefresh = () => {
+      if (lancamentosRefreshTimer) clearTimeout(lancamentosRefreshTimer);
+      lancamentosRefreshTimer = setTimeout(async () => {
+        const folhaId = selectedFolhaIdRef.current;
+        if (!folhaId) return;
+        try {
+          const currentLancData = await api.fetchLancamentos(folhaId);
+          setLancamentos(currentLancData);
+        } catch {
+          // non-blocking: next interaction will refresh again
+        }
+      }, 350);
+    };
+
+    const refreshFolhasOnly = async () => {
+      try {
+        const folhasData = await api.fetchFolhasMensais();
+        setFolhas(folhasData);
+        setSelectedFolhaId((prev) => {
+          if (!folhasData.length) return null;
+          if (prev && folhasData.some((f) => f.id === prev)) return prev;
+          return folhasData[0].id;
+        });
+      } catch {
+        // non-blocking
+      }
+    };
+
     const channel = supabase
       .channel('db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lancamentos_folha' }, () => {
-    loadData();
+        scheduleLancamentosRefresh();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'folhas_mensais' }, () => {
-        loadData();
+        refreshFolhasOnly();
       })
       .subscribe();
 
     return () => {
       mounted = false;
+      if (lancamentosRefreshTimer) clearTimeout(lancamentosRefreshTimer);
       sub.subscription.unsubscribe();
       supabase.removeChannel(channel);
     };
@@ -861,7 +945,7 @@ export default function App() {
   // Initial load: Fetch colaboradores and available months
   useEffect(() => {
     if (userEmail) {
-      fetchMetadata();
+      fetchMetadata({ deferColaboradores: true });
     }
   }, [userEmail]);
 
@@ -1041,7 +1125,7 @@ export default function App() {
   // Carregar motivos (Ana) para o mês selecionado (usado tanto no Comparativo quanto nos Alertas)
   useEffect(() => {
     if (!selectedFolhaId) return;
-    (async () => {
+    const timer = setTimeout(async () => {
       try {
         const notes = await api.fetchColaboradorVariacaoNotas(selectedFolhaId);
         setNoteDrafts((prev) => {
@@ -1056,7 +1140,8 @@ export default function App() {
       } catch {
         // silencioso: notas são opcionais
       }
-    })();
+    }, 1200);
+    return () => clearTimeout(timer);
   }, [selectedFolhaId]);
 
   const groupedLancamentos = useMemo(() => {
@@ -1851,62 +1936,7 @@ export default function App() {
           </>
         )}
 
-        {/* Contas: Mobile Premium Header Card (dynamic for each tab) */}
-        {currentModule === 'contas' && isMobile && ['dashboard', 'visao-geral', 'todas', 'comparativo'].includes(activeTab) && (
-          <div className="lg:hidden mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-            <Card className="p-4 bg-slate-900/40 border border-slate-800/60 shadow-xl">
-              <div className="flex flex-col gap-4">
-                <div className="min-w-0">
-                  <h2 className="text-xl font-black text-white leading-tight">
-                    {activeTab === 'dashboard' ? 'Gestão Mensal' :
-                     activeTab === 'visao-geral' ? 'Gestão Mensal' :
-                     activeTab === 'todas' ? 'Auditoria Financeira' :
-                     activeTab === 'comparativo' ? 'IA Financeira' :
-                     'Gestão Mensal'}
-                  </h2>
-                  <p className="text-sm text-slate-500 font-medium mt-1 leading-snug">
-                    {activeTab === 'dashboard' ? 'Selecione o mês de referência para lançamentos e conferência' :
-                     activeTab === 'visao-geral' ? 'Acompanhamento de contas a pagar por competência' :
-                     activeTab === 'todas' ? 'Histórico completo de lançamentos e liquidações' :
-                     activeTab === 'comparativo' ? 'Insights e anomalias detectadas por IA nas contas a pagar' :
-                     'Acompanhamento de contas a pagar por competência'}
-                  </p>
-                </div>
-
-                <div className="w-full">
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-1">
-                    Mês de Referência
-                  </div>
-                  <CustomSelect
-                    value={contasCompetenciaYM}
-                    onValueChange={setContasCompetenciaYM}
-                    className="w-full"
-                    options={contasCompetenciaOptions}
-                  />
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {currentModule === 'contas' && !(isMobile && ['dashboard', 'visao-geral', 'todas', 'comparativo'].includes(activeTab)) && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-            <div>
-              <h2 className="text-2xl font-black text-white">
-                {activeTab === 'todas' ? 'Auditoria Financeira' :
-                 activeTab === 'comparativo' ? 'IA Financeira' :
-                 activeTab === 'categorias' ? 'Categorias Financeiras' :
-                 'Gestão Mensal'}
-              </h2>
-              <p className="text-sm text-slate-500 font-bold mt-1">
-                {activeTab === 'todas' ? 'Histórico completo de lançamentos e liquidações' :
-                 activeTab === 'comparativo' ? 'Insights e anomalias detectadas por IA nas contas a pagar' :
-                 activeTab === 'categorias' ? 'Gerencie as classificações as categorias para o fluxo de caixa.' :
-                 'Acompanhamento de contas a pagar por competência'}
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Contas: header e tabs agora são renderizados dentro do ContasPagarPage */}
           
         {/* Module Tabs */}
         {tabs.length > 0 ? (
@@ -1979,17 +2009,28 @@ export default function App() {
           )}
         >
           {currentModule === 'contas' ? (
-            <ContasPagarPage
-              mode={(activeTab as any) || 'visao-geral'}
-              competenciaYM={contasCompetenciaYM}
-              onCompetenciaYMChange={setContasCompetenciaYM}
-            />
+            <Suspense fallback={<LoadingSpinner />}>
+              <ContasPagarPage
+                competenciaYM={contasCompetenciaYM}
+                onCompetenciaYMChange={setContasCompetenciaYM}
+              />
+            </Suspense>
           ) : currentModule === 'agenda' ? (
-             <AgendaPage />
+            <Suspense fallback={<LoadingSpinner />}>
+              <AgendaPage />
+            </Suspense>
           ) : currentModule === 'notificacoes' ? (
-            <NotificacoesPage />
+            <Suspense fallback={<LoadingSpinner />}>
+              <NotificacoesPage />
+            </Suspense>
           ) : currentModule === 'ferias' ? (
-            <FeriasPage />
+            <Suspense fallback={<LoadingSpinner />}>
+              <FeriasPage />
+            </Suspense>
+          ) : currentModule === 'rh' ? (
+            <Suspense fallback={<LoadingSpinner />}>
+              <RhJornadaPage mode={(activeTab as any) || 'dashboard'} />
+            </Suspense>
           ) : loading ? (
           <LoadingSpinner />
         ) : error ? (
@@ -3873,15 +3914,17 @@ export default function App() {
             
             {/* Bistrô Tab (descontos ref. mês anterior) */}
             {activeTab === 'bistro' && folhaAtual ? (
-              <BistroTab
-                folhaAtual={folhaAtual}
-                statusFolha={statusFolha}
-                colaboradores={colaboradores}
-                lancamentosFolha={lancamentos}
-                onRefreshLancamentos={async () => {
-                  await refetchLancamentosSilent();
-                }}
-              />
+              <Suspense fallback={<LoadingSpinner />}>
+                <BistroTab
+                  folhaAtual={folhaAtual}
+                  statusFolha={statusFolha}
+                  colaboradores={colaboradores}
+                  lancamentosFolha={lancamentos}
+                  onRefreshLancamentos={async () => {
+                    await refetchLancamentosSilent();
+                  }}
+                />
+              </Suspense>
             ) : null}
 
             {activeTab === 'comparativo' && (
@@ -4477,12 +4520,13 @@ export default function App() {
         aria-label="Navegação inferior"
       >
         <div className="px-4 pt-2">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {([
               { id: 'folha', label: 'Folha', icon: Users },
               { id: 'contas', label: 'Contas', icon: CreditCard },
               { id: 'agenda', label: 'Agenda', icon: Calendar },
               { id: 'notificacoes', label: 'Notif.', icon: Bell },
+              { id: 'rh', label: 'RH', icon: UserCheck },
             ] as const).map((item) => {
               const active = currentModule === item.id;
               const Icon = item.icon;

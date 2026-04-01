@@ -140,6 +140,36 @@ export async function createTarefa(tarefa: Partial<Tarefa>): Promise<Tarefa> {
   return data as Tarefa;
 }
 
+export async function createRhAgendaMirrorTask(payload: {
+  titulo: string;
+  descricao?: string | null;
+  vencimento_em?: string | null;
+  lista_id?: string | null;
+  prioridade?: Tarefa['prioridade'];
+  categoria?: Tarefa['categoria'];
+  vinculo_tipo: 'rh_processo' | 'rh_etapa' | 'rh_pdi_checkpoint';
+  vinculo_id: string;
+  unidade?: Tarefa['unidade'];
+}): Promise<Tarefa> {
+  return createTarefa({
+    titulo: payload.titulo,
+    descricao: payload.descricao || null,
+    vencimento_em: payload.vencimento_em || null,
+    lista_id: payload.lista_id || null,
+    prioridade: payload.prioridade || 'media',
+    categoria: payload.categoria || 'rh',
+    vinculo_tipo: payload.vinculo_tipo,
+    vinculo_id: payload.vinculo_id,
+    unidade: payload.unidade || null,
+    dia_inteiro: true,
+    is_recorrente: false,
+    lembrete_minutos: [],
+    tags: ['rh'],
+    status: 'pendente',
+    ordem: 0,
+  });
+}
+
 export async function updateTarefa(id: string, updates: Partial<Tarefa>): Promise<Tarefa> {
   const { data, error } = await supabase
     .from('tarefas')
@@ -151,8 +181,16 @@ export async function updateTarefa(id: string, updates: Partial<Tarefa>): Promis
   return data as Tarefa;
 }
 
+export async function updateRhAgendaMirrorTask(id: string, updates: Partial<Tarefa>): Promise<Tarefa> {
+  return updateTarefa(id, updates);
+}
+
 export async function concluirTarefa(id: string): Promise<Tarefa> {
   return updateTarefa(id, { status: 'concluida', data_conclusao: new Date().toISOString() });
+}
+
+export async function completeRhAgendaMirrorTask(id: string): Promise<Tarefa> {
+  return concluirTarefa(id);
 }
 
 export async function reabrirTarefa(id: string): Promise<Tarefa> {
@@ -352,4 +390,3 @@ export async function fetchEstatisticasTarefas() {
     urgentes: rows.filter((t) => t.prioridade === 'urgente' && isActive(t.status)).length,
   };
 }
-

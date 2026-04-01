@@ -26,3 +26,17 @@ verify_jwt = false
 [functions.whatsapp-folha-notificacoes]
 verify_jwt = false
 
+[functions.rh-generate-document]
+verify_jwt = false
+
+[functions.rh-ai-candidate-parse]
+verify_jwt = false
+
+[functions.rh-ai-candidate-compare]
+verify_jwt = false
+
+[functions.rh-ai-dashboard-insights]
+verify_jwt = false
+
+[functions.rh-ai-journey-insights]
+verify_jwt = false

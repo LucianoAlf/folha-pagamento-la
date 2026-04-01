@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadingSpinner, ErrorState, ConfirmDialog } from '../UI';
 import { ContaPagar, CategoriaDespesa } from '../../types/contasPagar';
 import {
@@ -31,19 +31,19 @@ import { ContasCalendar } from './ContasCalendar';
 import { ContasDoDiaModal } from './ContasDoDiaModal';
 import { Badge, Card, CustomSelect, Tooltip, Modal } from '../UI';
 import { formatCurrency } from '../../services/api';
-import { 
-  CheckCircle2, 
-  DollarSign, 
-  Info, 
-  TrendingUp, 
+import {
+  CheckCircle2,
+  DollarSign,
+  Info,
+  TrendingUp,
   Clock,
   Lightbulb,
   Loader2,
-  Plus, 
-  Filter, 
-  Edit2, 
-  Trash2, 
-  AlertTriangle, 
+  Plus,
+  Filter,
+  Edit2,
+  Trash2,
+  AlertTriangle,
   Percent,
   CreditCard,
   Tag,
@@ -60,7 +60,8 @@ import {
   Bot,
   Bell,
   CheckSquare,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { cn } from '../CollaboratorComponents';
 import { KPICard, DistributionChart, EvolutionChart } from '../DashboardWidgets';
@@ -137,11 +138,34 @@ type ContasAnomaliaNotaRow = {
   updated_at: string;
 };
 
+const COMPARATIVO_THRESHOLD = 20;
+
+type ContasMode = 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'categorias';
+
+const CONTAS_TABS: { id: ContasMode; label: string; icon: React.FC<any>; shortLabel: string }[] = [
+  { id: 'dashboard', label: 'Resumo', icon: LineChartIcon, shortLabel: 'Dash' },
+  { id: 'visao-geral', label: 'Contas a Pagar', icon: BarChart3, shortLabel: 'Contas' },
+  { id: 'todas', label: 'Auditoria', icon: FileText, shortLabel: 'Audit.' },
+  { id: 'comparativo', label: 'Comparativo', icon: TrendingUp, shortLabel: 'IA' },
+  { id: 'categorias', label: 'Categorias', icon: Calendar, shortLabel: 'Categ.' },
+];
+
+const CONTAS_TITLES: Record<ContasMode, { title: string; subtitle: string }> = {
+  'dashboard': { title: 'Gestão Mensal', subtitle: 'Selecione o mês de referência para lançamentos e conferência' },
+  'visao-geral': { title: 'Gestão Mensal', subtitle: 'Acompanhamento de contas a pagar por competência' },
+  'todas': { title: 'Auditoria Financeira', subtitle: 'Histórico completo de lançamentos e liquidações' },
+  'comparativo': { title: 'IA Financeira', subtitle: 'Insights e anomalias detectadas por IA nas contas a pagar' },
+  'categorias': { title: 'Categorias Financeiras', subtitle: 'Gerencie as classificações as categorias para o fluxo de caixa.' },
+};
+
 export const ContasPagarPage: React.FC<{
-  mode?: 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'categorias';
+  initialMode?: ContasMode;
   competenciaYM?: string;
   onCompetenciaYMChange?: (ym: string) => void;
-}> = ({ mode = 'visao-geral', competenciaYM, onCompetenciaYMChange }) => {
+}> = ({ initialMode = 'dashboard', competenciaYM, onCompetenciaYMChange }) => {
+  // ── Tab state interno (troca de aba não re-renderiza App.tsx) ──
+  const [mode, setMode] = useState<ContasMode>(initialMode);
+
   const [categorias, setCategorias] = useState<CategoriaDespesa[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
@@ -341,6 +365,10 @@ export const ContasPagarPage: React.FC<{
   const [compAiError, setCompAiError] = useState<string | null>(null);
   const [compAiRow, setCompAiRow] = useState<ContasComparativoAiRow | null>(null);
   const [compAiCached, setCompAiCached] = useState<boolean>(false);
+  const notasKeyRef = useRef<string | null>(null);
+  const auditAiKeyRef = useRef<string | null>(null);
+  const compAiKeyRef = useRef<string | null>(null);
+  const anomaliaNotasKeyRef = useRef<string | null>(null);
 
   const [compAiOpen, setCompAiOpen] = useState<boolean>(() => {
     try {
@@ -398,7 +426,10 @@ export const ContasPagarPage: React.FC<{
   // Carregar notas da competência selecionada (Auditoria/Comparativo com colunas separadas)
   useEffect(() => {
     async function loadNotas() {
+      if (mode !== 'todas' && mode !== 'comparativo') return;
       if (!competenciaFiltro) return;
+      const key = `${mode}|${competenciaFiltro}`;
+      if (notasKeyRef.current === key) return;
       const [year, month] = competenciaFiltro.split('-').map(Number);
       
       const coluna = mode === 'comparativo' ? 'contas_comparativo_notas_rh' : 'contas_notas_rh';
@@ -416,6 +447,7 @@ export const ContasPagarPage: React.FC<{
         if (mode === 'comparativo') setNotasComparativo('');
         else setNotasAuditoria('');
       }
+      notasKeyRef.current = key;
     }
     void loadNotas();
   }, [mode, competenciaFiltro]);
@@ -468,8 +500,10 @@ export const ContasPagarPage: React.FC<{
     }
   };
 
-  const loadAnomaliaNotas = useCallback(async () => {
+  const loadAnomaliaNotas = useCallback(async (force = false) => {
     if (mode !== 'todas' || !auditAiOpen) return;
+    const key = `${competenciaFiltro}|${unidadeFiltro}`;
+    if (!force && anomaliaNotasKeyRef.current === key) return;
     const { data, error } = await supabase
       .from('contas_anomalia_notas')
       .select('id,competencia_ym,unidade,anomaly_key,conta_id,nota,status,updated_at')
@@ -482,6 +516,7 @@ export const ContasPagarPage: React.FC<{
       map[String(r.anomaly_key)] = r as ContasAnomaliaNotaRow;
     });
     setAnomaliaNotas(map);
+    anomaliaNotasKeyRef.current = key;
   }, [mode, auditAiOpen, competenciaFiltro, unidadeFiltro]);
 
   /**
@@ -489,7 +524,21 @@ export const ContasPagarPage: React.FC<{
    * Tenta primeiro com supabase.functions.invoke() (método recomendado).
    * Se falhar com 401, tenta com fetch direto incluindo o token explicitamente.
    */
-  const invokeEdgeFunction = async (functionName: string, params: any) => {
+  const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    try {
+      return await Promise.race<T>([
+        promise,
+        new Promise<T>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`${label} demorou além do esperado. Tente atualizar.`)), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+
+  const invokeEdgeFunction = async (functionName: string, params: any, timeoutMs = 12_000) => {
     // Sempre tentar renovar/validar a sessão antes (evita token expirado)
     const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
     const token = refreshData?.session?.access_token;
@@ -508,11 +557,15 @@ export const ContasPagarPage: React.FC<{
     }
 
     try {
-      const { data, error, response } = await supabase.functions.invoke(functionName, {
-        body: params,
-        // redundante, mas garante header mesmo se setAuth falhar por versão
-        headers: { Authorization: `Bearer ${token}` },
-      } as any);
+      const { data, error, response } = await withTimeout(
+        supabase.functions.invoke(functionName, {
+          body: params,
+          // redundante, mas garante header mesmo se setAuth falhar por versão
+          headers: { Authorization: `Bearer ${token}` },
+        } as any),
+        timeoutMs,
+        `A função ${functionName}`
+      );
       
       if (error) {
         const status =
@@ -536,16 +589,20 @@ export const ContasPagarPage: React.FC<{
     }
 
     // Método 2: Fetch direto com token explícito (fallback)
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Supabase Edge Functions espera apikey (anon key) e Authorization em vários cenários
-        apikey: SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(params),
-    });
+    const response = await withTimeout(
+      fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Supabase Edge Functions espera apikey (anon key) e Authorization em vários cenários
+          apikey: SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(params),
+      }),
+      timeoutMs,
+      `A função ${functionName}`
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -560,6 +617,8 @@ export const ContasPagarPage: React.FC<{
   const loadAuditAi = useCallback(
     async (force = false) => {
       if (mode !== 'todas' || !auditAiOpen) return;
+      const key = `${competenciaFiltro}|${unidadeFiltro}|${categoriaFiltro}|${comportamentoFiltro}|${tipoFiltro}`;
+      if (!force && auditAiKeyRef.current === key) return;
       setAuditAiLoading(true);
       setAuditAiError(null);
       try {
@@ -584,6 +643,7 @@ export const ContasPagarPage: React.FC<{
         const auditData = data as ContasAuditoriaAiRow & { cached?: boolean };
         setAuditAiCached(!!auditData?.cached);
         setAuditAiRow(auditData);
+        auditAiKeyRef.current = key;
       } catch (e: any) {
         setAuditAiRow(null);
         setAuditAiCached(false);
@@ -597,7 +657,9 @@ export const ContasPagarPage: React.FC<{
 
   const loadComparativoAi = useCallback(
     async (force = false) => {
-      if (mode !== 'comparativo') return;
+      if (mode !== 'comparativo' || !compAiOpen) return;
+      const key = `${competenciaFiltro}|${competenciaComparar}|${unidadeFiltro}|${categoriaFiltro}|${comportamentoFiltro}|${tipoFiltro}`;
+      if (!force && compAiKeyRef.current === key) return;
       setCompAiLoading(true);
       setCompAiError(null);
       try {
@@ -611,10 +673,11 @@ export const ContasPagarPage: React.FC<{
           force,
         };
 
-        const data = await invokeEdgeFunction('ai-contas-comparativo', params);
+        const data = await invokeEdgeFunction('ai-contas-comparativo', params, 20_000);
         const row = data as ContasComparativoAiRow & { cached?: boolean };
         setCompAiCached(!!(row as any)?.cached);
         setCompAiRow(row);
+        compAiKeyRef.current = key;
       } catch (e: any) {
         setCompAiRow(null);
         setCompAiCached(false);
@@ -623,13 +686,16 @@ export const ContasPagarPage: React.FC<{
         setCompAiLoading(false);
       }
     },
-    [mode, competenciaFiltro, competenciaComparar, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro]
+    [mode, compAiOpen, competenciaFiltro, competenciaComparar, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro]
   );
 
   useEffect(() => {
-    if (mode !== 'comparativo') return;
-    void loadComparativoAi(false);
-  }, [mode, competenciaFiltro, competenciaComparar, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, loadComparativoAi]);
+    if (mode !== 'comparativo' || !compAiOpen) return;
+    const timer = setTimeout(() => {
+      void loadComparativoAi(false);
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [mode, compAiOpen, competenciaFiltro, competenciaComparar, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, loadComparativoAi]);
 
   useEffect(() => {
     if (mode !== 'todas' || !auditAiOpen) return;
@@ -673,7 +739,7 @@ export const ContasPagarPage: React.FC<{
         .upsert(payload as any, { onConflict: 'competencia_ym,unidade,anomaly_key' });
       if (error) throw error;
 
-      await loadAnomaliaNotas();
+      await loadAnomaliaNotas(true);
       setAnotarSaved(true);
       setTimeout(() => setAnotarSaved(false), 2000);
     } catch (e) {
@@ -730,19 +796,21 @@ export const ContasPagarPage: React.FC<{
     void refetch();
   }, [refetch]);
 
-  // Realtime: auto-refresh on changes
+  // Realtime: auto-refresh on changes (debounced to avoid cascading refetches)
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedRefetch = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { void refetch(); }, 500);
+    };
     const channel = supabase
       .channel('contas-pagar-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contas_pagar' }, () => {
-        void refetch();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias_despesa' }, () => {
-        void refetch();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contas_pagar' }, debouncedRefetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias_despesa' }, debouncedRefetch)
       .subscribe();
 
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [refetch]);
@@ -868,37 +936,32 @@ export const ContasPagarPage: React.FC<{
     return contasParaTabelaVisaoGeral;
   }, [visaoOperacionalModo, calendarioDiaSelecionado, contasParaTabelaVisaoGeral]);
 
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorState message={error} onRetry={refetch} />;
-
-  if (mode === 'dashboard') {
+  // ── Dashboard: memoizar computações pesadas ──
+  const dashboardData = useMemo(() => {
     const [cy, cm] = competenciaFiltro.split('-');
     const prevDate = new Date(Number(cy), Number(cm) - 2, 1);
     const prevYM = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-    
-    const contasMes = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c) && matchesCompetencia(c));
-    const contasPrev = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c) && (() => {
+
+    const activeContas = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c));
+    const contasMes = activeContas.filter(matchesCompetencia);
+    const contasPrev = activeContas.filter((c) => {
       if (!c.competencia) return false;
       const [y, m] = c.competencia.split('-');
       return `${y}-${m}` === prevYM;
-    })());
+    });
 
     const totalMes = contasMes.reduce((s, c) => s + (Number(c.valor) || 0), 0);
     const totalPrev = contasPrev.reduce((s, c) => s + (Number(c.valor) || 0), 0);
-    
+
     const calcTrend = (curr: number, prev: number) => {
       const diff = curr - prev;
       const perc = prev > 0 ? (diff / prev) * 100 : 0;
-      return {
-        trend: perc > 0 ? 'up' as const : 'down' as const,
-        value: `${Math.abs(perc).toFixed(1)}%`
-      };
+      return { trend: perc > 0 ? 'up' as const : 'down' as const, value: `${Math.abs(perc).toFixed(1)}%` };
     };
 
     const totalTrend = calcTrend(totalMes, totalPrev);
     const lancTrend = calcTrend(contasMes.length, contasPrev.length);
 
-    // KPIs operacionais (os 7 cards do plano original)
     const pendentesMes = contasMes.filter((c) => c.status === 'pendente');
     const pagasMes = contasMes.filter((c) => c.status === 'pago');
     const totalPendenteMes = pendentesMes.reduce((s, c) => s + (Number(c.valor) || 0), 0);
@@ -909,83 +972,200 @@ export const ContasPagarPage: React.FC<{
     const totalVencendoHoje = vencendoHoje.reduce((s, c) => s + (Number(c.valor) || 0), 0);
 
     // Distribuição por categoria (Top 6 + Outros)
-    const categoryData = (() => {
-      const map = new Map<string, number>();
-      contasMes.forEach((c) => {
-        const key = c.categoria?.nome || 'Sem categoria';
-        map.set(key, (map.get(key) || 0) + (Number(c.valor) || 0));
-      });
-      const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-      const top = sorted.slice(0, 6);
-      const rest = sorted.slice(6).reduce((s, [, v]) => s + v, 0);
+    const catMap = new Map<string, number>();
+    contasMes.forEach((c) => {
+      const key = c.categoria?.nome || 'Sem categoria';
+      catMap.set(key, (catMap.get(key) || 0) + (Number(c.valor) || 0));
+    });
+    const sorted = Array.from(catMap.entries()).sort((a, b) => b[1] - a[1]);
+    const top = sorted.slice(0, 6);
+    const rest = sorted.slice(6).reduce((s, [, v]) => s + v, 0);
+    const palette = ['#a855f7', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#94a3b8'];
+    const catRows: Array<[string, number]> = [...top, ...(rest > 0 ? [['Outros', rest] as [string, number]] : [])];
+    const categoryData = catRows.map(([name, value], i) => ({ name, value, color: palette[i % palette.length] }));
 
-      const palette = ['#a855f7', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#94a3b8'];
-      const rows: Array<[string, number]> = [...top, ...(rest > 0 ? [['Outros', rest] as [string, number]] : [])];
-      return rows.map(([name, value], i) => ({
-        name,
-        value,
-        color: palette[i % palette.length],
-      }));
-    })();
-
-    // Evolução (JAN → DEZ do ano) — ENTRA SOMENTE O QUE ESTÁ PAGO.
-    // Assim, janeiro (pago) aparece e os meses seguintes caem para 0 (mesmo que existam pendentes/recorrências).
-    const evolutionData = (() => {
-      const months: string[] = [];
-      for (let month = 1; month <= 12; month++) {
-        months.push(`${cy}-${String(month).padStart(2, '0')}`);
-      }
-      return months.map((ym) => {
-        const rows = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c) && (() => {
-          if (!c.competencia) return false;
-          const [y, m] = c.competencia.split('-');
-          return `${y}-${m}` === ym;
-        })());
-        const totalPago = rows
-          .filter((r) => r.status === 'pago')
-          .reduce((s, r) => s + (Number(r.valor) || 0), 0);
-        return { 
-          periodo: formatCompetenciaLabel(ym), 
-          total: totalPago
-        };
+    // Evolução (JAN → DEZ do ano) — só pagos
+    const months: string[] = [];
+    for (let month = 1; month <= 12; month++) {
+      months.push(`${cy}-${String(month).padStart(2, '0')}`);
+    }
+    const evolutionData = months.map((ym) => {
+      const rows = activeContas.filter((c) => {
+        if (!c.competencia) return false;
+        const [y, m] = c.competencia.split('-');
+        return `${y}-${m}` === ym;
       });
-    })();
+      const totalPago = rows.filter((r) => r.status === 'pago').reduce((s, r) => s + (Number(r.valor) || 0), 0);
+      return { periodo: formatCompetenciaLabel(ym), total: totalPago };
+    });
 
     // Anomalias (Alertas)
-    const THRESHOLD = 20;
-    const anomalies = (() => {
-      const normalizeKey = (s: string) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
-      const keyFor = (c: ContaPagar) => `${c.unidade || 'todas'}|${c.categoria_id || 'sem_categoria'}|${normalizeKey(c.descricao || '')}`;
-      
-      const prevMap = new Map<string, number>();
-      contasPrev.forEach(c => prevMap.set(keyFor(c), (prevMap.get(keyFor(c)) || 0) + (Number(c.valor) || 0)));
-      
-      const currMap = new Map<string, { total: number, sample: ContaPagar }>();
-      contasMes.forEach(c => {
-        const k = keyFor(c);
-        const v = (currMap.get(k)?.total || 0) + (Number(c.valor) || 0);
-        currMap.set(k, { total: v, sample: c });
-      });
+    const THRESHOLD = COMPARATIVO_THRESHOLD;
+    const normalizeKey = (s: string) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+    const keyFor = (c: ContaPagar) => `${c.unidade || 'todas'}|${c.categoria_id || 'sem_categoria'}|${normalizeKey(c.descricao || '')}`;
 
-      const list: any[] = [];
-      currMap.forEach((data, k) => {
-        const prevVal = prevMap.get(k) || 0;
-        if (prevVal > 0) {
-          const diff = data.total - prevVal;
-          const p = (diff / prevVal) * 100;
-          if (Math.abs(p) >= THRESHOLD) {
-            list.push({
-              title: `Variação de ${p.toFixed(0)}% em ${data.sample.descricao}`,
-              description: `${data.sample.categoria?.nome || 'Conta'} na unidade ${(data.sample.unidade || 'Matriz').toUpperCase()}`,
-              variant: p > 0 ? 'rose' : 'emerald'
-            });
-          }
+    const prevMap = new Map<string, number>();
+    contasPrev.forEach(c => prevMap.set(keyFor(c), (prevMap.get(keyFor(c)) || 0) + (Number(c.valor) || 0)));
+
+    const currMap = new Map<string, { total: number, sample: ContaPagar }>();
+    contasMes.forEach(c => {
+      const k = keyFor(c);
+      const v = (currMap.get(k)?.total || 0) + (Number(c.valor) || 0);
+      currMap.set(k, { total: v, sample: c });
+    });
+
+    const anomalies: any[] = [];
+    currMap.forEach((data, k) => {
+      const prevVal = prevMap.get(k) || 0;
+      if (prevVal > 0) {
+        const diff = data.total - prevVal;
+        const p = (diff / prevVal) * 100;
+        if (Math.abs(p) >= THRESHOLD) {
+          anomalies.push({
+            title: `Variação de ${p.toFixed(0)}% em ${data.sample.descricao}`,
+            description: `${data.sample.categoria?.nome || 'Conta'} na unidade ${(data.sample.unidade || 'Matriz').toUpperCase()}`,
+            variant: p > 0 ? 'rose' : 'emerald'
+          });
         }
-      });
-      return list;
-    })();
+      }
+    });
 
-    return (
+    return {
+      contasMes, totalMes, totalPrev, totalTrend, lancTrend,
+      pendentesMes, pagasMes, totalPendenteMes, totalPagoMes,
+      vencendoHoje, totalVencendoHoje, categoryData, evolutionData, anomalies,
+    };
+  }, [contas, competenciaFiltro, matchesCommonFiltersNoSearch, matchesCompetencia, formatCompetenciaLabel]);
+
+  // ── Comparativo: memoizar computações pesadas ──
+  const comparativoData = useMemo(() => {
+    const normalizeKey = (s: string) =>
+      (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+
+    const keyFor = (c: ContaPagar) => {
+      const unidade = (c.unidade || 'todas') as string;
+      const cat = c.categoria_id || 'sem_categoria';
+      const desc = normalizeKey(c.descricao || '');
+      return `${unidade}|${cat}|${desc}`;
+    };
+
+    const base = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c));
+    const prevRows = base.filter(matchesCompetenciaComparar);
+    const currRows = base.filter(matchesCompetencia);
+
+    const sumByKey = (rows: ContaPagar[]) => {
+      const map = new Map<string, { total: number; sample: ContaPagar }>();
+      rows.forEach((c) => {
+        const k = keyFor(c);
+        const v = Number(c.valor) || 0;
+        const prev = map.get(k);
+        if (prev) prev.total += v;
+        else map.set(k, { total: v, sample: c });
+      });
+      return map;
+    };
+
+    const prevMap = sumByKey(prevRows);
+    const currMap = sumByKey(currRows);
+
+    const keys = new Set<string>([...Array.from(prevMap.keys()), ...Array.from(currMap.keys())]);
+    const variations = Array.from(keys).map((k) => {
+      const prev = prevMap.get(k)?.total || 0;
+      const curr = currMap.get(k)?.total || 0;
+      const sample = currMap.get(k)?.sample || prevMap.get(k)?.sample;
+      const diff = curr - prev;
+      const perc = prev > 0 ? (diff / prev) * 100 : curr > 0 ? 100 : 0;
+      const status = prev === 0 && curr > 0 ? 'NOVO' : curr === 0 && prev > 0 ? 'SAIU' : 'RECORRENTE';
+      return { key: k, unidade: (sample?.unidade || 'todas') as string, categoria: sample?.categoria?.nome || 'Sem categoria', descricao: sample?.descricao || '', prev, curr, diff, perc, status };
+    });
+
+    const totalPrev = variations.reduce((s, v) => s + v.prev, 0);
+    const totalCurr = variations.reduce((s, v) => s + v.curr, 0);
+    const totalDiff = totalCurr - totalPrev;
+    const totalPerc = totalPrev > 0 ? (totalDiff / totalPrev) * 100 : 0;
+
+    const anomalies = variations
+      .filter((v) => v.status === 'RECORRENTE' && Math.abs(v.perc) >= COMPARATIVO_THRESHOLD && v.prev > 0 && v.curr > 0)
+      .sort((a, b) => Math.abs(b.perc) - Math.abs(a.perc));
+
+    return { variations, totalPrev, totalCurr, totalDiff, totalPerc, anomalies };
+  }, [contas, matchesCommonFiltersNoSearch, matchesCompetenciaComparar, matchesCompetencia]);
+
+  // ── Shell: header + tab bar (renderizado UMA vez, sem re-render do App.tsx) ──
+  const { title: tabTitle, subtitle: tabSubtitle } = CONTAS_TITLES[mode];
+  const tabBarIdx = CONTAS_TABS.findIndex(t => t.id === mode);
+
+  const renderWithShell = (content: React.ReactNode) => (
+    <>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-2xl font-black text-white">{tabTitle}</h2>
+          <p className="text-sm text-slate-500 font-bold mt-1">{tabSubtitle}</p>
+        </div>
+      </div>
+
+      {/* Desktop Tab Bar */}
+      <div className="hidden lg:block border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm mb-6">
+        <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
+          {CONTAS_TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setMode(tab.id)}
+              className={cn(
+                'relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group',
+                mode === tab.id ? 'text-violet-400' : 'text-slate-500 hover:text-slate-200'
+              )}
+            >
+              <tab.icon size={16} className={cn('transition-colors', mode === tab.id ? 'text-violet-400' : 'text-slate-600 group-hover:text-slate-400')} />
+              {tab.label}
+              {mode === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Mobile Tab Bar */}
+      <div className="lg:hidden mb-6">
+        <div className="relative flex bg-[#0f172a] p-1 rounded-xl border border-slate-800/50 shadow-inner overflow-hidden">
+          <div
+            className="absolute top-1.5 bottom-1.5 transition-all duration-500 bg-slate-800/80 rounded-lg border border-slate-700/30 shadow-lg"
+            style={{
+              width: `calc(${100 / CONTAS_TABS.length}% - 10px)`,
+              left: `calc(${(tabBarIdx * 100) / CONTAS_TABS.length}% + 5px)`,
+            }}
+          />
+          {CONTAS_TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setMode(tab.id)}
+              className={cn(
+                'relative z-10 flex-1 py-3 font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap text-[10px]',
+                mode === tab.id ? 'text-violet-400 scale-[1.02]' : 'text-slate-500 hover:text-slate-200'
+              )}
+            >
+              {tab.shortLabel}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {content}
+    </>
+  );
+
+  if (loading) return renderWithShell(<LoadingSpinner />);
+  if (error) return renderWithShell(<ErrorState message={error} onRetry={refetch} />);
+
+  if (mode === 'dashboard') {
+    const {
+      totalMes, totalTrend, totalPendenteMes, pendentesMes, totalPagoMes, pagasMes,
+      totalVencendoHoje, vencendoHoje, categoryData, evolutionData, anomalies,
+    } = dashboardData;
+
+    return renderWithShell(
       <div className="w-full animate-in fade-in slide-in-from-top-4 duration-500">
         {/* Mobile: Controles (unidade + ações) — rollback */}
         <div className="lg:hidden flex flex-col gap-3 mb-6">
@@ -1226,72 +1406,9 @@ export const ContasPagarPage: React.FC<{
   }
 
   if (mode === 'comparativo') {
-    const normalizeKey = (s: string) =>
-      (s || '')
-        .trim()
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/\s+/g, ' ');
+    const { variations, totalPrev, totalCurr, totalDiff, totalPerc, anomalies } = comparativoData;
 
-    const keyFor = (c: ContaPagar) => {
-      const unidade = (c.unidade || 'todas') as string;
-      const cat = c.categoria_id || 'sem_categoria';
-      const desc = normalizeKey(c.descricao || '');
-      return `${unidade}|${cat}|${desc}`;
-    };
-
-    const base = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c));
-    const prevRows = base.filter(matchesCompetenciaComparar);
-    const currRows = base.filter(matchesCompetencia);
-
-    const sumByKey = (rows: ContaPagar[]) => {
-      const map = new Map<string, { total: number; sample: ContaPagar }>();
-      rows.forEach((c) => {
-        const k = keyFor(c);
-        const v = Number(c.valor) || 0;
-        const prev = map.get(k);
-        if (prev) prev.total += v;
-        else map.set(k, { total: v, sample: c });
-      });
-      return map;
-    };
-
-    const prevMap = sumByKey(prevRows);
-    const currMap = sumByKey(currRows);
-
-    const keys = new Set<string>([...Array.from(prevMap.keys()), ...Array.from(currMap.keys())]);
-    const variations = Array.from(keys).map((k) => {
-      const prev = prevMap.get(k)?.total || 0;
-      const curr = currMap.get(k)?.total || 0;
-      const sample = currMap.get(k)?.sample || prevMap.get(k)?.sample;
-      const diff = curr - prev;
-      const perc = prev > 0 ? (diff / prev) * 100 : curr > 0 ? 100 : 0;
-      const status = prev === 0 && curr > 0 ? 'NOVO' : curr === 0 && prev > 0 ? 'SAIU' : 'RECORRENTE';
-      return {
-        key: k,
-        unidade: (sample?.unidade || 'todas') as string,
-        categoria: sample?.categoria?.nome || 'Sem categoria',
-        descricao: sample?.descricao || '',
-        prev,
-        curr,
-        diff,
-        perc,
-        status,
-      };
-    });
-
-    const totalPrev = variations.reduce((s, v) => s + v.prev, 0);
-    const totalCurr = variations.reduce((s, v) => s + v.curr, 0);
-    const totalDiff = totalCurr - totalPrev;
-    const totalPerc = totalPrev > 0 ? (totalDiff / totalPrev) * 100 : 0;
-
-    const THRESHOLD = 20;
-    const anomalies = variations
-      .filter((v) => v.status === 'RECORRENTE' && Math.abs(v.perc) >= THRESHOLD && v.prev > 0 && v.curr > 0)
-      .sort((a, b) => Math.abs(b.perc) - Math.abs(a.perc));
-
-    return (
+    return renderWithShell(
       <div className="w-full animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
@@ -1605,9 +1722,9 @@ export const ContasPagarPage: React.FC<{
                       </td>
                       <td className={cn('px-6 py-4 text-right font-black', 
                         v.status !== 'RECORRENTE' ? 'text-white' : 
-                        Math.abs(v.perc) >= THRESHOLD ? (v.perc > 0 ? 'text-rose-400' : 'text-emerald-400') : 'text-slate-400')}>
+                        Math.abs(v.perc) >= COMPARATIVO_THRESHOLD ? (v.perc > 0 ? 'text-rose-400' : 'text-emerald-400') : 'text-slate-400')}>
                         <div className="flex items-center justify-end gap-1">
-                          {v.status === 'RECORRENTE' && Math.abs(v.perc) >= THRESHOLD && (
+                          {v.status === 'RECORRENTE' && Math.abs(v.perc) >= COMPARATIVO_THRESHOLD && (
                             v.perc > 0 ? <TrendingUp size={12} className="text-rose-400" /> : <TrendingUp size={12} className="text-emerald-400 rotate-180" />
                           )}
                           {v.status === 'NOVO' ? '+100%' : v.status === 'SAIU' ? '-100%' : `${v.perc >= 0 ? '+' : ''}${v.perc.toFixed(1)}%`}
@@ -1673,8 +1790,8 @@ export const ContasPagarPage: React.FC<{
                       <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest block mb-0.5">Variação</span>
                       <div className={cn('inline-flex items-center gap-1 px-2 py-1 rounded-lg font-black text-xs', 
                         v.status !== 'RECORRENTE' ? 'bg-slate-800 text-white' : 
-                        Math.abs(v.perc) >= THRESHOLD ? (v.perc > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400') : 'bg-slate-800/50 text-slate-400')}>
-                        {v.status === 'RECORRENTE' && Math.abs(v.perc) >= THRESHOLD && (
+                        Math.abs(v.perc) >= COMPARATIVO_THRESHOLD ? (v.perc > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400') : 'bg-slate-800/50 text-slate-400')}>
+                        {v.status === 'RECORRENTE' && Math.abs(v.perc) >= COMPARATIVO_THRESHOLD && (
                           v.perc > 0 ? <TrendingUp size={14} /> : <TrendingUp size={14} className="rotate-180" />
                         )}
                         {v.status === 'NOVO' ? '+100%' : v.status === 'SAIU' ? '-100%' : `${v.perc >= 0 ? '+' : ''}${v.perc.toFixed(1)}%`}
@@ -1690,7 +1807,7 @@ export const ContasPagarPage: React.FC<{
   }
 
   if (mode === 'categorias') {
-    return (
+    return renderWithShell(
       <div className="w-full">
         <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
           <button
@@ -1838,7 +1955,7 @@ export const ContasPagarPage: React.FC<{
   if (mode === 'todas') {
     const auditRows = contasAudit.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado');
     const auditCount = auditRows.length;
-    return (
+    return renderWithShell(
       <div className="w-full">
         {/* MOBILE: Controles Simplificados (Unidades + Visão) */}
         <div className="lg:hidden flex flex-col gap-3 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
@@ -2427,7 +2544,7 @@ export const ContasPagarPage: React.FC<{
     );
   }
 
-  return (
+  return renderWithShell(
     <div className="w-full">
       {/* Mobile: Command Bar (premium) */}
       <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 pt-3 pb-3 bg-[#060814]/70 backdrop-blur-xl border-b border-white/5 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">

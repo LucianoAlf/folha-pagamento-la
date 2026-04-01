@@ -9,6 +9,7 @@ import {
   Calendar,
   CalendarCheck,
   Bell,
+  UserCheck,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -16,8 +17,45 @@ import {
 } from 'lucide-react';
 
 const SIDEBAR_COLLAPSED_KEY = 'la-music-sidebar-collapsed';
+const FERIAS_BADGE_TTL_MS = 60_000;
 
-type ModuleId = 'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias';
+let feriasBadgeCache: { at: number; vencidos: number; proximos: number } | null = null;
+let feriasBadgeInFlight: Promise<{ vencidos: number; proximos: number }> | null = null;
+
+const getFeriasBadgeCounts = async (): Promise<{ vencidos: number; proximos: number }> => {
+  const now = Date.now();
+  if (feriasBadgeCache && now - feriasBadgeCache.at < FERIAS_BADGE_TTL_MS) {
+    return { vencidos: feriasBadgeCache.vencidos, proximos: feriasBadgeCache.proximos };
+  }
+
+  if (feriasBadgeInFlight) return feriasBadgeInFlight;
+
+  feriasBadgeInFlight = (async () => {
+    const { feriasService } = await import('../services/feriasService');
+    const colaboradores = await feriasService.fetchColaboradoresStatus();
+
+    const vencidos = colaboradores.filter((c) => c.tem_ferias_vencidas).length;
+    const proximos = colaboradores.filter((c) => {
+      if (c.tem_ferias_vencidas || !c.proxima_expiracao) return false;
+      const diasRestantes = Math.ceil(
+        (new Date(c.proxima_expiracao).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24)
+      );
+      return diasRestantes > 0 && diasRestantes <= 30;
+    }).length;
+
+    feriasBadgeCache = { at: Date.now(), vencidos, proximos };
+    return { vencidos, proximos };
+  })();
+
+  try {
+    return await feriasBadgeInFlight;
+  } finally {
+    feriasBadgeInFlight = null;
+  }
+};
+
+type ModuleId = 'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
 type FolhaPageId = 'dashboard' | 'colaboradores' | 'lancamentos' | 'comparativo';
 
 export interface SidebarNavigate {
@@ -73,19 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   useEffect(() => {
     const fetchFeriasStatus = async () => {
       try {
-        const { feriasService } = await import('../services/feriasService');
-        const colaboradores = await feriasService.fetchColaboradoresStatus();
-
-        const vencidos = colaboradores.filter((c) => c.tem_ferias_vencidas).length;
-        const proximos = colaboradores.filter((c) => {
-          if (c.tem_ferias_vencidas || !c.proxima_expiracao) return false;
-          const diasRestantes = Math.ceil(
-            (new Date(c.proxima_expiracao).getTime() - Date.now()) /
-              (1000 * 60 * 60 * 24)
-          );
-          return diasRestantes > 0 && diasRestantes <= 30;
-        }).length;
-
+        const { vencidos, proximos } = await getFeriasBadgeCounts();
         setFeriasVencidas(vencidos);
         setFeriasProximasVencer(proximos);
       } catch (err) {
@@ -137,6 +163,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         id: 'notificacoes' as const,
         label: 'Notificações',
         icon: Bell,
+        disabled: false,
+      },
+      {
+        id: 'rh' as const,
+        label: 'Jornada RH',
+        icon: UserCheck,
         disabled: false,
       },
     ],
