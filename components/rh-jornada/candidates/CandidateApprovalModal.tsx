@@ -91,7 +91,7 @@ export const CandidateApprovalModal: React.FC<{
       isOpen={!!candidate}
       onClose={onClose}
       title="Aprovar candidato"
-      subtitle="Converta o candidato em colaborador e, se quiser, já abra a integração."
+      subtitle="Converta o candidato em colaborador e, se quiser, já abra o onboarding."
       className="max-w-4xl"
       footer={
         <div className="flex items-center justify-between gap-3">
@@ -190,7 +190,7 @@ export const CandidateApprovalModal: React.FC<{
         <div className="rounded-3xl border border-slate-800 bg-slate-950/30 p-5">
           <div className="flex items-center gap-3 mb-4">
             <input id="create-onboarding-now" type="checkbox" checked={createOnboardingNow} onChange={(e) => setCreateOnboardingNow(e.target.checked)} className="accent-violet-500" />
-            <label htmlFor="create-onboarding-now" className="text-sm font-black text-white">Criar integração agora</label>
+            <label htmlFor="create-onboarding-now" className="text-sm font-black text-white">Criar onboarding agora</label>
           </div>
 
           {createOnboardingNow ? (
@@ -200,7 +200,7 @@ export const CandidateApprovalModal: React.FC<{
                 <CustomSelect value={templateId} onValueChange={setTemplateId} options={templateOptions} placeholder="Selecione..." />
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Início da integração</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Início do onboarding</div>
                 <DatePicker value={onboardingInicio} onChange={setOnboardingInicio} />
               </div>
               <div>
@@ -208,7 +208,7 @@ export const CandidateApprovalModal: React.FC<{
                 <DatePicker value={onboardingFim} onChange={setOnboardingFim} />
               </div>
               <div className="md:col-span-2">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Observações da integração</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Observações do onboarding</div>
                 <textarea
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}

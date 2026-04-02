@@ -151,7 +151,7 @@ export const CandidatosTab: React.FC = () => {
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Aprovados</div>
           <div className="mt-2 text-3xl font-black text-emerald-300">{counts.aprovado || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Prontos para integração</div>
+          <div className="mt-1 text-xs font-bold text-slate-400">Prontos para onboarding</div>
         </Card>
       </div>
 

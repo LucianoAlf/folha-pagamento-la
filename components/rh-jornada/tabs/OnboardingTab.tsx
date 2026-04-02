@@ -70,7 +70,7 @@ const OnboardingCreateModal: React.FC<{
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Nova integração"
+      title="Novo onboarding"
       subtitle="Crie a jornada de entrada a partir de um colaborador e do modelo oficial."
       className="max-w-3xl"
       footer={
@@ -97,7 +97,7 @@ const OnboardingCreateModal: React.FC<{
                   data_inicio: dataInicio,
                   data_fim_prevista: dataFim || null,
                   prioridade: prioridade as any,
-                  titulo: titulo.trim() || `Integração - ${selectedColaborador.nome}`,
+                  titulo: titulo.trim() || `Onboarding - ${selectedColaborador.nome}`,
                   cargo: selectedColaborador.funcao,
                   tipo_vinculo: selectedColaborador.tipo,
                   observacoes: observacoes.trim() || null,
@@ -108,7 +108,7 @@ const OnboardingCreateModal: React.FC<{
                 await onCreated();
                 onClose();
               } catch (err: any) {
-                setError(err?.message || 'Não foi possível criar a integração.');
+                setError(err?.message || 'Não foi possível criar o onboarding.');
               } finally {
                 setSaving(false);
               }
@@ -119,7 +119,7 @@ const OnboardingCreateModal: React.FC<{
             )}
           >
             <Plus className="w-4 h-4" />
-            Criar integração
+            Criar onboarding
           </button>
         </div>
       }
@@ -152,7 +152,7 @@ const OnboardingCreateModal: React.FC<{
             <input
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Ex: Integração João Silva"
+              placeholder="Ex: Onboarding João Silva"
               className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
             />
           </div>
@@ -163,7 +163,7 @@ const OnboardingCreateModal: React.FC<{
               onChange={(e) => setObservacoes(e.target.value)}
               rows={4}
               className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none"
-              placeholder="Anotações da admissão, mentor, prioridades ou contexto da integração"
+              placeholder="Anotações da admissão, mentor, prioridades ou contexto do onboarding"
             />
           </div>
         </div>
@@ -213,7 +213,7 @@ export const OnboardingTab: React.FC = () => {
       setColaboradores(nextColaboradores);
       setSelectedProcessId((prev) => prev || nextProcesses[0]?.id || null);
     } catch (err: any) {
-      setError(err?.message || 'Não foi possível carregar as integrações.');
+      setError(err?.message || 'Não foi possível carregar os onboardings.');
     } finally {
       setLoading(false);
     }
@@ -252,7 +252,7 @@ export const OnboardingTab: React.FC = () => {
     () => processes.filter((process) => !['concluido', 'cancelado'].includes(process.status)).length,
     [processes]
   );
-  const selectedProcessContext = selectedProcess?.titulo || 'Selecione uma integração';
+  const selectedProcessContext = selectedProcess?.titulo || 'Selecione um onboarding';
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={loadData} />;
@@ -263,7 +263,7 @@ export const OnboardingTab: React.FC = () => {
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Ativos</div>
           <div className="mt-2 text-3xl font-black text-white">{activeProcessesCount}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Integrações em andamento</div>
+          <div className="mt-1 text-xs font-bold text-slate-400">Onboardings em andamento</div>
         </Card>
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Etapas</div>
@@ -285,7 +285,7 @@ export const OnboardingTab: React.FC = () => {
       <Card className="p-5 border border-slate-700/50">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-white text-lg font-black">Integrações ativas</div>
+            <div className="text-white text-lg font-black">Onboardings ativos</div>
             <div className="text-sm font-bold text-slate-400">Crie a jornada de entrada e acompanhe o avanço por etapa.</div>
           </div>
           <button
@@ -294,7 +294,7 @@ export const OnboardingTab: React.FC = () => {
             className="px-5 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black flex items-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
-            Nova integração
+            Novo onboarding
           </button>
         </div>
       </Card>
@@ -304,7 +304,7 @@ export const OnboardingTab: React.FC = () => {
           <div className="mx-auto w-14 h-14 rounded-3xl bg-slate-800/70 flex items-center justify-center mb-4">
             <Users className="w-6 h-6 text-slate-400" />
           </div>
-          <div className="text-white font-black">Nenhuma integração criada</div>
+          <div className="text-white font-black">Nenhum onboarding criado</div>
           <div className="mt-2 text-sm font-bold text-slate-400">Use o modelo oficial para abrir o primeiro processo de entrada.</div>
         </Card>
       ) : (
