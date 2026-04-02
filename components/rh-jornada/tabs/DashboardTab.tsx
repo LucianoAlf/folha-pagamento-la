@@ -17,18 +17,17 @@ export const DashboardTab: React.FC = () => {
   const [developmentHealth, setDevelopmentHealth] = useState<RhDevelopmentHealthSnapshot | null>(null);
 
   const loadData = async () => {
-    setLoading(true);
+    const shouldBlock = !kpis && !pdiKpis && alerts.length === 0 && pendingDocuments.length === 0 && myQueue.length === 0;
+    if (shouldBlock) setLoading(true);
     setError(null);
     try {
-      const [nextKpis, nextPdiKpis, nextAlerts, nextPendingDocuments, nextMyQueue, nextRecentEvents, nextAiInsight, nextDevelopmentHealth] = await Promise.all([
+      const [nextKpis, nextPdiKpis, nextAlerts, nextPendingDocuments, nextMyQueue, nextRecentEvents] = await Promise.all([
         rhJornadaService.fetchDashboardKpis(),
         rhJornadaService.fetchPdiDashboardKpis(),
         rhJornadaService.fetchCriticalAlerts(),
         rhJornadaService.fetchPendingDocumentsView(),
         rhJornadaService.fetchMyQueue(),
         rhJornadaService.fetchRecentHistory(8),
-        rhJornadaService.fetchDashboardAiInsights().catch(() => null),
-        rhJornadaService.fetchDevelopmentHealthSnapshot().catch(() => null),
       ]);
       setKpis(nextKpis);
       setPdiKpis(nextPdiKpis);
@@ -36,8 +35,13 @@ export const DashboardTab: React.FC = () => {
       setPendingDocuments(nextPendingDocuments.slice(0, 8));
       setMyQueue(nextMyQueue.slice(0, 6));
       setRecentEvents(nextRecentEvents);
-      setAiInsight(nextAiInsight);
-      setDevelopmentHealth(nextDevelopmentHealth);
+      void Promise.all([
+        rhJornadaService.fetchDashboardAiInsights().catch(() => null),
+        rhJornadaService.fetchDevelopmentHealthSnapshot().catch(() => null),
+      ]).then(([nextAiInsight, nextDevelopmentHealth]) => {
+        setAiInsight(nextAiInsight);
+        setDevelopmentHealth(nextDevelopmentHealth);
+      });
     } catch (err: any) {
       setError(err?.message || 'Nao foi possivel carregar o dashboard RH.');
     } finally {
@@ -54,9 +58,9 @@ export const DashboardTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-10 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4">
         <Card className="p-5 border border-slate-700/50"><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Recrutamentos</div><div className="mt-2 text-3xl font-black text-white">{kpis?.recrutamentos_ativos || 0}</div><div className="mt-1 text-xs font-bold text-slate-400">Ativos</div></Card>
-        <Card className="p-5 border border-slate-700/50"><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Onboardings</div><div className="mt-2 text-3xl font-black text-white">{kpis?.onboardings_ativos || 0}</div><div className="mt-1 text-xs font-bold text-slate-400">Em andamento</div></Card>
+        <Card className="p-5 border border-slate-700/50"><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Integrações</div><div className="mt-2 text-3xl font-black text-white">{kpis?.onboardings_ativos || 0}</div><div className="mt-1 text-xs font-bold text-slate-400">Em andamento</div></Card>
         <Card className="p-5 border border-slate-700/50"><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Desligamentos</div><div className="mt-2 text-3xl font-black text-white">{kpis?.desligamentos_ativos || 0}</div><div className="mt-1 text-xs font-bold text-slate-400">Abertos</div></Card>
         <Card className="p-5 border border-slate-700/50"><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Documentos</div><div className="mt-2 text-3xl font-black text-amber-300">{kpis?.documentos_pendentes || 0}</div><div className="mt-1 text-xs font-bold text-slate-400">Pendentes</div></Card>
         <Card className="p-5 border border-slate-700/50"><div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Criticos</div><div className="mt-2 text-3xl font-black text-rose-300">{myCriticalCount}</div><div className="mt-1 text-xs font-bold text-slate-400">Atrasados</div></Card>

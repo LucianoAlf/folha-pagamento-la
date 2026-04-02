@@ -178,14 +178,28 @@ Evidencias:
 
 ## O que ainda depende de validacao humana real
 
-- QA por papeis reais:
-  - `rh`
-  - `gestor`
-  - `mentor`
-  - `avaliador`
-  - `financeiro`
-- chamada autenticada das funcoes de IA com usuario real
 - revisao funcional manual da UX com a Ana
+- aceite operacional final de go-live
+
+## Hardening multiusuario concluido
+
+Foi executada uma rodada complementar de homologacao com usuarios reais HML no Auth:
+
+- `hml.rh@la.local`
+- `hml.gestor@la.local`
+- `hml.mentor@la.local`
+- `hml.avaliador@la.local`
+- `hml.financeiro@la.local`
+
+Validacoes concluidas:
+
+- `rh` conseguiu acessar candidatos, templates, comentarios e a IA da jornada
+- `gestor` conseguiu visualizar apenas os processos/jornadas/PDIs pertinentes e registrar feedback
+- `mentor` conseguiu atuar nas etapas e registrar evidencia no PDI
+- `avaliador` conseguiu registrar avaliacao sem ganhar acesso indevido ao PDI
+- `financeiro` conseguiu atuar no desligamento sem visibilidade indevida de jornada ou PDI
+- a Edge Function `rh-ai-journey-insights` foi homologada com acesso permitido para `rh` e bloqueio validado para `gestor`
+- foi aplicada uma migracao de hardening multirole para alinhar RLS com os papeis operacionais reais
 
 ## Conclusao
 
@@ -197,4 +211,6 @@ O modulo pode ser considerado:
 - `validado tecnicamente`
 - `homologado de ponta a ponta com massa controlada`
 
-O unico passo restante para chamar de `100% homologado em producao` e rodar a validacao humana com usuarios reais por papel.
+O modulo pode ser considerado `homologado tecnicamente e multiusuario em ambiente controlado`.
+
+O passo restante antes de um go-live pleno e apenas a validacao humana final da UX/operacao com a Ana.

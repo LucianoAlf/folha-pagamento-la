@@ -175,11 +175,21 @@ Deno.serve(async (req: Request) => {
     const pdfBytes = buildPdf(lines);
     const fileName = `${tipoDocumento}-${Date.now()}.pdf`;
     const storagePath = `processos/${processId}/gerados/${fileName}`;
+    const documentBlob = new Blob([pdfBytes], { type: "application/pdf" });
 
     const { error: uploadError } = await adminClient.storage
       .from("rh-documentos")
-      .upload(storagePath, pdfBytes, { contentType: "application/pdf", upsert: true });
+      .upload(storagePath, documentBlob, { contentType: "application/pdf", upsert: true });
     if (uploadError) return jsonResponse({ error: uploadError.message }, 500);
+
+    const generatedFolder = `processos/${processId}/gerados`;
+    const { data: storedObjects, error: listError } = await adminClient.storage
+      .from("rh-documentos")
+      .list(generatedFolder, { search: fileName, limit: 1 });
+    if (listError) return jsonResponse({ error: listError.message }, 500);
+    if (!storedObjects?.some((item) => item.name === fileName)) {
+      return jsonResponse({ error: "O documento foi registrado, mas nao foi encontrado no bucket privado." }, 500);
+    }
 
     const { data: generatedDoc, error: insertError } = await adminClient
       .from("rh_documentos_gerados")

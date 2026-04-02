@@ -10,6 +10,12 @@ const buildStageTaskTitle = (process: RhProcess, stage: RhStage) => {
   return `Jornada RH: ${process.titulo} - ${stage.titulo}`;
 };
 
+const getStageDueDateTime = (stage: RhStage) => {
+  if (stage.agendado_em) return stage.agendado_em;
+  if (stage.data_limite) return `${stage.data_limite}T09:00:00`;
+  return null;
+};
+
 const findMirrorTask = async (vinculoTipo: 'rh_processo' | 'rh_etapa' | 'rh_pdi_checkpoint', vinculoId: string) => {
   const { data, error } = await supabase
     .from('tarefas')
@@ -56,7 +62,7 @@ export const rhAgendaSyncService = {
     return createRhAgendaMirrorTask({
       titulo: buildStageTaskTitle(process, stage),
       descricao: `Etapa ${stage.categoria} em ${stage.status}.`,
-      vencimento_em: stage.data_limite ? `${stage.data_limite}T09:00:00` : null,
+      vencimento_em: getStageDueDateTime(stage),
       categoria: 'rh',
       prioridade: stage.status === 'atrasada' ? 'urgente' : 'media',
       vinculo_tipo: 'rh_etapa',
@@ -68,7 +74,7 @@ export const rhAgendaSyncService = {
     return updateRhAgendaMirrorTask(taskId, {
       titulo: buildStageTaskTitle(process, stage),
       descricao: `Etapa ${stage.categoria} em ${stage.status}.`,
-      vencimento_em: stage.data_limite ? `${stage.data_limite}T09:00:00` : null,
+      vencimento_em: getStageDueDateTime(stage),
       prioridade: stage.status === 'atrasada' ? 'urgente' : 'media',
     });
   },

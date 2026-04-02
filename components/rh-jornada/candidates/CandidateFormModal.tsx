@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, FileSearch, Loader2, Plus, Sparkles, UserPlus } from 'lucide-react';
 import { CustomSelect, Modal } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
-import type { RhCandidateAiDraft, RhCandidateCreateInput } from '../../../types/rh';
+import type { RhCandidate, RhCandidateAiDraft, RhCandidateCreateInput } from '../../../types/rh';
 import { cn } from '../../CollaboratorComponents';
 
 const VINCULO_OPTIONS = [
@@ -25,11 +25,12 @@ const ORIGEM_OPTIONS = [
 export const CandidateFormModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
+  candidate?: RhCandidate | null;
   onConfirm: (
     payload: RhCandidateCreateInput,
     options?: { curriculumFile?: File | null; curriculoTextoExtraido?: string | null }
   ) => Promise<void>;
-}> = ({ isOpen, onClose, onConfirm }) => {
+}> = ({ isOpen, onClose, candidate, onConfirm }) => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -76,6 +77,30 @@ export const CandidateFormModal: React.FC<{
     setTried(false);
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+    setNome(candidate?.nome || '');
+    setEmail(candidate?.email || '');
+    setTelefone(candidate?.telefone || '');
+    setCpf(candidate?.cpf || '');
+    setCargoPretendido(candidate?.cargo_pretendido || '');
+    setTipoVinculo(candidate?.tipo_vinculo_pretendido || '');
+    setOrigem(candidate?.origem || '');
+    setQuestionarioResumo(candidate?.questionario_resumo || '');
+    setQuestionarioTexto(
+      typeof candidate?.questionario_respostas?.texto_bruto === 'string'
+        ? String(candidate.questionario_respostas.texto_bruto)
+        : ''
+    );
+    setObservacoes(candidate?.observacoes || '');
+    setCurriculumFile(null);
+    setAnalyzing(false);
+    setAiDraft(null);
+    setSaving(false);
+    setError(null);
+    setTried(false);
+  }, [isOpen, candidate?.id]);
+
   if (!isOpen) return null;
 
   return (
@@ -85,8 +110,8 @@ export const CandidateFormModal: React.FC<{
         resetState();
         onClose();
       }}
-      title="Novo candidato"
-      subtitle="Cadastre o perfil inicial para iniciar o recrutamento estruturado."
+      title={candidate ? 'Editar candidato' : 'Novo candidato'}
+      subtitle={candidate ? 'Atualize o cadastro-base sem perder o histórico do recrutamento.' : 'Cadastre o perfil inicial para iniciar o recrutamento estruturado.'}
       className="max-w-3xl"
       footer={
         <div className="flex flex-col gap-3 w-full">
@@ -152,7 +177,7 @@ export const CandidateFormModal: React.FC<{
               )}
             >
               {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus className="w-4 h-4" />}
-              Criar candidato
+              {candidate ? 'Salvar candidato' : 'Criar candidato'}
             </button>
           </div>
         </div>
@@ -164,7 +189,9 @@ export const CandidateFormModal: React.FC<{
             <UserPlus className="w-5 h-5" />
           </div>
           <div className="text-sm font-bold text-slate-200">
-            Este cadastro cria a base do candidato em `rh_candidatos`. O processo de recrutamento seguirá em `rh_processos`.
+            {candidate
+              ? 'Edite os dados-base do candidato em `rh_candidatos` e mantenha o recrutamento já materializado consistente.'
+              : 'Este cadastro cria a base do candidato em `rh_candidatos`. O processo de recrutamento seguirá em `rh_processos`.'}
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Briefcase, CheckCircle2, FileSearch, Filter, Loader2, Mail, Phone, Plus, Sparkles, UserPlus, XCircle } from 'lucide-react';
+import { Archive, Briefcase, CheckCircle2, FileSearch, Filter, Loader2, Mail, Pencil, Phone, Plus, Sparkles, UserPlus, XCircle } from 'lucide-react';
 import { Badge, Card, CustomSelect, ErrorState, LoadingSpinner } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhCandidate, RhCandidateComparisonResult, RhCandidateStatus, RhProcess, RhStage, RhTemplate } from '../../../types/rh';
@@ -33,6 +33,7 @@ export const CandidatosTab: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingCandidate, setEditingCandidate] = useState<RhCandidate | null>(null);
   const [approvalOpen, setApprovalOpen] = useState<RhCandidate | null>(null);
   const [onboardingTemplates, setOnboardingTemplates] = useState<RhTemplate[]>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
@@ -150,7 +151,7 @@ export const CandidatosTab: React.FC = () => {
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Aprovados</div>
           <div className="mt-2 text-3xl font-black text-emerald-300">{counts.aprovado || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Prontos para onboarding</div>
+          <div className="mt-1 text-xs font-bold text-slate-400">Prontos para integração</div>
         </Card>
       </div>
 
@@ -331,6 +332,30 @@ export const CandidatosTab: React.FC = () => {
               >
                 Salvar status do candidato
               </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingCandidate(selectedCandidate)}
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 transition-all flex items-center justify-center gap-2"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Editar cadastro
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!selectedCandidate) return;
+                    const confirmed = window.confirm(`Arquivar o candidato ${selectedCandidate.nome}?`);
+                    if (!confirmed) return;
+                    await rhJornadaService.archiveCandidate(selectedCandidate.id, 'Arquivado manualmente pela operação RH.');
+                    await loadCandidates();
+                  }}
+                  className="w-full px-4 py-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all flex items-center justify-center gap-2"
+                >
+                  <Archive className="w-4 h-4" />
+                  Arquivar candidato
+                </button>
+              </div>
             </div>
 
             <div className="mt-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
@@ -395,7 +420,7 @@ export const CandidatosTab: React.FC = () => {
                   <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Processo de recrutamento</div>
                   <div className="mt-2 text-white text-xl font-black">{selectedProcess?.titulo || 'Processo ainda não materializado'}</div>
                   <div className="mt-1 text-sm font-bold text-slate-400">
-                    {selectedProcess ? `${selectedProcess.status} • ${selectedProcess.prioridade}` : 'Crie um template de recrutamento para materialização automática.'}
+                    {selectedProcess ? `${selectedProcess.status} • ${selectedProcess.prioridade}` : 'Crie um modelo de recrutamento para materialização automática.'}
                   </div>
                 </div>
                 {selectedProcess ? <Badge variant="purple">Recrutamento</Badge> : null}
@@ -445,10 +470,18 @@ export const CandidatosTab: React.FC = () => {
       ) : null}
 
       <CandidateFormModal
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
+        isOpen={createOpen || !!editingCandidate}
+        candidate={editingCandidate}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditingCandidate(null);
+        }}
         onConfirm={async (payload, options) => {
-          await rhJornadaService.createCandidate(payload, options);
+          if (editingCandidate) {
+            await rhJornadaService.updateCandidate(editingCandidate.id, payload);
+          } else {
+            await rhJornadaService.createCandidate(payload, options);
+          }
           await loadCandidates();
         }}
       />

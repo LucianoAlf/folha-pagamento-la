@@ -70,8 +70,8 @@ const OnboardingCreateModal: React.FC<{
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Novo onboarding"
-      subtitle="Crie a jornada de entrada a partir de um colaborador e do template oficial."
+      title="Nova integração"
+      subtitle="Crie a jornada de entrada a partir de um colaborador e do modelo oficial."
       className="max-w-3xl"
       footer={
         <div className="flex items-center justify-between gap-3">
@@ -97,7 +97,7 @@ const OnboardingCreateModal: React.FC<{
                   data_inicio: dataInicio,
                   data_fim_prevista: dataFim || null,
                   prioridade: prioridade as any,
-                  titulo: titulo.trim() || `Onboarding - ${selectedColaborador.nome}`,
+                  titulo: titulo.trim() || `Integração - ${selectedColaborador.nome}`,
                   cargo: selectedColaborador.funcao,
                   tipo_vinculo: selectedColaborador.tipo,
                   observacoes: observacoes.trim() || null,
@@ -108,7 +108,7 @@ const OnboardingCreateModal: React.FC<{
                 await onCreated();
                 onClose();
               } catch (err: any) {
-                setError(err?.message || 'Não foi possível criar o onboarding.');
+                setError(err?.message || 'Não foi possível criar a integração.');
               } finally {
                 setSaving(false);
               }
@@ -119,7 +119,7 @@ const OnboardingCreateModal: React.FC<{
             )}
           >
             <Plus className="w-4 h-4" />
-            Criar onboarding
+            Criar integração
           </button>
         </div>
       }
@@ -132,7 +132,7 @@ const OnboardingCreateModal: React.FC<{
             <CustomSelect value={colaboradorId} onValueChange={setColaboradorId} options={colaboradorOptions} placeholder="Selecione..." />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Template *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Modelo *</div>
             <CustomSelect value={templateId} onValueChange={setTemplateId} options={templateOptions} placeholder="Selecione..." />
           </div>
           <div>
@@ -152,7 +152,7 @@ const OnboardingCreateModal: React.FC<{
             <input
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Ex: Onboarding João Silva"
+              placeholder="Ex: Integração João Silva"
               className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
             />
           </div>
@@ -163,7 +163,7 @@ const OnboardingCreateModal: React.FC<{
               onChange={(e) => setObservacoes(e.target.value)}
               rows={4}
               className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none"
-              placeholder="Anotações da admissão, mentor, prioridades ou contexto do onboarding"
+              placeholder="Anotações da admissão, mentor, prioridades ou contexto da integração"
             />
           </div>
         </div>
@@ -213,7 +213,7 @@ export const OnboardingTab: React.FC = () => {
       setColaboradores(nextColaboradores);
       setSelectedProcessId((prev) => prev || nextProcesses[0]?.id || null);
     } catch (err: any) {
-      setError(err?.message || 'Não foi possível carregar os onboardings.');
+      setError(err?.message || 'Não foi possível carregar as integrações.');
     } finally {
       setLoading(false);
     }
@@ -248,6 +248,11 @@ export const OnboardingTab: React.FC = () => {
 
   const collaboratorMap = useMemo(() => new Map(colaboradores.map((c) => [c.id, c])), [colaboradores]);
   const selectedStage = useMemo(() => stages.find((stage) => stage.id === selectedStageId) || null, [stages, selectedStageId]);
+  const activeProcessesCount = useMemo(
+    () => processes.filter((process) => !['concluido', 'cancelado'].includes(process.status)).length,
+    [processes]
+  );
+  const selectedProcessContext = selectedProcess?.titulo || 'Selecione uma integração';
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={loadData} />;
@@ -257,13 +262,13 @@ export const OnboardingTab: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Ativos</div>
-          <div className="mt-2 text-3xl font-black text-white">{processes.length}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Onboardings em andamento</div>
+          <div className="mt-2 text-3xl font-black text-white">{activeProcessesCount}</div>
+          <div className="mt-1 text-xs font-bold text-slate-400">Integrações em andamento</div>
         </Card>
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Etapas</div>
           <div className="mt-2 text-3xl font-black text-white">{selectedProcess?.total_etapas || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">No processo selecionado</div>
+          <div className="mt-1 text-xs font-bold text-slate-400 truncate">{selectedProcessContext}</div>
         </Card>
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Concluídas</div>
@@ -280,7 +285,7 @@ export const OnboardingTab: React.FC = () => {
       <Card className="p-5 border border-slate-700/50">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-white text-lg font-black">Onboardings ativos</div>
+            <div className="text-white text-lg font-black">Integrações ativas</div>
             <div className="text-sm font-bold text-slate-400">Crie a jornada de entrada e acompanhe o avanço por etapa.</div>
           </div>
           <button
@@ -289,7 +294,7 @@ export const OnboardingTab: React.FC = () => {
             className="px-5 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black flex items-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
-            Novo onboarding
+            Nova integração
           </button>
         </div>
       </Card>
@@ -299,8 +304,8 @@ export const OnboardingTab: React.FC = () => {
           <div className="mx-auto w-14 h-14 rounded-3xl bg-slate-800/70 flex items-center justify-center mb-4">
             <Users className="w-6 h-6 text-slate-400" />
           </div>
-          <div className="text-white font-black">Nenhum onboarding criado</div>
-          <div className="mt-2 text-sm font-bold text-slate-400">Use o template oficial para abrir o primeiro processo de entrada.</div>
+          <div className="text-white font-black">Nenhuma integração criada</div>
+          <div className="mt-2 text-sm font-bold text-slate-400">Use o modelo oficial para abrir o primeiro processo de entrada.</div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
@@ -398,7 +403,11 @@ export const OnboardingTab: React.FC = () => {
                           <div className="text-white font-black">{stage.ordem}. {stage.titulo}</div>
                           <div className="mt-1 text-xs font-bold text-slate-400">
                             Categoria: {stage.categoria}
-                            {stage.data_limite ? ` • Prazo: ${new Date(`${stage.data_limite}T00:00:00`).toLocaleDateString('pt-BR')}` : ''}
+                            {stage.agendado_em
+                              ? ` • Agendado: ${new Date(stage.agendado_em).toLocaleString('pt-BR')}`
+                              : stage.data_limite
+                                ? ` • Prazo: ${new Date(`${stage.data_limite}T00:00:00`).toLocaleDateString('pt-BR')}`
+                                : ''}
                           </div>
                         </div>
                         <Badge variant={status.variant}>{status.label}</Badge>

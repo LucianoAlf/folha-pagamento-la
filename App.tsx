@@ -308,7 +308,7 @@ export default function App() {
         { id: 'desenvolvimento', label: 'Desenvolvimento', icon: Sparkles },
         { id: 'desligamentos', label: 'Desligamentos', icon: UserX },
         { id: 'documentos', label: 'Documentos', icon: FileText },
-        { id: 'templates', label: 'Templates', icon: Copy },
+        { id: 'templates', label: 'Modelos', icon: Copy },
       ]
     }
   };

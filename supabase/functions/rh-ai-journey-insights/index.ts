@@ -57,13 +57,16 @@ Deno.serve(async (req: Request) => {
     const planId = typeof payload?.planId === "string" ? payload.planId : null;
     if (!collaboratorId) return jsonResponse({ error: "colaboradorId é obrigatório." }, 400);
 
-    const [{ data: colaborador }, { data: jornada }, { data: conquistas }, { data: movimentos }, { data: plans }] = await Promise.all([
+    const [{ data: colaborador }, { data: jornadaAtiva }, { data: ultimaJornada }, { data: conquistas }, { data: movimentos }, { data: plans }] = await Promise.all([
       supabase.from("colaboradores").select("id,nome,funcao,tipo").eq("id", collaboratorId).maybeSingle(),
       supabase.from("rh_colaborador_jornadas").select("*").eq("colaborador_id", collaboratorId).in("status", ["ativa", "pausada"]).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("rh_colaborador_jornadas").select("*").eq("colaborador_id", collaboratorId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("rh_colaborador_conquistas").select("titulo,score_impacto,concedida_em").eq("colaborador_id", collaboratorId).order("concedida_em", { ascending: false }).limit(6),
       supabase.from("rh_carreira_movimentacoes").select("titulo,motivo,efetivado_em").eq("colaborador_id", collaboratorId).order("efetivado_em", { ascending: false }).limit(6),
       supabase.from("rh_pdi_planos").select("*").eq("colaborador_id", collaboratorId).order("data_inicio", { ascending: false }).limit(4),
     ]);
+
+    const jornada = jornadaAtiva || ultimaJornada || null;
 
     const plan = planId
       ? (plans || []).find((item: any) => item.id === planId) || plans?.[0]
@@ -87,7 +90,7 @@ Deno.serve(async (req: Request) => {
 
     const snapshot = {
       colaborador: colaborador || null,
-      jornada: jornada || null,
+      jornada,
       plan: plan || null,
       competences: competencesRes.data || [],
       objectives: objectivesRes.data || [],

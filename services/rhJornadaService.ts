@@ -108,6 +108,16 @@ const readFileAsBase64 = (file: File) =>
     reader.readAsDataURL(file);
   });
 
+const sanitizePhoneNumber = (value?: string | null) => String(value || '').replace(/\D/g, '');
+
+const formatStageDateTime = (value?: string | null) => {
+  if (!value) return 'Data nÃ£o definida';
+  return new Date(value).toLocaleString('pt-BR');
+};
+
+const applyStageMessageTemplate = (template: string, replacements: Record<string, string>) =>
+  Object.entries(replacements).reduce((content, [key, replacement]) => content.replaceAll(`{${key}}`, replacement), template);
+
 export const rhJornadaService = {
   async invokeAiFunction<T>(functionName: string, body: Record<string, unknown>): Promise<T> {
     const { data } = await supabase.auth.getSession();
@@ -210,7 +220,7 @@ export const rhJornadaService = {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const [journeySummaries, activePlans, criticalCheckpoints, recentAchievements] = await Promise.all([
+    const [journeySummaries, activePlans, criticalCheckpoints, recentAchievements, colaboradores] = await Promise.all([
       this.fetchCollaboratorJourneys(),
       supabase.from('rh_pdi_planos').select('id,colaborador_id,status,score_progresso').in('status', ['rascunho', 'em_andamento', 'em_revisao']),
       supabase
@@ -222,6 +232,7 @@ export const rhJornadaService = {
         .from('rh_colaborador_conquistas')
         .select('id,colaborador_id')
         .gte('concedida_em', thirtyDaysAgo.toISOString()),
+      this.fetchColaboradores(),
     ]);
 
     if (activePlans.error) throw activePlans.error;
@@ -230,7 +241,12 @@ export const rhJornadaService = {
 
     const activePlanRows = (activePlans.data || []) as Array<{ id: string; colaborador_id: number; status: string; score_progresso: number | null }>;
     const criticalCheckpointRows = (criticalCheckpoints.data || []) as Array<{ rh_pdi_planos?: { colaborador_id?: number | null } | null }>;
-    const uniqueDevelopmentCollaborators = new Set(activePlanRows.map((item) => item.colaborador_id));
+    const activeCollaborators = colaboradores.filter((item) => item.ativo);
+    const activeCollaboratorIds = new Set(activeCollaborators.map((item) => item.id));
+    const uniqueDevelopmentCollaborators = new Set(
+      activePlanRows.map((item) => item.colaborador_id).filter((id) => activeCollaboratorIds.has(id))
+    );
+    const collaboratorsWithActivePlan = new Set(activePlanRows.map((item) => item.colaborador_id));
     const blockedCollaborators = new Set(
       criticalCheckpointRows
         .map((item) => Number(item.rh_pdi_planos?.colaborador_id || 0))
@@ -244,7 +260,7 @@ export const rhJornadaService = {
 
     return {
       colaboradores_em_desenvolvimento: uniqueDevelopmentCollaborators.size,
-      colaboradores_sem_pdi: journeySummaries.filter((journey) => Number(journey.pdis_ativos || 0) === 0).length,
+      colaboradores_sem_pdi: activeCollaborators.filter((item) => !collaboratorsWithActivePlan.has(item.id)).length,
       checkpoints_criticos: criticalCheckpointRows.length,
       conquistas_recentes: (recentAchievements.data || []).length,
       prontos_para_promocao: promotionReady,
@@ -402,6 +418,77 @@ export const rhJornadaService = {
     return data as unknown as RhProcessParticipant;
   },
 
+  async removeProcessParticipant(processParticipantId: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_processo_participantes')
+      .select('*')
+      .eq('id', processParticipantId)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) throw new Error('Participante do processo não encontrado.');
+
+    const { error } = await supabase.from('rh_processo_participantes').delete().eq('id', processParticipantId);
+    if (error) throw error;
+
+    await this.insertHistoryEvent({
+      processo_id: current.processo_id,
+      entidade_tipo: 'rh_processo_participantes',
+      entidade_id: processParticipantId,
+      acao: 'participante_removido',
+      comentario: `Participante ${current.papel} removido do processo.`,
+    });
+  },
+
+  async updateProcessMentor(processId: string, mentorUserId: string | null): Promise<RhProcess> {
+    const current = await this.fetchProcessById(processId);
+    if (!current) throw new Error('Processo não encontrado.');
+
+    const { data, error } = await supabase
+      .from('rh_processos')
+      .update({ mentor_user_id: mentorUserId || null })
+      .eq('id', processId)
+      .select('*')
+      .single();
+    if (error) throw error;
+
+    const participants = await this.fetchProcessParticipants(processId);
+    const existingMentor = participants.find((participant) => participant.papel === 'mentor');
+    const stages = await this.fetchStages(processId);
+
+    if (existingMentor && (!mentorUserId || existingMentor.user_id !== mentorUserId)) {
+      await this.removeProcessParticipant(existingMentor.id);
+      const mentorResponsibles = await Promise.all(
+        stages.map(async (item) => ({
+          stageId: item.id,
+          responsibles: await this.fetchStageResponsibles(item.id),
+        }))
+      );
+      for (const row of mentorResponsibles) {
+        const outdated = row.responsibles.filter((responsible) => responsible.user_id === existingMentor.user_id && responsible.papel === 'mentor');
+        for (const responsible of outdated) {
+          await this.removeStageResponsible(responsible.id);
+        }
+      }
+    }
+
+    if (mentorUserId && !participants.some((participant) => participant.user_id === mentorUserId && participant.papel === 'mentor')) {
+      await this.addProcessParticipant(processId, mentorUserId, 'mentor', false);
+      await this.syncDefaultStageResponsibles(processId);
+    }
+
+    await this.insertHistoryEvent({
+      processo_id: processId,
+      entidade_tipo: 'rh_processos',
+      entidade_id: processId,
+      acao: 'mentor_atualizado',
+      de_json: { mentor_user_id: current.mentor_user_id || null },
+      para_json: { mentor_user_id: mentorUserId || null },
+      comentario: mentorUserId ? 'Mentor do processo atualizado.' : 'Mentor removido do processo.',
+    });
+
+    return data as RhProcess;
+  },
+
   async fetchStages(processId: string): Promise<RhStage[]> {
     const { data, error } = await supabase
       .from('rh_processo_etapas')
@@ -438,6 +525,7 @@ export const rhJornadaService = {
           etapa_id: input.etapa_id,
           titulo: input.titulo,
           descricao: input.descricao || null,
+          link_url: input.link_url || null,
           obrigatorio: input.obrigatorio ?? true,
           ordem: nextOrder,
         },
@@ -447,6 +535,43 @@ export const rhJornadaService = {
     if (error) throw error;
     await this.syncStageLifecycle(input.etapa_id);
     return data as RhChecklistItem;
+  },
+
+  async updateChecklistItem(id: string, payload: Partial<RhChecklistItemCreateInput> & { ordem?: number }): Promise<RhChecklistItem> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_checklist_itens')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) throw new Error('Item de checklist não encontrado.');
+
+    const updatePayload = {
+      titulo: payload.titulo ?? current.titulo,
+      descricao: payload.descricao ?? current.descricao ?? null,
+      link_url: payload.link_url ?? current.link_url ?? null,
+      obrigatorio: payload.obrigatorio ?? current.obrigatorio,
+      ordem: payload.ordem ?? current.ordem,
+    };
+
+    const { data, error } = await supabase.from('rh_checklist_itens').update(updatePayload).eq('id', id).select('*').single();
+    if (error) throw error;
+    await this.syncStageLifecycle(current.etapa_id);
+    return data as RhChecklistItem;
+  },
+
+  async deleteChecklistItem(id: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_checklist_itens')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) throw new Error('Item de checklist não encontrado.');
+
+    const { error } = await supabase.from('rh_checklist_itens').delete().eq('id', id);
+    if (error) throw error;
+    await this.syncStageLifecycle(current.etapa_id);
   },
 
   async toggleChecklistItem(id: string, concluido: boolean): Promise<RhChecklistItem> {
@@ -494,6 +619,35 @@ export const rhJornadaService = {
       .single();
     if (error) throw error;
     return data as unknown as RhStageResponsible;
+  },
+
+  async setStageResponsibleAsPrimary(stageResponsibleId: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_etapa_responsaveis')
+      .select('*')
+      .eq('id', stageResponsibleId)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) throw new Error('Responsável da etapa não encontrado.');
+
+    const { error: resetError } = await supabase.from('rh_etapa_responsaveis').update({ principal: false }).eq('etapa_id', current.etapa_id);
+    if (resetError) throw resetError;
+
+    const { error } = await supabase.from('rh_etapa_responsaveis').update({ principal: true }).eq('id', stageResponsibleId);
+    if (error) throw error;
+  },
+
+  async removeStageResponsible(stageResponsibleId: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_etapa_responsaveis')
+      .select('*')
+      .eq('id', stageResponsibleId)
+      .maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) throw new Error('Responsável da etapa não encontrado.');
+
+    const { error } = await supabase.from('rh_etapa_responsaveis').delete().eq('id', stageResponsibleId);
+    if (error) throw error;
   },
 
   async syncDefaultStageResponsibles(
@@ -557,6 +711,131 @@ export const rhJornadaService = {
       .order('created_at', { ascending: true });
     if (error) throw error;
     return (data || []) as RhDocument[];
+  },
+
+  async fetchStageDocuments(stageId: string): Promise<RhDocument[]> {
+    const { data, error } = await supabase
+      .from('rh_documentos')
+      .select('*')
+      .eq('etapa_id', stageId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data || []) as RhDocument[];
+  },
+
+  async createProcessDocumentEntry(input: {
+    processo_id: string;
+    etapa_id?: string | null;
+    colaborador_id?: number | null;
+    candidato_id?: string | null;
+    tipo_documento: string;
+    obrigatorio?: boolean;
+  }): Promise<RhDocument> {
+    const { data, error } = await supabase
+      .from('rh_documentos')
+      .insert([
+        {
+          processo_id: input.processo_id,
+          etapa_id: input.etapa_id || null,
+          colaborador_id: input.colaborador_id || null,
+          candidato_id: input.candidato_id || null,
+          tipo_documento: input.tipo_documento,
+          obrigatorio: input.obrigatorio ?? false,
+          status: 'pendente',
+        },
+      ])
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as RhDocument;
+  },
+
+  async deleteProcessDocument(documentId: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase.from('rh_documentos').select('*').eq('id', documentId).maybeSingle();
+    if (currentError) throw currentError;
+    if (!current) throw new Error('Documento não encontrado.');
+
+    if (current.storage_path) {
+      const { error: storageError } = await supabase.storage.from('rh-documentos').remove([current.storage_path]);
+      if (storageError) throw storageError;
+    }
+
+    const { error } = await supabase.from('rh_documentos').delete().eq('id', documentId);
+    if (error) throw error;
+
+    await this.insertHistoryEvent({
+      processo_id: current.processo_id,
+      entidade_tipo: 'rh_documentos',
+      entidade_id: documentId,
+      acao: 'documento_excluido',
+      comentario: `Documento ${current.tipo_documento} excluído do processo.`,
+    });
+  },
+
+  async updateStage(stageId: string, payload: Partial<Pick<RhStage, 'data_limite' | 'agendado_em' | 'instrucoes' | 'modelo_mensagem' | 'link_referencia' | 'link_reuniao' | 'observacoes' | 'notificar_responsaveis' | 'notificar_colaborador'>>): Promise<RhStage> {
+    const current = await this.fetchStageById(stageId);
+    if (!current) throw new Error('Etapa não encontrada.');
+
+    const { data, error } = await supabase
+      .from('rh_processo_etapas')
+      .update({
+        data_limite: payload.data_limite ?? current.data_limite ?? null,
+        agendado_em: payload.agendado_em ?? current.agendado_em ?? null,
+        instrucoes: payload.instrucoes ?? current.instrucoes ?? null,
+        modelo_mensagem: payload.modelo_mensagem ?? current.modelo_mensagem ?? null,
+        link_referencia: payload.link_referencia ?? current.link_referencia ?? null,
+        link_reuniao: payload.link_reuniao ?? current.link_reuniao ?? null,
+        observacoes: payload.observacoes ?? current.observacoes ?? null,
+        notificar_responsaveis: payload.notificar_responsaveis ?? current.notificar_responsaveis,
+        notificar_colaborador: payload.notificar_colaborador ?? current.notificar_colaborador,
+      })
+      .eq('id', stageId)
+      .select('*')
+      .single();
+    if (error) throw error;
+
+    await this.insertHistoryEvent({
+      processo_id: current.processo_id,
+      entidade_tipo: 'rh_processo_etapas',
+      entidade_id: stageId,
+      acao: 'etapa_operacional_atualizada',
+      de_json: {
+        data_limite: current.data_limite,
+        agendado_em: current.agendado_em,
+        link_referencia: current.link_referencia,
+        link_reuniao: current.link_reuniao,
+      },
+      para_json: {
+        data_limite: data.data_limite,
+        agendado_em: data.agendado_em,
+        link_referencia: data.link_referencia,
+        link_reuniao: data.link_reuniao,
+      },
+      comentario: `Configuração operacional da etapa ${current.titulo} atualizada.`,
+    });
+
+    const process = await this.fetchProcessById(current.processo_id);
+    if (process) {
+      await runRhAgendaSync(() => rhAgendaSyncService.syncStageMirror(process, data as RhStage));
+    }
+
+    return data as RhStage;
+  },
+
+  async sendStageWhatsAppNotifications(stageId: string): Promise<{
+    success: boolean;
+    enviados: Array<{ numero: string; destinatario: string; tipo: string }>;
+    ignorados: Array<{ destinatario: string; motivo: string }>;
+  }> {
+    const { data, error } = await supabase.functions.invoke('rh-stage-whatsapp-notify', {
+      body: { stageId },
+    });
+    if (error) throw error;
+    return data as {
+      success: boolean;
+      enviados: Array<{ numero: string; destinatario: string; tipo: string }>;
+      ignorados: Array<{ destinatario: string; motivo: string }>;
+    };
   },
 
   async updateStageStatus(stageId: string, status: RhStage['status']): Promise<RhStage> {
@@ -966,6 +1245,55 @@ export const rhJornadaService = {
     return data as RhCandidate;
   },
 
+  async archiveCandidate(candidateId: string, motivo?: string | null): Promise<RhCandidate> {
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id;
+    if (!userId) throw new Error('Usuário não autenticado.');
+
+    const { data: current, error: currentError } = await supabase
+      .from('rh_candidatos')
+      .select('*')
+      .eq('id', candidateId)
+      .single();
+    if (currentError) throw currentError;
+
+    const mergedNotes = [current.observacoes, motivo].filter(Boolean).join('\n\n') || null;
+
+    const { data, error } = await supabase
+      .from('rh_candidatos')
+      .update({
+        status: 'arquivado',
+        observacoes: mergedNotes,
+        arquivado_em: new Date().toISOString(),
+        arquivado_por: userId,
+      })
+      .eq('id', candidateId)
+      .select('*')
+      .single();
+    if (error) throw error;
+
+    const { data: recrutamento } = await supabase
+      .from('rh_processos')
+      .select('id')
+      .eq('tipo', 'recrutamento')
+      .eq('candidato_id', candidateId)
+      .in('status', ['rascunho', 'em_andamento', 'aguardando_documentos', 'aguardando_avaliacao', 'aguardando_aprovacao'])
+      .maybeSingle();
+
+    if (recrutamento?.id) {
+      await this.updateProcessStatus(recrutamento.id, 'cancelado');
+      await this.insertHistoryEvent({
+        processo_id: recrutamento.id,
+        entidade_tipo: 'rh_processos',
+        entidade_id: recrutamento.id,
+        acao: 'candidato_arquivado',
+        comentario: motivo || 'Candidato arquivado no pipeline RH.',
+      });
+    }
+
+    return data as RhCandidate;
+  },
+
   async approveCandidate(input: RhCandidateApprovalInput): Promise<{ candidate: RhCandidate; collaborator: Colaborador; onboardingProcess?: RhProcess | null }> {
     const collaborator = await api.createColaborador({
       nome: input.nome,
@@ -1132,6 +1460,26 @@ export const rhJornadaService = {
     return data as RhEvaluation;
   },
 
+  async deleteEvaluation(evaluationId: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_avaliacoes')
+      .select('*')
+      .eq('id', evaluationId)
+      .single();
+    if (currentError) throw currentError;
+
+    const { error } = await supabase.from('rh_avaliacoes').delete().eq('id', evaluationId);
+    if (error) throw error;
+
+    await this.insertHistoryEvent({
+      processo_id: current.processo_id,
+      entidade_tipo: 'rh_avaliacoes',
+      entidade_id: evaluationId,
+      acao: 'avaliacao_excluida',
+      comentario: `Avaliação ${current.tipo} excluída.`,
+    });
+  },
+
   async createProcessFromTemplate(
     input: RhProcessCreateInput,
     options?: { offboarding?: RhOffboardingCreateInput }
@@ -1220,6 +1568,12 @@ export const rhJornadaService = {
         obrigatoria: stage.obrigatoria,
         data_prevista: addDaysISO(input.data_inicio, stage.prazo_offset_dias),
         data_limite: addDaysISO(input.data_inicio, stage.prazo_offset_dias),
+        instrucoes: stage.instrucoes || null,
+        modelo_mensagem: stage.modelo_mensagem || null,
+        link_referencia: stage.link_referencia || null,
+        link_reuniao: stage.link_reuniao || null,
+        notificar_responsaveis: stage.notificar_responsaveis ?? true,
+        notificar_colaborador: stage.notificar_colaborador ?? false,
         metadata_json: stage.metadata_json || {},
       }));
       const { data: insertedStages, error: stagesError } = await supabase.from('rh_processo_etapas').insert(stageRows).select('*');
@@ -1239,6 +1593,8 @@ export const rhJornadaService = {
             return {
               etapa_id: etapaId,
               titulo: item.titulo,
+              descricao: item.descricao || null,
+              link_url: item.link_url || null,
               obrigatorio: item.obrigatorio,
               ordem: item.ordem,
               metadata_json: item.metadata_json || {},
@@ -1372,6 +1728,25 @@ export const rhJornadaService = {
     return data as RhTemplateChecklistItem;
   },
 
+  async updateTemplateChecklistItem(
+    templateChecklistItemId: string,
+    payload: Partial<RhTemplateChecklistItemCreateInput>
+  ): Promise<RhTemplateChecklistItem> {
+    const { data, error } = await supabase
+      .from('rh_template_checklist_itens')
+      .update(payload)
+      .eq('id', templateChecklistItemId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as RhTemplateChecklistItem;
+  },
+
+  async deleteTemplateChecklistItem(templateChecklistItemId: string): Promise<void> {
+    const { error } = await supabase.from('rh_template_checklist_itens').delete().eq('id', templateChecklistItemId);
+    if (error) throw error;
+  },
+
   async createTemplateDocument(input: RhTemplateDocumentCreateInput): Promise<RhTemplateDocument> {
     const { data, error } = await supabase.from('rh_template_documentos').insert([input]).select('*').single();
     if (error) throw error;
@@ -1426,6 +1801,12 @@ export const rhJornadaService = {
         obrigatoria: stage.obrigatoria,
         prazo_offset_dias: stage.prazo_offset_dias,
         responsavel_padrao_papel: stage.responsavel_padrao_papel as any,
+        instrucoes: stage.instrucoes || null,
+        modelo_mensagem: stage.modelo_mensagem || null,
+        link_referencia: stage.link_referencia || null,
+        link_reuniao: stage.link_reuniao || null,
+        notificar_responsaveis: stage.notificar_responsaveis,
+        notificar_colaborador: stage.notificar_colaborador,
         metadata_json: stage.metadata_json || {},
       });
       stageIdMap.set(stage.id, clonedStage.id);
@@ -1438,6 +1819,8 @@ export const rhJornadaService = {
         await this.createTemplateChecklistItem({
           template_etapa_id: newStageId,
           titulo: item.titulo,
+          descricao: item.descricao || null,
+          link_url: item.link_url || null,
           obrigatorio: item.obrigatorio,
           ordem: item.ordem,
           metadata_json: item.metadata_json || {},
@@ -1645,6 +2028,23 @@ export const rhJornadaService = {
       .single();
     if (error) throw error;
     return data as RhCollaboratorDocument;
+  },
+
+  async deleteCollaboratorDocument(documentId: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_colaborador_documentos')
+      .select('id,storage_path')
+      .eq('id', documentId)
+      .single();
+    if (currentError) throw currentError;
+
+    if (current.storage_path) {
+      const { error: storageError } = await supabase.storage.from('rh-documentos').remove([current.storage_path]);
+      if (storageError) throw storageError;
+    }
+
+    const { error } = await supabase.from('rh_colaborador_documentos').delete().eq('id', documentId);
+    if (error) throw error;
   },
 
   async fetchJourneyMilestones(jornadaId: string): Promise<RhCollaboratorMilestone[]> {
@@ -1918,6 +2318,17 @@ export const rhJornadaService = {
     return data as RhPdiPlan;
   },
 
+  async updatePdiPlan(planId: string, payload: Partial<Pick<RhPdiPlan, 'titulo' | 'objetivo_geral' | 'status' | 'ciclo_id' | 'data_fim_prevista' | 'gestor_user_id' | 'mentor_user_id'>>): Promise<RhPdiPlan> {
+    const { data, error } = await supabase
+      .from('rh_pdi_planos')
+      .update(payload)
+      .eq('id', planId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as RhPdiPlan;
+  },
+
   async fetchPdiCompetences(planId: string): Promise<RhPdiCompetence[]> {
     const { data, error } = await supabase
       .from('rh_pdi_competencias')
@@ -1942,6 +2353,11 @@ export const rhJornadaService = {
     const { data, error } = await supabase.from('rh_pdi_competencias').update(payload).eq('id', competenceId).select('*').single();
     if (error) throw error;
     return data as RhPdiCompetence;
+  },
+
+  async deletePdiCompetence(competenceId: string): Promise<void> {
+    const { error } = await supabase.from('rh_pdi_competencias').delete().eq('id', competenceId);
+    if (error) throw error;
   },
 
   async instantiatePdiTemplate(templateId: string, input: { colaboradorId: number; jornadaId?: string | null; cicloId?: string | null; gestorUserId?: string | null; mentorUserId?: string | null; dataInicio?: string; dataFimPrevista?: string | null }): Promise<RhPdiPlan> {
@@ -2046,6 +2462,27 @@ export const rhJornadaService = {
     return data as RhPdiObjective;
   },
 
+  async updatePdiObjective(objectiveId: string, payload: Partial<Pick<RhPdiObjective, 'competencia_id' | 'titulo' | 'descricao' | 'tipo' | 'status' | 'obrigatorio' | 'score_peso' | 'data_inicio' | 'data_limite' | 'ordem'>>): Promise<RhPdiObjective> {
+    const { data: current, error: currentError } = await supabase.from('rh_pdi_objetivos').select('plano_id').eq('id', objectiveId).single();
+    if (currentError) throw currentError;
+    const { data, error } = await supabase
+      .from('rh_pdi_objetivos')
+      .update({
+        ...payload,
+        competencia_id: payload.competencia_id === undefined ? undefined : payload.competencia_id || null,
+        descricao: payload.descricao === undefined ? undefined : payload.descricao || null,
+        data_inicio: payload.data_inicio === undefined ? undefined : payload.data_inicio || null,
+        data_limite: payload.data_limite === undefined ? undefined : payload.data_limite || null,
+        concluido_em: payload.status === undefined ? undefined : payload.status === 'concluido' ? new Date().toISOString() : null,
+      })
+      .eq('id', objectiveId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    await this.syncPdiPlanProgress(current.plano_id);
+    return data as RhPdiObjective;
+  },
+
   async updatePdiObjectiveStatus(objectiveId: string, status: RhPdiObjective['status']): Promise<RhPdiObjective> {
     const { data: current, error: currentError } = await supabase.from('rh_pdi_objetivos').select('*').eq('id', objectiveId).single();
     if (currentError) throw currentError;
@@ -2061,6 +2498,14 @@ export const rhJornadaService = {
     if (error) throw error;
     await this.syncPdiPlanProgress(current.plano_id);
     return data as RhPdiObjective;
+  },
+
+  async deletePdiObjective(objectiveId: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase.from('rh_pdi_objetivos').select('plano_id').eq('id', objectiveId).single();
+    if (currentError) throw currentError;
+    const { error } = await supabase.from('rh_pdi_objetivos').delete().eq('id', objectiveId);
+    if (error) throw error;
+    await this.syncPdiPlanProgress(current.plano_id);
   },
 
   async syncPdiPlanProgress(planId: string): Promise<void> {
@@ -2124,6 +2569,12 @@ export const rhJornadaService = {
   },
 
   async updatePdiCheckpoint(checkpointId: string, payload: Partial<Pick<RhPdiCheckpoint, 'status' | 'data_realizada' | 'observacoes'>>): Promise<RhPdiCheckpoint> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_pdi_checkpoints')
+      .select('plano_id')
+      .eq('id', checkpointId)
+      .single();
+    if (currentError) throw currentError;
     const { data, error } = await supabase
       .from('rh_pdi_checkpoints')
       .update(payload)
@@ -2140,6 +2591,49 @@ export const rhJornadaService = {
       await runRhAgendaSync(() => rhAgendaSyncService.syncPdiCheckpointMirror(plan.titulo, data as RhPdiCheckpoint));
     }
     return data as RhPdiCheckpoint;
+  },
+
+  async updatePdiCheckpointDetails(checkpointId: string, payload: Partial<Pick<RhPdiCheckpoint, 'objetivo_id' | 'titulo' | 'tipo' | 'status' | 'responsavel_user_id' | 'data_prevista' | 'data_realizada' | 'observacoes'>>): Promise<RhPdiCheckpoint> {
+    const { data, error } = await supabase
+      .from('rh_pdi_checkpoints')
+      .update({
+        ...payload,
+        objetivo_id: payload.objetivo_id === undefined ? undefined : payload.objetivo_id || null,
+        responsavel_user_id: payload.responsavel_user_id === undefined ? undefined : payload.responsavel_user_id || null,
+        observacoes: payload.observacoes === undefined ? undefined : payload.observacoes || null,
+      })
+      .eq('id', checkpointId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    const { data: plan } = await supabase.from('rh_pdi_planos').select('titulo').eq('id', data.plano_id).maybeSingle();
+    if (plan?.titulo) {
+      await runRhAgendaSync(() => rhAgendaSyncService.syncPdiCheckpointMirror(plan.titulo, data as RhPdiCheckpoint));
+    }
+    return data as RhPdiCheckpoint;
+  },
+
+  async deletePdiCheckpoint(checkpointId: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_pdi_checkpoints')
+      .select('id,plano_id,status')
+      .eq('id', checkpointId)
+      .single();
+    if (currentError) throw currentError;
+    const { error } = await supabase.from('rh_pdi_checkpoints').delete().eq('id', checkpointId);
+    if (error) throw error;
+    const { data: plan } = await supabase.from('rh_pdi_planos').select('titulo').eq('id', current.plano_id).maybeSingle();
+    if (plan?.titulo) {
+      await runRhAgendaSync(() =>
+        rhAgendaSyncService.syncPdiCheckpointMirror(plan.titulo, {
+          id: current.id,
+          titulo: 'Checkpoint removido',
+          tipo: 'custom',
+          status: 'cancelado',
+          data_prevista: new Date().toISOString().slice(0, 10),
+        })
+      );
+    }
   },
 
   async fetchPdiFeedbacks(planId: string): Promise<RhPdiFeedback[]> {
@@ -2173,6 +2667,27 @@ export const rhJornadaService = {
       .single();
     if (error) throw error;
     return data as RhPdiFeedback;
+  },
+
+  async updatePdiFeedback(feedbackId: string, payload: Partial<Pick<RhPdiFeedback, 'checkpoint_id' | 'tipo' | 'resumo' | 'pontos_fortes' | 'pontos_desenvolver' | 'nota'>>): Promise<RhPdiFeedback> {
+    const { data, error } = await supabase
+      .from('rh_pdi_feedbacks')
+      .update({
+        ...payload,
+        checkpoint_id: payload.checkpoint_id === undefined ? undefined : payload.checkpoint_id || null,
+        pontos_fortes: payload.pontos_fortes === undefined ? undefined : payload.pontos_fortes || null,
+        pontos_desenvolver: payload.pontos_desenvolver === undefined ? undefined : payload.pontos_desenvolver || null,
+      })
+      .eq('id', feedbackId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as RhPdiFeedback;
+  },
+
+  async deletePdiFeedback(feedbackId: string): Promise<void> {
+    const { error } = await supabase.from('rh_pdi_feedbacks').delete().eq('id', feedbackId);
+    if (error) throw error;
   },
 
   async fetchPdiEvidences(planId: string): Promise<RhPdiEvidence[]> {
@@ -2223,6 +2738,72 @@ export const rhJornadaService = {
       .single();
     if (error) throw error;
     return data as RhPdiEvidence;
+  },
+
+  async updatePdiEvidence(evidenceId: string, payload: Partial<Pick<RhPdiEvidence, 'objetivo_id' | 'checkpoint_id' | 'titulo' | 'descricao' | 'link_url'>>, file?: File | null): Promise<RhPdiEvidence> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_pdi_evidencias')
+      .select('*')
+      .eq('id', evidenceId)
+      .single();
+    if (currentError) throw currentError;
+
+    let storagePath = current.storage_path;
+    let tipo = current.tipo;
+
+    if (file) {
+      if (storagePath) {
+        const { error: removeError } = await supabase.storage.from('rh-documentos').remove([storagePath]);
+        if (removeError) throw removeError;
+      }
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      storagePath = `pdi/${current.plano_id}/evidencias/${Date.now()}-${sanitizedName}`;
+      const { error: uploadError } = await supabase.storage.from('rh-documentos').upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type || 'application/octet-stream',
+      });
+      if (uploadError) throw uploadError;
+      tipo = 'arquivo';
+    } else if ((payload.link_url ?? current.link_url) && !storagePath) {
+      tipo = 'link';
+    } else if (!(payload.link_url ?? current.link_url) && !storagePath) {
+      tipo = 'texto';
+    }
+
+    const { data, error } = await supabase
+      .from('rh_pdi_evidencias')
+      .update({
+        objetivo_id: payload.objetivo_id === undefined ? undefined : payload.objetivo_id || null,
+        checkpoint_id: payload.checkpoint_id === undefined ? undefined : payload.checkpoint_id || null,
+        titulo: payload.titulo ?? current.titulo,
+        descricao: payload.descricao === undefined ? undefined : payload.descricao || null,
+        link_url: payload.link_url === undefined ? undefined : payload.link_url || null,
+        storage_path: storagePath,
+        tipo,
+      })
+      .eq('id', evidenceId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data as RhPdiEvidence;
+  },
+
+  async deletePdiEvidence(evidenceId: string): Promise<void> {
+    const { data: current, error: currentError } = await supabase
+      .from('rh_pdi_evidencias')
+      .select('storage_path')
+      .eq('id', evidenceId)
+      .single();
+    if (currentError) throw currentError;
+
+    if (current.storage_path) {
+      const { error: removeError } = await supabase.storage.from('rh-documentos').remove([current.storage_path]);
+      if (removeError) throw removeError;
+    }
+
+    const { error } = await supabase.from('rh_pdi_evidencias').delete().eq('id', evidenceId);
+    if (error) throw error;
   },
 
   async fetchCareerMovements(colaboradorId: number): Promise<RhCareerMovement[]> {
@@ -2302,6 +2883,23 @@ export const rhJornadaService = {
     return data as { storage_path: string; documento_gerado_id: string };
   },
 
+  async getGeneratedDocumentSignedUrl(document: RhGeneratedDocument): Promise<string> {
+    try {
+      return await this.getDocumentSignedUrl(document.storage_path);
+    } catch (error: any) {
+      const message = String(error?.message || '');
+      const missingObject =
+        message.includes('Object not found') ||
+        message.includes('The resource was not found') ||
+        message.includes('400');
+
+      if (!missingObject) throw error;
+
+      const regenerated = await this.generateDocument(document.processo_id, document.tipo_documento);
+      return this.getDocumentSignedUrl(regenerated.storage_path);
+    }
+  },
+
   async uploadDocument(documentId: string, file: File): Promise<RhDocument> {
     const { data: current, error: currentError } = await supabase
       .from('rh_documentos')
@@ -2375,7 +2973,11 @@ export const rhJornadaService = {
   },
 
   async getDocumentSignedUrl(storagePath: string): Promise<string> {
-    const { data, error } = await supabase.storage.from('rh-documentos').createSignedUrl(storagePath, 60 * 10);
+    const normalizedPath = String(storagePath || '')
+      .replace(/^\/+/, '')
+      .replace(/^rh-documentos\//, '');
+
+    const { data, error } = await supabase.storage.from('rh-documentos').createSignedUrl(normalizedPath, 60 * 10);
     if (error) throw error;
     return data.signedUrl;
   },

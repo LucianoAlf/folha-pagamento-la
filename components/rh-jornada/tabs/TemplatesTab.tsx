@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, CopyPlus, FileBadge, Layers3, LibraryBig, Plus, Save, ShieldCheck } from 'lucide-react';
+import { ClipboardList, CopyPlus, ExternalLink, FileBadge, Layers3, LibraryBig, Plus, Save, ShieldCheck, Trash2 } from 'lucide-react';
 import { Badge, Card, CustomSelect, ErrorState, LoadingSpinner } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhParticipantRole, RhPdiTemplate, RhPdiTemplateCheckpoint, RhPdiTemplateCompetence, RhPdiTemplateObjective, RhPdiCycleType, RhProcessType, RhStageCategory, RhTemplate, RhTemplateChecklistItem, RhTemplateDocument, RhTemplateStage } from '../../../types/rh';
@@ -7,7 +7,7 @@ import { RH_PDI_CHECKPOINT_TYPES, RH_PDI_COMPETENCE_CATEGORIES, RH_PDI_OBJECTIVE
 
 const PROCESS_OPTIONS: { value: RhProcessType; label: string }[] = [
   { value: 'recrutamento', label: 'Recrutamento' },
-  { value: 'onboarding', label: 'Onboarding' },
+  { value: 'onboarding', label: 'Integração' },
   { value: 'desligamento', label: 'Desligamento' },
 ];
 
@@ -62,9 +62,17 @@ export const TemplatesTab: React.FC = () => {
     ordem: '1',
     obrigatoria: true,
     responsavel_padrao_papel: 'rh' as RhParticipantRole,
+    instrucoes: '',
+    modelo_mensagem: '',
+    link_referencia: '',
+    link_reuniao: '',
+    notificar_responsaveis: true,
+    notificar_colaborador: false,
   });
   const [newChecklist, setNewChecklist] = useState({
     titulo: '',
+    descricao: '',
+    link_url: '',
     obrigatorio: true,
   });
   const [newDocument, setNewDocument] = useState({
@@ -179,7 +187,7 @@ export const TemplatesTab: React.FC = () => {
       setPdiObjectives(nextObjectives);
       setPdiCheckpoints(nextCheckpoints);
     }).catch((err: any) => {
-      setError(err?.message || 'NÃ£o foi possÃ­vel carregar o template de PDI.');
+      setError(err?.message || 'Não foi possível carregar o modelo de PDI.');
     });
   }, [selectedPdiTemplateId]);
 
@@ -189,6 +197,8 @@ export const TemplatesTab: React.FC = () => {
   );
   const selectedStage = useMemo(() => stages.find((stage) => stage.id === selectedStageId) || null, [stages, selectedStageId]);
   const selectedPdiTemplate = useMemo(() => pdiTemplates.find((template) => template.id === selectedPdiTemplateId) || null, [pdiTemplates, selectedPdiTemplateId]);
+  const selectedTemplateContext = selectedTemplate?.nome || 'Selecione um modelo operacional';
+  const selectedPdiTemplateContext = selectedPdiTemplate?.nome || 'Selecione um modelo de PDI';
 
   useEffect(() => {
     if (!selectedTemplate) return;
@@ -245,16 +255,32 @@ export const TemplatesTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <Card className="p-5 border border-violet-500/20 bg-violet-500/5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-violet-200/80 font-black">Governança de modelos</div>
+            <div className="mt-2 text-lg font-black text-white">{selectedTemplateContext}</div>
+            <div className="mt-1 text-sm font-bold text-slate-300">
+              {selectedTemplate ? `${selectedTemplate.tipo_processo} • v${selectedTemplate.versao}` : 'Selecione um modelo operacional para editar etapas, checklist e documentos.'}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black">Modelo de PDI em foco</div>
+            <div className="mt-2 text-base font-black text-white truncate">{selectedPdiTemplateContext}</div>
+            <div className="mt-1 text-xs font-bold text-slate-400">{pdiTemplates.filter((item) => item.ativo).length} ativos</div>
+          </div>
+        </div>
+      </Card>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Templates ativos</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Modelos ativos</div>
           <div className="mt-2 text-3xl font-black text-white">{templates.filter((item) => item.ativo).length}</div>
           <div className="mt-1 text-xs font-bold text-slate-400">Base operacional do módulo</div>
         </Card>
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Etapas</div>
           <div className="mt-2 text-3xl font-black text-white">{stages.length}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">No template selecionado</div>
+          <div className="mt-1 text-xs font-bold text-slate-400 truncate">{selectedTemplateContext}</div>
         </Card>
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Documentos</div>
@@ -264,7 +290,7 @@ export const TemplatesTab: React.FC = () => {
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Versão</div>
           <div className="mt-2 text-3xl font-black text-emerald-300">v{selectedTemplate?.versao || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Controle de governança do template</div>
+          <div className="mt-1 text-xs font-bold text-slate-400">Controle de governança do modelo</div>
         </Card>
       </div>
 
@@ -272,7 +298,7 @@ export const TemplatesTab: React.FC = () => {
         <Card className="p-5 border border-slate-700/50">
           <div className="flex items-center gap-2 mb-4">
             <LibraryBig className="w-4 h-4 text-violet-300" />
-            <h3 className="text-white text-base font-black">Catálogo de templates</h3>
+            <h3 className="text-white text-base font-black">Catálogo de modelos</h3>
           </div>
           <div className="space-y-3">
             <button
@@ -281,7 +307,7 @@ export const TemplatesTab: React.FC = () => {
                 setSaving(true);
                 try {
                   const created = await rhJornadaService.createTemplate({
-                    nome: 'Novo template RH',
+                    nome: 'Novo modelo RH',
                     descricao: 'Ajuste os dados, etapas e documentos.',
                     tipo_processo: 'onboarding',
                     ativo: true,
@@ -295,7 +321,7 @@ export const TemplatesTab: React.FC = () => {
             >
               <div className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                Novo template
+                Novo modelo
               </div>
             </button>
             {templates.map((template) => {
@@ -334,9 +360,9 @@ export const TemplatesTab: React.FC = () => {
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <div className="text-white text-xl font-black">{selectedTemplate?.nome || 'Selecione um template'}</div>
+                  <div className="text-white text-xl font-black">{selectedTemplate?.nome || 'Selecione um modelo'}</div>
                   <div className="mt-1 text-sm font-bold text-slate-400">
-                    {selectedTemplate?.descricao || 'Selecione um template para ver etapas e documentos obrigatórios.'}
+                    {selectedTemplate?.descricao || 'Selecione um modelo para ver etapas e documentos obrigatórios.'}
                   </div>
                 </div>
                 {selectedTemplate ? <Badge variant="info">{selectedTemplate.tipo_processo}</Badge> : null}
@@ -387,7 +413,7 @@ export const TemplatesTab: React.FC = () => {
                       className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black flex items-center gap-2 transition-all"
                     >
                       <Save className="w-4 h-4" />
-                      Salvar template
+                      Salvar modelo
                     </button>
                     <button
                       type="button"
@@ -418,7 +444,7 @@ export const TemplatesTab: React.FC = () => {
                       }}
                       className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all"
                     >
-                      Arquivar template
+                      Arquivar modelo
                     </button>
                   </div>
                 </>
@@ -477,6 +503,20 @@ export const TemplatesTab: React.FC = () => {
                           options={ROLE_OPTIONS}
                         />
                       </div>
+                      <input
+                        value={stage.link_referencia || ''}
+                        onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, link_referencia: e.target.value } : item))}
+                        onClick={() => setSelectedStageId(stage.id)}
+                        placeholder="Link de referência"
+                        className="min-w-[240px] flex-1 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                      />
+                      <input
+                        value={stage.link_reuniao || ''}
+                        onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, link_reuniao: e.target.value } : item))}
+                        onClick={() => setSelectedStageId(stage.id)}
+                        placeholder="Link de reunião"
+                        className="min-w-[240px] flex-1 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                      />
                       <button
                         type="button"
                         onClick={async () => {
@@ -486,6 +526,12 @@ export const TemplatesTab: React.FC = () => {
                             ordem: stage.ordem,
                             obrigatoria: stage.obrigatoria,
                             responsavel_padrao_papel: stage.responsavel_padrao_papel || null,
+                            instrucoes: stage.instrucoes || null,
+                            modelo_mensagem: stage.modelo_mensagem || null,
+                            link_referencia: stage.link_referencia || null,
+                            link_reuniao: stage.link_reuniao || null,
+                            notificar_responsaveis: stage.notificar_responsaveis,
+                            notificar_colaborador: stage.notificar_colaborador,
                           });
                           await refreshTemplateDetails(selectedTemplate?.id || null);
                         }}
@@ -494,11 +540,50 @@ export const TemplatesTab: React.FC = () => {
                         Salvar etapa
                       </button>
                     </div>
+                    <div className="mt-3 grid grid-cols-1 xl:grid-cols-2 gap-3">
+                      <textarea
+                        value={stage.instrucoes || ''}
+                        onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, instrucoes: e.target.value } : item))}
+                        onClick={() => setSelectedStageId(stage.id)}
+                        rows={3}
+                        placeholder="Instruções da etapa"
+                        className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                      />
+                      <textarea
+                        value={stage.modelo_mensagem || ''}
+                        onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, modelo_mensagem: e.target.value } : item))}
+                        onClick={() => setSelectedStageId(stage.id)}
+                        rows={3}
+                        placeholder="Modelo de mensagem"
+                        className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                      />
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-4">
+                      <label className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={stage.notificar_responsaveis}
+                          onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, notificar_responsaveis: e.target.checked } : item))}
+                          className="accent-cyan-500"
+                        />
+                        Notificar responsáveis
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={stage.notificar_colaborador}
+                          onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, notificar_colaborador: e.target.checked } : item))}
+                          className="accent-cyan-500"
+                        />
+                        Notificar colaborador
+                      </label>
+                    </div>
                   </div>
                 ))}
                 {stages.length === 0 ? <div className="text-sm font-bold text-slate-500">Nenhuma etapa carregada.</div> : null}
               </div>
               {selectedTemplate ? (
+                <>
                 <div className="mt-5 grid grid-cols-1 md:grid-cols-[120px_minmax(0,1fr)_180px_180px] gap-3">
                   <input
                     value={newStage.ordem}
@@ -510,6 +595,18 @@ export const TemplatesTab: React.FC = () => {
                     value={newStage.titulo}
                     onChange={(e) => setNewStage((prev) => ({ ...prev, titulo: e.target.value, codigo: prev.codigo || e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
                     placeholder="Nova etapa"
+                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                  />
+                  <input
+                    value={newStage.link_referencia}
+                    onChange={(e) => setNewStage((prev) => ({ ...prev, link_referencia: e.target.value }))}
+                    placeholder="Link de referência"
+                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                  />
+                  <input
+                    value={newStage.link_reuniao}
+                    onChange={(e) => setNewStage((prev) => ({ ...prev, link_reuniao: e.target.value }))}
+                    placeholder="Link de reunião"
                     className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                   />
                   <CustomSelect value={newStage.categoria} onValueChange={(value) => setNewStage((prev) => ({ ...prev, categoria: value as RhStageCategory }))} options={CATEGORY_OPTIONS} />
@@ -524,8 +621,14 @@ export const TemplatesTab: React.FC = () => {
                         ordem: Number(newStage.ordem) || stages.length + 1,
                         obrigatoria: newStage.obrigatoria,
                         responsavel_padrao_papel: newStage.responsavel_padrao_papel,
+                        instrucoes: newStage.instrucoes || null,
+                        modelo_mensagem: newStage.modelo_mensagem || null,
+                        link_referencia: newStage.link_referencia || null,
+                        link_reuniao: newStage.link_reuniao || null,
+                        notificar_responsaveis: newStage.notificar_responsaveis,
+                        notificar_colaborador: newStage.notificar_colaborador,
                       });
-                      setNewStage((prev) => ({ ...prev, titulo: '', codigo: '', ordem: String(stages.length + 2) }));
+                      setNewStage((prev) => ({ ...prev, titulo: '', codigo: '', ordem: String(stages.length + 2), instrucoes: '', modelo_mensagem: '', link_referencia: '', link_reuniao: '', notificar_responsaveis: true, notificar_colaborador: false }));
                       await refreshTemplateDetails(selectedTemplate.id);
                     }}
                     className="px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all"
@@ -533,6 +636,59 @@ export const TemplatesTab: React.FC = () => {
                     Adicionar etapa
                   </button>
                 </div>
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3">
+                  <CustomSelect
+                    value={newStage.responsavel_padrao_papel}
+                    onValueChange={(value) => setNewStage((prev) => ({ ...prev, responsavel_padrao_papel: value as RhParticipantRole }))}
+                    options={ROLE_OPTIONS}
+                  />
+                  <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={newStage.obrigatoria}
+                      onChange={(e) => setNewStage((prev) => ({ ...prev, obrigatoria: e.target.checked }))}
+                      className="accent-cyan-500"
+                    />
+                    Etapa obrigatória
+                  </label>
+                </div>
+                <div className="mt-3 grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  <textarea
+                    value={newStage.instrucoes}
+                    onChange={(e) => setNewStage((prev) => ({ ...prev, instrucoes: e.target.value }))}
+                    rows={3}
+                    placeholder="Instruções padrão da etapa"
+                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                  />
+                  <textarea
+                    value={newStage.modelo_mensagem}
+                    onChange={(e) => setNewStage((prev) => ({ ...prev, modelo_mensagem: e.target.value }))}
+                    rows={3}
+                    placeholder="Modelo de mensagem padrão"
+                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={newStage.notificar_responsaveis}
+                      onChange={(e) => setNewStage((prev) => ({ ...prev, notificar_responsaveis: e.target.checked }))}
+                      className="accent-cyan-500"
+                    />
+                    Notificar responsáveis
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={newStage.notificar_colaborador}
+                      onChange={(e) => setNewStage((prev) => ({ ...prev, notificar_colaborador: e.target.checked }))}
+                      className="accent-cyan-500"
+                    />
+                    Notificar colaborador
+                  </label>
+                </div>
+                </>
               ) : null}
             </Card>
 
@@ -627,38 +783,136 @@ export const TemplatesTab: React.FC = () => {
                 </div>
                 <div className="space-y-3">
                   {checklistItems.map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4 flex items-center justify-between gap-3">
-                      <div className="text-white font-black">{item.ordem}. {item.titulo}</div>
-                      <Badge variant={item.obrigatorio ? 'success' : 'default'}>{item.obrigatorio ? 'Obrigatório' : 'Opcional'}</Badge>
+                    <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4 space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-[90px_1fr_180px_auto] gap-3">
+                        <input
+                          value={item.ordem}
+                          onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, ordem: Number(e.target.value) || current.ordem } : current))}
+                          className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                        />
+                        <input
+                          value={item.titulo}
+                          onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))}
+                          className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                        />
+                        <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={item.obrigatorio}
+                            onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, obrigatorio: e.target.checked } : current))}
+                            className="accent-emerald-500"
+                          />
+                          Obrigatório
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await rhJornadaService.updateTemplateChecklistItem(item.id, {
+                                titulo: item.titulo,
+                                descricao: item.descricao || null,
+                                link_url: item.link_url || null,
+                                obrigatorio: item.obrigatorio,
+                                ordem: item.ordem,
+                              });
+                              if (selectedStage) setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(selectedStage.id));
+                            }}
+                            className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black transition-all"
+                          >
+                            Salvar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await rhJornadaService.deleteTemplateChecklistItem(item.id);
+                              if (selectedStage) setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(selectedStage.id));
+                            }}
+                            className="p-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <textarea
+                        value={item.descricao || ''}
+                        onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, descricao: e.target.value } : current))}
+                        rows={3}
+                        placeholder="Descrição do item"
+                        className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      />
+                      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+                        <input
+                          value={item.link_url || ''}
+                          onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, link_url: e.target.value } : current))}
+                          placeholder="Link opcional"
+                          className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                        />
+                        {item.link_url ? (
+                          <button
+                            type="button"
+                            onClick={() => window.open(item.link_url!, '_blank', 'noopener,noreferrer')}
+                            className="px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 flex items-center gap-2 transition-all"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Abrir
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
                   {checklistItems.length === 0 ? <div className="text-sm font-bold text-slate-500">Nenhum item de checklist para a etapa selecionada.</div> : null}
                 </div>
 
                 {selectedStage ? (
-                  <div className="mt-5 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+                  <div className="mt-5 space-y-3">
                     <input
                       value={newChecklist.titulo}
                       onChange={(e) => setNewChecklist((prev) => ({ ...prev, titulo: e.target.value }))}
                       placeholder="Novo item de checklist"
                       className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                     />
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await rhJornadaService.createTemplateChecklistItem({
-                          template_etapa_id: selectedStage.id,
-                          titulo: newChecklist.titulo,
-                          obrigatorio: newChecklist.obrigatorio,
-                          ordem: checklistItems.length + 1,
-                        });
-                        setNewChecklist({ titulo: '', obrigatorio: true });
-                        setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(selectedStage.id));
-                      }}
-                      className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black transition-all"
-                    >
-                      Adicionar item
-                    </button>
+                    <textarea
+                      value={newChecklist.descricao}
+                      onChange={(e) => setNewChecklist((prev) => ({ ...prev, descricao: e.target.value }))}
+                      rows={3}
+                      placeholder="Descrição padrão do item"
+                      className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3">
+                      <input
+                        value={newChecklist.link_url}
+                        onChange={(e) => setNewChecklist((prev) => ({ ...prev, link_url: e.target.value }))}
+                        placeholder="Link opcional"
+                        className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      />
+                      <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={newChecklist.obrigatorio}
+                          onChange={(e) => setNewChecklist((prev) => ({ ...prev, obrigatorio: e.target.checked }))}
+                          className="accent-emerald-500"
+                        />
+                        Obrigatório
+                      </label>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await rhJornadaService.createTemplateChecklistItem({
+                            template_etapa_id: selectedStage.id,
+                            titulo: newChecklist.titulo,
+                            descricao: newChecklist.descricao || null,
+                            link_url: newChecklist.link_url || null,
+                            obrigatorio: newChecklist.obrigatorio,
+                            ordem: checklistItems.length + 1,
+                          });
+                          setNewChecklist({ titulo: '', descricao: '', link_url: '', obrigatorio: true });
+                          setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(selectedStage.id));
+                        }}
+                        className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black transition-all"
+                      >
+                        Adicionar item
+                      </button>
+                    </div>
                   </div>
                 ) : null}
               </Card>
@@ -668,8 +922,8 @@ export const TemplatesTab: React.FC = () => {
           <div className="mt-8 space-y-6">
             <Card className="p-5 border border-slate-700/50">
               <div className="flex items-center justify-between gap-4 mb-4">
-                <div><div className="text-white text-xl font-black">Templates de PDI</div><div className="mt-1 text-sm font-bold text-slate-400">Padronize trilhas, competencias, objetivos e checkpoints por cargo.</div></div>
-                <button type="button" onClick={async () => { setSaving(true); try { const created = await rhJornadaService.createPdiTemplate({ nome: 'Novo template PDI', descricao: 'Ajuste trilha, competencias e objetivos.', ativo: true }); await refreshPdiTemplateDetails(created.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Novo template PDI</button>
+                <div><div className="text-white text-xl font-black">Modelos de PDI</div><div className="mt-1 text-sm font-bold text-slate-400">Padronize trilhas, competências, objetivos e checkpoints por cargo.</div></div>
+                <button type="button" onClick={async () => { setSaving(true); try { const created = await rhJornadaService.createPdiTemplate({ nome: 'Novo modelo de PDI', descricao: 'Ajuste trilha, competências e objetivos.', ativo: true }); await refreshPdiTemplateDetails(created.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Novo modelo de PDI</button>
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-6">
@@ -680,15 +934,15 @@ export const TemplatesTab: React.FC = () => {
                 {selectedPdiTemplate ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input value={pdiTemplateForm.nome} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, nome: e.target.value }))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" placeholder="Nome do template" />
+                      <input value={pdiTemplateForm.nome} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, nome: e.target.value }))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" placeholder="Nome do modelo" />
                       <input value={pdiTemplateForm.escopo_cargo} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, escopo_cargo: e.target.value }))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" placeholder="Cargo alvo" />
-                      <div className="md:col-span-2"><textarea value={pdiTemplateForm.descricao} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, descricao: e.target.value }))} rows={3} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none" placeholder="Descricao do template" /></div>
+                      <div className="md:col-span-2"><textarea value={pdiTemplateForm.descricao} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, descricao: e.target.value }))} rows={3} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none" placeholder="Descrição do modelo" /></div>
                       <CustomSelect value={pdiTemplateForm.ciclo_tipo} onValueChange={(value) => setPdiTemplateForm((prev) => ({ ...prev, ciclo_tipo: value as RhPdiCycleType | '' }))} options={PDI_CYCLE_OPTIONS} />
                       <div className="flex items-center gap-3"><label className="flex items-center gap-2 text-sm font-bold text-slate-300"><input type="checkbox" checked={pdiTemplateForm.ativo} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, ativo: e.target.checked }))} className="accent-violet-500" />Ativo</label></div>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <button type="button" onClick={async () => { setSaving(true); try { await rhJornadaService.updatePdiTemplate(selectedPdiTemplate.id, pdiTemplateForm); await refreshPdiTemplateDetails(selectedPdiTemplate.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Salvar template PDI</button>
+                      <button type="button" onClick={async () => { setSaving(true); try { await rhJornadaService.updatePdiTemplate(selectedPdiTemplate.id, pdiTemplateForm); await refreshPdiTemplateDetails(selectedPdiTemplate.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Salvar modelo de PDI</button>
                       <button type="button" onClick={async () => { setSaving(true); try { await rhJornadaService.archivePdiTemplate(selectedPdiTemplate.id); await refreshPdiTemplateDetails(selectedPdiTemplate.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all">Arquivar</button>
                     </div>
 
@@ -718,7 +972,7 @@ export const TemplatesTab: React.FC = () => {
                       </Card>
                     </div>
                   </div>
-                ) : <div className="text-sm font-bold text-slate-500">Selecione um template de PDI para editar.</div>}
+                ) : <div className="text-sm font-bold text-slate-500">Selecione um modelo de PDI para editar.</div>}
               </div>
             </Card>
           </div>

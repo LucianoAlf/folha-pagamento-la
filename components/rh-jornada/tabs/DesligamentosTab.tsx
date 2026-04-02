@@ -171,7 +171,7 @@ const DesligamentoCreateModal: React.FC<{
             <CustomSelect value={colaboradorId} onValueChange={setColaboradorId} options={colaboradorOptions} placeholder="Selecione..." />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Template *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Modelo *</div>
             <CustomSelect value={templateId} onValueChange={setTemplateId} options={templateOptions} placeholder="Selecione..." />
           </div>
           <div>
@@ -333,6 +333,11 @@ export const DesligamentosTab: React.FC = () => {
 
   const collaboratorMap = useMemo(() => new Map(colaboradores.map((c) => [c.id, c])), [colaboradores]);
   const selectedStage = useMemo(() => stages.find((stage) => stage.id === selectedStageId) || null, [stages, selectedStageId]);
+  const activeProcessesCount = useMemo(
+    () => processes.filter((process) => !['concluido', 'cancelado'].includes(process.status)).length,
+    [processes]
+  );
+  const selectedProcessContext = selectedProcess?.titulo || 'Selecione um desligamento';
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={loadData} />;
@@ -342,13 +347,13 @@ export const DesligamentosTab: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Ativos</div>
-          <div className="mt-2 text-3xl font-black text-white">{processes.length}</div>
+          <div className="mt-2 text-3xl font-black text-white">{activeProcessesCount}</div>
           <div className="mt-1 text-xs font-bold text-slate-400">Desligamentos abertos</div>
         </Card>
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Etapas</div>
           <div className="mt-2 text-3xl font-black text-white">{selectedProcess?.total_etapas || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">No processo selecionado</div>
+          <div className="mt-1 text-xs font-bold text-slate-400 truncate">{selectedProcessContext}</div>
         </Card>
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Aviso</div>
@@ -385,7 +390,7 @@ export const DesligamentosTab: React.FC = () => {
             <LogOut className="w-6 h-6 text-slate-400" />
           </div>
           <div className="text-white font-black">Nenhum desligamento criado</div>
-          <div className="mt-2 text-sm font-bold text-slate-400">Use o template padrão para abrir a primeira jornada de saída.</div>
+          <div className="mt-2 text-sm font-bold text-slate-400">Use o modelo padrão para abrir a primeira jornada de saída.</div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
@@ -507,7 +512,7 @@ export const DesligamentosTab: React.FC = () => {
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">PDFs oficiais</div>
-                          <div className="mt-2 text-sm font-bold text-slate-300">Gere o aviso prévio oficial e mantenha o histórico em `rh_documentos_gerados`.</div>
+                          <div className="mt-2 text-sm font-bold text-slate-300">Gere o aviso prévio oficial e mantenha o histórico dos documentos gerados nesta jornada.</div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <button
@@ -569,7 +574,11 @@ export const DesligamentosTab: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={async () => {
-                                  const url = await rhJornadaService.getDocumentSignedUrl(doc.storage_path);
+                                  const url = await rhJornadaService.getGeneratedDocumentSignedUrl(doc);
+                                  if (selectedProcessId) {
+                                    const docs = await rhJornadaService.fetchGeneratedDocuments(selectedProcessId);
+                                    setGeneratedDocs(docs);
+                                  }
                                   window.open(url, '_blank', 'noopener,noreferrer');
                                 }}
                                 className="px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 flex items-center gap-2 transition-all"

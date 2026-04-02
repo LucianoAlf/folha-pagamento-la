@@ -8,12 +8,31 @@ Status geral do modulo:
 
 - `Implantado e validado tecnicamente`: frontend, migrations, tabelas, views, bucket privado, funcoes RH/IA, novas abas, servicos e build
 - `Homologado E2E com massa controlada`: recrutamento, onboarding, jornada, PDI, agenda, carreira e desligamento
-- `Ainda dependente de QA humano real por papel`: permissoes finas e experiencia de uso em perfis operacionais
+- `Homologado em QA multiusuario controlado`: perfis `rh`, `gestor`, `mentor`, `avaliador` e `financeiro` testados com usuarios reais HML
+- `Correcao pos-E2E browser aplicada`: signed URL documental, KPIs ativas, bindings de contexto e exposicao de templates de PDI ajustados em codigo
+- `Ainda recomendada uma rodada humana final de go-live`: validacao assistida da Ana/operacao em ambiente real
 
 Conclusao objetiva:
 
-- A `Jornada RH V2` esta **implantada e homologada tecnicamente de ponta a ponta**
-- O sistema **ainda nao deve ser chamado de 100% homologado em producao multiusuario** enquanto nao houver QA com perfis reais
+- A `Jornada RH V2` esta **implantada e validada tecnicamente de ponta a ponta**
+- O sistema esta **homologado multiusuario em ambiente controlado**
+- Os bugs mais relevantes apontados pela rodada E2E de browser foram corrigidos em codigo e validados em build
+- O passo recomendado antes de go-live pleno e uma reexecucao curta do browser agent focada nas correcoes aplicadas
+
+## Correcoes pos-E2E browser
+
+- `[x]` Normalizacao de `storage_path` para abrir documentos gerados com signed URL valida
+- `[x]` KPIs de `Ativos` corrigidas em `Onboarding` e `Desligamentos`
+- `[x]` Cards de contexto agora exibem o processo selecionado em `Onboarding` e `Desligamentos`
+- `[x]` `Templates` passou a destacar contexto operacional e o template de PDI em foco
+- `[x]` Snapshot de `Desenvolvimento / PDI` passou a calcular `Sem PDI` sobre o conjunto real de colaboradores ativos
+- `[x]` Build de producao executado apos as correcoes
+- `[x]` Correcao final aplicada para documentos oficiais órfãos de desligamento:
+  - a UI agora tenta regenerar o PDF automaticamente se a signed URL falhar
+  - a Edge Function `rh-generate-document` foi republicada com validacao de persistencia no bucket antes do insert em `rh_documentos_gerados`
+- `[x]` Refinamento final da UX de `Desenvolvimento / PDI`:
+  - cards agora explicam o universo de cada KPI
+  - a lista lateral foi explicitada como base ativa de colaboradores
 
 ## O que foi validado nesta auditoria
 
@@ -37,6 +56,38 @@ Conclusao objetiva:
   - `Templates de PDI`
 - `[x]` O build de producao passou em `2026-04-01`
 - `[-]` O bundle final continua grande e o Vite alerta sobre chunks acima de 500 kB
+
+### Refinamento operacional do processo
+
+- `[x]` Etapas do processo agora suportam checklist oficial com CRUD completo
+- `[x]` Etapas suportam links, instrucoes, modelo de mensagem e link de reuniao
+- `[x]` Etapas suportam data limite e data/hora agendada
+- `[x]` Etapas suportam documentos no contexto da propria etapa
+- `[x]` Responsaveis da etapa suportam atribuicao, remocao e principal
+- `[x]` Mentor passou a ser um dado operacional explicito e editavel no processo
+- `[x]` Avaliacoes passaram a suportar edicao e exclusao
+- `[x]` Candidatos passaram a suportar edicao operacional e arquivamento seguro
+- `[x]` Dossie documental do colaborador passou a suportar revisao e exclusao no contexto do colaborador
+- `[x]` A notificacao via WhatsApp por etapa foi implantada como gatilho operacional
+
+### Fechamento do CRUD do PDI
+
+- `[x]` O modulo `Desenvolvimento / PDI` agora tem CRUD completo na UI para:
+  - competencias
+  - objetivos
+  - checkpoints
+  - feedbacks
+  - evidencias
+- `[x]` O fluxo de evidencias cobre:
+  - criacao por arquivo, link ou texto
+  - edicao de metadados
+  - substituicao opcional de arquivo
+  - exclusao com limpeza do storage
+- `[x]` O fluxo de checkpoints cobre:
+  - criacao
+  - edicao detalhada
+  - marcacao rapida como realizado
+  - exclusao com sincronizacao da Agenda
 
 ### Banco e Supabase
 
@@ -68,7 +119,9 @@ Conclusao objetiva:
 - `[x]` IA RH usa protecao compartilhada em `_shared/rh-auth.ts`
 - `[x]` A protecao exige `Authorization` valido e papel `admin` ou `rh`
 - `[x]` Espelhamento de checkpoint PDI para Agenda existe no service
-- `[-]` Chamada autenticada real da IA ainda nao foi homologada com usuario operacional
+- `[x]` Chamada autenticada real da IA homologada com usuario `rh`
+- `[x]` Bloqueio da IA homologado para usuario `gestor`
+- `[x]` Correcao aplicada para usar a ultima jornada quando a jornada ativa ja estiver encerrada
 
 ## Homologacao assistida E2E
 
@@ -115,15 +168,15 @@ Leitura da massa controlada:
 
 ## Limitacoes reais desta auditoria
 
-- `user_profiles` hoje tem apenas `1` usuario operacional registrado:
-  - `admin: 1`
-  - `rh: 0`
-  - `gestor: 0`
-  - `mentor: 0`
-  - `avaliador: 0`
-  - `financeiro: 0`
-- por isso, `QA por papeis` nao pode ser validado de forma real
-- a homologacao da IA foi estrutural e de deploy, nao de uso autenticado com usuario humano operacional
+- a validacao por papel foi feita com usuarios HML reais no Auth:
+  - `rh`
+  - `gestor`
+  - `mentor`
+  - `avaliador`
+  - `financeiro`
+- a homologacao da IA foi executada com chamada autenticada de usuario `rh`
+- o bloqueio por perfil tambem foi validado com `gestor`
+- ainda e recomendavel uma rodada humana final de aceite com a Ana para UX e operacao real
 
 ## Itens considerados homologados
 
@@ -150,9 +203,8 @@ Leitura da massa controlada:
 
 ## Itens que ainda dependem de validacao operacional humana
 
-- `[-]` QA completo por papel
-- `[-]` QA funcional de IA com usuario real
 - `[-]` Revisao da UX final com a Ana em uso real
+- `[-]` Aceite de go-live em uso operacional cotidiano
 
 ## Veredito final
 
@@ -161,10 +213,12 @@ Veredito desta auditoria:
 - `Implantacao estrutural`: **aprovada**
 - `Implantacao funcional de codigo`: **aprovada**
 - `Homologacao assistida E2E`: **aprovada**
-- `Homologacao operacional multiusuario`: **ainda pendente de usuarios reais**
+- `Homologacao operacional multiusuario`: **aprovada em ambiente controlado**
+- `Go-live hardening`: **aprovado**
 
 Em outras palavras:
 
 - **nao ficou faltando implementacao central do blueprint**
 - **o ciclo completo foi validado com massa controlada**
-- o que falta para chamar de `100% em producao` e a rodada humana final com perfis reais
+- **os perfis reais HML foram validados com autenticacao e RLS**
+- o que fica recomendado antes de go-live pleno e apenas a rodada humana final de aceite operacional

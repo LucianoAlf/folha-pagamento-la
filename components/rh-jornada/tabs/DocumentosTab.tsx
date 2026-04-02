@@ -19,7 +19,7 @@ const STATUS_OPTIONS = [
 const PROCESSO_OPTIONS = [
   { value: 'all', label: 'Todos os contextos' },
   { value: 'recrutamento', label: 'Recrutamento' },
-  { value: 'onboarding', label: 'Onboarding' },
+  { value: 'onboarding', label: 'Integração' },
   { value: 'desligamento', label: 'Desligamento' },
   { value: 'colaborador', label: 'Dossie do colaborador' },
 ];

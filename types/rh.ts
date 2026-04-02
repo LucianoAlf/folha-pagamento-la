@@ -268,6 +268,12 @@ export interface RhTemplateStage {
   obrigatoria: boolean;
   prazo_offset_dias?: number | null;
   responsavel_padrao_papel?: string | null;
+  instrucoes?: string | null;
+  modelo_mensagem?: string | null;
+  link_referencia?: string | null;
+  link_reuniao?: string | null;
+  notificar_responsaveis: boolean;
+  notificar_colaborador: boolean;
   metadata_json?: Record<string, unknown>;
 }
 
@@ -275,6 +281,8 @@ export interface RhTemplateChecklistItem {
   id: string;
   template_etapa_id: string;
   titulo: string;
+  descricao?: string | null;
+  link_url?: string | null;
   obrigatorio: boolean;
   ordem: number;
   metadata_json?: Record<string, unknown>;
@@ -358,6 +366,14 @@ export interface RhStage {
   data_prevista?: string | null;
   data_limite?: string | null;
   data_realizada?: string | null;
+  agendado_em?: string | null;
+  instrucoes?: string | null;
+  modelo_mensagem?: string | null;
+  link_referencia?: string | null;
+  link_reuniao?: string | null;
+  notificar_responsaveis: boolean;
+  notificar_colaborador: boolean;
+  ultimo_aviso_whatsapp_em?: string | null;
   observacoes?: string | null;
   metadata_json?: Record<string, unknown>;
   created_at: string;
@@ -369,6 +385,7 @@ export interface RhChecklistItem {
   etapa_id: string;
   titulo: string;
   descricao?: string | null;
+  link_url?: string | null;
   obrigatorio: boolean;
   concluido: boolean;
   concluido_em?: string | null;
@@ -381,6 +398,7 @@ export interface RhChecklistItemCreateInput {
   etapa_id: string;
   titulo: string;
   descricao?: string | null;
+  link_url?: string | null;
   obrigatorio?: boolean;
 }
 
@@ -513,12 +531,20 @@ export interface RhTemplateStageCreateInput {
   obrigatoria?: boolean;
   prazo_offset_dias?: number | null;
   responsavel_padrao_papel?: RhParticipantRole | null;
+  instrucoes?: string | null;
+  modelo_mensagem?: string | null;
+  link_referencia?: string | null;
+  link_reuniao?: string | null;
+  notificar_responsaveis?: boolean;
+  notificar_colaborador?: boolean;
   metadata_json?: Record<string, unknown>;
 }
 
 export interface RhTemplateChecklistItemCreateInput {
   template_etapa_id: string;
   titulo: string;
+  descricao?: string | null;
+  link_url?: string | null;
   obrigatorio?: boolean;
   ordem: number;
   metadata_json?: Record<string, unknown>;
