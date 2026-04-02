@@ -123,6 +123,13 @@ export interface NotificacaoConfig {
   resumo_semanal_dia: string;
   resumo_semanal_hora: string;
   lembrete_padrao_minutos: number;
+  // Jornada RH
+  rh_agenda_lembrete_processos_ativo?: boolean;
+  rh_agenda_lembrete_processos_minutos?: number;
+  rh_agenda_lembrete_etapas_ativo?: boolean;
+  rh_agenda_lembrete_etapas_minutos?: number;
+  rh_agenda_lembrete_pdi_ativo?: boolean;
+  rh_agenda_lembrete_pdi_minutos?: number;
   // Contas a pagar
   contas_alerta_3d?: boolean;
   contas_alerta_1d?: boolean;

@@ -150,6 +150,7 @@ export async function createRhAgendaMirrorTask(payload: {
   vinculo_tipo: 'rh_processo' | 'rh_etapa' | 'rh_pdi_checkpoint';
   vinculo_id: string;
   unidade?: Tarefa['unidade'];
+  lembrete_minutos?: number[];
 }): Promise<Tarefa> {
   return createTarefa({
     titulo: payload.titulo,
@@ -163,7 +164,7 @@ export async function createRhAgendaMirrorTask(payload: {
     unidade: payload.unidade || null,
     dia_inteiro: true,
     is_recorrente: false,
-    lembrete_minutos: [],
+    lembrete_minutos: payload.lembrete_minutos || [],
     tags: ['rh'],
     status: 'pendente',
     ordem: 0,

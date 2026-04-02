@@ -187,7 +187,7 @@ export const TemplatesTab: React.FC = () => {
       setPdiObjectives(nextObjectives);
       setPdiCheckpoints(nextCheckpoints);
     }).catch((err: any) => {
-      setError(err?.message || 'Não foi possível carregar o modelo de PDI.');
+      setError(err?.message || 'Não foi possível carregar o template de PDI.');
     });
   }, [selectedPdiTemplateId]);
 
@@ -197,8 +197,8 @@ export const TemplatesTab: React.FC = () => {
   );
   const selectedStage = useMemo(() => stages.find((stage) => stage.id === selectedStageId) || null, [stages, selectedStageId]);
   const selectedPdiTemplate = useMemo(() => pdiTemplates.find((template) => template.id === selectedPdiTemplateId) || null, [pdiTemplates, selectedPdiTemplateId]);
-  const selectedTemplateContext = selectedTemplate?.nome || 'Selecione um modelo operacional';
-  const selectedPdiTemplateContext = selectedPdiTemplate?.nome || 'Selecione um modelo de PDI';
+  const selectedTemplateContext = selectedTemplate?.nome || 'Selecione um template operacional';
+  const selectedPdiTemplateContext = selectedPdiTemplate?.nome || 'Selecione um template de PDI';
 
   useEffect(() => {
     if (!selectedTemplate) return;
@@ -258,14 +258,14 @@ export const TemplatesTab: React.FC = () => {
       <Card className="p-5 border border-violet-500/20 bg-violet-500/5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-violet-200/80 font-black">Governança de modelos</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-violet-200/80 font-black">Governança de templates</div>
             <div className="mt-2 text-lg font-black text-white">{selectedTemplateContext}</div>
             <div className="mt-1 text-sm font-bold text-slate-300">
-              {selectedTemplate ? `${selectedTemplate.tipo_processo} • v${selectedTemplate.versao}` : 'Selecione um modelo operacional para editar etapas, checklist e documentos.'}
+              {selectedTemplate ? `${selectedTemplate.tipo_processo} • v${selectedTemplate.versao}` : 'Selecione um template operacional para editar etapas, checklist e documentos.'}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black">Modelo de PDI em foco</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black">Template de PDI em foco</div>
             <div className="mt-2 text-base font-black text-white truncate">{selectedPdiTemplateContext}</div>
             <div className="mt-1 text-xs font-bold text-slate-400">{pdiTemplates.filter((item) => item.ativo).length} ativos</div>
           </div>
@@ -273,7 +273,7 @@ export const TemplatesTab: React.FC = () => {
       </Card>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Modelos ativos</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Templates ativos</div>
           <div className="mt-2 text-3xl font-black text-white">{templates.filter((item) => item.ativo).length}</div>
           <div className="mt-1 text-xs font-bold text-slate-400">Base operacional do módulo</div>
         </Card>
@@ -290,7 +290,7 @@ export const TemplatesTab: React.FC = () => {
         <Card className="p-5 border border-slate-700/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Versão</div>
           <div className="mt-2 text-3xl font-black text-emerald-300">v{selectedTemplate?.versao || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Controle de governança do modelo</div>
+          <div className="mt-1 text-xs font-bold text-slate-400">Controle de governança do template</div>
         </Card>
       </div>
 
@@ -298,7 +298,7 @@ export const TemplatesTab: React.FC = () => {
         <Card className="p-5 border border-slate-700/50">
           <div className="flex items-center gap-2 mb-4">
             <LibraryBig className="w-4 h-4 text-violet-300" />
-            <h3 className="text-white text-base font-black">Catálogo de modelos</h3>
+            <h3 className="text-white text-base font-black">Catálogo de templates</h3>
           </div>
           <div className="space-y-3">
             <button
@@ -307,7 +307,7 @@ export const TemplatesTab: React.FC = () => {
                 setSaving(true);
                 try {
                   const created = await rhJornadaService.createTemplate({
-                    nome: 'Novo modelo RH',
+                    nome: 'Novo template RH',
                     descricao: 'Ajuste os dados, etapas e documentos.',
                     tipo_processo: 'onboarding',
                     ativo: true,
@@ -321,7 +321,7 @@ export const TemplatesTab: React.FC = () => {
             >
               <div className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                Novo modelo
+                Novo template
               </div>
             </button>
             {templates.map((template) => {
@@ -360,9 +360,9 @@ export const TemplatesTab: React.FC = () => {
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <div className="text-white text-xl font-black">{selectedTemplate?.nome || 'Selecione um modelo'}</div>
+                  <div className="text-white text-xl font-black">{selectedTemplate?.nome || 'Selecione um template'}</div>
                   <div className="mt-1 text-sm font-bold text-slate-400">
-                    {selectedTemplate?.descricao || 'Selecione um modelo para ver etapas e documentos obrigatórios.'}
+                    {selectedTemplate?.descricao || 'Selecione um template para ver etapas e documentos obrigatórios.'}
                   </div>
                 </div>
                 {selectedTemplate ? <Badge variant="info">{selectedTemplate.tipo_processo}</Badge> : null}
@@ -413,7 +413,7 @@ export const TemplatesTab: React.FC = () => {
                       className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black flex items-center gap-2 transition-all"
                     >
                       <Save className="w-4 h-4" />
-                      Salvar modelo
+                      Salvar template
                     </button>
                     <button
                       type="button"
@@ -444,7 +444,7 @@ export const TemplatesTab: React.FC = () => {
                       }}
                       className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all"
                     >
-                      Arquivar modelo
+                      Arquivar template
                     </button>
                   </div>
                 </>
@@ -922,8 +922,8 @@ export const TemplatesTab: React.FC = () => {
           <div className="mt-8 space-y-6">
             <Card className="p-5 border border-slate-700/50">
               <div className="flex items-center justify-between gap-4 mb-4">
-                <div><div className="text-white text-xl font-black">Modelos de PDI</div><div className="mt-1 text-sm font-bold text-slate-400">Padronize trilhas, competências, objetivos e checkpoints por cargo.</div></div>
-                <button type="button" onClick={async () => { setSaving(true); try { const created = await rhJornadaService.createPdiTemplate({ nome: 'Novo modelo de PDI', descricao: 'Ajuste trilha, competências e objetivos.', ativo: true }); await refreshPdiTemplateDetails(created.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Novo modelo de PDI</button>
+                <div><div className="text-white text-xl font-black">Templates de PDI</div><div className="mt-1 text-sm font-bold text-slate-400">Padronize trilhas, competências, objetivos e checkpoints por cargo.</div></div>
+                <button type="button" onClick={async () => { setSaving(true); try { const created = await rhJornadaService.createPdiTemplate({ nome: 'Novo template de PDI', descricao: 'Ajuste trilha, competências e objetivos.', ativo: true }); await refreshPdiTemplateDetails(created.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Novo template de PDI</button>
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-6">
@@ -934,15 +934,15 @@ export const TemplatesTab: React.FC = () => {
                 {selectedPdiTemplate ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input value={pdiTemplateForm.nome} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, nome: e.target.value }))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" placeholder="Nome do modelo" />
+                      <input value={pdiTemplateForm.nome} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, nome: e.target.value }))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" placeholder="Nome do template" />
                       <input value={pdiTemplateForm.escopo_cargo} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, escopo_cargo: e.target.value }))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" placeholder="Cargo alvo" />
-                      <div className="md:col-span-2"><textarea value={pdiTemplateForm.descricao} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, descricao: e.target.value }))} rows={3} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none" placeholder="Descrição do modelo" /></div>
+                      <div className="md:col-span-2"><textarea value={pdiTemplateForm.descricao} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, descricao: e.target.value }))} rows={3} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none" placeholder="Descrição do template" /></div>
                       <CustomSelect value={pdiTemplateForm.ciclo_tipo} onValueChange={(value) => setPdiTemplateForm((prev) => ({ ...prev, ciclo_tipo: value as RhPdiCycleType | '' }))} options={PDI_CYCLE_OPTIONS} />
                       <div className="flex items-center gap-3"><label className="flex items-center gap-2 text-sm font-bold text-slate-300"><input type="checkbox" checked={pdiTemplateForm.ativo} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, ativo: e.target.checked }))} className="accent-violet-500" />Ativo</label></div>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <button type="button" onClick={async () => { setSaving(true); try { await rhJornadaService.updatePdiTemplate(selectedPdiTemplate.id, pdiTemplateForm); await refreshPdiTemplateDetails(selectedPdiTemplate.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Salvar modelo de PDI</button>
+                      <button type="button" onClick={async () => { setSaving(true); try { await rhJornadaService.updatePdiTemplate(selectedPdiTemplate.id, pdiTemplateForm); await refreshPdiTemplateDetails(selectedPdiTemplate.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Salvar template de PDI</button>
                       <button type="button" onClick={async () => { setSaving(true); try { await rhJornadaService.archivePdiTemplate(selectedPdiTemplate.id); await refreshPdiTemplateDetails(selectedPdiTemplate.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all">Arquivar</button>
                     </div>
 
@@ -972,7 +972,7 @@ export const TemplatesTab: React.FC = () => {
                       </Card>
                     </div>
                   </div>
-                ) : <div className="text-sm font-bold text-slate-500">Selecione um modelo de PDI para editar.</div>}
+                ) : <div className="text-sm font-bold text-slate-500">Selecione um template de PDI para editar.</div>}
               </div>
             </Card>
           </div>

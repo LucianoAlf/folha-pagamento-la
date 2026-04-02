@@ -1,14 +1,25 @@
 import { supabase } from './supabase';
-import { completeRhAgendaMirrorTask, createRhAgendaMirrorTask, updateRhAgendaMirrorTask } from './agendaService';
+import { completeRhAgendaMirrorTask, createRhAgendaMirrorTask, fetchNotificacaoConfig, updateRhAgendaMirrorTask } from './agendaService';
 import type { RhProcess, RhStage } from '../types/rh';
 
-const buildProcessTaskTitle = (process: RhProcess) => {
-  return `Jornada RH: ${process.titulo}`;
+type RhAgendaReminderConfig = {
+  processReminderMinutes: number[];
+  stageReminderMinutes: number[];
+  pdiReminderMinutes: number[];
 };
 
-const buildStageTaskTitle = (process: RhProcess, stage: RhStage) => {
-  return `Jornada RH: ${process.titulo} - ${stage.titulo}`;
-};
+const CONFIG_CACHE_TTL_MS = 30_000;
+
+let configCache:
+  | {
+      expiresAt: number;
+      value: RhAgendaReminderConfig;
+    }
+  | null = null;
+
+const buildProcessTaskTitle = (process: RhProcess) => `Jornada RH: ${process.titulo}`;
+
+const buildStageTaskTitle = (process: RhProcess, stage: RhStage) => `Jornada RH: ${process.titulo} - ${stage.titulo}`;
 
 const getStageDueDateTime = (stage: RhStage) => {
   if (stage.agendado_em) return stage.agendado_em;
@@ -32,8 +43,36 @@ const findMirrorTask = async (vinculoTipo: 'rh_processo' | 'rh_etapa' | 'rh_pdi_
 const isTerminalStatus = (status: string) => status === 'concluido' || status === 'cancelado';
 const isTerminalStageStatus = (status: string) => status === 'concluida' || status === 'dispensada';
 
+const toReminderMinutes = (active: boolean | undefined, value: number | undefined, fallback: number) => {
+  if (active === false) return [];
+  const minutes = Number.isFinite(value) ? Number(value) : fallback;
+  return minutes > 0 ? [minutes] : [];
+};
+
+const getRhAgendaReminderConfig = async (): Promise<RhAgendaReminderConfig> => {
+  const now = Date.now();
+  if (configCache && configCache.expiresAt > now) {
+    return configCache.value;
+  }
+
+  const config = await fetchNotificacaoConfig().catch(() => null);
+  const value: RhAgendaReminderConfig = {
+    processReminderMinutes: toReminderMinutes(config?.rh_agenda_lembrete_processos_ativo, config?.rh_agenda_lembrete_processos_minutos, 1440),
+    stageReminderMinutes: toReminderMinutes(config?.rh_agenda_lembrete_etapas_ativo, config?.rh_agenda_lembrete_etapas_minutos, 1440),
+    pdiReminderMinutes: toReminderMinutes(config?.rh_agenda_lembrete_pdi_ativo, config?.rh_agenda_lembrete_pdi_minutos, 1440),
+  };
+
+  configCache = {
+    expiresAt: now + CONFIG_CACHE_TTL_MS,
+    value,
+  };
+
+  return value;
+};
+
 export const rhAgendaSyncService = {
   async createProcessMirror(process: RhProcess) {
+    const reminderConfig = await getRhAgendaReminderConfig();
     return createRhAgendaMirrorTask({
       titulo: buildProcessTaskTitle(process),
       descricao: `Processo ${process.tipo} em ${process.status}.`,
@@ -42,15 +81,18 @@ export const rhAgendaSyncService = {
       prioridade: process.prioridade === 'urgente' ? 'urgente' : process.prioridade === 'alta' ? 'alta' : 'media',
       vinculo_tipo: 'rh_processo',
       vinculo_id: process.id,
+      lembrete_minutos: reminderConfig.processReminderMinutes,
     });
   },
 
   async updateProcessMirror(taskId: string, process: RhProcess) {
+    const reminderConfig = await getRhAgendaReminderConfig();
     return updateRhAgendaMirrorTask(taskId, {
       titulo: buildProcessTaskTitle(process),
       descricao: `Processo ${process.tipo} em ${process.status}.`,
       vencimento_em: process.data_fim_prevista ? `${process.data_fim_prevista}T09:00:00` : null,
       prioridade: process.prioridade === 'urgente' ? 'urgente' : process.prioridade === 'alta' ? 'alta' : 'media',
+      lembrete_minutos: reminderConfig.processReminderMinutes,
     });
   },
 
@@ -59,6 +101,7 @@ export const rhAgendaSyncService = {
   },
 
   async createStageMirror(process: RhProcess, stage: RhStage) {
+    const reminderConfig = await getRhAgendaReminderConfig();
     return createRhAgendaMirrorTask({
       titulo: buildStageTaskTitle(process, stage),
       descricao: `Etapa ${stage.categoria} em ${stage.status}.`,
@@ -67,15 +110,18 @@ export const rhAgendaSyncService = {
       prioridade: stage.status === 'atrasada' ? 'urgente' : 'media',
       vinculo_tipo: 'rh_etapa',
       vinculo_id: stage.id,
+      lembrete_minutos: reminderConfig.stageReminderMinutes,
     });
   },
 
   async updateStageMirror(taskId: string, process: RhProcess, stage: RhStage) {
+    const reminderConfig = await getRhAgendaReminderConfig();
     return updateRhAgendaMirrorTask(taskId, {
       titulo: buildStageTaskTitle(process, stage),
       descricao: `Etapa ${stage.categoria} em ${stage.status}.`,
       vencimento_em: getStageDueDateTime(stage),
       prioridade: stage.status === 'atrasada' ? 'urgente' : 'media',
+      lembrete_minutos: reminderConfig.stageReminderMinutes,
     });
   },
 
@@ -148,6 +194,7 @@ export const rhAgendaSyncService = {
   },
 
   async createPdiCheckpointMirror(planTitle: string, checkpoint: { id: string; titulo: string; tipo: string; status: string; data_prevista: string }) {
+    const reminderConfig = await getRhAgendaReminderConfig();
     return createRhAgendaMirrorTask({
       titulo: `PDI: ${planTitle} - ${checkpoint.titulo}`,
       descricao: `Checkpoint ${checkpoint.tipo} em ${checkpoint.status}.`,
@@ -156,15 +203,18 @@ export const rhAgendaSyncService = {
       prioridade: checkpoint.status === 'atrasado' ? 'urgente' : 'media',
       vinculo_tipo: 'rh_pdi_checkpoint',
       vinculo_id: checkpoint.id,
+      lembrete_minutos: reminderConfig.pdiReminderMinutes,
     });
   },
 
   async updatePdiCheckpointMirror(taskId: string, planTitle: string, checkpoint: { titulo: string; tipo: string; status: string; data_prevista: string }) {
+    const reminderConfig = await getRhAgendaReminderConfig();
     return updateRhAgendaMirrorTask(taskId, {
       titulo: `PDI: ${planTitle} - ${checkpoint.titulo}`,
       descricao: `Checkpoint ${checkpoint.tipo} em ${checkpoint.status}.`,
       vencimento_em: checkpoint.data_prevista ? `${checkpoint.data_prevista}T09:00:00` : null,
       prioridade: checkpoint.status === 'atrasado' ? 'urgente' : 'media',
+      lembrete_minutos: reminderConfig.pdiReminderMinutes,
     });
   },
 

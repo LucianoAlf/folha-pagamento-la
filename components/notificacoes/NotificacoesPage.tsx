@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Badge, Card, CustomSelect, TimeSelect, ToggleSwitch, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
-import { Bell, Calendar, CreditCard, Send, Loader2, Save, Smartphone, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bell, Calendar, ClipboardCheck, CreditCard, Send, Loader2, Save, Smartphone, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NotificacaoConfig } from '../../types/agenda';
 import { fetchNotificacaoConfig, upsertNotificacaoConfig } from '../../services/agendaService';
 import { supabase } from '../../services/supabase';
@@ -29,9 +29,9 @@ export const NotificacoesPage: React.FC = () => {
   const [accordionOpen, setAccordionOpen] = useState<Record<string, boolean>>(() => {
     try {
       const stored = localStorage.getItem('notificacoes:accordion');
-      return stored ? JSON.parse(stored) : { whatsapp: true, agenda: false, contas: false, folha: false, ferias: false };
+      return stored ? JSON.parse(stored) : { whatsapp: true, agenda: false, rh: false, contas: false, folha: false, ferias: false };
     } catch {
-      return { whatsapp: true, agenda: false, contas: false, folha: false, ferias: false };
+      return { whatsapp: true, agenda: false, rh: false, contas: false, folha: false, ferias: false };
     }
   });
 
@@ -50,6 +50,12 @@ export const NotificacoesPage: React.FC = () => {
     agenda_lembrete_tarefas_ativo: true,
     agenda_lembrete_aniversarios_ativo: true,
     lembrete_padrao_minutos: 30,
+    rh_agenda_lembrete_processos_ativo: true,
+    rh_agenda_lembrete_processos_minutos: 1440,
+    rh_agenda_lembrete_etapas_ativo: true,
+    rh_agenda_lembrete_etapas_minutos: 1440,
+    rh_agenda_lembrete_pdi_ativo: true,
+    rh_agenda_lembrete_pdi_minutos: 1440,
 
     resumo_diario_ativo: true,
     resumo_diario_hora: '08:00',
@@ -440,6 +446,113 @@ export const NotificacoesPage: React.FC = () => {
                       className="w-full"
                       disabled={!config.resumo_semanal_ativo}
                     />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Jornada RH */}
+        <Card className={cn('p-0 overflow-hidden', cardClass)}>
+          <button
+            type="button"
+            onClick={() => isMobile && toggleAccordion('rh')}
+            className={cn(
+              'w-full px-6 py-4 border-b border-slate-800/70 flex items-center justify-between',
+              isMobile && 'active:bg-slate-900/40 transition-colors'
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center">
+                <ClipboardCheck className="w-5 h-5 text-fuchsia-300" />
+              </div>
+              <div className="text-left">
+                <div className="text-white font-black">Jornada RH</div>
+                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Agenda e lembretes da Ana</div>
+              </div>
+            </div>
+            {isMobile && (
+              accordionOpen.rh ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />
+            )}
+          </button>
+          {(!isMobile || accordionOpen.rh) && (
+            <div className="divide-y divide-slate-800/60">
+              <div className="px-6 py-5 space-y-6">
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/25 px-4 py-3">
+                  <div className="text-sm text-slate-200 font-black">Espelhamento automatico na Agenda</div>
+                  <div className="mt-1 text-xs text-slate-500 font-medium leading-relaxed">
+                    Tudo o que for agendado na Jornada RH continua aparecendo na Agenda da Ana. Aqui voce configura a antecedencia dos lembretes desses espelhos.
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-slate-300 font-black">Processos RH</div>
+                      <div className="text-xs text-slate-500 font-medium mt-0.5">Recrutamento, onboarding e desligamento.</div>
+                    </div>
+                    <ToggleSwitch
+                      checked={config.rh_agenda_lembrete_processos_ativo !== false}
+                      onCheckedChange={(next) => setConfig((prev) => ({ ...prev, rh_agenda_lembrete_processos_ativo: next }))}
+                      variant="violet"
+                      ariaLabel="Ativar lembrete para processos da Jornada RH"
+                    />
+                  </div>
+                  <CustomSelect
+                    value={String(config.rh_agenda_lembrete_processos_minutos ?? 1440)}
+                    onValueChange={(value) => setConfig((prev) => ({ ...prev, rh_agenda_lembrete_processos_minutos: Number(value) }))}
+                    options={lembreteOptions}
+                    className={cn(config.rh_agenda_lembrete_processos_ativo === false && 'opacity-60 pointer-events-none')}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-slate-300 font-black">Etapas da Jornada</div>
+                      <div className="text-xs text-slate-500 font-medium mt-0.5">Entrevistas, boas-vindas, treinamentos e tarefas operacionais.</div>
+                    </div>
+                    <ToggleSwitch
+                      checked={config.rh_agenda_lembrete_etapas_ativo !== false}
+                      onCheckedChange={(next) => setConfig((prev) => ({ ...prev, rh_agenda_lembrete_etapas_ativo: next }))}
+                      variant="violet"
+                      ariaLabel="Ativar lembrete para etapas da Jornada RH"
+                    />
+                  </div>
+                  <CustomSelect
+                    value={String(config.rh_agenda_lembrete_etapas_minutos ?? 1440)}
+                    onValueChange={(value) => setConfig((prev) => ({ ...prev, rh_agenda_lembrete_etapas_minutos: Number(value) }))}
+                    options={lembreteOptions}
+                    className={cn(config.rh_agenda_lembrete_etapas_ativo === false && 'opacity-60 pointer-events-none')}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-slate-300 font-black">Checkpoints de PDI</div>
+                      <div className="text-xs text-slate-500 font-medium mt-0.5">Acompanhamentos de 30, 60, 90 dias e ciclos do desenvolvimento.</div>
+                    </div>
+                    <ToggleSwitch
+                      checked={config.rh_agenda_lembrete_pdi_ativo !== false}
+                      onCheckedChange={(next) => setConfig((prev) => ({ ...prev, rh_agenda_lembrete_pdi_ativo: next }))}
+                      variant="violet"
+                      ariaLabel="Ativar lembrete para checkpoints de PDI"
+                    />
+                  </div>
+                  <CustomSelect
+                    value={String(config.rh_agenda_lembrete_pdi_minutos ?? 1440)}
+                    onValueChange={(value) => setConfig((prev) => ({ ...prev, rh_agenda_lembrete_pdi_minutos: Number(value) }))}
+                    options={lembreteOptions}
+                    className={cn(config.rh_agenda_lembrete_pdi_ativo === false && 'opacity-60 pointer-events-none')}
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/25 px-4 py-3">
+                  <div className="text-sm text-slate-200 font-black">WhatsApp da Jornada RH</div>
+                  <div className="mt-1 text-xs text-slate-500 font-medium leading-relaxed">
+                    O canal de WhatsApp continua sendo configurado acima. Dentro da Jornada RH, cada etapa pode marcar se deve avisar os responsaveis e o colaborador.
                   </div>
                 </div>
               </div>
