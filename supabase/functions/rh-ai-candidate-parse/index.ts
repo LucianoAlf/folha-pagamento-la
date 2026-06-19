@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { RH_CORS_HEADERS, requireRhAdminContext, rhJsonResponse as jsonResponse } from "../_shared/rh-auth.ts";
+import { GEMINI_PRIMARY_MODEL_ID, getGeminiApiKey } from "../_shared/gemini.ts";
 
 const stripCodeFences = (input: string) =>
   (input || "").trim().replace(/^```json/i, "").replace(/^```/i, "").replace(/```$/g, "").trim();
@@ -56,7 +57,7 @@ function safeParseJsonFromText(text: string) {
 }
 
 async function callGemini(apiKey: string, prompt: string, filePart?: { mimeType: string; data: string }) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_PRIMARY_MODEL_ID}:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -107,10 +108,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: RH_CORS_HEADERS });
 
   try {
-    await requireRhAdminContext(req);
-
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) return jsonResponse({ error: "GEMINI_API_KEY não configurada" }, 500);
+    const { adminClient } = await requireRhAdminContext(req);
+    const apiKey = await getGeminiApiKey(adminClient);
 
     const payload = await req.json().catch(() => ({}));
     const fileBase64 = payload?.fileBase64 ? String(payload.fileBase64) : "";

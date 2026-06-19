@@ -1,6 +1,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { callGeminiOnce, callGeminiWithFallback, getGeminiApiKey } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -87,26 +88,6 @@ function safeParseJsonFromText(text: string): any {
   }
 }
 
-async function callGemini(model: string, apiKey: string, prompt: string) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.15,
-        topP: 0.9,
-        maxOutputTokens: 2048,
-      },
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-}
-
 async function repairToStrictJson(model: string, apiKey: string, rawText: string, contractHint: string) {
   const prompt = `Você devolveu uma resposta que NÃO é JSON válido.
 
@@ -119,7 +100,9 @@ ${rawText}
 
 SAÍDA: APENAS JSON válido.`;
 
-  return await callGemini(model, apiKey, prompt);
+  return await callGeminiOnce(prompt, apiKey, model, {
+    generationConfig: { temperature: 0.15, maxOutputTokens: 2048 },
+  });
 }
 
 async function sha256Hex(input: string): Promise<string> {
@@ -216,13 +199,7 @@ Deno.serve(async (req: Request) => {
     const prev = prevYM(competenciaYM);
     const prevDate = prev ? `${prev}-01` : null;
 
-    // Voltar ao modelo original (conforme solicitado)
-    const model = "gemini-3-flash-preview";
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    console.log("🔑 GEMINI_API_KEY presente:", !!apiKey, "tamanho:", apiKey?.length || 0);
-    if (!apiKey) {
-      return jsonResponse({ error: "GEMINI_API_KEY não configurada" }, 500);
-    }
+    const apiKey = await getGeminiApiKey(supabase);
 
   // 1) Notas gerais do mês (memória)
   const [year, month] = competenciaYM.split("-").map(Number);
@@ -441,7 +418,9 @@ Deno.serve(async (req: Request) => {
 
   const prompt = `Você é um Controller Financeiro da LA Music Group.\n\nSua tarefa é AUDITAR o mês ${competenciaYM} (Contas a Pagar) e apontar ANOMALIAS e INCONSISTÊNCIAS dentro do mês.\n\nIMPORTANTE: NÃO faça um comparativo \"mês contra mês\" como relatório principal. Você pode usar o mês anterior apenas como BASELINE de normalidade para recorrentes.\n\nDADOS (JSON):\n${JSON.stringify(inputObject)}\n\nINSTRUÇÕES:\n- Produza uma análise profissional, objetiva e prática para a Ana.\n- Use as anomalias_candidatas (com key estável) para escolher o que merece atenção.\n- Evite redundância: foque em qualidade do mês (duplicidades, falta de categoria, recorrentes fora do padrão, vencidas relevantes, etc.).\n- Se uma anomalia já tem nota na memória, considere isso na explicação.\n\nCONTRATO DE SAÍDA (Responda APENAS JSON puro):\n{\n  \"resumo_executivo\": \"Texto curto e direto (3-6 linhas) sobre o mês.\",\n  \"pontos_de_atencao\": [\"bullet 1\", \"bullet 2\"],\n  \"anomalias\": [\n    {\n      \"key\": \"uma key existente em anomalias_candidatas\",\n      \"severidade\": \"alta|media|baixa\",\n      \"titulo\": \"Título curto\",\n      \"descricao\": \"Descrição clara e concreta (o que é, por que importa)\",\n      \"impacto_financeiro\": 123.45,\n      \"conta_id\": \"uuid ou null\",\n      \"acao_sugerida\": \"O que a Ana deve fazer\",\n      \"pergunta_para_ana\": \"Pergunta para confirmar contexto (se necessário)\"\n    }\n  ],\n  \"recomendacoes_operacionais\": [\"ação 1\", \"ação 2\"]\n}`;
 
-  const rawText = await callGemini(model, apiKey, prompt);
+  const { text: rawText, modelUsed: model } = await callGeminiWithFallback(prompt, apiKey, {
+    generationConfig: { temperature: 0.15, maxOutputTokens: 2048 },
+  });
   const rawPreview = String(rawText || "").slice(0, 1200);
   console.log("📝 Resposta raw do Gemini (primeiros 500 chars):", rawPreview.slice(0, 500));
 

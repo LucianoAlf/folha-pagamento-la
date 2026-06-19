@@ -1,30 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { RH_CORS_HEADERS, requireRhAdminContext, rhJsonResponse as jsonResponse } from "../_shared/rh-auth.ts";
-
-const stripCodeFences = (input: string) =>
-  (input || "").trim().replace(/^```json/i, "").replace(/^```/i, "").replace(/```$/g, "").trim();
-
-const safeParseJson = (text: string) => {
-  try {
-    return JSON.parse(stripCodeFences(text));
-  } catch {
-    return null;
-  }
-};
-
-async function callGemini(apiKey: string, prompt: string) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.2, topP: 0.9, maxOutputTokens: 1200 },
-    }),
-  });
-  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-}
+import { callGeminiWithFallback, getGeminiApiKey, safeParseJsonFromText } from "../_shared/gemini.ts";
 
 function buildFallback(snapshot: any) {
   const lateCheckpoints = (snapshot.checkpoints || []).filter((item: any) => item.status === "atrasado").length;
@@ -49,8 +25,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { adminClient: supabase } = await requireRhAdminContext(req);
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) return jsonResponse({ error: "GEMINI_API_KEY não configurada" }, 500);
+    const apiKey = await getGeminiApiKey(supabase);
 
     const payload = await req.json().catch(() => ({}));
     const collaboratorId = Number(payload?.colaboradorId || 0);
@@ -116,7 +91,9 @@ Deno.serve(async (req: Request) => {
 
     let parsed = null;
     try {
-      parsed = safeParseJson(await callGemini(apiKey, prompt));
+      parsed = safeParseJsonFromText((await callGeminiWithFallback(prompt, apiKey, {
+        generationConfig: { maxOutputTokens: 1200 },
+      })).text);
     } catch {
       parsed = null;
     }

@@ -23,6 +23,7 @@
     "recharts": "^3.6.0"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "sharp": "^0.34.5",

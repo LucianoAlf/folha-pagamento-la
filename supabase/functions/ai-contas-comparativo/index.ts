@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { callGeminiWithFallback, getGeminiApiKey } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,29 +82,6 @@ function safeParseJsonFromText(text: string): any {
       return null;
     }
   }
-}
-
-async function callGemini(model: string, apiKey: string, prompt: string, timeoutMs = 5_000) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const ac = new AbortController();
-  const timeout = setTimeout(() => ac.abort("gemini-timeout"), timeoutMs);
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    signal: ac.signal,
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.2,
-        topP: 0.9,
-        maxOutputTokens: 700,
-      },
-    }),
-  }).finally(() => clearTimeout(timeout));
-
-  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 async function sha256Hex(input: string): Promise<string> {
@@ -277,9 +255,7 @@ Deno.serve(async (req: Request) => {
     if (!validateYM(competenciaYM)) return jsonResponse({ error: "competenciaYM is required (YYYY-MM)" }, 400);
     if (!validateYM(baseYM)) return jsonResponse({ error: "baseYM is required (YYYY-MM)" }, 400);
 
-    const model = "gemini-3-flash-preview";
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) return jsonResponse({ error: "GEMINI_API_KEY não configurada" }, 500);
+    const apiKey = await getGeminiApiKey(supabase);
 
     const [cy, cm] = competenciaYM.split("-").map(Number);
     const [by, bm] = baseYM.split("-").map(Number);
@@ -441,7 +417,10 @@ ${JSON.stringify(inputObject)}`;
 
     let parsed: any = null;
     try {
-      const rawText = await callGemini(model, apiKey, prompt, 5_000);
+      const { text: rawText, modelUsed: model } = await callGeminiWithFallback(prompt, apiKey, {
+        timeoutMs: 8_000,
+        generationConfig: { temperature: 0.2, maxOutputTokens: 700 },
+      });
       parsed = safeParseJsonFromText(rawText);
     } catch {
       parsed = null;

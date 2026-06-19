@@ -1,5 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  callGeminiWithFallback,
+  createServiceClient,
+  getGeminiApiKey,
+  safeParseJsonFromText,
+} from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,58 +13,13 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ANALYSIS_VERSION = 6; // Incrementado para invalidar cache e forçar nova análise robusta
+const ANALYSIS_VERSION = 7;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-function stripCodeFences(input: string): string {
-  let s = input.trim();
-  // Remove markdown code blocks
-  s = s.replace(/^```json/i, "").replace(/^```/i, "").replace(/```$/g, "").trim();
-  return s;
-}
-
-function safeParseJsonFromText(text: string): any {
-  const cleaned = stripCodeFences(text);
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    const start = cleaned.indexOf("{");
-    const end = cleaned.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(cleaned.slice(start, end + 1));
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-}
-
-async function callGemini(model: string, apiKey: string, prompt: string) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.1,
-        topP: 0.9,
-        maxOutputTokens: 2048,
-      },
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 async function sha256Hex(input: string): Promise<string> {
@@ -72,63 +33,69 @@ async function sha256Hex(input: string): Promise<string> {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const authHeader = req.headers.get("Authorization") || "";
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authHeader = req.headers.get("Authorization") || "";
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
-  const payload = await req.json();
-  if (!payload?.folhaId) return jsonResponse({ error: "folhaId is required" }, 400);
+    const payload = await req.json().catch(() => ({}));
+    if (!payload?.folhaId) return jsonResponse({ error: "folhaId is required" }, 400);
 
-  const model = "gemini-3-flash-preview";
-  const apiKey = Deno.env.get("GEMINI_API_KEY")!;
+    const serviceClient = createServiceClient();
+    const apiKey = await getGeminiApiKey(serviceClient);
 
-  // 1. Buscar Contexto de Folhas
-  const { data: folhas } = await supabase
-    .from("folhas_mensais")
-    .select("*")
-    .order("ano", { ascending: false })
-    .order("mes", { ascending: false });
-
-  const idx = (folhas || []).findIndex((f) => f.id === payload.folhaId);
-  const folhaAtual = folhas?.[idx];
-  const folhaAnterior = folhas?.[idx + 1];
-
-  if (!folhaAtual || !folhaAnterior) return jsonResponse({ error: "Meses para comparação não encontrados" }, 400);
-
-  // 2. Buscar Comparativo Agregado por Colaborador
-  const { data: compColab } = await supabase.rpc("compare_folhas_colaborador", {
-    p_folha_id: folhaAtual.id,
-    p_prev_folha_id: folhaAnterior.id,
-  });
-
-  // 3. Buscar Notas da Ana (Memória)
-  const { data: notasAna } = await supabase
-    .from("colaborador_variacao_notas")
-    .select("colaborador_id, nota")
-    .eq("folha_id", folhaAtual.id);
-
-  const inputObject = {
-    v: ANALYSIS_VERSION,
-    folhaAtual,
-    folhaAnterior,
-    variacoes: (compColab || []).filter(v => Math.abs(v.perc) > 5 || v.status),
-    notasAna: notasAna || [],
-    historicoNotasGerais: (folhas || []).filter(f => f.notas_rh).map(f => ({ periodo: `${f.mes}/${f.ano}`, nota: f.notas_rh }))
-  };
-
-  const inputHash = await sha256Hex(JSON.stringify(inputObject));
-  
-  if (!payload.force) {
-    const { data: existing } = await supabase
-      .from("folha_ai_insights")
+    const { data: folhas } = await supabase
+      .from("folhas_mensais")
       .select("*")
-      .eq("input_hash", inputHash)
-      .limit(1);
-    if (existing?.length) return jsonResponse({ cached: true, ...existing[0] });
-  }
+      .order("ano", { ascending: false })
+      .order("mes", { ascending: false });
 
-  const prompt = `Você é um Controller Financeiro e Especialista em RH da LA Music Group. 
+    const idx = (folhas || []).findIndex((f) => f.id === payload.folhaId);
+    const folhaAtual = folhas?.[idx];
+    const folhaAnterior = folhas?.[idx + 1];
+
+    if (!folhaAtual || !folhaAnterior) {
+      return jsonResponse({ error: "Meses para comparação não encontrados" }, 400);
+    }
+
+    const { data: compColab } = await supabase.rpc("compare_folhas_colaborador", {
+      p_folha_id: folhaAtual.id,
+      p_prev_folha_id: folhaAnterior.id,
+    });
+
+    const { data: notasAna } = await supabase
+      .from("colaborador_variacao_notas")
+      .select("colaborador_id, nota")
+      .eq("folha_id", folhaAtual.id);
+
+    const inputObject = {
+      v: ANALYSIS_VERSION,
+      folhaAtual,
+      folhaAnterior,
+      variacoes: (compColab || []).filter((v: { perc?: number; status?: string }) =>
+        Math.abs(Number(v.perc) || 0) > 5 || v.status
+      ),
+      notasAna: notasAna || [],
+      historicoNotasGerais: (folhas || [])
+        .filter((f) => f.notas_rh)
+        .map((f) => ({ periodo: `${f.mes}/${f.ano}`, nota: f.notas_rh })),
+    };
+
+    const inputHash = await sha256Hex(JSON.stringify(inputObject));
+
+    if (!payload.force) {
+      const { data: existing } = await supabase
+        .from("folha_ai_insights")
+        .select("*")
+        .eq("input_hash", inputHash)
+        .limit(1);
+      if (existing?.length) return jsonResponse({ cached: true, ...existing[0] });
+    }
+
+    const prompt = `Você é um Controller Financeiro e Especialista em RH da LA Music Group. 
 Sua tarefa é analisar as variações da folha de pagamento entre ${folhaAnterior.mes}/${folhaAnterior.ano} e ${folhaAtual.mes}/${folhaAtual.ano}.
 
 DADOS MACRO (Folha Atual):
@@ -168,25 +135,39 @@ CONTRATO DE SAÍDA (Responda APENAS JSON puro):
   ]
 }`;
 
-  const rawText = await callGemini(model, apiKey, prompt);
-  const parsed = safeParseJsonFromText(rawText);
+    const { text: rawText, modelUsed } = await callGeminiWithFallback(prompt, apiKey, {
+      generationConfig: { temperature: 0.1, maxOutputTokens: 2048 },
+    });
 
-  if (!parsed || !parsed.analise_executiva) {
-    throw new Error("Falha ao processar resposta estruturada da IA");
+    const parsed = safeParseJsonFromText(rawText) as {
+      analise_executiva?: string;
+    } | null;
+
+    if (!parsed?.analise_executiva) {
+      return jsonResponse({ error: "Falha ao processar resposta estruturada da IA" }, 502);
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("folha_ai_insights")
+      .insert({
+        folha_id: folhaAtual.id,
+        prev_folha_id: folhaAnterior.id,
+        model: modelUsed,
+        input_hash: inputHash,
+        summary: parsed.analise_executiva,
+        response_json: parsed,
+      })
+      .select("*")
+      .single();
+
+    if (insertError) {
+      return jsonResponse({ error: insertError.message }, 500);
+    }
+
+    return jsonResponse(inserted);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erro interno";
+    console.error("[ai-payroll-insights] Error:", message);
+    return jsonResponse({ error: message }, 500);
   }
-
-  const { data: inserted } = await supabase
-    .from("folha_ai_insights")
-    .insert({
-      folha_id: folhaAtual.id,
-      prev_folha_id: folhaAnterior.id,
-      model,
-      input_hash: inputHash,
-      summary: parsed.analise_executiva, // Salvando apenas a string limpa no summary
-      response_json: parsed,
-    })
-    .select("*")
-    .single();
-
-  return jsonResponse(inserted);
 });

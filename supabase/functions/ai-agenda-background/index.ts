@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createServiceClient, getGeminiApiKey } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -388,7 +389,7 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = ensureEnv("SUPABASE_URL");
     const SUPABASE_ANON_KEY = ensureEnv("SUPABASE_ANON_KEY");
     const SERVICE_ROLE_KEY = ensureEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const GEMINI_API_KEY = ensureEnv("GEMINI_API_KEY");
+    const GEMINI_API_KEY = await getGeminiApiKey(createServiceClient());
 
     // Validate user JWT
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
