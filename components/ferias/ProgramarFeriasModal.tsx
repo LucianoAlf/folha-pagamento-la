@@ -14,7 +14,7 @@ import {
   parseISODate,
   toISODate,
 } from '../../utils/feriasCalculations';
-import { validarProgramacaoFerias } from '../../utils/feriasValidations';
+import { validarProgramacaoFerias, maxAbonoDias } from '../../utils/feriasValidations';
 
 interface ProgramarFeriasModalProps {
   isOpen: boolean;
@@ -483,7 +483,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
             setFormData((prev) => ({
               ...prev,
               vendeu_abono: e.target.checked,
-              dias_abono: e.target.checked ? Math.min(10, Math.floor(prev.dias_corridos / 3)) : 0,
+              dias_abono: e.target.checked ? maxAbonoDias(periodoSelecionado?.dias_direito, prev.dias_corridos) : 0,
             }))
           }
           className="w-5 h-5 rounded border-2 border-slate-700 text-violet-600 focus:ring-2 focus:ring-violet-500"
@@ -496,12 +496,12 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
       {formData.vendeu_abono && (
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">
-            Quantidade de dias a vender (máximo {Math.min(10, Math.floor(formData.dias_corridos / 3))})
+            Quantidade de dias a vender (máximo {maxAbonoDias(periodoSelecionado?.dias_direito, formData.dias_corridos)})
           </label>
           <input
             type="number"
             min="1"
-            max={Math.min(10, Math.floor(formData.dias_corridos / 3))}
+            max={maxAbonoDias(periodoSelecionado?.dias_direito, formData.dias_corridos)}
             value={formData.dias_abono}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, dias_abono: Number(e.target.value) }))

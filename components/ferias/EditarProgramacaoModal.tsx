@@ -14,6 +14,7 @@ import {
   validarProgramacaoFerias,
   validarAbono,
   validarDiasMinimos,
+  maxAbonoDias,
 } from '../../utils/feriasValidations';
 import type {
   FeriasProgramacao,
@@ -102,8 +103,8 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
     if (!checked) {
       setDiasAbono(0);
     } else {
-      // Sugerir máximo permitido (10 ou 1/3)
-      const maxAbono = Math.min(10, Math.floor(diasCorridos / 3));
+      // Sugerir máximo permitido: 1/3 do direito do período (CLT), limitado à fração
+      const maxAbono = maxAbonoDias(periodo.dias_direito, diasCorridos);
       setDiasAbono(maxAbono);
     }
   };
@@ -279,8 +280,8 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
                   className="w-full px-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
                 />
                 <p className="text-xs text-slate-400 mt-1">
-                  Máximo: {Math.min(10, Math.floor(diasCorridos / 3))} dias (1/3 de{' '}
-                  {diasCorridos} dias)
+                  Máximo: {maxAbonoDias(periodo.dias_direito, diasCorridos)} dias (1/3 de{' '}
+                  {periodo.dias_direito} dias de direito)
                 </p>
               </div>
             )}

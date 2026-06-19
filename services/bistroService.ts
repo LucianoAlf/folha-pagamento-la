@@ -427,12 +427,20 @@ export function parseConsumosText(input: string) {
   const rows: Array<{ nome: string; valor: number }> = [];
   for (const line of lines) {
     const m = line.match(
-      /(.+?)\s*(?:-|:)?\s*R?\$?\s*([0-9]{1,3}(?:\.[0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)\s*$/i
+      /(.+?)\s*(?:-|:)?\s*R?\$?\s*([0-9]{1,3}(?:\.[0-9]{3})+|[0-9]{1,3}(?:\.[0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)\s*$/i
     );
     if (!m) continue;
     const nome = m[1].trim();
     const raw = m[2].trim();
-    const v = raw.includes(',') ? Number(raw.replace(/\./g, '').replace(',', '.')) : Number(raw);
+    // Formato BR: vírgula = decimal; ponto = separador de milhar.
+    let v: number;
+    if (raw.includes(',')) {
+      v = Number(raw.replace(/\./g, '').replace(',', '.')); // "1.500,00" -> 1500
+    } else if (/^[0-9]{1,3}(?:\.[0-9]{3})+$/.test(raw)) {
+      v = Number(raw.replace(/\./g, '')); // milhar sem centavos: "1.500" -> 1500
+    } else {
+      v = Number(raw); // inteiro puro: "1500" -> 1500
+    }
     rows.push({ nome, valor: Number.isFinite(v) ? v : 0 });
   }
   return rows;

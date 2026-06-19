@@ -164,7 +164,18 @@ export async function createContaPagar(
     const parcelaInicial = conta.parcela_atual || 1;
     const qtdParcelas = conta.total_parcelas - parcelaInicial + 1;
     const valorPorParcela = options?.valorPorParcela ?? true;
-    const valorParcela = valorPorParcela ? (conta.valor || 0) : (conta.valor || 0) / qtdParcelas;
+    // Valor de cada parcela arredondado em centavos. No modo "valor total", divide o
+    // total entre as parcelas e distribui o resíduo de centavos nas primeiras, para que
+    // a soma das parcelas seja EXATAMENTE igual ao total informado (evita 33,3333...).
+    const valoresParcela: number[] = (() => {
+      if (valorPorParcela) {
+        return Array.from({ length: qtdParcelas }, () => Math.round((conta.valor || 0) * 100) / 100);
+      }
+      const totalCents = Math.round((conta.valor || 0) * 100);
+      const baseCents = Math.floor(totalCents / qtdParcelas);
+      const resto = totalCents - baseCents * qtdParcelas;
+      return Array.from({ length: qtdParcelas }, (_, i) => (baseCents + (i < resto ? 1 : 0)) / 100);
+    })();
     const dataBase = new Date(`${conta.data_vencimento!}T00:00:00`);
 
     for (let i = 0; i < qtdParcelas; i++) {
@@ -178,7 +189,7 @@ export async function createContaPagar(
       parcelas.push({
         ...conta,
         descricao: `${conta.descricao} (${parcelaInicial + i}/${conta.total_parcelas})`,
-        valor: valorParcela,
+        valor: valoresParcela[i],
         data_vencimento: `${yyyy}-${mm}-${dd}`,
         parcela_atual: parcelaInicial + i,
         total_parcelas: conta.total_parcelas,

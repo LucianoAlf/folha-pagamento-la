@@ -50,12 +50,25 @@ export function validarDiasMinimos(
 }
 
 /**
+ * Máximo de dias de abono pecuniário.
+ * CLT Art. 143: até 1/3 do DIREITO do período (30 → 10 dias), limitado aos dias
+ * efetivamente gozados nesta programação (o abono é descontado dos dias corridos).
+ * O teto NÃO depende do tamanho da fração: um colaborador com 30 dias de direito
+ * pode vender até 10 dias mesmo gozando as férias em frações.
+ */
+export function maxAbonoDias(diasDireito: number = 30, diasCorridos: number = 0): number {
+  const tetoClt = Math.floor((diasDireito || 30) / 3);
+  return Math.max(0, Math.min(tetoClt, Math.floor(diasCorridos) || 0));
+}
+
+/**
  * Valida abono pecuniário (venda de dias)
- * CLT: Máximo 1/3 das férias (10 dias de 30)
+ * CLT: Máximo 1/3 do direito do período (10 dias de 30)
  */
 export function validarAbono(
   diasAbono: number,
-  diasTotal: number
+  diasCorridos: number,
+  diasDireito: number = 30
 ): { valido: boolean; erro?: string } {
   if (diasAbono < 0) {
     return { valido: false, erro: 'Dias de abono não pode ser negativo' };
@@ -65,19 +78,12 @@ export function validarAbono(
     return { valido: true };
   }
 
-  const maxAbono = Math.floor(diasTotal / 3);
+  const maxAbono = maxAbonoDias(diasDireito, diasCorridos);
 
   if (diasAbono > maxAbono) {
     return {
       valido: false,
-      erro: `Abono pecuniário não pode exceder 1/3 das férias (máximo ${maxAbono} dias)`,
-    };
-  }
-
-  if (diasAbono > 10) {
-    return {
-      valido: false,
-      erro: 'Abono pecuniário não pode exceder 10 dias',
+      erro: `Abono pecuniário não pode exceder ${maxAbono} dias (1/3 do direito do período)`,
     };
   }
 
@@ -202,7 +208,7 @@ export function validarProgramacaoFerias(input: {
   if (!validDias.valido) erros.push(validDias.erro!);
 
   // 3. Validar abono
-  const validAbono = validarAbono(input.diasAbono, input.diasCorridos);
+  const validAbono = validarAbono(input.diasAbono, input.diasCorridos, input.periodo.dias_direito);
   if (!validAbono.valido) erros.push(validAbono.erro!);
 
   // 4. Validar dentro do concessivo (aviso, não bloqueante)
