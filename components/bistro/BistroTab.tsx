@@ -1249,7 +1249,8 @@ export const BistroTab: React.FC<{
                       void saveParametros({ lucia_colaborador_id: v ? Number(v) : null });
                       setLuciaPickerOpen(false);
                       // Se mudar, permite reinicializar drafts na próxima renderização
-                      luciaDraftInitRef.current = false;
+                      // (zera o ID rastreado para o effect de init voltar a rodar)
+                      lastLuciaLancIdRef.current = null;
                     }}
                     options={[{ value: '', label: 'Selecione...' }, ...colaboradoresOptions]}
                     className="w-full"
