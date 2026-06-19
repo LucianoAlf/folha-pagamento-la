@@ -27,6 +27,7 @@ import type { ContaPagar } from '../../types/contasPagar';
 import { PagarContaModal } from '../contas/PagarContaModal';
 import { fetchContaPagarById, registrarPagamento } from '../../services/contasPagarService';
 import { updateTarefa } from '../../services/agendaService';
+import { useAsyncAction } from '../../hooks/useAsyncAction';
 
 // Emojis simples e úteis (sem scroll, ~15 opções)
 const EMOJI_OPTIONS = [
@@ -68,6 +69,7 @@ const normalizeSmartKey = (nome: string) => {
 };
 
 export const AgendaPage: React.FC = () => {
+  const { run } = useAsyncAction();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -993,18 +995,29 @@ export const AgendaPage: React.FC = () => {
           setQuickPayConta(null);
           setQuickPayLoading(false);
         }}
-        onConfirm={async (input) => {
-          if (!quickPay?.contaId || !quickPay?.tarefaId) return;
-          await registrarPagamento(quickPay.contaId, input);
-          await updateTarefa(quickPay.tarefaId, { status: 'concluida', data_conclusao: new Date().toISOString() } as any);
-          setQuickPay(null);
-          setQuickPayConta(null);
-          // Refresh imediato: recarrega tudo para refletir pagamento no calendario/listas
-          await Promise.all([
-            loadCounts(),
-            loadTimeline(),
-            loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }),
-          ]).catch(() => {});
+        onConfirm={(input) => {
+          const target = quickPay;
+          if (!target?.contaId || !target?.tarefaId) return;
+          return run(
+            async () => {
+              await registrarPagamento(target.contaId, input);
+              await updateTarefa(target.tarefaId, { status: 'concluida', data_conclusao: new Date().toISOString() } as any);
+              // Refresh imediato: recarrega tudo para refletir pagamento no calendario/listas
+              await Promise.all([
+                loadCounts(),
+                loadTimeline(),
+                loadTarefasForKey(listKey, { includeConcluidas: viewMode === 'kanban' }),
+              ]).catch(() => {});
+            },
+            {
+              success: 'Pagamento registrado.',
+              error: 'Não foi possível registrar o pagamento.',
+              onSuccess: () => {
+                setQuickPay(null);
+                setQuickPayConta(null);
+              },
+            }
+          );
         }}
       />
 

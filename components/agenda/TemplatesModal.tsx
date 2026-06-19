@@ -6,6 +6,7 @@ import { CustomSelect, DatePicker } from '../UI';
 import type { Categoria, Prioridade, TarefaTemplate } from '../../types/agenda';
 import { CATEGORIAS, PRIORIDADES } from '../../types/agenda';
 import { criarTarefaDoTemplate, fetchTemplates } from '../../services/agendaService';
+import { useAsyncAction } from '../../hooks/useAsyncAction';
 
 const extractVars = (s: string) => {
   const out = new Set<string>();
@@ -22,6 +23,7 @@ export const TemplatesModal: React.FC<{
   defaultListaId?: string | null;
   defaultCategoria?: Categoria;
 }> = ({ isOpen, onClose, onCreated, defaultListaId = null, defaultCategoria }) => {
+  const { run } = useAsyncAction();
   const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState<TarefaTemplate[]>([]);
   const [selected, setSelected] = useState<TarefaTemplate | null>(null);
@@ -243,16 +245,25 @@ export const TemplatesModal: React.FC<{
                   'px-5 py-2.5 rounded-2xl font-black text-white transition-all',
                   canCreate ? 'bg-violet-600 hover:bg-violet-500' : 'bg-slate-800 text-slate-500 cursor-not-allowed'
                 )}
-                onClick={async () => {
-                  if (!selected) return;
-                  await criarTarefaDoTemplate(selected, vars, {
-                    lista_id: defaultListaId,
-                    categoria,
-                    prioridade,
-                    vencimento_em: computeVencimentoISO(),
-                    dia_inteiro: diaInteiro,
-                  });
-                  onCreated();
+                onClick={() => {
+                  const template = selected;
+                  if (!template) return;
+                  return run(
+                    async () => {
+                      await criarTarefaDoTemplate(template, vars, {
+                        lista_id: defaultListaId,
+                        categoria,
+                        prioridade,
+                        vencimento_em: computeVencimentoISO(),
+                        dia_inteiro: diaInteiro,
+                      });
+                    },
+                    {
+                      success: 'Tarefa criada a partir do template.',
+                      error: 'Não foi possível criar a tarefa.',
+                      onSuccess: () => onCreated(),
+                    }
+                  );
                 }}
               >
                 Criar Tarefa

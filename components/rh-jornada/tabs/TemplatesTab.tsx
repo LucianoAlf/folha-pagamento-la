@@ -4,6 +4,7 @@ import { Badge, Card, CustomSelect, ErrorState, LoadingSpinner } from '../../UI'
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhParticipantRole, RhPdiTemplate, RhPdiTemplateCheckpoint, RhPdiTemplateCompetence, RhPdiTemplateObjective, RhPdiCycleType, RhProcessType, RhStageCategory, RhTemplate, RhTemplateChecklistItem, RhTemplateDocument, RhTemplateStage } from '../../../types/rh';
 import { RH_PDI_CHECKPOINT_TYPES, RH_PDI_COMPETENCE_CATEGORIES, RH_PDI_OBJECTIVE_TYPES, RH_PDI_CYCLE_TYPES } from '../../../types/rh';
+import { useAsyncAction } from '../../../hooks/useAsyncAction';
 
 const PROCESS_OPTIONS: { value: RhProcessType; label: string }[] = [
   { value: 'recrutamento', label: 'Recrutamento' },
@@ -110,6 +111,7 @@ export const TemplatesTab: React.FC = () => {
     prazo_offset_dias: '30',
   });
   const [saving, setSaving] = useState(false);
+  const { run } = useAsyncAction();
 
   const loadTemplates = async () => {
     setLoading(true);
@@ -305,17 +307,22 @@ export const TemplatesTab: React.FC = () => {
               type="button"
               onClick={async () => {
                 setSaving(true);
-                try {
-                  const created = await rhJornadaService.createTemplate({
-                    nome: 'Novo template RH',
-                    descricao: 'Ajuste os dados, etapas e documentos.',
-                    tipo_processo: 'onboarding',
-                    ativo: true,
-                  });
-                  await refreshTemplateDetails(created.id);
-                } finally {
-                  setSaving(false);
-                }
+                await run(
+                  async () => {
+                    const created = await rhJornadaService.createTemplate({
+                      nome: 'Novo template RH',
+                      descricao: 'Ajuste os dados, etapas e documentos.',
+                      tipo_processo: 'onboarding',
+                      ativo: true,
+                    });
+                    await refreshTemplateDetails(created.id);
+                  },
+                  {
+                    success: 'Template criado.',
+                    error: 'Não foi possível criar o template.',
+                  }
+                );
+                setSaving(false);
               }}
               className="w-full rounded-3xl border border-dashed border-violet-500/40 bg-violet-500/10 p-4 text-left text-violet-200 font-black hover:bg-violet-500/15 transition-all"
             >
@@ -402,13 +409,19 @@ export const TemplatesTab: React.FC = () => {
                     <button
                       type="button"
                       onClick={async () => {
+                        const template = selectedTemplate;
                         setSaving(true);
-                        try {
-                          await rhJornadaService.updateTemplate(selectedTemplate.id, templateForm);
-                          await refreshTemplateDetails(selectedTemplate.id);
-                        } finally {
-                          setSaving(false);
-                        }
+                        await run(
+                          async () => {
+                            await rhJornadaService.updateTemplate(template.id, templateForm);
+                            await refreshTemplateDetails(template.id);
+                          },
+                          {
+                            success: 'Template salvo.',
+                            error: 'Não foi possível salvar o template.',
+                          }
+                        );
+                        setSaving(false);
                       }}
                       className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black flex items-center gap-2 transition-all"
                     >
@@ -418,13 +431,19 @@ export const TemplatesTab: React.FC = () => {
                     <button
                       type="button"
                       onClick={async () => {
+                        const template = selectedTemplate;
                         setSaving(true);
-                        try {
-                          const versioned = await rhJornadaService.createTemplateVersionFrom(selectedTemplate.id);
-                          await refreshTemplateDetails(versioned.id);
-                        } finally {
-                          setSaving(false);
-                        }
+                        await run(
+                          async () => {
+                            const versioned = await rhJornadaService.createTemplateVersionFrom(template.id);
+                            await refreshTemplateDetails(versioned.id);
+                          },
+                          {
+                            success: 'Nova versão criada.',
+                            error: 'Não foi possível criar a nova versão.',
+                          }
+                        );
+                        setSaving(false);
                       }}
                       className="px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 flex items-center gap-2 transition-all"
                     >
@@ -434,13 +453,19 @@ export const TemplatesTab: React.FC = () => {
                     <button
                       type="button"
                       onClick={async () => {
+                        const template = selectedTemplate;
                         setSaving(true);
-                        try {
-                          await rhJornadaService.archiveTemplate(selectedTemplate.id);
-                          await refreshTemplateDetails(selectedTemplate.id);
-                        } finally {
-                          setSaving(false);
-                        }
+                        await run(
+                          async () => {
+                            await rhJornadaService.archiveTemplate(template.id);
+                            await refreshTemplateDetails(template.id);
+                          },
+                          {
+                            success: 'Template arquivado.',
+                            error: 'Não foi possível arquivar o template.',
+                          }
+                        );
+                        setSaving(false);
                       }}
                       className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all"
                     >
@@ -519,22 +544,28 @@ export const TemplatesTab: React.FC = () => {
                       />
                       <button
                         type="button"
-                        onClick={async () => {
-                          await rhJornadaService.updateTemplateStage(stage.id, {
-                            titulo: stage.titulo,
-                            categoria: stage.categoria,
-                            ordem: stage.ordem,
-                            obrigatoria: stage.obrigatoria,
-                            responsavel_padrao_papel: stage.responsavel_padrao_papel || null,
-                            instrucoes: stage.instrucoes || null,
-                            modelo_mensagem: stage.modelo_mensagem || null,
-                            link_referencia: stage.link_referencia || null,
-                            link_reuniao: stage.link_reuniao || null,
-                            notificar_responsaveis: stage.notificar_responsaveis,
-                            notificar_colaborador: stage.notificar_colaborador,
-                          });
-                          await refreshTemplateDetails(selectedTemplate?.id || null);
-                        }}
+                        onClick={() => run(
+                          async () => {
+                            await rhJornadaService.updateTemplateStage(stage.id, {
+                              titulo: stage.titulo,
+                              categoria: stage.categoria,
+                              ordem: stage.ordem,
+                              obrigatoria: stage.obrigatoria,
+                              responsavel_padrao_papel: stage.responsavel_padrao_papel || null,
+                              instrucoes: stage.instrucoes || null,
+                              modelo_mensagem: stage.modelo_mensagem || null,
+                              link_referencia: stage.link_referencia || null,
+                              link_reuniao: stage.link_reuniao || null,
+                              notificar_responsaveis: stage.notificar_responsaveis,
+                              notificar_colaborador: stage.notificar_colaborador,
+                            });
+                            await refreshTemplateDetails(selectedTemplate?.id || null);
+                          },
+                          {
+                            success: 'Etapa salva.',
+                            error: 'Não foi possível salvar a etapa.',
+                          }
+                        )}
                         className="px-4 py-2 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all"
                       >
                         Salvar etapa
@@ -612,24 +643,33 @@ export const TemplatesTab: React.FC = () => {
                   <CustomSelect value={newStage.categoria} onValueChange={(value) => setNewStage((prev) => ({ ...prev, categoria: value as RhStageCategory }))} options={CATEGORY_OPTIONS} />
                   <button
                     type="button"
-                    onClick={async () => {
-                      await rhJornadaService.createTemplateStage({
-                        template_id: selectedTemplate.id,
-                        codigo: newStage.codigo || newStage.titulo.toLowerCase().replace(/\s+/g, '_'),
-                        titulo: newStage.titulo,
-                        categoria: newStage.categoria,
-                        ordem: Number(newStage.ordem) || stages.length + 1,
-                        obrigatoria: newStage.obrigatoria,
-                        responsavel_padrao_papel: newStage.responsavel_padrao_papel,
-                        instrucoes: newStage.instrucoes || null,
-                        modelo_mensagem: newStage.modelo_mensagem || null,
-                        link_referencia: newStage.link_referencia || null,
-                        link_reuniao: newStage.link_reuniao || null,
-                        notificar_responsaveis: newStage.notificar_responsaveis,
-                        notificar_colaborador: newStage.notificar_colaborador,
-                      });
-                      setNewStage((prev) => ({ ...prev, titulo: '', codigo: '', ordem: String(stages.length + 2), instrucoes: '', modelo_mensagem: '', link_referencia: '', link_reuniao: '', notificar_responsaveis: true, notificar_colaborador: false }));
-                      await refreshTemplateDetails(selectedTemplate.id);
+                    onClick={() => {
+                      const template = selectedTemplate;
+                      return run(
+                        async () => {
+                          await rhJornadaService.createTemplateStage({
+                            template_id: template.id,
+                            codigo: newStage.codigo || newStage.titulo.toLowerCase().replace(/\s+/g, '_'),
+                            titulo: newStage.titulo,
+                            categoria: newStage.categoria,
+                            ordem: Number(newStage.ordem) || stages.length + 1,
+                            obrigatoria: newStage.obrigatoria,
+                            responsavel_padrao_papel: newStage.responsavel_padrao_papel,
+                            instrucoes: newStage.instrucoes || null,
+                            modelo_mensagem: newStage.modelo_mensagem || null,
+                            link_referencia: newStage.link_referencia || null,
+                            link_reuniao: newStage.link_reuniao || null,
+                            notificar_responsaveis: newStage.notificar_responsaveis,
+                            notificar_colaborador: newStage.notificar_colaborador,
+                          });
+                          setNewStage((prev) => ({ ...prev, titulo: '', codigo: '', ordem: String(stages.length + 2), instrucoes: '', modelo_mensagem: '', link_referencia: '', link_reuniao: '', notificar_responsaveis: true, notificar_colaborador: false }));
+                          await refreshTemplateDetails(template.id);
+                        },
+                        {
+                          success: 'Etapa adicionada.',
+                          error: 'Não foi possível adicionar a etapa.',
+                        }
+                      );
                     }}
                     className="px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all"
                   >
@@ -714,14 +754,20 @@ export const TemplatesTab: React.FC = () => {
                         />
                         <button
                           type="button"
-                          onClick={async () => {
-                            await rhJornadaService.updateTemplateDocument(document.id, {
-                              tipo_documento: document.tipo_documento,
-                              ordem: document.ordem,
-                              obrigatorio: document.obrigatorio,
-                            });
-                            await refreshTemplateDetails(selectedTemplate?.id || null);
-                          }}
+                          onClick={() => run(
+                            async () => {
+                              await rhJornadaService.updateTemplateDocument(document.id, {
+                                tipo_documento: document.tipo_documento,
+                                ordem: document.ordem,
+                                obrigatorio: document.obrigatorio,
+                              });
+                              await refreshTemplateDetails(selectedTemplate?.id || null);
+                            },
+                            {
+                              success: 'Documento salvo.',
+                              error: 'Não foi possível salvar o documento.',
+                            }
+                          )}
                           className="px-4 py-2 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all"
                         >
                           Salvar
@@ -757,15 +803,24 @@ export const TemplatesTab: React.FC = () => {
                     />
                     <button
                       type="button"
-                      onClick={async () => {
-                        await rhJornadaService.createTemplateDocument({
-                          template_id: selectedTemplate.id,
-                          tipo_documento: newDocument.tipo_documento,
-                          ordem: Number(newDocument.ordem) || documents.length + 1,
-                          obrigatorio: newDocument.obrigatorio,
-                        });
-                        setNewDocument({ tipo_documento: '', ordem: String(documents.length + 2), obrigatorio: true });
-                        await refreshTemplateDetails(selectedTemplate.id);
+                      onClick={() => {
+                        const template = selectedTemplate;
+                        return run(
+                          async () => {
+                            await rhJornadaService.createTemplateDocument({
+                              template_id: template.id,
+                              tipo_documento: newDocument.tipo_documento,
+                              ordem: Number(newDocument.ordem) || documents.length + 1,
+                              obrigatorio: newDocument.obrigatorio,
+                            });
+                            setNewDocument({ tipo_documento: '', ordem: String(documents.length + 2), obrigatorio: true });
+                            await refreshTemplateDetails(template.id);
+                          },
+                          {
+                            success: 'Documento adicionado.',
+                            error: 'Não foi possível adicionar o documento.',
+                          }
+                        );
                       }}
                       className="px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all"
                     >
@@ -807,26 +862,38 @@ export const TemplatesTab: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={async () => {
-                              await rhJornadaService.updateTemplateChecklistItem(item.id, {
-                                titulo: item.titulo,
-                                descricao: item.descricao || null,
-                                link_url: item.link_url || null,
-                                obrigatorio: item.obrigatorio,
-                                ordem: item.ordem,
-                              });
-                              if (selectedStage) setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(selectedStage.id));
-                            }}
+                            onClick={() => run(
+                              async () => {
+                                await rhJornadaService.updateTemplateChecklistItem(item.id, {
+                                  titulo: item.titulo,
+                                  descricao: item.descricao || null,
+                                  link_url: item.link_url || null,
+                                  obrigatorio: item.obrigatorio,
+                                  ordem: item.ordem,
+                                });
+                                if (selectedStage) setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(selectedStage.id));
+                              },
+                              {
+                                success: 'Item do checklist salvo.',
+                                error: 'Não foi possível salvar o item do checklist.',
+                              }
+                            )}
                             className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black transition-all"
                           >
                             Salvar
                           </button>
                           <button
                             type="button"
-                            onClick={async () => {
-                              await rhJornadaService.deleteTemplateChecklistItem(item.id);
-                              if (selectedStage) setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(selectedStage.id));
-                            }}
+                            onClick={() => run(
+                              async () => {
+                                await rhJornadaService.deleteTemplateChecklistItem(item.id);
+                                if (selectedStage) setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(selectedStage.id));
+                              },
+                              {
+                                success: 'Item do checklist excluído.',
+                                error: 'Não foi possível excluir o item do checklist.',
+                              }
+                            )}
                             className="p-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -896,17 +963,26 @@ export const TemplatesTab: React.FC = () => {
                       </label>
                       <button
                         type="button"
-                        onClick={async () => {
-                          await rhJornadaService.createTemplateChecklistItem({
-                            template_etapa_id: selectedStage.id,
-                            titulo: newChecklist.titulo,
-                            descricao: newChecklist.descricao || null,
-                            link_url: newChecklist.link_url || null,
-                            obrigatorio: newChecklist.obrigatorio,
-                            ordem: checklistItems.length + 1,
-                          });
-                          setNewChecklist({ titulo: '', descricao: '', link_url: '', obrigatorio: true });
-                          setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(selectedStage.id));
+                        onClick={() => {
+                          const stage = selectedStage;
+                          return run(
+                            async () => {
+                              await rhJornadaService.createTemplateChecklistItem({
+                                template_etapa_id: stage.id,
+                                titulo: newChecklist.titulo,
+                                descricao: newChecklist.descricao || null,
+                                link_url: newChecklist.link_url || null,
+                                obrigatorio: newChecklist.obrigatorio,
+                                ordem: checklistItems.length + 1,
+                              });
+                              setNewChecklist({ titulo: '', descricao: '', link_url: '', obrigatorio: true });
+                              setChecklistItems(await rhJornadaService.fetchTemplateChecklistItems(stage.id));
+                            },
+                            {
+                              success: 'Item adicionado ao checklist.',
+                              error: 'Não foi possível adicionar o item ao checklist.',
+                            }
+                          );
                         }}
                         className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black transition-all"
                       >
@@ -923,7 +999,7 @@ export const TemplatesTab: React.FC = () => {
             <Card className="p-5 border border-slate-700/50">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div><div className="text-white text-xl font-black">Templates de PDI</div><div className="mt-1 text-sm font-bold text-slate-400">Padronize trilhas, competências, objetivos e checkpoints por cargo.</div></div>
-                <button type="button" onClick={async () => { setSaving(true); try { const created = await rhJornadaService.createPdiTemplate({ nome: 'Novo template de PDI', descricao: 'Ajuste trilha, competências e objetivos.', ativo: true }); await refreshPdiTemplateDetails(created.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Novo template de PDI</button>
+                <button type="button" onClick={async () => { setSaving(true); await run(async () => { const created = await rhJornadaService.createPdiTemplate({ nome: 'Novo template de PDI', descricao: 'Ajuste trilha, competências e objetivos.', ativo: true }); await refreshPdiTemplateDetails(created.id); }, { success: 'Template de PDI criado.', error: 'Não foi possível criar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Novo template de PDI</button>
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-6">
@@ -942,32 +1018,32 @@ export const TemplatesTab: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <button type="button" onClick={async () => { setSaving(true); try { await rhJornadaService.updatePdiTemplate(selectedPdiTemplate.id, pdiTemplateForm); await refreshPdiTemplateDetails(selectedPdiTemplate.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Salvar template de PDI</button>
-                      <button type="button" onClick={async () => { setSaving(true); try { await rhJornadaService.archivePdiTemplate(selectedPdiTemplate.id); await refreshPdiTemplateDetails(selectedPdiTemplate.id); } finally { setSaving(false); } }} className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all">Arquivar</button>
+                      <button type="button" onClick={async () => { const template = selectedPdiTemplate; setSaving(true); await run(async () => { await rhJornadaService.updatePdiTemplate(template.id, pdiTemplateForm); await refreshPdiTemplateDetails(template.id); }, { success: 'Template de PDI salvo.', error: 'Não foi possível salvar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Salvar template de PDI</button>
+                      <button type="button" onClick={async () => { const template = selectedPdiTemplate; setSaving(true); await run(async () => { await rhJornadaService.archivePdiTemplate(template.id); await refreshPdiTemplateDetails(template.id); }, { success: 'Template de PDI arquivado.', error: 'Não foi possível arquivar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all">Arquivar</button>
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                       <Card className="p-5 border border-slate-700/50">
                         <div className="text-white font-black mb-4">Competencias base</div>
                         <div className="space-y-3">
-                          {pdiCompetences.map((item) => <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4"><input value={item.nome} onChange={(e) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, nome: e.target.value } : current))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.categoria} onValueChange={(value) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, categoria: value as typeof item.categoria } : current))} options={RH_PDI_COMPETENCE_CATEGORIES.map((value) => ({ value, label: value }))} /><input value={item.nivel_alvo} onChange={(e) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, nivel_alvo: Number(e.target.value) || current.nivel_alvo } : current))} className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /></div><button type="button" onClick={async () => { await rhJornadaService.updatePdiTemplateCompetence(item.id, { nome: item.nome, categoria: item.categoria, nivel_alvo: item.nivel_alvo, ordem: item.ordem }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }} className="mt-3 px-4 py-2 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all">Salvar</button></div>)}
-                          <div className="grid grid-cols-1 gap-3"><input value={newPdiCompetence.nome} onChange={(e) => setNewPdiCompetence((prev) => ({ ...prev, nome: e.target.value }))} placeholder="Nova competencia" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiCompetence.categoria} onValueChange={(value) => setNewPdiCompetence((prev) => ({ ...prev, categoria: value as typeof prev.categoria }))} options={RH_PDI_COMPETENCE_CATEGORIES.map((value) => ({ value, label: value }))} /><input value={newPdiCompetence.nivel_alvo} onChange={(e) => setNewPdiCompetence((prev) => ({ ...prev, nivel_alvo: e.target.value }))} placeholder="Nivel alvo" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /></div><button type="button" onClick={async () => { await rhJornadaService.createPdiTemplateCompetence({ template_id: selectedPdiTemplate.id, nome: newPdiCompetence.nome, categoria: newPdiCompetence.categoria, nivel_alvo: Number(newPdiCompetence.nivel_alvo || 3), ordem: pdiCompetences.length + 1 }); setNewPdiCompetence({ nome: '', categoria: RH_PDI_COMPETENCE_CATEGORIES[0], nivel_alvo: '3' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }} className="px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all">Adicionar competencia</button></div>
+                          {pdiCompetences.map((item) => <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4"><input value={item.nome} onChange={(e) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, nome: e.target.value } : current))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.categoria} onValueChange={(value) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, categoria: value as typeof item.categoria } : current))} options={RH_PDI_COMPETENCE_CATEGORIES.map((value) => ({ value, label: value }))} /><input value={item.nivel_alvo} onChange={(e) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, nivel_alvo: Number(e.target.value) || current.nivel_alvo } : current))} className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.updatePdiTemplateCompetence(item.id, { nome: item.nome, categoria: item.categoria, nivel_alvo: item.nivel_alvo, ordem: item.ordem }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Competência salva.', error: 'Não foi possível salvar a competência.' })} className="mt-3 px-4 py-2 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all">Salvar</button></div>)}
+                          <div className="grid grid-cols-1 gap-3"><input value={newPdiCompetence.nome} onChange={(e) => setNewPdiCompetence((prev) => ({ ...prev, nome: e.target.value }))} placeholder="Nova competencia" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiCompetence.categoria} onValueChange={(value) => setNewPdiCompetence((prev) => ({ ...prev, categoria: value as typeof prev.categoria }))} options={RH_PDI_COMPETENCE_CATEGORIES.map((value) => ({ value, label: value }))} /><input value={newPdiCompetence.nivel_alvo} onChange={(e) => setNewPdiCompetence((prev) => ({ ...prev, nivel_alvo: e.target.value }))} placeholder="Nivel alvo" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.createPdiTemplateCompetence({ template_id: selectedPdiTemplate.id, nome: newPdiCompetence.nome, categoria: newPdiCompetence.categoria, nivel_alvo: Number(newPdiCompetence.nivel_alvo || 3), ordem: pdiCompetences.length + 1 }); setNewPdiCompetence({ nome: '', categoria: RH_PDI_COMPETENCE_CATEGORIES[0], nivel_alvo: '3' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Competência adicionada.', error: 'Não foi possível adicionar a competência.' })} className="px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all">Adicionar competencia</button></div>
                         </div>
                       </Card>
 
                       <Card className="p-5 border border-slate-700/50">
                         <div className="text-white font-black mb-4">Objetivos padrao</div>
                         <div className="space-y-3">
-                          {pdiObjectives.map((item) => <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4"><input value={item.titulo} onChange={(e) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.tipo} onValueChange={(value) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, tipo: value as typeof item.tipo } : current))} options={RH_PDI_OBJECTIVE_TYPES.map((value) => ({ value, label: value }))} /><input value={item.prazo_offset_dias || 0} onChange={(e) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, prazo_offset_dias: Number(e.target.value) || 0 } : current))} className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /></div><button type="button" onClick={async () => { await rhJornadaService.updatePdiTemplateObjective(item.id, { titulo: item.titulo, tipo: item.tipo, prazo_offset_dias: item.prazo_offset_dias, competencia_template_id: item.competencia_template_id || null, ordem: item.ordem, obrigatorio: item.obrigatorio, score_peso: item.score_peso }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }} className="mt-3 px-4 py-2 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black transition-all">Salvar</button></div>)}
-                          <div className="grid grid-cols-1 gap-3"><input value={newPdiObjective.titulo} onChange={(e) => setNewPdiObjective((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Novo objetivo" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /><CustomSelect value={newPdiObjective.competencia_template_id} onValueChange={(value) => setNewPdiObjective((prev) => ({ ...prev, competencia_template_id: value }))} options={[{ value: '', label: 'Sem competencia vinculada' }, ...pdiCompetences.map((item) => ({ value: item.id, label: item.nome }))]} /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiObjective.tipo} onValueChange={(value) => setNewPdiObjective((prev) => ({ ...prev, tipo: value as typeof prev.tipo }))} options={RH_PDI_OBJECTIVE_TYPES.map((value) => ({ value, label: value }))} /><input value={newPdiObjective.prazo_offset_dias} onChange={(e) => setNewPdiObjective((prev) => ({ ...prev, prazo_offset_dias: e.target.value }))} placeholder="Prazo em dias" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /></div><button type="button" onClick={async () => { await rhJornadaService.createPdiTemplateObjective({ template_id: selectedPdiTemplate.id, competencia_template_id: newPdiObjective.competencia_template_id || null, titulo: newPdiObjective.titulo, tipo: newPdiObjective.tipo, descricao: null, obrigatorio: true, score_peso: 10, ordem: pdiObjectives.length + 1, prazo_offset_dias: Number(newPdiObjective.prazo_offset_dias || 30) }); setNewPdiObjective({ competencia_template_id: '', titulo: '', tipo: RH_PDI_OBJECTIVE_TYPES[0], prazo_offset_dias: '30' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }} className="px-4 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black transition-all">Adicionar objetivo</button></div>
+                          {pdiObjectives.map((item) => <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4"><input value={item.titulo} onChange={(e) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.tipo} onValueChange={(value) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, tipo: value as typeof item.tipo } : current))} options={RH_PDI_OBJECTIVE_TYPES.map((value) => ({ value, label: value }))} /><input value={item.prazo_offset_dias || 0} onChange={(e) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, prazo_offset_dias: Number(e.target.value) || 0 } : current))} className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.updatePdiTemplateObjective(item.id, { titulo: item.titulo, tipo: item.tipo, prazo_offset_dias: item.prazo_offset_dias, competencia_template_id: item.competencia_template_id || null, ordem: item.ordem, obrigatorio: item.obrigatorio, score_peso: item.score_peso }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Objetivo salvo.', error: 'Não foi possível salvar o objetivo.' })} className="mt-3 px-4 py-2 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black transition-all">Salvar</button></div>)}
+                          <div className="grid grid-cols-1 gap-3"><input value={newPdiObjective.titulo} onChange={(e) => setNewPdiObjective((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Novo objetivo" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /><CustomSelect value={newPdiObjective.competencia_template_id} onValueChange={(value) => setNewPdiObjective((prev) => ({ ...prev, competencia_template_id: value }))} options={[{ value: '', label: 'Sem competencia vinculada' }, ...pdiCompetences.map((item) => ({ value: item.id, label: item.nome }))]} /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiObjective.tipo} onValueChange={(value) => setNewPdiObjective((prev) => ({ ...prev, tipo: value as typeof prev.tipo }))} options={RH_PDI_OBJECTIVE_TYPES.map((value) => ({ value, label: value }))} /><input value={newPdiObjective.prazo_offset_dias} onChange={(e) => setNewPdiObjective((prev) => ({ ...prev, prazo_offset_dias: e.target.value }))} placeholder="Prazo em dias" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.createPdiTemplateObjective({ template_id: selectedPdiTemplate.id, competencia_template_id: newPdiObjective.competencia_template_id || null, titulo: newPdiObjective.titulo, tipo: newPdiObjective.tipo, descricao: null, obrigatorio: true, score_peso: 10, ordem: pdiObjectives.length + 1, prazo_offset_dias: Number(newPdiObjective.prazo_offset_dias || 30) }); setNewPdiObjective({ competencia_template_id: '', titulo: '', tipo: RH_PDI_OBJECTIVE_TYPES[0], prazo_offset_dias: '30' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Objetivo adicionado.', error: 'Não foi possível adicionar o objetivo.' })} className="px-4 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black transition-all">Adicionar objetivo</button></div>
                         </div>
                       </Card>
 
                       <Card className="p-5 border border-slate-700/50">
                         <div className="text-white font-black mb-4">Checkpoints padrao</div>
                         <div className="space-y-3">
-                          {pdiCheckpoints.map((item) => <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4"><input value={item.titulo} onChange={(e) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.tipo} onValueChange={(value) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, tipo: value as typeof item.tipo } : current))} options={RH_PDI_CHECKPOINT_TYPES.map((value) => ({ value, label: value }))} /><input value={item.prazo_offset_dias || 0} onChange={(e) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, prazo_offset_dias: Number(e.target.value) || 0 } : current))} className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /></div><button type="button" onClick={async () => { await rhJornadaService.updatePdiTemplateCheckpoint(item.id, { titulo: item.titulo, tipo: item.tipo, prazo_offset_dias: item.prazo_offset_dias, objetivo_template_id: item.objetivo_template_id || null, ordem: item.ordem }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }} className="mt-3 px-4 py-2 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all">Salvar</button></div>)}
-                          <div className="grid grid-cols-1 gap-3"><input value={newPdiCheckpoint.titulo} onChange={(e) => setNewPdiCheckpoint((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Novo checkpoint" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /><CustomSelect value={newPdiCheckpoint.objetivo_template_id} onValueChange={(value) => setNewPdiCheckpoint((prev) => ({ ...prev, objetivo_template_id: value }))} options={[{ value: '', label: 'Sem objetivo vinculado' }, ...pdiObjectives.map((item) => ({ value: item.id, label: item.titulo }))]} /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiCheckpoint.tipo} onValueChange={(value) => setNewPdiCheckpoint((prev) => ({ ...prev, tipo: value as typeof prev.tipo }))} options={RH_PDI_CHECKPOINT_TYPES.map((value) => ({ value, label: value }))} /><input value={newPdiCheckpoint.prazo_offset_dias} onChange={(e) => setNewPdiCheckpoint((prev) => ({ ...prev, prazo_offset_dias: e.target.value }))} placeholder="Prazo em dias" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /></div><button type="button" onClick={async () => { await rhJornadaService.createPdiTemplateCheckpoint({ template_id: selectedPdiTemplate.id, objetivo_template_id: newPdiCheckpoint.objetivo_template_id || null, titulo: newPdiCheckpoint.titulo, tipo: newPdiCheckpoint.tipo, ordem: pdiCheckpoints.length + 1, prazo_offset_dias: Number(newPdiCheckpoint.prazo_offset_dias || 30) }); setNewPdiCheckpoint({ objetivo_template_id: '', titulo: '', tipo: RH_PDI_CHECKPOINT_TYPES[0], prazo_offset_dias: '30' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }} className="px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all">Adicionar checkpoint</button></div>
+                          {pdiCheckpoints.map((item) => <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4"><input value={item.titulo} onChange={(e) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.tipo} onValueChange={(value) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, tipo: value as typeof item.tipo } : current))} options={RH_PDI_CHECKPOINT_TYPES.map((value) => ({ value, label: value }))} /><input value={item.prazo_offset_dias || 0} onChange={(e) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, prazo_offset_dias: Number(e.target.value) || 0 } : current))} className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.updatePdiTemplateCheckpoint(item.id, { titulo: item.titulo, tipo: item.tipo, prazo_offset_dias: item.prazo_offset_dias, objetivo_template_id: item.objetivo_template_id || null, ordem: item.ordem }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Checkpoint salvo.', error: 'Não foi possível salvar o checkpoint.' })} className="mt-3 px-4 py-2 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all">Salvar</button></div>)}
+                          <div className="grid grid-cols-1 gap-3"><input value={newPdiCheckpoint.titulo} onChange={(e) => setNewPdiCheckpoint((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Novo checkpoint" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /><CustomSelect value={newPdiCheckpoint.objetivo_template_id} onValueChange={(value) => setNewPdiCheckpoint((prev) => ({ ...prev, objetivo_template_id: value }))} options={[{ value: '', label: 'Sem objetivo vinculado' }, ...pdiObjectives.map((item) => ({ value: item.id, label: item.titulo }))]} /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiCheckpoint.tipo} onValueChange={(value) => setNewPdiCheckpoint((prev) => ({ ...prev, tipo: value as typeof prev.tipo }))} options={RH_PDI_CHECKPOINT_TYPES.map((value) => ({ value, label: value }))} /><input value={newPdiCheckpoint.prazo_offset_dias} onChange={(e) => setNewPdiCheckpoint((prev) => ({ ...prev, prazo_offset_dias: e.target.value }))} placeholder="Prazo em dias" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.createPdiTemplateCheckpoint({ template_id: selectedPdiTemplate.id, objetivo_template_id: newPdiCheckpoint.objetivo_template_id || null, titulo: newPdiCheckpoint.titulo, tipo: newPdiCheckpoint.tipo, ordem: pdiCheckpoints.length + 1, prazo_offset_dias: Number(newPdiCheckpoint.prazo_offset_dias || 30) }); setNewPdiCheckpoint({ objetivo_template_id: '', titulo: '', tipo: RH_PDI_CHECKPOINT_TYPES[0], prazo_offset_dias: '30' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Checkpoint adicionado.', error: 'Não foi possível adicionar o checkpoint.' })} className="px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all">Adicionar checkpoint</button></div>
                         </div>
                       </Card>
                     </div>

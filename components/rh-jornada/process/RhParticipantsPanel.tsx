@@ -6,6 +6,7 @@ import type { RhProcess, RhProcessParticipant } from '../../../types/rh';
 import type { UserProfile } from '../../../types';
 import { cn } from '../../CollaboratorComponents';
 import { canManageProcessParticipants } from '../rhPermissions';
+import { useAsyncAction } from '../../../hooks/useAsyncAction';
 
 const ROLE_OPTIONS = [
   { value: 'rh', label: 'RH' },
@@ -45,6 +46,7 @@ export const RhParticipantsPanel: React.FC<{ process: RhProcess | null }> = ({ p
   const [selectedMentorId, setSelectedMentorId] = useState('');
   const [saving, setSaving] = useState(false);
   const [access, setAccess] = useState<{ userId: string | null; role: UserProfile['role'] | 'user' }>({ userId: null, role: 'user' });
+  const { run } = useAsyncAction();
 
   const loadData = async () => {
     if (!process) {
@@ -105,12 +107,17 @@ export const RhParticipantsPanel: React.FC<{ process: RhProcess | null }> = ({ p
           disabled={!canManage || saving || selectedMentorId === (process.mentor_user_id || '')}
           onClick={async () => {
             setSaving(true);
-            try {
-              await rhJornadaService.updateProcessMentor(process.id, selectedMentorId || null);
-              await loadData();
-            } finally {
-              setSaving(false);
-            }
+            await run(
+              async () => {
+                await rhJornadaService.updateProcessMentor(process.id, selectedMentorId || null);
+                await loadData();
+              },
+              {
+                success: 'Mentor atualizado.',
+                error: 'Não foi possível atualizar o mentor.',
+              }
+            );
+            setSaving(false);
           }}
           className={cn(
             'px-5 py-3 rounded-2xl font-black text-white transition-all',
@@ -137,12 +144,17 @@ export const RhParticipantsPanel: React.FC<{ process: RhProcess | null }> = ({ p
                 disabled={!canManage || saving}
                 onClick={async () => {
                   setSaving(true);
-                  try {
-                    await rhJornadaService.removeProcessParticipant(participant.id);
-                    await loadData();
-                  } finally {
-                    setSaving(false);
-                  }
+                  await run(
+                    async () => {
+                      await rhJornadaService.removeProcessParticipant(participant.id);
+                      await loadData();
+                    },
+                    {
+                      success: 'Participante removido.',
+                      error: 'Não foi possível remover o participante.',
+                    }
+                  );
+                  setSaving(false);
                 }}
                 className={cn(
                   'p-2 rounded-xl border border-rose-500/30 text-rose-200 transition-all',
@@ -168,13 +180,18 @@ export const RhParticipantsPanel: React.FC<{ process: RhProcess | null }> = ({ p
           disabled={!canManage || !selectedUserId || saving}
           onClick={async () => {
             setSaving(true);
-            try {
-              await rhJornadaService.addProcessParticipant(process.id, selectedUserId, selectedRole as any, participants.length === 0);
-              setSelectedUserId('');
-              await loadData();
-            } finally {
-              setSaving(false);
-            }
+            await run(
+              async () => {
+                await rhJornadaService.addProcessParticipant(process.id, selectedUserId, selectedRole as any, participants.length === 0);
+                setSelectedUserId('');
+                await loadData();
+              },
+              {
+                success: 'Participante adicionado.',
+                error: 'Não foi possível adicionar o participante.',
+              }
+            );
+            setSaving(false);
           }}
           className={cn(
             'px-5 py-3 rounded-2xl font-black text-white flex items-center gap-2 transition-all',

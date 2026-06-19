@@ -6,6 +6,7 @@ import type { RhEvaluation, RhEvaluationDecision, RhEvaluationType, RhProcess, R
 import type { UserProfile } from '../../../types';
 import { cn } from '../../CollaboratorComponents';
 import { canManageEvaluation } from '../rhPermissions';
+import { useAsyncAction } from '../../../hooks/useAsyncAction';
 
 const TYPE_OPTIONS: { value: RhEvaluationType; label: string }[] = [
   { value: 'entrevista', label: 'Entrevista' },
@@ -76,6 +77,7 @@ export const RhEvaluationPanel: React.FC<{
   const [editingEvaluationId, setEditingEvaluationId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [access, setAccess] = useState<{ userId: string | null; role: UserProfile['role'] | 'user' }>({ userId: null, role: 'user' });
+  const { run } = useAsyncAction();
 
   const resetForm = () => {
     setEditingEvaluationId(null);
@@ -159,12 +161,20 @@ export const RhEvaluationPanel: React.FC<{
                   </button>
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
                       const confirmed = window.confirm('Excluir esta avaliação?');
                       if (!confirmed) return;
-                      await rhJornadaService.deleteEvaluation(evaluation.id);
-                      if (editingEvaluationId === evaluation.id) resetForm();
-                      await loadData();
+                      return run(
+                        async () => {
+                          await rhJornadaService.deleteEvaluation(evaluation.id);
+                          if (editingEvaluationId === evaluation.id) resetForm();
+                          await loadData();
+                        },
+                        {
+                          success: 'Avaliação excluída.',
+                          error: 'Não foi possível excluir a avaliação.',
+                        }
+                      );
                     }}
                     className="px-3 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs font-black text-rose-200 hover:bg-rose-500/20 transition-all flex items-center gap-2"
                   >
@@ -242,37 +252,43 @@ export const RhEvaluationPanel: React.FC<{
           type="button"
           disabled={!canCreateEvaluation || saving || !summary.trim()}
           onClick={async () => {
+            const isEditing = !!editingEvaluationId;
             setSaving(true);
-            try {
-              if (editingEvaluationId) {
-                await rhJornadaService.updateEvaluation({
-                  id: editingEvaluationId,
-                  processo_id: processId,
-                  etapa_id: stage?.id || null,
-                  tipo: evaluationType,
-                  avaliador_user_id: evaluatorUserId || null,
-                  nota: score ? Number(score) : null,
-                  decisao: decision,
-                  resumo: summary.trim(),
-                  observacoes: notes.trim() || null,
-                });
-              } else {
-                await rhJornadaService.createEvaluation({
-                  processo_id: processId,
-                  etapa_id: stage?.id || null,
-                  tipo: evaluationType,
-                  avaliador_user_id: evaluatorUserId || null,
-                  nota: score ? Number(score) : null,
-                  decisao: decision,
-                  resumo: summary.trim(),
-                  observacoes: notes.trim() || null,
-                });
+            await run(
+              async () => {
+                if (editingEvaluationId) {
+                  await rhJornadaService.updateEvaluation({
+                    id: editingEvaluationId,
+                    processo_id: processId,
+                    etapa_id: stage?.id || null,
+                    tipo: evaluationType,
+                    avaliador_user_id: evaluatorUserId || null,
+                    nota: score ? Number(score) : null,
+                    decisao: decision,
+                    resumo: summary.trim(),
+                    observacoes: notes.trim() || null,
+                  });
+                } else {
+                  await rhJornadaService.createEvaluation({
+                    processo_id: processId,
+                    etapa_id: stage?.id || null,
+                    tipo: evaluationType,
+                    avaliador_user_id: evaluatorUserId || null,
+                    nota: score ? Number(score) : null,
+                    decisao: decision,
+                    resumo: summary.trim(),
+                    observacoes: notes.trim() || null,
+                  });
+                }
+                resetForm();
+                await loadData();
+              },
+              {
+                success: isEditing ? 'Avaliação atualizada.' : 'Avaliação registrada.',
+                error: isEditing ? 'Não foi possível atualizar a avaliação.' : 'Não foi possível registrar a avaliação.',
               }
-              resetForm();
-              await loadData();
-            } finally {
-              setSaving(false);
-            }
+            );
+            setSaving(false);
           }}
           className={cn(
             'px-5 py-3 rounded-2xl font-black text-white flex items-center gap-2 transition-all',

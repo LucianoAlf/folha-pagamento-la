@@ -9,6 +9,7 @@ import { RhStageExecutionPanel } from '../process/RhStageExecutionPanel';
 import { RhProcessActivityPanel } from '../process/RhProcessActivityPanel';
 import { RhEvaluationPanel } from '../process/RhEvaluationPanel';
 import { RhParticipantsPanel } from '../process/RhParticipantsPanel';
+import { useAsyncAction } from '../../../hooks/useAsyncAction';
 
 const STATUS_META: Record<RhCandidateStatus, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' | 'info' | 'purple' }> = {
   novo: { label: 'Novo', variant: 'default' },
@@ -44,6 +45,7 @@ export const CandidatosTab: React.FC = () => {
   const [comparisonCandidateId, setComparisonCandidateId] = useState('');
   const [comparison, setComparison] = useState<RhCandidateComparisonResult | null>(null);
   const [comparing, setComparing] = useState(false);
+  const { run } = useAsyncAction();
 
   const loadCandidates = async () => {
     setLoading(true);
@@ -282,10 +284,18 @@ export const CandidatosTab: React.FC = () => {
                     {candidate.status !== 'reprovado' ? (
                       <button
                         type="button"
-                        onClick={async (e) => {
+                        onClick={(e) => {
                           e.stopPropagation();
-                          await rhJornadaService.rejectCandidate(candidate.id, 'Reprovado via pipeline RH.');
-                          await loadCandidates();
+                          return run(
+                            async () => {
+                              await rhJornadaService.rejectCandidate(candidate.id, 'Reprovado via pipeline RH.');
+                              await loadCandidates();
+                            },
+                            {
+                              success: 'Candidato reprovado.',
+                              error: 'Não foi possível reprovar o candidato.',
+                            }
+                          );
                         }}
                         className="px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 flex items-center gap-2 transition-all"
                       >
@@ -323,10 +333,19 @@ export const CandidatosTab: React.FC = () => {
               <CustomSelect value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as RhCandidateStatus)} options={STATUS_OPTIONS.slice(1)} />
               <button
                 type="button"
-                onClick={async () => {
-                  if (!selectedCandidate) return;
-                  await rhJornadaService.updateCandidate(selectedCandidate.id, { status: selectedStatus });
-                  await loadCandidates();
+                onClick={() => {
+                  const candidate = selectedCandidate;
+                  if (!candidate) return;
+                  return run(
+                    async () => {
+                      await rhJornadaService.updateCandidate(candidate.id, { status: selectedStatus });
+                      await loadCandidates();
+                    },
+                    {
+                      success: 'Status do candidato atualizado.',
+                      error: 'Não foi possível atualizar o status do candidato.',
+                    }
+                  );
                 }}
                 className="w-full px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all"
               >
@@ -343,12 +362,21 @@ export const CandidatosTab: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!selectedCandidate) return;
-                    const confirmed = window.confirm(`Arquivar o candidato ${selectedCandidate.nome}?`);
+                  onClick={() => {
+                    const candidate = selectedCandidate;
+                    if (!candidate) return;
+                    const confirmed = window.confirm(`Arquivar o candidato ${candidate.nome}?`);
                     if (!confirmed) return;
-                    await rhJornadaService.archiveCandidate(selectedCandidate.id, 'Arquivado manualmente pela operação RH.');
-                    await loadCandidates();
+                    return run(
+                      async () => {
+                        await rhJornadaService.archiveCandidate(candidate.id, 'Arquivado manualmente pela operação RH.');
+                        await loadCandidates();
+                      },
+                      {
+                        success: 'Candidato arquivado.',
+                        error: 'Não foi possível arquivar o candidato.',
+                      }
+                    );
                   }}
                   className="w-full px-4 py-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all flex items-center justify-center gap-2"
                 >
@@ -375,14 +403,18 @@ export const CandidatosTab: React.FC = () => {
                 type="button"
                 disabled={!comparisonCandidateId || comparing}
                 onClick={async () => {
-                  if (!selectedCandidateId || !comparisonCandidateId) return;
+                  const baseId = selectedCandidateId;
+                  const otherId = comparisonCandidateId;
+                  if (!baseId || !otherId) return;
                   setComparing(true);
-                  try {
-                    const result = await rhJornadaService.compareCandidatesWithAi([selectedCandidateId, comparisonCandidateId]);
-                    setComparison(result);
-                  } finally {
-                    setComparing(false);
-                  }
+                  await run(
+                    async () => {
+                      const result = await rhJornadaService.compareCandidatesWithAi([baseId, otherId]);
+                      setComparison(result);
+                    },
+                    { error: 'Não foi possível gerar o comparativo com IA.' }
+                  );
+                  setComparing(false);
                 }}
                 className={`mt-3 w-full px-4 py-3 rounded-2xl font-black text-white transition-all ${
                   !comparisonCandidateId || comparing ? 'bg-slate-700 opacity-60 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500'

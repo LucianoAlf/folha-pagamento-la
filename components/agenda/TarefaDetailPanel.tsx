@@ -28,6 +28,7 @@ import {
 import { SubtarefaItem } from './SubtarefaItem';
 import type { ContaPagar } from '../../types/contasPagar';
 import { fetchContasPendentesForAgenda } from '../../services/contasPagarService';
+import { useAsyncAction } from '../../hooks/useAsyncAction';
 
 const navigateTo = (module: 'folha' | 'contas' | 'agenda' | 'notificacoes', page?: string) => {
   window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module, page } }));
@@ -74,6 +75,7 @@ export const TarefaDetailPanel: React.FC<{
   onDeleted: () => void;
   compact?: boolean;
 }> = ({ tarefa, listas, onClose, onSaved, onDeleted, compact = false }) => {
+  const { run } = useAsyncAction();
   const [draft, setDraft] = useState<Tarefa>(tarefa);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -232,10 +234,19 @@ export const TarefaDetailPanel: React.FC<{
             <div className="flex items-start gap-3">
               <button
                 type="button"
-                onClick={async () => {
-                  if (draft.status === 'concluida') await reabrirTarefa(draft.id);
-                  else await concluirTarefa(draft.id);
-                  onSaved();
+                onClick={() => {
+                  const item = draft;
+                  return run(
+                    async () => {
+                      if (item.status === 'concluida') await reabrirTarefa(item.id);
+                      else await concluirTarefa(item.id);
+                      onSaved();
+                    },
+                    {
+                      success: item.status === 'concluida' ? 'Tarefa reaberta.' : 'Tarefa concluída.',
+                      error: 'Não foi possível atualizar a tarefa.',
+                    }
+                  );
                 }}
                 className={cn(
                   'w-6 h-6 rounded-full border-2 flex items-center justify-center mt-1 shrink-0',
@@ -425,28 +436,42 @@ export const TarefaDetailPanel: React.FC<{
               <input
                 value={newSub}
                 onChange={(e) => setNewSub(e.target.value)}
-                onKeyDown={async (e) => {
+                onKeyDown={(e) => {
                   if (e.key !== 'Enter') return;
                   const titulo = newSub.trim();
                   if (!titulo) return;
+                  const tarefaId = draft.id;
+                  const ordem = draft.subtarefas?.length || 0;
                   setNewSub('');
-                  const created = await createSubtarefa({ tarefa_id: draft.id, titulo, ordem: (draft.subtarefas?.length || 0) });
-                  // optimistic append
-                  setDraft((p) => ({ ...p, subtarefas: [...(p.subtarefas || []), created] }));
-                  onSaved();
+                  return run(
+                    async () => {
+                      const created = await createSubtarefa({ tarefa_id: tarefaId, titulo, ordem });
+                      // optimistic append
+                      setDraft((p) => ({ ...p, subtarefas: [...(p.subtarefas || []), created] }));
+                      onSaved();
+                    },
+                    { error: 'Não foi possível adicionar a subtarefa.' }
+                  );
                 }}
                 placeholder="Adicionar subtarefa…"
                 className="flex-1 bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
               />
               <button
                 type="button"
-                onClick={async () => {
+                onClick={() => {
                   const titulo = newSub.trim();
                   if (!titulo) return;
+                  const tarefaId = draft.id;
+                  const ordem = draft.subtarefas?.length || 0;
                   setNewSub('');
-                  const created = await createSubtarefa({ tarefa_id: draft.id, titulo, ordem: (draft.subtarefas?.length || 0) });
-                  setDraft((p) => ({ ...p, subtarefas: [...(p.subtarefas || []), created] }));
-                  onSaved();
+                  return run(
+                    async () => {
+                      const created = await createSubtarefa({ tarefa_id: tarefaId, titulo, ordem });
+                      setDraft((p) => ({ ...p, subtarefas: [...(p.subtarefas || []), created] }));
+                      onSaved();
+                    },
+                    { error: 'Não foi possível adicionar a subtarefa.' }
+                  );
                 }}
                 className="w-11 h-11 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center shrink-0"
                 aria-label="Adicionar subtarefa"
@@ -466,23 +491,56 @@ export const TarefaDetailPanel: React.FC<{
                     <SubtarefaItem
                       key={s.id}
                       item={s}
-                      onToggle={async (next) => {
+                      onToggle={(next) => {
+                        const prevConcluida = s.concluida;
                         // optimistic toggle
                         setDraft((p) => ({
                           ...p,
                           subtarefas: (p.subtarefas || []).map((it) => (it.id === s.id ? { ...it, concluida: next } : it)),
                         }));
-                        await toggleSubtarefa(s.id, next);
-                        onSaved();
+                        return run(
+                          async () => {
+                            await toggleSubtarefa(s.id, next);
+                            onSaved();
+                          },
+                          {
+                            error: 'Não foi possível atualizar a subtarefa.',
+                            onError: () =>
+                              // rollback otimista
+                              setDraft((p) => ({
+                                ...p,
+                                subtarefas: (p.subtarefas || []).map((it) =>
+                                  it.id === s.id ? { ...it, concluida: prevConcluida } : it
+                                ),
+                              })),
+                          }
+                        );
                       }}
-                      onDelete={async () => {
+                      onDelete={() => {
+                        const removed = s;
                         // optimistic remove
                         setDraft((p) => ({
                           ...p,
-                          subtarefas: (p.subtarefas || []).filter((it) => it.id !== s.id),
+                          subtarefas: (p.subtarefas || []).filter((it) => it.id !== removed.id),
                         }));
-                        await deleteSubtarefa(s.id);
-                        onSaved();
+                        return run(
+                          async () => {
+                            await deleteSubtarefa(removed.id);
+                            onSaved();
+                          },
+                          {
+                            success: 'Subtarefa excluída.',
+                            error: 'Não foi possível excluir a subtarefa.',
+                            onError: () =>
+                              // rollback otimista
+                              setDraft((p) => ({
+                                ...p,
+                                subtarefas: [...(p.subtarefas || []), removed].sort(
+                                  (a, b) => (a.ordem || 0) - (b.ordem || 0)
+                                ),
+                              })),
+                          }
+                        );
                       }}
                     />
                   ))
@@ -527,9 +585,18 @@ export const TarefaDetailPanel: React.FC<{
           <div className="pt-2 border-t border-slate-800/70">
             <button
               type="button"
-              onClick={async () => {
-                await deleteTarefa(draft.id);
-                onDeleted();
+              onClick={() => {
+                const item = draft;
+                return run(
+                  async () => {
+                    await deleteTarefa(item.id);
+                  },
+                  {
+                    success: 'Tarefa excluída.',
+                    error: 'Não foi possível excluir a tarefa.',
+                    onSuccess: () => onDeleted(),
+                  }
+                );
               }}
               className="w-full px-4 py-3 rounded-2xl border border-rose-500/25 bg-rose-500/10 hover:bg-rose-500/15 text-rose-200 font-black flex items-center justify-center gap-2"
             >

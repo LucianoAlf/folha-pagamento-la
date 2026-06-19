@@ -4,12 +4,14 @@ import { Badge, Card } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhComment, RhHistoryEvent } from '../../../types/rh';
 import { cn } from '../../CollaboratorComponents';
+import { useAsyncAction } from '../../../hooks/useAsyncAction';
 
 export const RhProcessActivityPanel: React.FC<{ processId: string | null; stageId?: string | null }> = ({ processId, stageId }) => {
   const [comments, setComments] = useState<RhComment[]>([]);
   const [history, setHistory] = useState<RhHistoryEvent[]>([]);
   const [commentText, setCommentText] = useState('');
   const [saving, setSaving] = useState(false);
+  const { run } = useAsyncAction();
 
   const loadData = async () => {
     if (!processId) {
@@ -59,13 +61,18 @@ export const RhProcessActivityPanel: React.FC<{ processId: string | null; stageI
             onClick={async () => {
               if (!processId || !commentText.trim()) return;
               setSaving(true);
-              try {
-                await rhJornadaService.createComment(processId, commentText.trim(), stageId || null);
-                setCommentText('');
-                await loadData();
-              } finally {
-                setSaving(false);
-              }
+              await run(
+                async () => {
+                  await rhJornadaService.createComment(processId, commentText.trim(), stageId || null);
+                  setCommentText('');
+                  await loadData();
+                },
+                {
+                  success: 'Comentário publicado.',
+                  error: 'Não foi possível publicar o comentário.',
+                }
+              );
+              setSaving(false);
             }}
             className={cn(
               'px-5 py-3 rounded-2xl font-black text-white flex items-center gap-2 transition-all',

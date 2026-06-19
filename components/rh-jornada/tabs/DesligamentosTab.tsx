@@ -9,6 +9,7 @@ import { RhProcessActivityPanel } from '../process/RhProcessActivityPanel';
 import { RhEvaluationPanel } from '../process/RhEvaluationPanel';
 import { RhParticipantsPanel } from '../process/RhParticipantsPanel';
 import { RhStageExecutionPanel } from '../process/RhStageExecutionPanel';
+import { useAsyncAction } from '../../../hooks/useAsyncAction';
 
 const PROCESS_STATUS_META: Record<string, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' | 'info' | 'purple' }> = {
   rascunho: { label: 'Rascunho', variant: 'default' },
@@ -254,6 +255,7 @@ export const DesligamentosTab: React.FC = () => {
   const [generatedDocs, setGeneratedDocs] = useState<RhGeneratedDocument[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const { run } = useAsyncAction();
 
   const refreshSelectedProcess = async () => {
     if (!selectedProcessId) {
@@ -519,15 +521,21 @@ export const DesligamentosTab: React.FC = () => {
                             type="button"
                             disabled={!selectedProcessId || generating}
                             onClick={async () => {
-                              if (!selectedProcessId) return;
+                              const processId = selectedProcessId;
+                              if (!processId) return;
                               setGenerating(true);
-                              try {
-                                await rhJornadaService.generateDocument(selectedProcessId, 'aviso_previo');
-                                const docs = await rhJornadaService.fetchGeneratedDocuments(selectedProcessId);
-                                setGeneratedDocs(docs);
-                              } finally {
-                                setGenerating(false);
-                              }
+                              await run(
+                                async () => {
+                                  await rhJornadaService.generateDocument(processId, 'aviso_previo');
+                                  const docs = await rhJornadaService.fetchGeneratedDocuments(processId);
+                                  setGeneratedDocs(docs);
+                                },
+                                {
+                                  success: 'Aviso prévio gerado.',
+                                  error: 'Não foi possível gerar o aviso prévio.',
+                                }
+                              );
+                              setGenerating(false);
                             }}
                             className={cn(
                               'px-4 py-2.5 rounded-2xl font-black text-white flex items-center gap-2 transition-all',
@@ -541,15 +549,21 @@ export const DesligamentosTab: React.FC = () => {
                             type="button"
                             disabled={!selectedProcessId || generating}
                             onClick={async () => {
-                              if (!selectedProcessId) return;
+                              const processId = selectedProcessId;
+                              if (!processId) return;
                               setGenerating(true);
-                              try {
-                                await rhJornadaService.generateDocument(selectedProcessId, 'checklist_documental');
-                                const docs = await rhJornadaService.fetchGeneratedDocuments(selectedProcessId);
-                                setGeneratedDocs(docs);
-                              } finally {
-                                setGenerating(false);
-                              }
+                              await run(
+                                async () => {
+                                  await rhJornadaService.generateDocument(processId, 'checklist_documental');
+                                  const docs = await rhJornadaService.fetchGeneratedDocuments(processId);
+                                  setGeneratedDocs(docs);
+                                },
+                                {
+                                  success: 'Checklist documental gerado.',
+                                  error: 'Não foi possível gerar o checklist documental.',
+                                }
+                              );
+                              setGenerating(false);
                             }}
                             className={cn(
                               'px-4 py-2.5 rounded-2xl font-black text-white flex items-center gap-2 transition-all',
@@ -573,14 +587,17 @@ export const DesligamentosTab: React.FC = () => {
                               </div>
                               <button
                                 type="button"
-                                onClick={async () => {
-                                  const url = await rhJornadaService.getGeneratedDocumentSignedUrl(doc);
-                                  if (selectedProcessId) {
-                                    const docs = await rhJornadaService.fetchGeneratedDocuments(selectedProcessId);
-                                    setGeneratedDocs(docs);
-                                  }
-                                  window.open(url, '_blank', 'noopener,noreferrer');
-                                }}
+                                onClick={() => run(
+                                  async () => {
+                                    const url = await rhJornadaService.getGeneratedDocumentSignedUrl(doc);
+                                    if (selectedProcessId) {
+                                      const docs = await rhJornadaService.fetchGeneratedDocuments(selectedProcessId);
+                                      setGeneratedDocs(docs);
+                                    }
+                                    window.open(url, '_blank', 'noopener,noreferrer');
+                                  },
+                                  { error: 'Não foi possível abrir o documento.' }
+                                )}
                                 className="px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 flex items-center gap-2 transition-all"
                               >
                                 <Eye className="w-4 h-4" />
