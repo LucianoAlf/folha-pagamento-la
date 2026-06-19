@@ -34,6 +34,7 @@ import {
   type BistroParametros,
   type BistroVendasResumo,
 } from '../../services/bistroService';
+import { useAsyncAction } from '../../hooks/useAsyncAction';
 
 function ymFromFolhaRef(folha: FolhaMensal) {
   const ymFolha = `${folha.ano}-${String(folha.mes).padStart(2, '0')}`;
@@ -210,6 +211,9 @@ export const BistroTab: React.FC<{
 }> = ({ folhaAtual, statusFolha, colaboradores, lancamentosFolha, onRefreshLancamentos }) => {
   const ymRef = useMemo(() => ymFromFolhaRef(folhaAtual), [folhaAtual]);
   const ymFolha = useMemo(() => `${folhaAtual.ano}-${String(folhaAtual.mes).padStart(2, '0')}`, [folhaAtual]);
+
+  // P1: tratamento de erro + feedback (toast) para mutações async
+  const { run } = useAsyncAction();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -391,23 +395,30 @@ export const BistroTab: React.FC<{
     if (!canEdit || !luciaLancEffective || !lucia || !params?.lucia_colaborador_id) return;
     setLuciaApplyLoading(true);
     setLuciaApplyOk(false);
-    try {
-      const salario = luciaSalarioDraft.trim() ? parseMoneyBR(luciaSalarioDraft) : Number(luciaLancEffective.salario || 0);
-      const passagem = luciaVtDraft.trim() ? parseMoneyBR(luciaVtDraft) : Number(luciaLancEffective.passagem || 0);
+    await run(
+      async () => {
+        const salario = luciaSalarioDraft.trim() ? parseMoneyBR(luciaSalarioDraft) : Number(luciaLancEffective.salario || 0);
+        const passagem = luciaVtDraft.trim() ? parseMoneyBR(luciaVtDraft) : Number(luciaLancEffective.passagem || 0);
 
-      await api.updateLancamento(luciaLancEffective.id, {
-        salario,
-        passagem,
-        comissao: lucia.comissao,
-        bonus: lucia.bonus,
-      } as any);
+        await api.updateLancamento(luciaLancEffective.id, {
+          salario,
+          passagem,
+          comissao: lucia.comissao,
+          bonus: lucia.bonus,
+        } as any);
 
-      await onRefreshLancamentos();
-      setLuciaApplyOk(true);
-      window.setTimeout(() => setLuciaApplyOk(false), 1500);
-    } finally {
-      setLuciaApplyLoading(false);
-    }
+        await onRefreshLancamentos();
+      },
+      {
+        success: 'Dados da Lúcia aplicados à folha.',
+        error: 'Não foi possível aplicar os dados à folha.',
+        onSuccess: () => {
+          setLuciaApplyOk(true);
+          window.setTimeout(() => setLuciaApplyOk(false), 1500);
+        },
+      }
+    );
+    setLuciaApplyLoading(false);
   }
 
   const reportFinanceiroText = useMemo(() => {
@@ -509,8 +520,13 @@ export const BistroTab: React.FC<{
     if (!competenciaId) return;
     const n = Number(String(next || '').replace(/\./g, '').replace(',', '.'));
     if (!Number.isFinite(n)) return;
-    await updateBistroCompetencia({ competencia_id: competenciaId, saldo_inicial_emla: n });
-    await loadAll();
+    await run(
+      async () => {
+        await updateBistroCompetencia({ competencia_id: competenciaId, saldo_inicial_emla: n });
+        await loadAll();
+      },
+      { error: 'Não foi possível salvar o saldo inicial.' }
+    );
   }
 
   useEffect(() => {
@@ -640,11 +656,19 @@ export const BistroTab: React.FC<{
   async function confirmPaste() {
     if (!competenciaId) return;
     const valid = pastePreview.filter((p) => p.colaborador_id && p.valor > 0) as Array<{ colaborador_id: number; valor: number }>;
-    await upsertBistroConsumos(valid.map((v) => ({ competencia_id: competenciaId, colaborador_id: v.colaborador_id, valor: v.valor })));
-    setPasteOpen(false);
-    setPasteText('');
-    setPastePreview([]);
-    await loadAll();
+    await run(
+      async () => {
+        await upsertBistroConsumos(valid.map((v) => ({ competencia_id: competenciaId, colaborador_id: v.colaborador_id, valor: v.valor })));
+        setPasteOpen(false);
+        setPasteText('');
+        setPastePreview([]);
+        await loadAll();
+      },
+      {
+        success: `${valid.length} consumo${valid.length !== 1 ? 's' : ''} importado${valid.length !== 1 ? 's' : ''}.`,
+        error: 'Não foi possível importar os consumos.',
+      }
+    );
   }
 
   async function saveVendas() {
@@ -658,18 +682,23 @@ export const BistroTab: React.FC<{
       return n >= 0.1 ? n / 100 : n;
     };
 
-    await upsertBistroVendasResumo({
-      competencia_id: competenciaId,
-      ...vendas,
-      pix_bruto: parseMoneyBR(String((vendas as any)?.pix_bruto || '')),
-      debito_bruto: parseMoneyBR(String((vendas as any)?.debito_bruto || '')),
-      credito_bruto: parseMoneyBR(String((vendas as any)?.credito_bruto || '')),
-      dinheiro_bruto: parseMoneyBR(String((vendas as any)?.dinheiro_bruto || '')),
-      pix_taxa_pct: normalizePct((vendas as any)?.pix_taxa_pct, 0.0099),
-      debito_taxa_pct: normalizePct((vendas as any)?.debito_taxa_pct, 0.0168),
-      credito_taxa_pct: normalizePct((vendas as any)?.credito_taxa_pct, 0.0368),
-    } as any);
-    await loadAll();
+    await run(
+      async () => {
+        await upsertBistroVendasResumo({
+          competencia_id: competenciaId,
+          ...vendas,
+          pix_bruto: parseMoneyBR(String((vendas as any)?.pix_bruto || '')),
+          debito_bruto: parseMoneyBR(String((vendas as any)?.debito_bruto || '')),
+          credito_bruto: parseMoneyBR(String((vendas as any)?.credito_bruto || '')),
+          dinheiro_bruto: parseMoneyBR(String((vendas as any)?.dinheiro_bruto || '')),
+          pix_taxa_pct: normalizePct((vendas as any)?.pix_taxa_pct, 0.0099),
+          debito_taxa_pct: normalizePct((vendas as any)?.debito_taxa_pct, 0.0168),
+          credito_taxa_pct: normalizePct((vendas as any)?.credito_taxa_pct, 0.0368),
+        } as any);
+        await loadAll();
+      },
+      { success: 'Vendas salvas.', error: 'Não foi possível salvar as vendas.' }
+    );
   }
 
   async function autoSaveTaxas() {
@@ -679,40 +708,55 @@ export const BistroTab: React.FC<{
       if (!Number.isFinite(n) || n <= 0) return fallback;
       return n >= 0.1 ? n / 100 : n;
     };
-    const saved = await upsertBistroVendasResumo({
-      competencia_id: competenciaId,
-      ...(vendas || ({} as any)),
-      // mantém brutos (se já preenchidos) e garante que taxas fiquem persistidas
-      pix_bruto: parseMoneyBR(String((vendas as any)?.pix_bruto || '')),
-      debito_bruto: parseMoneyBR(String((vendas as any)?.debito_bruto || '')),
-      credito_bruto: parseMoneyBR(String((vendas as any)?.credito_bruto || '')),
-      dinheiro_bruto: parseMoneyBR(String((vendas as any)?.dinheiro_bruto || '')),
-      pix_taxa_pct: normalizePct((vendas as any)?.pix_taxa_pct, 0.0099),
-      debito_taxa_pct: normalizePct((vendas as any)?.debito_taxa_pct, 0.0168),
-      credito_taxa_pct: normalizePct((vendas as any)?.credito_taxa_pct, 0.0368),
-    } as any);
-    setVendas(saved);
+    await run(
+      async () => {
+        const saved = await upsertBistroVendasResumo({
+          competencia_id: competenciaId,
+          ...(vendas || ({} as any)),
+          // mantém brutos (se já preenchidos) e garante que taxas fiquem persistidas
+          pix_bruto: parseMoneyBR(String((vendas as any)?.pix_bruto || '')),
+          debito_bruto: parseMoneyBR(String((vendas as any)?.debito_bruto || '')),
+          credito_bruto: parseMoneyBR(String((vendas as any)?.credito_bruto || '')),
+          dinheiro_bruto: parseMoneyBR(String((vendas as any)?.dinheiro_bruto || '')),
+          pix_taxa_pct: normalizePct((vendas as any)?.pix_taxa_pct, 0.0099),
+          debito_taxa_pct: normalizePct((vendas as any)?.debito_taxa_pct, 0.0168),
+          credito_taxa_pct: normalizePct((vendas as any)?.credito_taxa_pct, 0.0368),
+        } as any);
+        setVendas(saved);
+      },
+      { error: 'Não foi possível salvar as taxas.' }
+    );
   }
 
   async function saveParametros(next: Partial<BistroParametros>) {
-    const saved = await upsertBistroParametros({ ...(params || {}), ...next, unidade: 'cg' });
-    setParams(saved);
+    await run(
+      async () => {
+        const saved = await upsertBistroParametros({ ...(params || {}), ...next, unidade: 'cg' });
+        setParams(saved);
+      },
+      { error: 'Não foi possível salvar os parâmetros.' }
+    );
   }
 
   async function addMov() {
     if (!competenciaId) return;
     const valor = Number(String(movDraft.valor || '').replace(/\./g, '').replace(',', '.')) || 0;
     if (!movDraft.descricao.trim()) return;
-    await createBistroMovimentacao({
-      competencia_id: competenciaId,
-      tipo: movDraft.tipo,
-      categoria: (movDraft.categoria || null) as any,
-      descricao: movDraft.descricao.trim(),
-      valor,
-      data_mov: movDraft.data_mov,
-    });
-    setMovDraft((p) => ({ ...p, descricao: '', valor: '' }));
-    await loadAll();
+    await run(
+      async () => {
+        await createBistroMovimentacao({
+          competencia_id: competenciaId,
+          tipo: movDraft.tipo,
+          categoria: (movDraft.categoria || null) as any,
+          descricao: movDraft.descricao.trim(),
+          valor,
+          data_mov: movDraft.data_mov,
+        });
+        setMovDraft((p) => ({ ...p, descricao: '', valor: '' }));
+        await loadAll();
+      },
+      { success: 'Movimentação adicionada.', error: 'Não foi possível adicionar a movimentação.' }
+    );
   }
 
   const [applyLoading, setApplyLoading] = useState(false);
@@ -722,28 +766,37 @@ export const BistroTab: React.FC<{
   async function applyDiscounts() {
     if (!competenciaId) return;
     setApplyLoading(true);
-    try {
-      await applyBistroDiscountsToFolha({ folhaId: folhaAtual.id, refYm: ymRef, unidade: 'cg' });
-      await onRefreshLancamentos();
-      await loadAll();
-    } finally {
-      setApplyLoading(false);
-    }
+    await run(
+      async () => {
+        await applyBistroDiscountsToFolha({ folhaId: folhaAtual.id, refYm: ymRef, unidade: 'cg' });
+        await onRefreshLancamentos();
+        await loadAll();
+      },
+      { success: 'Descontos aplicados à folha.', error: 'Não foi possível aplicar os descontos à folha.' }
+    );
+    setApplyLoading(false);
   }
 
   async function revertDiscounts() {
     if (!competenciaId) return;
     setRevertLoading(true);
     setRevertOk(false);
-    try {
-      await revertBistroDiscountsFromFolha({ folhaId: folhaAtual.id, refYm: ymRef });
-      await onRefreshLancamentos();
-      await loadAll();
-      setRevertOk(true);
-      window.setTimeout(() => setRevertOk(false), 1800);
-    } finally {
-      setRevertLoading(false);
-    }
+    await run(
+      async () => {
+        await revertBistroDiscountsFromFolha({ folhaId: folhaAtual.id, refYm: ymRef });
+        await onRefreshLancamentos();
+        await loadAll();
+      },
+      {
+        success: 'Descontos revertidos da folha.',
+        error: 'Não foi possível reverter os descontos.',
+        onSuccess: () => {
+          setRevertOk(true);
+          window.setTimeout(() => setRevertOk(false), 1800);
+        },
+      }
+    );
+    setRevertLoading(false);
   }
 
   const [reportOpen, setReportOpen] = useState(false);
@@ -819,28 +872,36 @@ export const BistroTab: React.FC<{
   async function saveEditMov() {
     if (!movEditDraft) return;
     setMovEditSaving(true);
-    try {
-      await updateBistroMovimentacao({
-        id: movEditDraft.id,
-        tipo: movEditDraft.tipo,
-        categoria: movEditDraft.tipo === 'despesa' ? ((movEditDraft.categoria || null) as any) : null,
-        descricao: (movEditDraft.descricao || '').trim(),
-        valor: parseMoneyBR(movEditDraft.valor),
-        data_mov: movEditDraft.data_mov,
-      });
-      setMovEditOpen(false);
-      setMovEditDraft(null);
-      await loadAll();
-    } finally {
-      setMovEditSaving(false);
-    }
+    await run(
+      async () => {
+        await updateBistroMovimentacao({
+          id: movEditDraft.id,
+          tipo: movEditDraft.tipo,
+          categoria: movEditDraft.tipo === 'despesa' ? ((movEditDraft.categoria || null) as any) : null,
+          descricao: (movEditDraft.descricao || '').trim(),
+          valor: parseMoneyBR(movEditDraft.valor),
+          data_mov: movEditDraft.data_mov,
+        });
+        setMovEditOpen(false);
+        setMovEditDraft(null);
+        await loadAll();
+      },
+      { success: 'Movimentação atualizada.', error: 'Não foi possível atualizar a movimentação.' }
+    );
+    setMovEditSaving(false);
   }
 
   async function confirmDeleteMov() {
     if (!movToDelete) return;
-    await deleteBistroMovimentacao(movToDelete.id);
-    setMovToDelete(null);
-    await loadAll();
+    const id = movToDelete.id;
+    await run(
+      async () => {
+        await deleteBistroMovimentacao(id);
+        setMovToDelete(null);
+        await loadAll();
+      },
+      { success: 'Movimentação excluída.', error: 'Não foi possível excluir a movimentação.' }
+    );
   }
 
   function openEditConsumo(colaborador_id: number) {
@@ -858,27 +919,35 @@ export const BistroTab: React.FC<{
   async function saveEditConsumo() {
     if (!competenciaId || !consumoEditDraft) return;
     setConsumoEditSaving(true);
-    try {
-      await upsertBistroConsumos([
-        {
-          competencia_id: competenciaId,
-          colaborador_id: consumoEditDraft.colaborador_id,
-          valor: parseMoneyBR(consumoEditDraft.valor),
-        },
-      ]);
-      setConsumoEditOpen(false);
-      setConsumoEditDraft(null);
-      await loadAll();
-    } finally {
-      setConsumoEditSaving(false);
-    }
+    await run(
+      async () => {
+        await upsertBistroConsumos([
+          {
+            competencia_id: competenciaId,
+            colaborador_id: consumoEditDraft.colaborador_id,
+            valor: parseMoneyBR(consumoEditDraft.valor),
+          },
+        ]);
+        setConsumoEditOpen(false);
+        setConsumoEditDraft(null);
+        await loadAll();
+      },
+      { success: 'Consumo atualizado.', error: 'Não foi possível atualizar o consumo.' }
+    );
+    setConsumoEditSaving(false);
   }
 
   async function confirmDeleteConsumo() {
     if (!competenciaId || !consumoToDelete) return;
-    await deleteBistroConsumo({ competencia_id: competenciaId, colaborador_id: consumoToDelete.colaborador_id });
-    setConsumoToDelete(null);
-    await loadAll();
+    const colaboradorId = consumoToDelete.colaborador_id;
+    await run(
+      async () => {
+        await deleteBistroConsumo({ competencia_id: competenciaId, colaborador_id: colaboradorId });
+        setConsumoToDelete(null);
+        await loadAll();
+      },
+      { success: 'Consumo excluído.', error: 'Não foi possível excluir o consumo.' }
+    );
   }
 
   useEffect(() => {

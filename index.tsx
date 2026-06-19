@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ToastProvider } from './hooks/useToast';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -58,7 +59,9 @@ async function bootstrap() {
     const App = mod.default;
     root.render(
       <React.StrictMode>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </React.StrictMode>
     );
   } catch (error) {

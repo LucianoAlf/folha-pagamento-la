@@ -31,6 +31,8 @@ import { ContasCalendar } from './ContasCalendar';
 import { ContasDoDiaModal } from './ContasDoDiaModal';
 import { Badge, Card, CustomSelect, Tooltip, Modal } from '../UI';
 import { formatCurrency } from '../../services/api';
+import { useAsyncAction } from '../../hooks/useAsyncAction';
+import { useToast } from '../../hooks/useToast';
 import {
   CheckCircle2,
   DollarSign,
@@ -165,6 +167,10 @@ export const ContasPagarPage: React.FC<{
 }> = ({ initialMode = 'dashboard', competenciaYM, onCompetenciaYMChange }) => {
   // ── Tab state interno (troca de aba não re-renderiza App.tsx) ──
   const [mode, setMode] = useState<ContasMode>(initialMode);
+
+  // P1: tratamento de erro + feedback (toast) para mutações async
+  const { run } = useAsyncAction();
+  const { success: toastSuccess } = useToast();
 
   const [categorias, setCategorias] = useState<CategoriaDespesa[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
@@ -1395,11 +1401,16 @@ export const ContasPagarPage: React.FC<{
           isOpen={novaOpen}
           categorias={categorias}
           onClose={() => setNovaOpen(false)}
-          onConfirm={async (payload, options) => {
-            await createContaPagar(payload, options);
-            setNovaOpen(false);
-            await refetch();
-          }}
+          onConfirm={(payload, options) =>
+            run(
+              async () => {
+                await createContaPagar(payload, options);
+                setNovaOpen(false);
+                await refetch();
+              },
+              { success: 'Conta criada.', error: 'Não foi possível criar a conta.' }
+            )
+          }
         />
       </div>
     );
@@ -1921,10 +1932,15 @@ export const ContasPagarPage: React.FC<{
           isOpen={categoriaModalOpen}
           initialData={editingCategoria}
           onClose={() => setCategoriaModalOpen(false)}
-          onConfirm={async (payload) => {
-            await upsertCategoria(payload);
-            await refetch();
-          }}
+          onConfirm={(payload) =>
+            run(
+              async () => {
+                await upsertCategoria(payload);
+                await refetch();
+              },
+              { success: 'Categoria salva.', error: 'Não foi possível salvar a categoria.' }
+            )
+          }
           onDelete={async (id) => {
             const cat = categorias.find((c) => c.id === id);
             setConfirmDeleteCategoria({ id, nome: cat?.nome || 'Categoria' });
@@ -1935,12 +1951,17 @@ export const ContasPagarPage: React.FC<{
           <ConfirmDialog
             isOpen={!!confirmDeleteCategoria}
             onClose={() => setConfirmDeleteCategoria(null)}
-            onConfirm={async () => {
+            onConfirm={() => {
               const target = confirmDeleteCategoria;
               if (!target) return;
               setConfirmDeleteCategoria(null);
-              await deleteCategoria(target.id);
-              await refetch();
+              return run(
+                async () => {
+                  await deleteCategoria(target.id);
+                  await refetch();
+                },
+                { success: 'Categoria excluída.', error: 'Não foi possível excluir a categoria.' }
+              );
             }}
             title="Confirmar Exclusão"
             message={`Tem certeza que deseja excluir a categoria \"${confirmDeleteCategoria.nome}\"?`}
@@ -2429,22 +2450,33 @@ export const ContasPagarPage: React.FC<{
           isOpen={novaOpen}
           categorias={categorias}
           onClose={() => setNovaOpen(false)}
-          onConfirm={async (payload, options) => {
-            await createContaPagar(payload, options);
-            setNovaOpen(false);
-            await refetch();
-          }}
+          onConfirm={(payload, options) =>
+            run(
+              async () => {
+                await createContaPagar(payload, options);
+                setNovaOpen(false);
+                await refetch();
+              },
+              { success: 'Conta criada.', error: 'Não foi possível criar a conta.' }
+            )
+          }
         />
 
         <PagarContaModal
           isOpen={!!pagarConta}
           conta={pagarConta}
           onClose={() => setPagarConta(null)}
-          onConfirm={async (input) => {
+          onConfirm={(input) => {
             if (!pagarConta) return;
-            await registrarPagamento(pagarConta.id, input);
+            const id = pagarConta.id;
             setPagarConta(null);
-            await refetch();
+            return run(
+              async () => {
+                await registrarPagamento(id, input);
+                await refetch();
+              },
+              { success: 'Pagamento registrado.', error: 'Não foi possível registrar o pagamento.' }
+            );
           }}
         />
 
@@ -2453,19 +2485,28 @@ export const ContasPagarPage: React.FC<{
           conta={editarConta}
           categorias={categorias}
           onClose={() => setEditarConta(null)}
-          onConfirm={async (patch, aplicarAFuturos) => {
+          onConfirm={(patch, aplicarAFuturos) => {
             if (!editarConta) return;
-            await updateContaPagar(editarConta.id, patch);
+            const conta = editarConta;
+            return run(
+              async () => {
+                await updateContaPagar(conta.id, patch);
 
-            if (aplicarAFuturos && editarConta.tipo_lancamento === 'recorrente') {
-              await updateFuturasRecorrentes(editarConta, patch);
-            }
-            if (aplicarAFuturos && editarConta.tipo_lancamento === 'parcelada') {
-              await updateFuturasParceladas(editarConta, patch);
-            }
+                if (aplicarAFuturos && conta.tipo_lancamento === 'recorrente') {
+                  await updateFuturasRecorrentes(conta, patch);
+                }
+                if (aplicarAFuturos && conta.tipo_lancamento === 'parcelada') {
+                  await updateFuturasParceladas(conta, patch);
+                }
 
-            setEditarConta(null);
-            await refetch();
+                await refetch();
+              },
+              {
+                success: 'Conta atualizada.',
+                error: 'Não foi possível atualizar a conta.',
+                onSuccess: () => setEditarConta(null),
+              }
+            );
           }}
         />
 
@@ -2999,12 +3040,17 @@ export const ContasPagarPage: React.FC<{
         isOpen={novaOpen}
         categorias={categorias}
         onClose={() => setNovaOpen(false)}
-        onConfirm={async (payload, options) => {
-          await createContaPagar(payload, options);
-          setNovaOpen(false);
-          setNovaContaDefaults(null);
-          await refetch();
-        }}
+        onConfirm={(payload, options) =>
+          run(
+            async () => {
+              await createContaPagar(payload, options);
+              setNovaOpen(false);
+              setNovaContaDefaults(null);
+              await refetch();
+            },
+            { success: 'Conta criada.', error: 'Não foi possível criar a conta.' }
+          )
+        }
         defaultVencimento={novaContaDefaults?.vencimento}
         defaultCompetenciaYM={novaContaDefaults?.competenciaYM}
       />
@@ -3049,22 +3095,34 @@ export const ContasPagarPage: React.FC<{
                 {diaModalContaIdToDelete.tipo_lancamento === 'parcelada' && diaModalContaIdToDelete.total_parcelas ? (
                   <>
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         const conta = diaModalContaIdToDelete;
+                        if (!conta) return;
                         setDiaModalContaIdToDelete(null);
-                        await deleteParcelamento(conta);
-                        await refetch();
+                        run(
+                          async () => {
+                            await deleteParcelamento(conta);
+                            await refetch();
+                          },
+                          { success: 'Parcelamento excluído.', error: 'Não foi possível excluir o parcelamento.' }
+                        );
                       }}
                       className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
                     >
                       Excluir todo o parcelamento ({diaModalContaIdToDelete.total_parcelas} parcelas)
                     </button>
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         const conta = diaModalContaIdToDelete;
+                        if (!conta) return;
                         setDiaModalContaIdToDelete(null);
-                        await deleteConta(conta.id);
-                        await refetch();
+                        run(
+                          async () => {
+                            await deleteConta(conta.id);
+                            await refetch();
+                          },
+                          { success: 'Parcela excluída.', error: 'Não foi possível excluir a parcela.' }
+                        );
                       }}
                       className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-slate-600 hover:bg-slate-500 transition-all active:scale-95"
                     >
@@ -3073,11 +3131,17 @@ export const ContasPagarPage: React.FC<{
                   </>
                 ) : (
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       const conta = diaModalContaIdToDelete;
+                      if (!conta) return;
                       setDiaModalContaIdToDelete(null);
-                      await deleteConta(conta.id);
-                      await refetch();
+                      run(
+                        async () => {
+                          await deleteConta(conta.id);
+                          await refetch();
+                        },
+                        { success: 'Lançamento excluído.', error: 'Não foi possível excluir o lançamento.' }
+                      );
                     }}
                     className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
                   >
@@ -3100,11 +3164,17 @@ export const ContasPagarPage: React.FC<{
         isOpen={!!pagarConta}
         conta={pagarConta}
         onClose={() => setPagarConta(null)}
-        onConfirm={async (input) => {
+        onConfirm={(input) => {
           if (!pagarConta) return;
-          await registrarPagamento(pagarConta.id, input);
+          const id = pagarConta.id;
           setPagarConta(null);
-          await refetch();
+          return run(
+            async () => {
+              await registrarPagamento(id, input);
+              await refetch();
+            },
+            { success: 'Pagamento registrado.', error: 'Não foi possível registrar o pagamento.' }
+          );
         }}
       />
 
@@ -3113,24 +3183,32 @@ export const ContasPagarPage: React.FC<{
         conta={editarConta}
         categorias={categorias}
         onClose={() => setEditarConta(null)}
-        onConfirm={async (patch, aplicarAFuturos) => {
+        onConfirm={(patch, aplicarAFuturos) => {
           if (!editarConta) return;
+          const conta = editarConta;
+          return run(
+            async () => {
+              // 1. Atualiza a conta atual
+              await updateContaPagar(conta.id, patch);
 
-          // 1. Atualiza a conta atual
-          await updateContaPagar(editarConta.id, patch);
+              // 2. Se for recorrente e o usuário escolheu aplicar a futuros, atualiza os próximos meses
+              if (aplicarAFuturos && conta.tipo_lancamento === 'recorrente') {
+                await updateFuturasRecorrentes(conta, patch);
+              }
 
-          // 2. Se for recorrente e o usuário escolheu aplicar a futuros, atualiza os próximos meses
-          if (aplicarAFuturos && editarConta.tipo_lancamento === 'recorrente') {
-            await updateFuturasRecorrentes(editarConta, patch);
-          }
+              // 3. Se for parcelada e o usuário escolheu aplicar a todas, atualiza parcelas pendentes
+              if (aplicarAFuturos && conta.tipo_lancamento === 'parcelada') {
+                await updateFuturasParceladas(conta, patch);
+              }
 
-          // 3. Se for parcelada e o usuário escolheu aplicar a todas, atualiza parcelas pendentes
-          if (aplicarAFuturos && editarConta.tipo_lancamento === 'parcelada') {
-            await updateFuturasParceladas(editarConta, patch);
-          }
-
-          setEditarConta(null);
-          await refetch();
+              await refetch();
+            },
+            {
+              success: 'Conta atualizada.',
+              error: 'Não foi possível atualizar a conta.',
+              onSuccess: () => setEditarConta(null),
+            }
+          );
         }}
       />
 
@@ -3151,23 +3229,41 @@ export const ContasPagarPage: React.FC<{
                 {contaParaExcluir.tipo_lancamento === 'parcelada' && contaParaExcluir.total_parcelas ? (
                   <>
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         const conta = contaParaExcluir;
+                        if (!conta) return;
                         setContaParaExcluir(null);
-                        const removidos = await deleteParcelamento(conta);
-                        await refetch();
-                        alert(`${removidos} parcela${removidos !== 1 ? 's' : ''} excluída${removidos !== 1 ? 's' : ''}.`);
+                        run(
+                          async () => {
+                            const removidos = await deleteParcelamento(conta);
+                            await refetch();
+                            return removidos;
+                          },
+                          {
+                            error: 'Não foi possível excluir o parcelamento.',
+                            onSuccess: (removidos) =>
+                              toastSuccess(
+                                `${removidos} parcela${removidos !== 1 ? 's' : ''} excluída${removidos !== 1 ? 's' : ''}.`
+                              ),
+                          }
+                        );
                       }}
                       className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
                     >
                       Excluir todo o parcelamento ({contaParaExcluir.total_parcelas} parcelas)
                     </button>
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         const conta = contaParaExcluir;
+                        if (!conta) return;
                         setContaParaExcluir(null);
-                        await deleteConta(conta.id);
-                        await refetch();
+                        run(
+                          async () => {
+                            await deleteConta(conta.id);
+                            await refetch();
+                          },
+                          { success: 'Parcela excluída.', error: 'Não foi possível excluir a parcela.' }
+                        );
                       }}
                       className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-slate-600 hover:bg-slate-500 transition-all active:scale-95"
                     >
@@ -3176,11 +3272,17 @@ export const ContasPagarPage: React.FC<{
                   </>
                 ) : (
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       const conta = contaParaExcluir;
+                      if (!conta) return;
                       setContaParaExcluir(null);
-                      await deleteConta(conta.id);
-                      await refetch();
+                      run(
+                        async () => {
+                          await deleteConta(conta.id);
+                          await refetch();
+                        },
+                        { success: 'Lançamento excluído.', error: 'Não foi possível excluir o lançamento.' }
+                      );
                     }}
                     className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
                   >
@@ -3235,13 +3337,24 @@ export const ContasPagarPage: React.FC<{
               </p>
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={async () => {
+                  onClick={() => {
                     const ids = Array.from(selectedIds);
                     setBatchDeleteOpen(false);
                     clearSelection();
-                    const removidos = await deleteContasBatch(ids);
-                    await refetch();
-                    alert(`${removidos} conta${removidos !== 1 ? 's' : ''} excluída${removidos !== 1 ? 's' : ''}.`);
+                    run(
+                      async () => {
+                        const removidos = await deleteContasBatch(ids);
+                        await refetch();
+                        return removidos;
+                      },
+                      {
+                        error: 'Não foi possível excluir as contas selecionadas.',
+                        onSuccess: (removidos) =>
+                          toastSuccess(
+                            `${removidos} conta${removidos !== 1 ? 's' : ''} excluída${removidos !== 1 ? 's' : ''}.`
+                          ),
+                      }
+                    );
                   }}
                   className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all active:scale-95 shadow-lg shadow-rose-600/20"
                 >
@@ -3262,11 +3375,20 @@ export const ContasPagarPage: React.FC<{
       <ConfirmDialog
         isOpen={!!contaParaFinalizar}
         onClose={() => setContaParaFinalizar(null)}
-        onConfirm={async () => {
-          if (!contaParaFinalizar) return;
-          await finalizarParcelamento(contaParaFinalizar);
-          setContaParaFinalizar(null);
-          await refetch();
+        onConfirm={() => {
+          const conta = contaParaFinalizar;
+          if (!conta) return;
+          return run(
+            async () => {
+              await finalizarParcelamento(conta);
+              await refetch();
+            },
+            {
+              success: 'Parcelamento finalizado.',
+              error: 'Não foi possível finalizar o parcelamento.',
+              onSuccess: () => setContaParaFinalizar(null),
+            }
+          );
         }}
         title="Finalizar parcelamento"
         message={
