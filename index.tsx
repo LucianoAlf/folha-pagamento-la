@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ToastProvider } from './hooks/useToast';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -59,9 +60,11 @@ async function bootstrap() {
     const App = mod.default;
     root.render(
       <React.StrictMode>
-        <ToastProvider>
-          <App />
-        </ToastProvider>
+        <ErrorBoundary>
+          <ToastProvider>
+            <App />
+          </ToastProvider>
+        </ErrorBoundary>
       </React.StrictMode>
     );
   } catch (error) {

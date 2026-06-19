@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
+import { useDialog } from '../hooks/useDialog';
 import * as Select from '@radix-ui/react-select';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import * as Popover from '@radix-ui/react-popover';
@@ -390,18 +391,22 @@ export const Button: React.FC<
   );
 };
 
-export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => {
+export const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode; className?: string }
+>(({ children, className = '', ...rest }, ref) => {
   // Se className contém bg-slate-950, não aplicar o bg padrão do dark mode
   const hasCustomBg = className.includes('bg-slate-950') || className.includes('bg-slate-900');
   const baseClass = hasCustomBg
     ? 'rounded-2xl'
     : 'bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-2xl';
   return (
-    <div className={cn(baseClass, className)}>
-    {children}
-  </div>
-);
-};
+    <div ref={ref} className={cn(baseClass, className)} {...rest}>
+      {children}
+    </div>
+  );
+});
+Card.displayName = 'Card';
 
 export const ToggleSwitch: React.FC<{
   checked: boolean;
@@ -505,13 +510,16 @@ export const Modal: React.FC<{
   position?: 'center' | 'bottom' | 'left';
   overlayClassName?: string;
 }> = ({ isOpen, onClose, title, subtitle, children, footer, className = '', headerClassName = '', position = 'center', overlayClassName = '' }) => {
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose);
+  const titleId = useId();
+  const subtitleId = useId();
   if (!isOpen) return null;
 
   return (
     <div
       className={cn(
         "fixed inset-0 z-[12000] flex overflow-hidden bg-black/60 backdrop-blur-sm",
-        position === 'bottom' ? "items-end justify-center p-0 sm:p-4" : 
+        position === 'bottom' ? "items-end justify-center p-0 sm:p-4" :
         position === 'left' ? "items-stretch justify-start p-0" :
         "items-center justify-center p-4",
         overlayClassName
@@ -521,9 +529,15 @@ export const Modal: React.FC<{
       }}
     >
       <Card
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={subtitle ? subtitleId : undefined}
+        tabIndex={-1}
         className={cn(
-          "w-full flex flex-col p-0 overflow-visible shadow-2xl animate-in duration-200",
-          position === 'bottom' ? "max-w-none rounded-t-3xl rounded-b-none max-h-[85vh] slide-in-from-bottom" : 
+          "w-full flex flex-col p-0 overflow-visible shadow-2xl animate-in duration-200 focus:outline-none",
+          position === 'bottom' ? "max-w-none rounded-t-3xl rounded-b-none max-h-[85vh] slide-in-from-bottom" :
           position === 'left' ? "w-[280px] max-w-[85vw] h-full rounded-none slide-in-from-left" :
           "max-w-2xl max-h-[90vh] zoom-in fade-in",
           className
@@ -534,9 +548,9 @@ export const Modal: React.FC<{
           headerClassName || "bg-slate-900/80 backdrop-blur-md border-slate-700/50"
         )}>
           <div className="min-w-0">
-            <div className="text-white font-black text-lg tracking-wider uppercase truncate">{title}</div>
+            <div id={titleId} className="text-white font-black text-lg tracking-wider uppercase truncate">{title}</div>
             {subtitle ? (
-              <div className="mt-1 text-[11px] font-bold text-white/85 leading-snug">
+              <div id={subtitleId} className="mt-1 text-[11px] font-bold text-white/85 leading-snug">
                 {subtitle}
               </div>
             ) : null}
@@ -575,17 +589,31 @@ export const ConfirmDialog: React.FC<{
   cancelLabel?: string;
   variant?: 'danger' | 'primary';
 }> = ({ isOpen, onClose, onConfirm, title, message, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', variant = 'primary' }) => {
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose);
+  const titleId = useId();
+  const messageId = useId();
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+    <div
+      className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        ref={dialogRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={messageId}
+        tabIndex={-1}
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
+      >
         <div className="p-8 text-center">
           <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'}`}>
             <AlertCircle size={32} />
           </div>
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
-          <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">{message}</p>
+          <h3 id={titleId} className="text-2xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
+          <p id={messageId} className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">{message}</p>
           <div className="flex gap-4">
             <button
               onClick={onClose}
@@ -618,17 +646,31 @@ export const AlertDialog: React.FC<{
   actionLabel?: string;
   variant?: 'danger' | 'primary';
 }> = ({ isOpen, onClose, title, message, actionLabel = 'OK', variant = 'primary' }) => {
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose);
+  const titleId = useId();
+  const messageId = useId();
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+    <div
+      className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        ref={dialogRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={messageId}
+        tabIndex={-1}
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
+      >
         <div className="p-8 text-center">
           <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'}`}>
             <AlertCircle size={32} />
           </div>
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
-          <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">{message}</p>
+          <h3 id={titleId} className="text-2xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
+          <p id={messageId} className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">{message}</p>
           <button
             onClick={onClose}
             className={`w-full px-6 py-3.5 rounded-2xl font-bold text-white transition-all active:scale-95 shadow-lg ${
