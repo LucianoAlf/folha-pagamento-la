@@ -142,7 +142,7 @@ export const EditarContaModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
+              className="px-6 py-3 rounded-2xl border border-base bg-surface/30 text-secondary font-black hover:bg-surface/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
             >
               Cancelar
             </button>
@@ -150,7 +150,7 @@ export const EditarContaModal: React.FC<{
               type="button"
               disabled={saving || !descricao.trim() || !vencimento || !(valorNum > 0)}
               onClick={() => handleSave()}
-              className="px-10 py-4 rounded-[2rem] bg-violet-600 hover:bg-violet-500 text-white font-black shadow-xl shadow-violet-600/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
+              className="px-10 py-4 rounded-[2rem] bg-accent hover:bg-accent/80 text-white font-black shadow-xl shadow-accent/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
             >
               {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={16} />}
               Salvar Ajustes
@@ -160,13 +160,13 @@ export const EditarContaModal: React.FC<{
       >
         <div className="space-y-8 md:space-y-10 pb-2">
           {conta.tipo_lancamento === 'recorrente' && (
-            <div className="rounded-3xl bg-violet-500/10 border border-violet-500/20 p-4 flex items-start gap-3">
-              <div className="w-9 h-9 rounded-2xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center text-violet-200 shrink-0">
+            <div className="rounded-3xl bg-accent/10 border border-accent/20 p-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent/60 shrink-0">
                 <Info size={16} />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-200/80">Conta Recorrente</div>
-                <div className="mt-1 text-xs font-bold text-slate-200 leading-snug">
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-accent/60">Conta Recorrente</div>
+                <div className="mt-1 text-xs font-bold text-primary leading-snug">
                   Este lançamento faz parte de uma recorrência. Você pode ajustar apenas este mês ou aplicar a mudança para os próximos.
                 </div>
               </div>
@@ -174,13 +174,13 @@ export const EditarContaModal: React.FC<{
           )}
 
           {conta.tipo_lancamento === 'parcelada' && (
-            <div className="rounded-3xl bg-amber-500/10 border border-amber-500/20 p-4 flex items-start gap-3">
-              <div className="w-9 h-9 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-200 shrink-0">
+            <div className="rounded-3xl bg-warning/10 border border-warning/20 p-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-warning/15 border border-warning/25 flex items-center justify-center text-warning/60 shrink-0">
                 <Info size={16} />
               </div>
               <div className="min-w-0">
-                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-200/80">Conta Parcelada</div>
-                <div className="mt-1 text-xs font-bold text-slate-200 leading-snug">
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-warning/60">Conta Parcelada</div>
+                <div className="mt-1 text-xs font-bold text-primary leading-snug">
                   Parcela {conta.parcela_atual || '?'} de {conta.total_parcelas || '?'}. Ao alterar valor ou categoria, você pode aplicar a todas as parcelas pendentes.
                 </div>
               </div>
@@ -189,35 +189,35 @@ export const EditarContaModal: React.FC<{
 
           {/* A) Dados principais */}
           <div>
-            <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
-              <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-500/10 text-violet-400 text-[10px]">A</span> 
+            <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-6">
+              <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">A</span>
               Dados principais
             </div>
 
             <div className="grid grid-cols-1 gap-5 md:gap-6">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">
                   Descrição do lançamento *
                 </label>
                 <input
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                  className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Valor (R$) *</label>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Valor (R$) *</label>
                   <input
                     value={valor}
                     onChange={(e) => setValor(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                    className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                   />
-                  <div className="mt-2 text-[10px] text-slate-500 font-bold px-1">{valor ? `Preview: ${valorPreview}` : ''}</div>
+                  <div className="mt-2 text-[10px] text-muted font-bold px-1">{valor ? `Preview: ${valorPreview}` : ''}</div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Categoria *</label>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Categoria *</label>
                   <CustomSelect
                     value={categoriaId}
                     onValueChange={(v) => setCategoriaId(v)}
@@ -228,7 +228,7 @@ export const EditarContaModal: React.FC<{
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Unidade *</label>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Unidade *</label>
                   <CustomSelect
                     value={unidade}
                     onValueChange={(v) => setUnidade(v)}
@@ -236,8 +236,8 @@ export const EditarContaModal: React.FC<{
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Tipo de Lançamento</label>
-                  <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 rounded-2xl p-1">
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Tipo de Lançamento</label>
+                  <div className="flex items-center gap-2 bg-surface/40 border border-base rounded-2xl p-1">
                     {(['unica', 'recorrente', 'parcelada'] as const).map((t) => (
                       <button
                         key={t}
@@ -245,7 +245,7 @@ export const EditarContaModal: React.FC<{
                         onClick={() => setLaunchType(t)}
                         className={cn(
                           'flex-1 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all',
-                          launchType === t ? 'bg-slate-800 text-violet-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                          launchType === t ? 'bg-surface-2 text-accent shadow-sm' : 'text-muted hover:text-secondary'
                         )}
                       >
                         {t === 'unica' ? 'Única' : t === 'recorrente' ? 'Recorr.' : 'Parc.'}
@@ -257,18 +257,18 @@ export const EditarContaModal: React.FC<{
               {launchType === 'parcelada' && (
                 <div className="grid grid-cols-2 gap-5 md:gap-6">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Parcela Atual</label>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Parcela Atual</label>
                     <input
                       type="number"
                       min={1}
                       max={totalParcelas}
                       value={parcelaAtual}
                       onChange={(e) => setParcelaAtual(Math.max(1, Math.min(totalParcelas, Number(e.target.value || 1))))}
-                      className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                      className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Total Parcelas</label>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Total Parcelas</label>
                     <input
                       type="number"
                       min={1}
@@ -279,10 +279,10 @@ export const EditarContaModal: React.FC<{
                         setTotalParcelas(v);
                         if (parcelaAtual > v) setParcelaAtual(v);
                       }}
-                      className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                      className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                     />
                   </div>
-                  <div className="col-span-2 text-[10px] text-slate-500 font-bold px-1 -mt-3">
+                  <div className="col-span-2 text-[10px] text-muted font-bold px-1 -mt-3">
                     Exibirá: Parcela {parcelaAtual} de {totalParcelas}
                   </div>
                 </div>
@@ -292,18 +292,18 @@ export const EditarContaModal: React.FC<{
 
           {/* B) Prazos */}
           <div>
-            <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
-              <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-500/10 text-violet-400 text-[10px]">B</span>
+            <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-6">
+              <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">B</span>
               Prazos e Competência
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Vencimento *</label>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Vencimento *</label>
                 <DatePicker value={vencimento} onChange={(v) => setVencimento(v || '')} />
               </div>
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2.5 px-1">Mês de Competência *</label>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Mês de Competência *</label>
                 <CustomSelect
                   value={competencia}
                   onValueChange={(v) => setCompetencia(v)}
@@ -322,8 +322,8 @@ export const EditarContaModal: React.FC<{
 
           {/* C) WhatsApp */}
           <div>
-            <div className="text-xs font-black uppercase tracking-[0.25em] text-slate-400 flex items-center gap-3 mb-6">
-              <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-violet-500/10 text-violet-400 text-[10px]">C</span>
+            <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-6">
+              <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">C</span>
               Notificações
             </div>
             <ContaLembretesWhatsApp contaId={conta.id} dense />

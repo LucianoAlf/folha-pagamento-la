@@ -46,8 +46,8 @@ export const ContasDoDiaModal: React.FC<{
       headerIcon={<Calendar size={18} />}
       footer={
         <div className="w-full flex items-center justify-between">
-          <div className="text-xs font-black uppercase tracking-widest text-slate-500">Total do dia</div>
-          <div className="text-xl font-black text-white">{formatCurrency(totalDia)}</div>
+          <div className="text-xs font-black uppercase tracking-widest text-muted">Total do dia</div>
+          <div className="text-xl font-black text-primary">{formatCurrency(totalDia)}</div>
         </div>
       }
     >
@@ -56,24 +56,24 @@ export const ContasDoDiaModal: React.FC<{
           <button
             type="button"
             onClick={() => onNovaConta(dateISO)}
-            className="w-full rounded-2xl border border-slate-800 bg-slate-900/20 hover:bg-slate-900/30 transition-all px-4 py-3 text-sm font-black text-white"
+            className="w-full rounded-2xl border border-base bg-surface/20 hover:bg-surface/30 transition-all px-4 py-3 text-sm font-black text-primary"
           >
             + Nova conta para este dia
           </button>
         )}
 
         {contas.length === 0 ? (
-          <div className="text-sm text-slate-500 font-bold py-10 text-center">Nenhuma conta para este dia.</div>
+          <div className="text-sm text-muted font-bold py-10 text-center">Nenhuma conta para este dia.</div>
         ) : (
           contas.map((c) => (
             (() => {
               const visual = c.status === 'pago' ? 'pago' : getStatusVisual(c);
               const cardTone =
                 visual === 'pago'
-                  ? 'border-emerald-500/25 bg-emerald-500/5'
+                  ? 'border-success/25 bg-success/5'
                   : visual === 'vencida'
-                    ? 'border-rose-500/30 bg-rose-500/5'
-                    : 'border-amber-500/20 bg-amber-500/5';
+                    ? 'border-danger/30 bg-danger/5'
+                    : 'border-warning/20 bg-warning/5';
               return (
             <div
               key={c.id}
@@ -84,18 +84,18 @@ export const ContasDoDiaModal: React.FC<{
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="text-white font-black truncate">{c.descricao}</div>
+                  <div className="text-primary font-black truncate">{c.descricao}</div>
                   <div className="mt-1 flex items-center gap-2">
-                    <div className="text-slate-400 text-xs font-bold truncate">{c.categoria?.nome || 'Sem categoria'}</div>
+                    <div className="text-secondary text-xs font-bold truncate">{c.categoria?.nome || 'Sem categoria'}</div>
                     {badgeFor(c)}
                   </div>
                 </div>
-                <div className="text-white font-black text-lg whitespace-nowrap">{formatCurrency(Number(c.valor) || 0)}</div>
+                <div className="text-primary font-black text-lg whitespace-nowrap">{formatCurrency(Number(c.valor) || 0)}</div>
               </div>
 
               <div className="mt-4 flex items-center justify-between gap-3">
                 {c.status === 'pago' ? (
-                  <div className="flex items-center gap-2 text-emerald-400 font-black text-xs">
+                  <div className="flex items-center gap-2 text-success font-black text-xs">
                     <CheckCircle2 size={14} />
                     Liquidado
                   </div>
@@ -103,7 +103,7 @@ export const ContasDoDiaModal: React.FC<{
                   <button
                     type="button"
                     onClick={() => onPagar(c)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-black shadow-lg shadow-violet-600/20 transition-all"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent hover:bg-accent/80 text-white text-xs font-black shadow-lg shadow-accent/20 transition-all"
                   >
                     <CheckCircle2 size={14} />
                     Pagar
@@ -113,7 +113,7 @@ export const ContasDoDiaModal: React.FC<{
                 <button
                   type="button"
                   onClick={() => onEditar(c)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/20 hover:bg-slate-900/30 text-slate-200 text-xs font-black transition-all"
+                  className="px-4 py-2.5 rounded-xl border border-base bg-surface/20 hover:bg-surface/30 text-secondary text-xs font-black transition-all"
                 >
                   <span className="inline-flex items-center gap-2">
                     <Pencil size={14} />
@@ -125,7 +125,7 @@ export const ContasDoDiaModal: React.FC<{
                   <button
                     type="button"
                     onClick={() => onExcluir(c)}
-                    className="px-3 py-2.5 rounded-xl border border-slate-800 bg-slate-900/20 hover:bg-rose-500/10 hover:border-rose-500/30 text-rose-400 text-xs font-black transition-all"
+                    className="px-3 py-2.5 rounded-xl border border-base bg-surface/20 hover:bg-danger/10 hover:border-danger/30 text-danger text-xs font-black transition-all"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -140,4 +140,3 @@ export const ContasDoDiaModal: React.FC<{
     </Modal>
   );
 };
-

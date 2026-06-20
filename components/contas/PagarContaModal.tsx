@@ -36,9 +36,9 @@ export const PagarContaModal: React.FC<{
   if (!isOpen || !conta) return null;
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
       title="REGISTRAR PAGAMENTO"
       className="max-w-2xl"
       footer={
@@ -46,7 +46,7 @@ export const PagarContaModal: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50"
+            className="px-6 py-3 rounded-2xl border border-base bg-surface/30 text-secondary font-black hover:bg-surface/50"
           >
             Cancelar
           </button>
@@ -61,7 +61,7 @@ export const PagarContaModal: React.FC<{
                 setSaving(false);
               }
             }}
-            className="px-8 py-4 rounded-[2rem] bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-xl shadow-emerald-600/20 disabled:opacity-50"
+            className="px-8 py-4 rounded-[2rem] bg-success hover:bg-success/80 text-white font-black shadow-xl shadow-success/20 disabled:opacity-50"
           >
             Confirmar Pagamento
           </button>
@@ -69,33 +69,33 @@ export const PagarContaModal: React.FC<{
       }
     >
       <div className="space-y-6">
-        <Card className="p-6 mb-6 bg-slate-900/40 border-slate-800">
+        <Card className="p-6 mb-6 bg-surface/40 border-base">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Categoria</div>
-              <div className="text-white font-black mt-1">{(conta.categoria?.nome || '—').toUpperCase()}</div>
-              <div className="mt-4 text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Descrição</div>
-              <div className="text-slate-200 font-bold mt-1">{conta.descricao}</div>
+              <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Categoria</div>
+              <div className="text-primary font-black mt-1">{(conta.categoria?.nome || '—').toUpperCase()}</div>
+              <div className="mt-4 text-[10px] text-muted font-black uppercase tracking-[0.2em]">Descrição</div>
+              <div className="text-secondary font-bold mt-1">{conta.descricao}</div>
             </div>
             <div className="text-right">
-              <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Vencimento</div>
-              <div className="text-rose-400 font-black mt-1">
+              <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Vencimento</div>
+              <div className="text-danger font-black mt-1">
                 {formatDateBR(conta.data_vencimento)}
                 {vencidaLabel}
               </div>
-              <div className="mt-4 text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Valor Total</div>
-              <div className="text-3xl font-black text-violet-400 mt-1">{formatCurrency(Number(conta.valor) || 0)}</div>
+              <div className="mt-4 text-[10px] text-muted font-black uppercase tracking-[0.2em]">Valor Total</div>
+              <div className="text-3xl font-black text-accent mt-1">{formatCurrency(Number(conta.valor) || 0)}</div>
             </div>
           </div>
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Data do Pagamento</div>
+            <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em] mb-2">Data do Pagamento</div>
             <DatePicker value={dataPagamento} onChange={(v) => setDataPagamento(v || '')} />
           </div>
           <div>
-            <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Método de Pagamento</div>
+            <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em] mb-2">Método de Pagamento</div>
             <CustomSelect
               value={metodo}
               onValueChange={(v) => setMetodo(v)}
@@ -105,11 +105,11 @@ export const PagarContaModal: React.FC<{
         </div>
 
         <div className="mt-6">
-          <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Observações (opcional)</div>
+          <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em] mb-2">Observações (opcional)</div>
           <textarea
             value={obs}
             onChange={(e) => setObs(e.target.value)}
-            className="w-full min-h-[110px] rounded-2xl border border-slate-800 bg-slate-900/30 px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+            className="w-full min-h-[110px] rounded-2xl border border-base bg-surface/30 px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
             placeholder="Ex: Pago com desconto de 5%..."
             spellCheck={false}
           />
@@ -118,4 +118,3 @@ export const PagarContaModal: React.FC<{
     </Modal>
   );
 };
-
