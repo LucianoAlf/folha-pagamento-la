@@ -51,14 +51,17 @@ export function validarDiasMinimos(
 
 /**
  * Máximo de dias de abono pecuniário.
- * CLT Art. 143: até 1/3 do DIREITO do período (30 → 10 dias), limitado aos dias
- * efetivamente gozados nesta programação (o abono é descontado dos dias corridos).
- * O teto NÃO depende do tamanho da fração: um colaborador com 30 dias de direito
- * pode vender até 10 dias mesmo gozando as férias em frações.
+ * CLT Art. 143: até 1/3 do DIREITO do período (30 → 10 dias). O teto NÃO
+ * depende do tamanho da fração — um colaborador com 30 dias de direito pode
+ * vender até 10 dias mesmo gozando as férias em frações. A disponibilidade de
+ * saldo (dias_corridos + dias_abono ≤ dias_saldo) é validada à parte por
+ * validarSaldo; aqui retornamos apenas o teto legal.
+ *
+ * O 2º parâmetro (diasCorridos) é mantido por compatibilidade de assinatura,
+ * mas NÃO limita o teto (limitá-lo à fração seria incorreto pela CLT).
  */
-export function maxAbonoDias(diasDireito: number = 30, diasCorridos: number = 0): number {
-  const tetoClt = Math.floor((diasDireito || 30) / 3);
-  return Math.max(0, Math.min(tetoClt, Math.floor(diasCorridos) || 0));
+export function maxAbonoDias(diasDireito: number = 30, _diasCorridos: number = 0): number {
+  return Math.max(0, Math.floor((diasDireito || 30) / 3));
 }
 
 /**

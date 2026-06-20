@@ -2469,13 +2469,16 @@ export const ContasPagarPage: React.FC<{
           onConfirm={(input) => {
             if (!pagarConta) return;
             const id = pagarConta.id;
-            setPagarConta(null);
             return run(
               async () => {
                 await registrarPagamento(id, input);
                 await refetch();
               },
-              { success: 'Pagamento registrado.', error: 'Não foi possível registrar o pagamento.' }
+              {
+                success: 'Pagamento registrado.',
+                error: 'Não foi possível registrar o pagamento.',
+                onSuccess: () => setPagarConta(null),
+              }
             );
           }}
         />
@@ -3167,13 +3170,16 @@ export const ContasPagarPage: React.FC<{
         onConfirm={(input) => {
           if (!pagarConta) return;
           const id = pagarConta.id;
-          setPagarConta(null);
           return run(
             async () => {
               await registrarPagamento(id, input);
               await refetch();
             },
-            { success: 'Pagamento registrado.', error: 'Não foi possível registrar o pagamento.' }
+            {
+              success: 'Pagamento registrado.',
+              error: 'Não foi possível registrar o pagamento.',
+              onSuccess: () => setPagarConta(null),
+            }
           );
         }}
       />

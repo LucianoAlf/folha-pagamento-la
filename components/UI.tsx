@@ -543,7 +543,7 @@ export const Modal: React.FC<{
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-labelledby={title ? titleId : undefined}
         aria-describedby={subtitle ? subtitleId : undefined}
         tabIndex={-1}
         className={cn(
@@ -554,29 +554,33 @@ export const Modal: React.FC<{
           className
         )}
       >
-        <div className={cn(
-          "sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b shrink-0 transition-colors",
-          headerClassName || "bg-slate-900/80 backdrop-blur-md border-slate-700/50"
-        )}>
-          <div className="flex items-center gap-3 min-w-0">
-            {headerIcon ? <div className="shrink-0">{headerIcon}</div> : null}
-            <div className="min-w-0">
-            <div id={titleId} className="text-white font-black text-lg tracking-wider uppercase truncate">{title}</div>
-            {subtitle ? (
-              <div id={subtitleId} className="mt-1 text-[11px] font-bold text-white/85 leading-snug">
-                {subtitle}
+        {/* Header só quando há conteúdo de cabeçalho — modais que desenham o
+            próprio header (e passam só `size`) não ganham uma barra vazia. */}
+        {(title || subtitle || headerIcon) && (
+          <div className={cn(
+            "sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b shrink-0 transition-colors",
+            headerClassName || "bg-slate-900/80 backdrop-blur-md border-slate-700/50"
+          )}>
+            <div className="flex items-center gap-3 min-w-0">
+              {headerIcon ? <div className="shrink-0">{headerIcon}</div> : null}
+              <div className="min-w-0">
+                <div id={titleId} className="text-white font-black text-lg tracking-wider uppercase truncate">{title}</div>
+                {subtitle ? (
+                  <div id={subtitleId} className="mt-1 text-[11px] font-bold text-white/85 leading-snug">
+                    {subtitle}
+                  </div>
+                ) : null}
               </div>
-            ) : null}
             </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+              aria-label="Fechar"
+            >
+              <X size={20} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
-            aria-label="Fechar"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        )}
         <div className={cn(
           "overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent",
           position === 'bottom' ? "p-5" : "p-6 md:p-8"
@@ -636,7 +640,7 @@ export const ConfirmDialog: React.FC<{
               {cancelLabel}
             </button>
             <button
-              onClick={() => { onConfirm(); onClose(); }}
+              onClick={async () => { await onConfirm(); onClose(); }}
               className={`flex-1 px-6 py-3.5 rounded-2xl font-bold text-white transition-all active:scale-95 shadow-lg ${
                 variant === 'danger' 
                   ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20' 

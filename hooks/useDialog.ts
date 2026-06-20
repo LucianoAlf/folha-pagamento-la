@@ -1,11 +1,15 @@
 // =====================================================
 // HOOK - useDialog (acessibilidade de modais — P2 da auditoria)
 // Centraliza o comportamento acessível de diálogos:
-//  - Esc fecha (fase de bubble, para não atropelar Radix Select/Popover
-//    aninhados, que dão stopPropagation no próprio Esc);
+//  - Esc fecha APENAS o diálogo do topo (pilha module-level), para que um
+//    ConfirmDialog sobre um Modal não feche os dois de uma vez; em fase de
+//    bubble, para não atropelar Radix Select/Popover aninhados (que dão
+//    stopPropagation no próprio Esc);
 //  - foca o diálogo ao abrir e restaura o foco anterior ao fechar;
-//  - focus trap (Tab/Shift+Tab circulam dentro do diálogo);
-//  - trava o scroll do body enquanto aberto (com suporte a empilhamento).
+//  - focus trap (Tab/Shift+Tab circulam dentro do diálogo) — só no topo;
+//  - trava o scroll do body enquanto houver QUALQUER diálogo aberto
+//    (ref-count: trava no primeiro, destrava quando a pilha esvazia,
+//    independente da ordem de fechamento).
 //
 // Retorna um ref para anexar ao container do conteúdo do diálogo.
 // Use junto com role="dialog" aria-modal="true" e tabIndex={-1}.
@@ -21,6 +25,11 @@ const FOCUSABLE_SELECTOR = [
   'select:not([disabled])',
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
+
+// Estado compartilhado entre instâncias (diálogos empilhados):
+const dialogStack: symbol[] = [];
+let scrollLockCount = 0;
+let savedBodyOverflow = '';
 
 export function useDialog<T extends HTMLElement = HTMLDivElement>(
   isOpen: boolean,
@@ -38,6 +47,10 @@ export function useDialog<T extends HTMLElement = HTMLDivElement>(
 
   useEffect(() => {
     if (!isOpen) return;
+
+    const dialogId = Symbol('dialog');
+    dialogStack.push(dialogId);
+    const isTopmost = () => dialogStack[dialogStack.length - 1] === dialogId;
 
     previouslyFocused.current = document.activeElement as HTMLElement | null;
 
@@ -59,6 +72,9 @@ export function useDialog<T extends HTMLElement = HTMLDivElement>(
     });
 
     const onKeyDown = (e: KeyboardEvent) => {
+      // Apenas o diálogo do topo reage a Esc/Tab.
+      if (!isTopmost()) return;
+
       if (e.key === 'Escape') {
         onCloseRef.current();
         return;
@@ -91,14 +107,25 @@ export function useDialog<T extends HTMLElement = HTMLDivElement>(
 
     document.addEventListener('keydown', onKeyDown);
 
-    // Trava o scroll do body (preserva valor anterior p/ diálogos empilhados).
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    // Trava o scroll do body via contador (independe da ordem de fechamento).
+    if (scrollLockCount === 0) {
+      savedBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    scrollLockCount += 1;
 
     return () => {
       window.cancelAnimationFrame(raf);
       document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = prevOverflow;
+
+      const idx = dialogStack.lastIndexOf(dialogId);
+      if (idx !== -1) dialogStack.splice(idx, 1);
+
+      scrollLockCount = Math.max(0, scrollLockCount - 1);
+      if (scrollLockCount === 0) {
+        document.body.style.overflow = savedBodyOverflow;
+      }
+
       // Restaura o foco para quem estava focado antes de abrir.
       previouslyFocused.current?.focus?.({ preventScroll: true });
     };
