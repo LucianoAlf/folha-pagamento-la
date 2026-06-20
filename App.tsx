@@ -1746,7 +1746,7 @@ export default function App() {
     (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : userEmail || 'Usuário');
 
   return (
-    <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-violet-500/30 flex">
+    <div className="min-h-screen bg-bg text-secondary font-sans selection:bg-accent/30 flex">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block h-screen sticky top-0 z-30">
         <Sidebar
@@ -1762,7 +1762,7 @@ export default function App() {
       {/* Main content */}
       <div className="flex-1 min-w-0 flex flex-col">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-[#0f172a] sticky top-0 z-40">
+      <header className="border-b border-base bg-surface sticky top-0 z-40">
         <div className="w-full py-4 px-6 md:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -1770,26 +1770,26 @@ export default function App() {
               <div className="flex lg:hidden items-center gap-3">
                 <img src="/logo-LA-colapsed.png" alt="Logo" className="w-9 h-9 object-contain" />
                 <div>
-                  <h1 className="text-white font-black text-sm md:text-base tracking-tight leading-tight flex items-center gap-1.5">
-                    SUPER FOLHA <span className="text-violet-400">SYSTEM</span>
+                  <h1 className="text-primary font-black text-sm md:text-base tracking-tight leading-tight flex items-center gap-1.5">
+                    SUPER FOLHA <span className="text-accent">SYSTEM</span>
                   </h1>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none mt-1">Sistema Inteligente</p>
+                  <p className="text-[10px] text-muted font-bold uppercase tracking-[0.2em] leading-none mt-1">Sistema Inteligente</p>
                 </div>
               </div>
 
               {/* DESKTOP: Dynamic Module Title & Icon (Hidden on Mobile) */}
               <div className="hidden lg:flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
                       {(() => {
                         const Icon = currentModuleConfig.icon;
-                        return <Icon className="w-5 h-5 text-violet-400" />;
+                        return <Icon className="w-5 h-5 text-accent" />;
                       })()}
                 </div>
                 <div>
-                  <h1 className="text-white font-black text-sm md:text-base tracking-tight leading-tight">
+                  <h1 className="text-primary font-black text-sm md:text-base tracking-tight leading-tight">
                         {currentModuleConfig.title}
                   </h1>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none mt-1">
+                  <p className="text-[10px] text-muted font-bold uppercase tracking-[0.2em] leading-none mt-1">
                         {currentModuleConfig.subtitle}
                   </p>
                 </div>
@@ -1803,7 +1803,7 @@ export default function App() {
                   <Popover.Trigger asChild>
                     <button
                       type="button"
-                      className="w-10 h-10 rounded-2xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-900/60 flex items-center justify-center overflow-hidden transition-all active:scale-95 shadow-inner"
+                      className="w-10 h-10 rounded-2xl border border-strong/60 bg-surface/40 hover:bg-surface/60 flex items-center justify-center overflow-hidden transition-all active:scale-95 shadow-inner"
                       aria-label="Menu do perfil"
                     >
                       <img
@@ -1820,23 +1820,23 @@ export default function App() {
                     <Popover.Content
                       sideOffset={8}
                       align="end"
-                      className="z-[11000] w-56 rounded-2xl border border-slate-800 bg-slate-950/95 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-md"
+                      className="z-[11000] w-56 rounded-2xl border border-base bg-bg/95 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-md"
                     >
-                      <div className="p-4 border-b border-slate-800/60">
-                        <div className="text-white text-sm font-black truncate">{userLabelForSidebar}</div>
-                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate mt-0.5">Administrador</div>
+                      <div className="p-4 border-b border-base/60">
+                        <div className="text-primary text-sm font-black truncate">{userLabelForSidebar}</div>
+                        <div className="text-[10px] text-muted font-bold uppercase tracking-widest truncate mt-0.5">Administrador</div>
                 </div>
                       <div className="p-2 space-y-1">
                         <button
                           onClick={openProfile}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all text-sm font-bold"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-secondary hover:text-primary hover:bg-surface-2/60 transition-all text-sm font-bold"
                         >
                           <Edit2 size={16} />
                           Editar Perfil
                         </button>
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all text-sm font-bold"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-danger hover:text-danger hover:bg-danger/10 transition-all text-sm font-bold"
                         >
                           <LogOut size={16} />
                           Sair do Sistema
@@ -1942,7 +1942,7 @@ export default function App() {
         {tabs.length > 0 ? (
           <div className="animate-in fade-in slide-in-from-top-4 duration-500">
             {/* Desktop Tabs (MusiClass Style) */}
-            <div className="hidden lg:block border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
+            <div className="hidden lg:block border-b border-base/60 bg-surface/20 backdrop-blur-sm">
               <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
             {tabs.map(tab => (
               <button
@@ -1950,18 +1950,18 @@ export default function App() {
                     onClick={() => handleTabChange(tab.id)}
                     className={cn(
                       "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
-                  activeTab === tab.id 
-                        ? "text-violet-400" 
-                        : "text-slate-500 hover:text-slate-200"
+                  activeTab === tab.id
+                        ? "text-accent"
+                        : "text-muted hover:text-secondary"
                     )}
                   >
                     <tab.icon size={16} className={cn(
                       "transition-colors",
-                      activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
+                      activeTab === tab.id ? "text-accent" : "text-muted group-hover:text-secondary"
                     )} />
                 {tab.label}
                     {activeTab === tab.id && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
                     )}
               </button>
             ))}
@@ -1970,10 +1970,10 @@ export default function App() {
 
             {/* Mobile Tabs (Cockpit Premium Style) */}
             <div className="lg:hidden mb-6">
-              <div className="relative flex bg-[#0f172a] p-1 rounded-xl border border-slate-800/50 shadow-inner overflow-hidden">
+              <div className="relative flex bg-surface p-1 rounded-xl border border-base/50 shadow-inner overflow-hidden">
                 {/* Indicador Deslizante (Sliding Background) */}
-                <div 
-                  className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-slate-800/80 rounded-lg border border-slate-700/30 shadow-lg"
+                <div
+                  className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-surface-2/80 rounded-lg border border-strong/30 shadow-lg"
                   style={{
                     // inset horizontal para não “encostar” nas bordas do container
                     width: `calc(${100 / Math.max(tabs.length, 1)}% - 10px)`,
@@ -1988,9 +1988,9 @@ export default function App() {
                     className={cn(
                       "relative z-10 flex-1 py-3 font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap",
                       tabs.length >= 5 ? "text-[10px]" : "text-[11px]",
-                      activeTab === tab.id 
-                        ? "text-violet-400 scale-[1.02]" 
-                        : "text-slate-500 hover:text-slate-200"
+                      activeTab === tab.id
+                        ? "text-accent scale-[1.02]"
+                        : "text-muted hover:text-secondary"
                     )}
                   >
                     {getShortLabel(tab.id)}
