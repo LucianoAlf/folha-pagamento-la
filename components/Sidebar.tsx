@@ -15,6 +15,7 @@ import {
   ChevronDown,
   LogOut,
 } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 const SIDEBAR_COLLAPSED_KEY = 'la-music-sidebar-collapsed';
 const FERIAS_BADGE_TTL_MS = 60_000;
@@ -178,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const containerClass = [
     collapsed ? 'w-20' : 'w-72',
     'h-full relative flex flex-col transition-all duration-300',
-    'bg-[#0a0d14] border-r border-slate-800/80',
+    'bg-bg border-r border-base',
     'before:content-[""] before:absolute before:inset-0 before:pointer-events-none',
     'before:bg-[radial-gradient(900px_circle_at_20%_-10%,rgba(139,92,246,0.20),transparent_55%),radial-gradient(700px_circle_at_80%_30%,rgba(6,182,212,0.10),transparent_60%)]',
     'before:opacity-100',
@@ -197,17 +198,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className={containerClass} aria-label="Navegação principal">
       {/* Logo Area */}
-      <div className="p-5 border-b border-slate-800/80">
+      <div className="p-5 border-b border-base">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 flex items-center justify-center shrink-0 rounded-2xl bg-transparent">
             <img src="/logo-LA-colapsed.png" alt="LA" className="w-10 h-10 object-contain" />
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <div className="text-white font-bold leading-tight truncate uppercase tracking-[0.15em] text-[11px]">
+              <div className="text-primary font-bold leading-tight truncate uppercase tracking-[0.15em] text-[11px]">
                 SUPER FOLHA SYSTEM
               </div>
-              <div className="text-[10px] text-slate-500 font-bold truncate tracking-wider opacity-80">
+              <div className="text-[10px] text-muted font-bold truncate tracking-wider opacity-80">
                 Sistema Inteligente
               </div>
             </div>
@@ -232,10 +233,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={[
                 'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 relative',
                 module.disabled
-                  ? 'opacity-50 cursor-not-allowed text-slate-500'
+                  ? 'opacity-50 cursor-not-allowed text-muted'
                   : isActiveModule
-                    ? 'bg-violet-500/15 text-violet-300 border border-violet-500/20 shadow-lg shadow-violet-500/5'
-                    : 'text-slate-400 hover:bg-slate-800/40 hover:text-white border border-transparent',
+                    ? 'bg-accent/15 text-accent border border-accent/20 shadow-lg shadow-accent/5'
+                    : 'text-secondary hover:bg-surface-2/40 hover:text-primary border border-transparent',
               ].join(' ')}
             >
               <ModuleIcon className="w-5 h-5 shrink-0" />
@@ -243,7 +244,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <>
                   <span className="flex-1 text-left text-sm font-bold">{module.label}</span>
                   {module.disabled && (
-                    <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-400">
+                    <span className="text-[10px] bg-surface-2 px-2 py-0.5 rounded-full font-bold text-secondary">
                       Em breve
                     </span>
                   )}
@@ -252,8 +253,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       className={[
                         'min-w-[22px] h-[22px] flex items-center justify-center text-[10px] px-1.5 rounded-full font-black',
                         (module as any).badge.variant === 'danger'
-                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
-                          : 'bg-amber-500/20 text-amber-400 border border-amber-500/40',
+                          ? 'bg-danger/20 text-danger border border-danger/40'
+                          : 'bg-warning/20 text-warning border border-warning/40',
                         (module as any).badge.pulse && 'animate-pulse',
                       ].join(' ')}
                     >
@@ -267,8 +268,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={[
                     'absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[9px] px-1 rounded-full font-black',
                     (module as any).badge.variant === 'danger'
-                      ? 'bg-rose-500 text-white border-2 border-[#0a0d14]'
-                      : 'bg-amber-500 text-white border-2 border-[#0a0d14]',
+                      ? 'bg-danger text-white border-2 border-bg'
+                      : 'bg-warning text-white border-2 border-bg',
                     (module as any).badge.pulse && 'animate-pulse',
                   ].join(' ')}
                 >
@@ -293,18 +294,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-slate-800/80">
+      <div className="p-4 border-t border-base">
         <Tooltip content={!collapsed ? 'Editar Perfil' : userLabel} side="right">
           <button
             type="button"
             className={[
-              'w-full flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 hover:border-violet-500/30 transition-all group/profile',
+              'w-full flex items-center gap-3 rounded-2xl border border-base bg-surface/30 hover:bg-surface/50 hover:border-accent/30 transition-all group/profile',
               collapsed ? 'justify-center p-2.5' : 'p-3',
             ].join(' ')}
             onClick={onEditProfile}
             aria-label="Editar Perfil"
           >
-            <div className="w-10 h-10 rounded-full border border-slate-700 overflow-hidden bg-slate-900/40 shrink-0 group-hover/profile:border-violet-500/50 transition-colors">
+            <div className="w-10 h-10 rounded-full border border-strong overflow-hidden bg-surface/40 shrink-0 group-hover/profile:border-accent/50 transition-colors">
               <img
                 src={userAvatarUrl || '/logo-LA-colapsed.png'}
                 alt="Usuário"
@@ -316,8 +317,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1 text-left">
-                <div className="text-white text-sm font-black truncate group-hover/profile:text-violet-300 transition-colors">{userLabel}</div>
-                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate group-hover/profile:text-slate-400">Meu Perfil</div>
+                <div className="text-primary text-sm font-black truncate group-hover/profile:text-accent transition-colors">{userLabel}</div>
+                <div className="text-[10px] text-muted font-bold uppercase tracking-widest truncate group-hover/profile:text-secondary">Meu Perfil</div>
               </div>
             )}
           </button>
@@ -329,7 +330,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={onLogout}
-                className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-secondary hover:text-danger hover:bg-danger/10 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -338,13 +339,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={onLogout}
-              className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+              className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-secondary hover:text-danger hover:bg-danger/10 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               <span className="text-sm font-bold">Sair</span>
             </button>
           )}
         </div>
+        <ThemeToggle collapsed={collapsed} />
       </div>
 
       {/* Collapse Toggle (desktop only) */}
@@ -353,7 +355,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => setCollapsedPersisted(!collapsed)}
-            className="absolute top-1/2 -right-3 w-7 h-7 bg-slate-900 border border-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+            className="absolute top-1/2 -right-3 w-7 h-7 bg-surface border border-strong rounded-full flex items-center justify-center text-secondary hover:text-primary transition-colors"
             aria-label={collapsed ? 'Expandir' : 'Recolher'}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -363,4 +365,3 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </aside>
   );
 };
-
