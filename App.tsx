@@ -67,7 +67,7 @@ const CellInput: React.FC<{
   onSave: (val: number) => Promise<void>;
   disabled?: boolean;
   colorClass?: string;
-}> = ({ value, onSave, disabled, colorClass = 'text-slate-200' }) => {
+}> = ({ value, onSave, disabled, colorClass = 'text-secondary' }) => {
   const [isFocused, setIsFocused] = React.useState(false);
   const [localValue, setLocalValue] = React.useState<string>(() => (value ? formatBRLInput(value) : ''));
   const [saving, setSaving] = React.useState(false);
@@ -124,13 +124,13 @@ const CellInput: React.FC<{
       className={[
         'relative w-full min-h-[38px] transition-all rounded-lg',
         saving ? 'opacity-60 pointer-events-none' : '',
-        error ? 'bg-rose-500/10' : '',
-        isFocused ? 'ring-2 ring-violet-500/50 z-20' : '',
+        error ? 'bg-danger/10' : '',
+        isFocused ? 'ring-2 ring-accent/50 z-20' : '',
       ].join(' ')}
     >
       {/* Display layer (visible when not focused) */}
       {!isFocused && (
-        <div className="absolute inset-0 flex items-center justify-end px-3 py-2 font-mono text-xs text-slate-400 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-end px-3 py-2 font-mono text-xs text-secondary pointer-events-none">
           {displayValue === 0 ? '—' : formatCurrency(displayValue)}
         </div>
       )}
@@ -140,7 +140,7 @@ const CellInput: React.FC<{
         className={[
           'w-full min-h-[38px] px-3 py-2 bg-transparent text-right font-bold focus:outline-none transition-all text-xs font-mono rounded-lg',
           isFocused ? colorClass : 'text-transparent select-none',
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text hover:bg-slate-700/30',
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text hover:bg-surface-3/30',
         ].join(' ')}
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
@@ -154,7 +154,7 @@ const CellInput: React.FC<{
 
       {saving && (
         <div className="absolute left-2 top-1/2 -translate-y-1/2">
-          <Loader2 size={12} className="animate-spin text-violet-400" />
+          <Loader2 size={12} className="animate-spin text-accent" />
         </div>
       )}
     </div>
@@ -1251,8 +1251,8 @@ export default function App() {
         name: 'Campo Grande', 
         value: totais.totalCG, 
         color: '#06b6d4', 
-        twColor: 'bg-cyan-500', 
-        twText: 'text-cyan-400',
+        twColor: 'bg-info', 
+        twText: 'text-info',
         percent: totais.totalGeral ? ((totais.totalCG / totais.totalGeral) * 100).toFixed(1) : '0.0'
     },
     { 
@@ -1260,8 +1260,8 @@ export default function App() {
         name: 'Recreio', 
         value: totais.totalRec, 
         color: '#a855f7',
-        twColor: 'bg-purple-500',
-        twText: 'text-purple-400',
+        twColor: 'bg-accent',
+        twText: 'text-accent',
         percent: totais.totalGeral ? ((totais.totalRec / totais.totalGeral) * 100).toFixed(1) : '0.0'
     },
     { 
@@ -1269,8 +1269,8 @@ export default function App() {
         name: 'Barra', 
         value: totais.totalBar, 
         color: '#10b981',
-        twColor: 'bg-emerald-500',
-        twText: 'text-emerald-400',
+        twColor: 'bg-success',
+        twText: 'text-success',
         percent: totais.totalGeral ? ((totais.totalBar / totais.totalGeral) * 100).toFixed(1) : '0.0'
     },
   ], [totais]);
@@ -1352,9 +1352,9 @@ export default function App() {
   };
 
   const deptColors: Record<string, string> = {
-    staff_rateado: 'text-violet-400',
-    equipe_operacional: 'text-amber-400',
-    professores: 'text-cyan-400',
+    staff_rateado: 'text-accent',
+    equipe_operacional: 'text-warning',
+    professores: 'text-info',
   };
 
   const unidadeLabels: Record<string, string> = { cg: 'CG', rec: 'REC', bar: 'BAR' };
@@ -1535,8 +1535,8 @@ export default function App() {
 
   if (authLoading) {
   return (
-      <div className="dark min-h-screen bg-slate-950 text-slate-200 font-sans flex items-center justify-center">
-        <div className="flex items-center gap-3 text-slate-400">
+      <div className="dark min-h-screen bg-bg text-secondary font-sans flex items-center justify-center">
+        <div className="flex items-center gap-3 text-secondary">
           <Loader2 className="animate-spin" />
           Carregando sessão...
         </div>
@@ -1557,15 +1557,15 @@ export default function App() {
         : 'Ana!';
 
     return (
-      <div className="dark min-h-screen flex bg-[#0a0d14] text-slate-200 font-sans selection:bg-violet-500/30">
+      <div className="dark min-h-screen flex bg-bg text-secondary font-sans selection:bg-accent/30">
         <style>{loginStyles}</style>
         
         {/* Lado Esquerdo - Branding (Oculto em mobile) */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-indigo-950">
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-bg via-accent to-accent">
           {/* Background Effects */}
           <div className="absolute inset-0 overflow-hidden opacity-30">
-            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-violet-600/20 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2"></div>
-            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] translate-x-1/2 translate-y-1/2"></div>
+            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] translate-x-1/2 translate-y-1/2"></div>
           </div>
 
           {/* Floating Notes */}
@@ -1581,29 +1581,29 @@ export default function App() {
                 <img src="/logo-LA-colapsed.png" className="w-12 h-12 object-contain transition-transform duration-500 group-hover/logo:scale-110" alt="LA" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-[0.2em] text-white leading-none uppercase">SUPER FOLHA SYSTEM</h1>
-                <p className="text-purple-300/60 text-[11px] font-bold uppercase tracking-[0.35em] mt-1.5">Sistema Inteligente</p>
+                <h1 className="text-2xl font-bold tracking-[0.2em] text-primary leading-none uppercase">SUPER FOLHA SYSTEM</h1>
+                <p className="text-accent/60 text-[11px] font-bold uppercase tracking-[0.35em] mt-1.5">Sistema Inteligente</p>
               </div>
             </div>
 
             {/* Central Hero */}
             <div className="flex flex-col items-center text-center">
               <div className="relative mb-10 group">
-                <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition-opacity animate-pulse"></div>
-                <div className="relative w-40 h-40 rounded-full p-1 bg-gradient-to-br from-violet-400 via-fuchsia-500 to-indigo-400">
-                  <div className="w-full h-full rounded-full bg-[#0a0d14] p-1 overflow-hidden shadow-inner">
+                <div className="absolute inset-0 bg-gradient-to-r from-accent to-accent rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition-opacity animate-pulse"></div>
+                <div className="relative w-40 h-40 rounded-full p-1 bg-gradient-to-br from-accent via-accent to-accent">
+                  <div className="w-full h-full rounded-full bg-bg p-1 overflow-hidden shadow-inner">
                     <img src={displayAvatar} alt="User" className="w-full h-full object-cover rounded-full transition-transform duration-700 group-hover:scale-110" />
                   </div>
                 </div>
-                <div className="absolute bottom-3 right-3 w-6 h-6 bg-emerald-500 rounded-full border-4 border-[#0a0d14]">
-                  <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-75"></div>
+                <div className="absolute bottom-3 right-3 w-6 h-6 bg-success rounded-full border-4 border-[#0a0d14]">
+                  <div className="absolute inset-0 bg-success rounded-full animate-ping opacity-75"></div>
                 </div>
               </div>
               
-              <h2 className="text-5xl font-black text-white mb-4 tracking-tight">
+              <h2 className="text-5xl font-black text-primary mb-4 tracking-tight">
                 Olá, {displayGreeting} <span className="inline-block animate-bounce">👋</span>
               </h2>
-              <p className="text-slate-400 text-lg max-w-sm leading-relaxed font-medium">
+              <p className="text-secondary text-lg max-w-sm leading-relaxed font-medium">
                 Sua folha de pagamento inteligente está pronta para mais um dia de gestão.
               </p>
             </div>
@@ -1611,67 +1611,67 @@ export default function App() {
             {/* Bottom Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
-                <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
-                  <Users className="w-5 h-5 text-cyan-400" />
+                <div className="w-10 h-10 bg-info/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
+                  <Users className="w-5 h-5 text-info" />
                 </div>
-                <h3 className="text-white font-bold text-base leading-tight">71 Colaboradores</h3>
-                <p className="text-purple-300/50 text-[10px] font-bold uppercase tracking-wider mt-1">Gestão centralizada</p>
+                <h3 className="text-primary font-bold text-base leading-tight">71 Colaboradores</h3>
+                <p className="text-accent/50 text-[10px] font-bold uppercase tracking-wider mt-1">Gestão centralizada</p>
               </div>
               
               <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
-                <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
-                  <TrendingUp className="w-5 h-5 text-emerald-400" />
+                <div className="w-10 h-10 bg-success/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
+                  <TrendingUp className="w-5 h-5 text-success" />
                 </div>
-                <h3 className="text-white font-bold text-base leading-tight">R$ 150k+</h3>
-                <p className="text-purple-300/50 text-[10px] font-bold uppercase tracking-wider mt-1">Folha mensal</p>
+                <h3 className="text-primary font-bold text-base leading-tight">R$ 150k+</h3>
+                <p className="text-accent/50 text-[10px] font-bold uppercase tracking-wider mt-1">Folha mensal</p>
               </div>
               
               <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
-                <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
-                  <ShieldCheck className="w-5 h-5 text-amber-400" />
+                <div className="w-10 h-10 bg-warning/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
+                  <ShieldCheck className="w-5 h-5 text-warning" />
                 </div>
-                <h3 className="text-white font-bold text-base leading-tight">100% Seguro</h3>
-                <p className="text-purple-300/50 text-[10px] font-bold uppercase tracking-wider mt-1">Dados protegidos</p>
+                <h3 className="text-primary font-bold text-base leading-tight">100% Seguro</h3>
+                <p className="text-accent/50 text-[10px] font-bold uppercase tracking-wider mt-1">Dados protegidos</p>
               </div>
               
               <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
-                <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
-                  <Sparkles className="w-5 h-5 text-purple-400" />
+                <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
+                  <Sparkles className="w-5 h-5 text-accent" />
                 </div>
-                <h3 className="text-white font-bold text-base leading-tight">IA Integrada</h3>
-                <p className="text-purple-300/50 text-[10px] font-bold uppercase tracking-wider mt-1">Insights automáticos</p>
+                <h3 className="text-primary font-bold text-base leading-tight">IA Integrada</h3>
+                <p className="text-accent/50 text-[10px] font-bold uppercase tracking-wider mt-1">Insights automáticos</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Lado Direito - Formulário */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#0a0d14] relative">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-bg relative">
           <div className="w-full max-w-md">
               <div className="lg:hidden flex flex-col items-center mb-12">
                 <div className="w-20 h-20 flex items-center justify-center mb-6 pulse-glow rounded-3xl">
                   <img src="/logo-LA-colapsed.png" className="w-16 h-16 object-contain" alt="LA" />
                 </div>
-                <h1 className="text-white text-3xl font-black tracking-tight uppercase">SUPER FOLHA</h1>
-                <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.4em] mt-2">Sistema Inteligente</p>
+                <h1 className="text-primary text-3xl font-black tracking-tight uppercase">SUPER FOLHA</h1>
+                <p className="text-muted font-bold uppercase text-[10px] tracking-[0.4em] mt-2">Sistema Inteligente</p>
               </div>
 
-            <div className="bg-slate-900/40 p-10 rounded-[3rem] border border-slate-800/50 shadow-2xl backdrop-blur-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-violet-600/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-violet-600/20 transition-colors"></div>
+            <div className="bg-surface/40 p-10 rounded-[3rem] border border-base/50 shadow-2xl backdrop-blur-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-accent/20 transition-colors"></div>
               
               <div className="text-center mb-10 relative z-10">
-                <h2 className="text-3xl font-black text-white mb-2 tracking-tight">Acesso Restrito</h2>
-                <p className="text-slate-500 font-medium">Digite suas credenciais para continuar</p>
+                <h2 className="text-3xl font-black text-primary mb-2 tracking-tight">Acesso Restrito</h2>
+                <p className="text-muted font-medium">Digite suas credenciais para continuar</p>
               </div>
 
               <form onSubmit={handleLogin} className="space-y-6 relative z-10">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">E-mail Corporativo</label>
+                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-3">E-mail Corporativo</label>
                   <input
                     type="email"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-950/50 border border-slate-800 rounded-2xl text-white placeholder-slate-600 transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none font-medium"
+                    className="w-full px-5 py-4 bg-bg/50 border border-base rounded-2xl text-primary placeholder-muted transition-all focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none font-medium"
                     placeholder="ana.paula@lamusic.com.br"
                     required
                     autoComplete="email"
@@ -1680,13 +1680,13 @@ export default function App() {
 
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Senha de Acesso</label>
+                    <label className="block text-xs font-bold text-muted uppercase tracking-widest">Senha de Acesso</label>
               </div>
                   <input
                     type="password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-5 py-4 bg-slate-950/50 border border-slate-800 rounded-2xl text-white placeholder-slate-600 transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none"
+                    className="w-full px-5 py-4 bg-bg/50 border border-base rounded-2xl text-white placeholder-muted transition-all focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none"
                     placeholder="••••••••••••"
                     required
                     autoComplete="current-password"
@@ -1696,7 +1696,7 @@ export default function App() {
                 <button
                   type="submit"
                   disabled={loginSubmitting}
-                  className="w-full py-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black rounded-2xl shadow-xl shadow-violet-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full py-5 bg-gradient-to-r from-accent to-accent hover:from-accent hover:to-accent text-white font-black rounded-2xl shadow-xl shadow-accent/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   {loginSubmitting ? (
                     <>
@@ -1710,21 +1710,21 @@ export default function App() {
               </form>
 
               <div className="flex items-center gap-4 my-10">
-                <div className="flex-1 h-px bg-slate-800"></div>
-                <span className="text-slate-600 text-[10px] font-black uppercase tracking-[0.2em]">Security Check</span>
-                <div className="flex-1 h-px bg-slate-800"></div>
+                <div className="flex-1 h-px bg-surface-2"></div>
+                <span className="text-muted text-[10px] font-black uppercase tracking-[0.2em]">Security Check</span>
+                <div className="flex-1 h-px bg-surface-2"></div>
               </div>
 
               <div className="text-center">
-                <p className="text-slate-500 text-xs font-medium">
+                <p className="text-muted text-xs font-medium">
                   Apenas usuários autorizados podem acessar este ambiente.
                 </p>
               </div>
             </div>
 
             <div className="text-center mt-10">
-              <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">
-                SUPER FOLHA SYSTEM © 2026 • <span className="text-violet-500/80">v2.0 Premium</span>
+              <p className="text-muted text-xs font-bold uppercase tracking-widest">
+                SUPER FOLHA SYSTEM © 2026 • <span className="text-accent/80">v2.0 Premium</span>
               </p>
             </div>
           </div>
@@ -1869,10 +1869,10 @@ export default function App() {
                   <div className="min-w-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h2 className="text-xl font-black text-white leading-tight">
+                        <h2 className="text-xl font-black text-primary leading-tight">
                           Gestão Mensal
                         </h2>
-                        <p className="text-sm text-slate-500 font-medium mt-1 leading-snug">
+                        <p className="text-sm text-muted font-medium mt-1 leading-snug">
                           Selecione o mês de referência para lançamentos e conferência
                         </p>
                       </div>
@@ -1885,7 +1885,7 @@ export default function App() {
               </div>
               
                   <div className="w-full">
-                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                    <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">
                       Mês de Referência
                     </div>
                     <CustomSelect
@@ -1905,7 +1905,7 @@ export default function App() {
             {/* Desktop: manter layout atual */}
             <div className="hidden lg:flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
               <div>
-                <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                <h2 className="text-2xl font-black text-primary flex items-center gap-3">
                   Gestão Mensal
               <div className="flex items-center gap-2">
                 {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
@@ -1913,13 +1913,13 @@ export default function App() {
                 {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
                   </div>
                 </h2>
-                <p className="text-sm text-slate-500 font-bold mt-1">
+                <p className="text-sm text-muted font-bold mt-1">
                   Selecione o mês de referência para lançamentos e conferência
                 </p>
               </div>
               
               <div className="flex items-center gap-3">
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">
+                <div className="text-[10px] font-bold text-muted uppercase tracking-widest mr-1">
                   Mês de Referência
                 </div>
                 <CustomSelect
@@ -2039,20 +2039,20 @@ export default function App() {
           <>
             {(isCreatingLancamento || editingLancamento) && (
               <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                <Card className="w-full max-w-6xl p-0 overflow-visible border border-slate-700/50 shadow-2xl">
-                  <div className="flex items-center justify-between px-7 py-5 bg-slate-900/70 border-b border-slate-700/50">
+                <Card className="w-full max-w-6xl p-0 overflow-visible border border-base-strong/50 shadow-2xl">
+                  <div className="flex items-center justify-between px-7 py-5 bg-surface/70 border-b border-base-strong/50">
                     <div className="min-w-0">
-                      <div className="text-white font-black text-lg tracking-tight truncate">
+                      <div className="text-primary font-black text-lg tracking-tight truncate">
                         {isCreatingLancamento ? 'Novo Lançamento' : 'Editar Lançamento'}
                       </div>
-                      <div className="text-[11px] text-slate-400 truncate">
+                      <div className="text-[11px] text-secondary truncate">
                         {folhaAtual ? `${getMesNome(folhaAtual.mes)} ${folhaAtual.ano}` : ''}
                         {unidadeFiltro !== 'todos' ? ` • Unidade ${unidadeLabels[unidadeFiltro]}` : ''}
                       </div>
                     </div>
                     <button
                       onClick={() => { setIsCreatingLancamento(false); setEditingLancamento(null); setActiveNoteField(null); }}
-                      className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+                      className="p-2 rounded-xl text-secondary hover:text-white hover:bg-surface-2 transition-all"
                       aria-label="Fechar"
                     >
                       <XCircle size={22} />
@@ -2061,11 +2061,11 @@ export default function App() {
 
                   <div className="flex flex-col lg:flex-row max-h-[calc(100vh-10rem)]">
                     {/* Left: valores */}
-                    <div className="flex-1 p-7 overflow-y-auto bg-slate-950/20">
+                    <div className="flex-1 p-7 overflow-y-auto bg-bg/20">
                       {isCreatingLancamento ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Colaborador</label>
+                            <label className="block text-xs text-secondary mb-1">Colaborador</label>
                             <CustomSelect
                               value={draftLancamento.colaborador_id ? String(draftLancamento.colaborador_id) : ''}
                               onValueChange={(v) => setDraftLancamento(prev => ({ ...prev, colaborador_id: Number(v) } as any))}
@@ -2079,7 +2079,7 @@ export default function App() {
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Categoria</label>
+                            <label className="block text-xs text-secondary mb-1">Categoria</label>
                             <CustomSelect
                               value={(draftLancamento.categoria as any) ?? 'staff_rateado'}
                               onValueChange={(v) => setDraftLancamento(prev => ({ ...prev, categoria: v as any }))}
@@ -2093,7 +2093,7 @@ export default function App() {
                         </div>
                       ) : null}
 
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-3">
                         Valores + detalhamento por campo
                       </div>
 
@@ -2113,21 +2113,21 @@ export default function App() {
                               className={cn(
                                 "rounded-2xl border p-4 transition-all",
                                 isActive
-                                  ? "border-violet-500/40 bg-violet-500/5 ring-1 ring-violet-500/10"
-                                  : "border-slate-800 bg-slate-900/30 hover:border-slate-700"
+                                  ? "border-accent/40 bg-accent/5 ring-1 ring-accent/10"
+                                  : "border-base bg-surface/30 hover:border-base-strong"
                               )}
                               onClick={() => setActiveNoteField(key)}
                             >
                               <div className="flex items-center justify-between mb-2">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-muted">
                                   {label}
                                 </div>
                                 {hasNote ? (
-                                  <div className="flex items-center gap-1 text-[10px] font-black text-violet-400">
+                                  <div className="flex items-center gap-1 text-[10px] font-black text-accent">
                                     <Sparkles size={12} /> DETALHADO
                                   </div>
                                 ) : (
-                                  <div className="text-[10px] font-black text-slate-700">
+                                  <div className="text-[10px] font-black text-primary">
                                     Detalhar
                                   </div>
                                 )}
@@ -2136,7 +2136,7 @@ export default function App() {
                               <input
                                 type="number"
                                 step="0.01"
-                                className="w-full bg-transparent text-white text-lg font-black outline-none placeholder:text-slate-700"
+                                className="w-full bg-transparent text-primary text-lg font-black outline-none placeholder:text-primary"
                                 value={
                                   isCreatingLancamento
                                     ? (draftLancamento as any)[key] === 0 ? '' : (draftLancamento as any)[key]
@@ -2161,8 +2161,8 @@ export default function App() {
                     </div>
 
                     {/* Right: painel de detalhamento (premium) */}
-                    <div className="w-full lg:w-[420px] border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-900/40 p-7 overflow-y-auto">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">
+                    <div className="w-full lg:w-[420px] border-t lg:border-t-0 lg:border-l border-base bg-surface/40 p-7 overflow-y-auto">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-3">
                         Detalhamento
                       </div>
 
@@ -2188,15 +2188,15 @@ export default function App() {
                             <div className="space-y-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <div className="text-white font-black text-xl truncate">{activeLabel}</div>
-                                  <div className="text-xs text-slate-400">
-                                    Valor: <span className="font-mono font-bold text-slate-200">{formatCurrency(Number(activeValue) || 0)}</span>
+                                  <div className="text-primary font-black text-xl truncate">{activeLabel}</div>
+                                  <div className="text-xs text-secondary">
+                                    Valor: <span className="font-mono font-bold text-secondary">{formatCurrency(Number(activeValue) || 0)}</span>
                                   </div>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => setActiveNoteField(null)}
-                                  className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-200"
+                                  className="text-[10px] font-black uppercase tracking-widest text-muted hover:text-secondary"
                                 >
                                   Fechar
                                 </button>
@@ -2220,10 +2220,10 @@ export default function App() {
                                   }
                                 }}
                                 placeholder="Descreva aqui o motivo/observação. Ex: variação por unidade, nota fiscal, ajuste pontual..."
-                                className="w-full min-h-[260px] bg-slate-950/50 border border-slate-700/60 rounded-2xl p-4 text-sm text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/30 resize-y leading-relaxed"
+                                className="w-full min-h-[260px] bg-bg/50 border border-base-strong/60 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/30 resize-y leading-relaxed"
                               />
 
-                              <div className="text-[10px] text-slate-500 flex items-center justify-between">
+                              <div className="text-[10px] text-muted flex items-center justify-between">
                                 <span>Dica: use esse campo para textos longos — sem “notinha” minúscula.</span>
                                 <span className="font-mono">{noteValue.length} chars</span>
                               </div>
@@ -2231,9 +2231,9 @@ export default function App() {
                           );
                         })()
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/20 p-6 text-center">
-                          <div className="text-sm font-black text-slate-300">Selecione um campo</div>
-                          <div className="text-xs text-slate-500 mt-1">
+                        <div className="rounded-2xl border border-dashed border-base bg-bg/20 p-6 text-center">
+                          <div className="text-sm font-black text-secondary">Selecione um campo</div>
+                          <div className="text-xs text-muted mt-1">
                             Clique (ou foque) em um valor à esquerda para escrever um detalhamento grande e confortável.
                           </div>
                         </div>
@@ -2241,16 +2241,16 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="px-7 py-5 bg-slate-900/70 border-t border-slate-700/50 flex items-center justify-end gap-3">
+                  <div className="px-7 py-5 bg-surface/70 border-t border-base-strong/50 flex items-center justify-end gap-3">
                     <button
                       onClick={() => { setIsCreatingLancamento(false); setEditingLancamento(null); setActiveNoteField(null); }}
-                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold"
+                      className="px-4 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-sm font-bold"
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={handleSaveLancamento}
-                      className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-black"
+                      className="px-5 py-2 rounded-xl bg-accent hover:bg-accent text-white text-sm font-black"
                     >
                       Salvar
                     </button>
@@ -2263,26 +2263,26 @@ export default function App() {
             {filteredAlertas.length > 0 && (
               <div className="mb-6">
                 <div 
-                  className={`bg-slate-800/40 border ${alertsExpanded ? 'border-slate-700' : 'border-amber-500/20'} rounded-2xl overflow-hidden transition-all duration-300 shadow-lg`}
+                  className={`bg-surface-2/40 border ${alertsExpanded ? 'border-base-strong' : 'border-warning/20'} rounded-2xl overflow-hidden transition-all duration-300 shadow-lg`}
                 >
                   <button 
                     onClick={() => setAlertsExpanded(!alertsExpanded)}
-                    className={`w-full p-4 flex items-center justify-between transition-colors ${alertsExpanded ? 'bg-slate-800/60' : 'hover:bg-slate-800/60'}`}
+                    className={`w-full p-4 flex items-center justify-between transition-colors ${alertsExpanded ? 'bg-surface-2/60' : 'hover:bg-surface-2/60'}`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                      <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
                         <AlertTriangle size={22} />
                       </div>
                       <div className="text-left">
-                        <h4 className="font-bold text-amber-500 text-lg">
+                        <h4 className="font-bold text-warning text-lg">
                           {filteredAlertas.length} {filteredAlertas.length === 1 ? 'Alerta Detectado' : 'Alertas Detectados'}
                         </h4>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-secondary">
                           {unidadeFiltro === 'todos' ? 'Revise antes de aprovar a folha' : `Alertas da unidade ${unidadeLabels[unidadeFiltro]}`}
                         </p>
                       </div>
                     </div>
-                    <div className={`p-2 rounded-lg bg-slate-700/30 text-slate-400 transition-transform duration-300 ${alertsExpanded ? 'rotate-180' : ''}`}>
+                    <div className={`p-2 rounded-lg bg-surface-3/30 text-secondary transition-transform duration-300 ${alertsExpanded ? 'rotate-180' : ''}`}>
                       <ChevronDown size={20} />
                     </div>
                   </button>
@@ -2292,9 +2292,9 @@ export default function App() {
                       {filteredAlertas.map((alerta, idx) => (
                         <div
                           key={idx}
-                          className="flex items-start gap-3 md:gap-4 p-3 md:p-4 hover:bg-slate-700/20 transition-colors border-t border-slate-700/30 first:border-t-0 group"
+                          className="flex items-start gap-3 md:gap-4 p-3 md:p-4 hover:bg-surface-3/20 transition-colors border-t border-base-strong/30 first:border-t-0 group"
                         >
-                          <AlertTriangle className="text-amber-500 shrink-0 mt-1" size={18} />
+                          <AlertTriangle className="text-warning shrink-0 mt-1" size={18} />
 
                           <div className="flex-1 min-w-0">
                             {/* Title (mobile: hierarchy) + Desktop chip */}
@@ -2311,22 +2311,22 @@ export default function App() {
                                     {/* Mobile: small kind label + stronger subject */}
                                     {hasSplit ? (
                                       <>
-                                        <div className="text-[10px] font-black uppercase tracking-widest text-amber-400/90">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-warning/90">
                                           {titleKind}
                                         </div>
-                                        <h5 className="mt-0.5 text-sm md:text-sm font-black text-slate-100 leading-snug break-words">
+                                        <h5 className="mt-0.5 text-sm md:text-sm font-black text-secondary leading-snug break-words">
                                           {titleSubject}
                                         </h5>
                                       </>
                                     ) : (
-                                      <h5 className="text-sm md:text-sm font-black text-slate-100 leading-snug break-words">
+                                      <h5 className="text-sm md:text-sm font-black text-secondary leading-snug break-words">
                                         {rawTitle}
                                       </h5>
                                     )}
                                   </div>
 
                                   {/* Desktop only (mobile: remove textual badge) */}
-                                  <span className="hidden md:inline-flex shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-widest">
+                                  <span className="hidden md:inline-flex shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full bg-warning/10 text-warning border border-warning/20 uppercase tracking-widest">
                                     ALERTA
                                   </span>
                                 </div>
@@ -2334,17 +2334,17 @@ export default function App() {
                             })()}
 
                             {/* Body */}
-                            <p className="mt-1.5 text-[11px] md:text-sm text-slate-400 leading-relaxed line-clamp-5 md:line-clamp-none">
+                            <p className="mt-1.5 text-[11px] md:text-sm text-secondary leading-relaxed line-clamp-5 md:line-clamp-none">
                               {alerta.descricao}
                             </p>
 
                             {/* Ana note preview */}
                             {alerta.id && (noteDrafts[alerta.id] || '').trim() ? (
-                              <div className="mt-2 rounded-xl border border-slate-700/40 bg-slate-900/30 px-3 py-2">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                              <div className="mt-2 rounded-xl border border-base-strong/40 bg-surface/30 px-3 py-2">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-muted">
                                   Motivo (Ana)
                                 </div>
-                                <div className="mt-1 text-[11px] text-slate-400 leading-snug line-clamp-2">
+                                <div className="mt-1 text-[11px] text-secondary leading-snug line-clamp-2">
                                   {(noteDrafts[alerta.id] || '').trim()}
                                 </div>
                               </div>
@@ -2358,7 +2358,7 @@ export default function App() {
                                 <button
                                   onClick={() => openAlertNote(alerta)}
                                   className={cn(
-                                    "w-10 h-10 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center justify-center",
+                                    "w-10 h-10 rounded-xl bg-surface-2/60 hover:bg-surface-3 text-secondary border border-base-strong transition-all flex items-center justify-center",
                                     "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
                                   )}
                                   aria-label="Anotar"
@@ -2370,7 +2370,7 @@ export default function App() {
                                 <button
                                   onClick={() => handleCheckAlert(alerta.id!)}
                                   className={cn(
-                                    "w-10 h-10 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-all flex items-center justify-center",
+                                    "w-10 h-10 rounded-xl bg-success/10 hover:bg-success/20 text-success border border-success/30 transition-all flex items-center justify-center",
                                     "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
                                   )}
                                   aria-label="Verificado"
@@ -2396,31 +2396,31 @@ export default function App() {
               className="max-w-xl"
             >
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-700/50">
-                  <div className="text-sm font-bold text-slate-200">{alertNoteModal.titulo}</div>
-                  <div className="text-xs text-slate-400 mt-1">{alertNoteModal.descricao}</div>
+                <div className="p-4 rounded-2xl bg-surface/40 border border-base-strong/50">
+                  <div className="text-sm font-bold text-secondary">{alertNoteModal.titulo}</div>
+                  <div className="text-xs text-secondary mt-1">{alertNoteModal.descricao}</div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
                     Motivo (Ana)
                   </label>
                   <textarea
                     value={alertNoteText}
                     onChange={(e) => setAlertNoteText(e.target.value)}
                     placeholder="Ex.: férias (sem VT), bônus pontual, ajuste de carga horária, pico de matrículas..."
-                    className="w-full min-h-[120px] bg-slate-900/40 border border-slate-700/50 rounded-2xl p-4 text-sm text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40 resize-y"
+                    className="w-full min-h-[120px] bg-surface/40 border border-base-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 resize-y"
                     spellCheck="false"
                     disabled={alertNoteSaving}
                   />
-                  <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
                     <span>Essa anotação alimenta a memória da IA para insights futuros.</span>
                     {alertNoteSaving ? (
-                      <span className="text-violet-400 font-bold flex items-center gap-1">
+                      <span className="text-accent font-bold flex items-center gap-1">
                         <Loader2 size={10} className="animate-spin" /> SALVANDO...
                       </span>
                     ) : alertNoteSaved ? (
-                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="text-success font-bold flex items-center gap-1">
                         <CheckCircle size={10} /> SALVO
                       </span>
                     ) : null}
@@ -2430,7 +2430,7 @@ export default function App() {
                 <div className="flex gap-2 sm:gap-3 pt-2">
                   <button
                     onClick={() => setAlertNoteModal((prev) => ({ ...prev, isOpen: false }))}
-                    className="flex-1 px-3 sm:px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs sm:text-base font-bold transition-all leading-tight"
+                    className="flex-1 px-3 sm:px-6 py-3 rounded-xl bg-surface-2 hover:bg-surface-3 text-primary text-xs sm:text-base font-bold transition-all leading-tight"
                     disabled={alertNoteSaving}
                   >
                     Fechar
@@ -2438,7 +2438,7 @@ export default function App() {
                   <Tooltip content="Salva o motivo e mantém o alerta visível">
                     <button
                       onClick={() => saveAlertNote({ markChecked: false })}
-                      className="flex-1 px-3 sm:px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs sm:text-base font-bold transition-all shadow-lg shadow-violet-600/20 leading-tight"
+                      className="flex-1 px-3 sm:px-6 py-3 rounded-xl bg-accent hover:bg-accent text-white text-xs sm:text-base font-bold transition-all shadow-lg shadow-accent/20 leading-tight"
                       disabled={alertNoteSaving}
                     >
                       Salvar
@@ -2447,7 +2447,7 @@ export default function App() {
                   <Tooltip content="Salva o motivo e marca o alerta como verificado">
                     <button
                       onClick={() => saveAlertNote({ markChecked: true })}
-                      className="flex-1 px-3 sm:px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-base font-bold transition-all shadow-lg shadow-emerald-600/20 leading-tight"
+                      className="flex-1 px-3 sm:px-6 py-3 rounded-xl bg-success hover:bg-success text-white text-xs sm:text-base font-bold transition-all shadow-lg shadow-success/20 leading-tight"
                       disabled={alertNoteSaving}
                     >
                       Salvar + Verificar
@@ -2465,13 +2465,13 @@ export default function App() {
               className="max-w-lg"
             >
               <div className="space-y-6">
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-secondary">
                   Selecione o mês de origem e a unidade para duplicar os lançamentos para o mês atual ({folhaAtual ? `${getMesNome(folhaAtual.mes)} ${folhaAtual.ano}` : ''}).
                 </p>
                 
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Mês de Origem</label>
+                    <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">Mês de Origem</label>
                     <CustomSelect
                       value={duplicateConfig.fromFolhaId}
                       onValueChange={(v) => setDuplicateConfig(prev => ({ ...prev, fromFolhaId: v }))}
@@ -2486,7 +2486,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Unidade</label>
+                    <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">Unidade</label>
                     <CustomSelect
                       value={duplicateConfig.unidade}
                       onValueChange={(v) => setDuplicateConfig(prev => ({ ...prev, unidade: v }))}
@@ -2503,13 +2503,13 @@ export default function App() {
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => setIsDuplicateModalOpen(false)}
-                    className="flex-1 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all"
+                    className="flex-1 px-6 py-3 rounded-xl bg-surface-2 hover:bg-surface-3 text-primary font-bold transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleDuplicateAction}
-                    className="flex-1 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition-all shadow-lg shadow-violet-600/20"
+                    className="flex-1 px-6 py-3 rounded-xl bg-accent hover:bg-accent text-white font-bold transition-all shadow-lg shadow-accent/20"
                   >
                     Duplicar Agora
                   </button>
@@ -2544,7 +2544,7 @@ export default function App() {
             >
               <div className="space-y-5">
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-3xl overflow-hidden border border-slate-700 bg-slate-900/40 shrink-0">
+                  <div className="w-20 h-20 rounded-3xl overflow-hidden border border-base-strong bg-surface/40 shrink-0">
                     <img
                       src={profileAvatar || getDefaultAvatarByEmail(userEmail) || '/logo-LA-colapsed.png'}
                       alt="Avatar"
@@ -2553,18 +2553,18 @@ export default function App() {
                   </div>
                   <div className="flex-1 space-y-2">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
                         Nome
                       </label>
                       <input
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                        className="w-full bg-surface/40 border border-base-strong/60 rounded-2xl px-4 py-3 text-secondary outline-none focus:ring-2 focus:ring-accent/40"
                         placeholder="Seu nome"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
                         Foto
                       </label>
                       <div className="flex items-center gap-3">
@@ -2579,20 +2579,20 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => document.getElementById('profile-photo-input')?.click()}
-                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors flex items-center gap-2 border border-slate-700"
+                          className="px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold transition-colors flex items-center gap-2 border border-base-strong"
                           disabled={profileSaving}
                         >
                           <Plus size={14} /> Selecionar Imagem
                         </button>
                       </div>
-                      <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+                      <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
                         <span>Sua foto será exibida no header e nos relatórios.</span>
                         {profileSaving ? (
-                          <span className="text-violet-400 font-bold flex items-center gap-1">
+                          <span className="text-accent font-bold flex items-center gap-1">
                             <Loader2 size={10} className="animate-spin" /> SALVANDO...
                           </span>
                         ) : profileSaved ? (
-                          <span className="text-emerald-400 font-bold flex items-center gap-1">
+                          <span className="text-success font-bold flex items-center gap-1">
                             <CheckCircle size={10} /> SALVO
                           </span>
                         ) : null}
@@ -2604,14 +2604,14 @@ export default function App() {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setIsProfileOpen(false)}
-                    className="flex-1 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all"
+                    className="flex-1 px-6 py-3 rounded-xl bg-surface-2 hover:bg-surface-3 text-primary font-bold transition-all"
                     disabled={profileSaving}
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={saveProfile}
-                    className="flex-1 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20"
+                    className="flex-1 px-6 py-3 rounded-xl bg-accent hover:bg-accent text-white font-black transition-all shadow-lg shadow-accent/20"
                     disabled={profileSaving}
                   >
                     Salvar
@@ -2683,7 +2683,7 @@ export default function App() {
                         <EvolutionChart data={evolutionData} />
                       ) : (
                         <div className="h-full flex items-center justify-center p-8">
-                         <p className="text-slate-500 text-center text-sm">
+                         <p className="text-muted text-center text-sm">
                             Histórico será exibido após cadastrar meses anteriores
                          </p>
                         </div>
@@ -2694,21 +2694,21 @@ export default function App() {
                 
                 {/* Resumo por Unidade */}
                 <div className="mt-6">
-                    <h3 className="text-base md:text-lg font-semibold mb-4 text-white">Resumo por Unidade</h3>
+                    <h3 className="text-base md:text-lg font-semibold mb-4 text-primary">Resumo por Unidade</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
                         {unitData.map(unit => (
                             <Card 
                               key={unit.id} 
                               className={cn(
-                                "p-4 md:p-6 relative overflow-hidden group hover:border-slate-600 transition-colors",
+                                "p-4 md:p-6 relative overflow-hidden group hover:border-base-strong transition-colors",
                                 unit.id === 'cg' ? "col-span-2 md:col-span-1" : "col-span-1"
                               )}
                             >
                                 <div className={`absolute top-0 right-0 p-24 opacity-5 ${unit.twColor} blur-3xl rounded-full -mr-12 -mt-12 group-hover:opacity-10 transition-opacity`}></div>
                                 <div className="relative z-10">
-                                    <div className="text-slate-400 text-[10px] md:text-sm font-bold uppercase tracking-widest md:normal-case md:tracking-normal mb-2">{unit.name}</div>
-                                    <div className="text-lg md:text-2xl font-black md:font-bold text-white mb-1 truncate">{formatCurrency(unit.value)}</div>
-                                    <div className="text-[10px] md:text-xs text-slate-500">{unit.percent}% do total</div>
+                                    <div className="text-secondary text-[10px] md:text-sm font-bold uppercase tracking-widest md:normal-case md:tracking-normal mb-2">{unit.name}</div>
+                                    <div className="text-lg md:text-2xl font-black md:font-bold text-primary mb-1 truncate">{formatCurrency(unit.value)}</div>
+                                    <div className="text-[10px] md:text-xs text-muted">{unit.percent}% do total</div>
                                 </div>
                             </Card>
                         ))}
@@ -2755,11 +2755,11 @@ export default function App() {
                       <div className="space-y-4">
                         {/* Busca */}
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
                           <input
                             type="text"
                             placeholder="Buscar por nome, email ou função..."
-                            className="w-full pl-10 pr-4 py-3 bg-slate-900/40 border border-slate-700/60 rounded-2xl text-sm font-medium text-slate-100 placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-surface/40 border border-base-strong/60 rounded-2xl text-sm font-medium text-secondary placeholder:text-muted outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                             value={collabSearch}
                             onChange={(e) => setCollabSearch(e.target.value)}
                           />
@@ -2768,7 +2768,7 @@ export default function App() {
                         {/* Filtros */}
                         <div className="space-y-3">
                           <div>
-                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">
                               Departamentos
                             </div>
                             <CustomSelect
@@ -2783,7 +2783,7 @@ export default function App() {
                           </div>
 
                           <div>
-                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">
                               Status
                             </div>
                             <CustomSelect
@@ -2803,7 +2803,7 @@ export default function App() {
                           {/* CTA (Full Width on Mobile) */}
                           <button
                             onClick={() => { setEditingCollab(null); setIsCollabModalOpen(true); }}
-                            className="flex-1 h-12 flex items-center justify-center gap-2 px-4 bg-violet-600 hover:bg-violet-500 rounded-2xl text-sm font-black text-white transition-all shadow-lg shadow-violet-600/20 active:scale-95"
+                            className="flex-1 h-12 flex items-center justify-center gap-2 px-4 bg-accent hover:bg-accent rounded-2xl text-sm font-black text-white transition-all shadow-lg shadow-accent/20 active:scale-95"
                           >
                             <Plus size={18} />
                             Novo Colaborador
@@ -2818,11 +2818,11 @@ export default function App() {
                   <div className="hidden lg:flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex flex-1 items-center gap-4 w-full">
                       <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
                         <input 
                           type="text" 
                           placeholder="Buscar por nome, email ou função..." 
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 outline-none transition-all"
+                          className="w-full pl-10 pr-4 py-2.5 bg-surface-2/50 border border-base-strong rounded-xl text-sm focus:ring-2 focus:ring-accent outline-none transition-all"
                           value={collabSearch}
                           onChange={(e) => setCollabSearch(e.target.value)}
                         />
@@ -2848,23 +2848,23 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="bg-slate-800 p-1 rounded-xl flex items-center gap-1">
+                      <div className="bg-surface-2 p-1 rounded-xl flex items-center gap-1">
                         <button 
                           onClick={() => setViewMode('cards')}
-                          className={cn("p-2 rounded-lg transition-all", viewMode === 'cards' ? "bg-violet-600 text-white shadow-lg" : "text-slate-400 hover:text-white")}
+                          className={cn("p-2 rounded-lg transition-all", viewMode === 'cards' ? "bg-accent text-white shadow-lg" : "text-secondary hover:text-white")}
                         >
                           <LayoutGrid size={18} />
                         </button>
                         <button 
                           onClick={() => setViewMode('table')}
-                          className={cn("p-2 rounded-lg transition-all", viewMode === 'table' ? "bg-violet-600 text-white shadow-lg" : "text-slate-400 hover:text-white")}
+                          className={cn("p-2 rounded-lg transition-all", viewMode === 'table' ? "bg-accent text-white shadow-lg" : "text-secondary hover:text-white")}
                         >
                           <List size={18} />
                         </button>
                       </div>
                       <button 
                         onClick={() => { setEditingCollab(null); setIsCollabModalOpen(true); }}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-violet-600/20"
+                        className="flex items-center gap-2 px-6 py-2.5 bg-accent hover:bg-accent rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-accent/20"
                       >
                         <Plus size={18} />
                         Novo Colaborador
@@ -2894,28 +2894,28 @@ export default function App() {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-slate-800/40 rounded-3xl border border-slate-700/50 overflow-hidden">
+                  <div className="bg-surface-2/40 rounded-3xl border border-base-strong/50 overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="min-w-[980px] w-full border-collapse">
-                        <thead className="bg-slate-900/60 border-b border-slate-700/50">
+                        <thead className="bg-surface/60 border-b border-base-strong/50">
                           <tr>
-                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Nome</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Departamento</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Função</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Contrato</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Status</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Unidades</th>
-                            <th className="text-right px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Base</th>
-                            <th className="text-center px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">Ações</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Nome</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Departamento</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Função</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Contrato</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Status</th>
+                            <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Unidades</th>
+                            <th className="text-right px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Base</th>
+                            <th className="text-center px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Ações</th>
                           </tr>
                         </thead>
                         <tbody>
                           {filteredColaboradoresWithBase.map((c, idx) => (
-                            <tr key={c.id} className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors group">
+                            <tr key={c.id} className="border-b border-base-strong/30 hover:bg-surface-3/20 transition-colors group">
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
         <div 
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shadow-lg overflow-hidden" 
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-primary text-xs font-black shadow-lg overflow-hidden" 
           style={{ backgroundColor: DEPARTMENT_COLORS[c.departamento] }}
         >
           {c.id === 2 || c.nome?.includes('Ana Paula') ? (
@@ -2927,8 +2927,8 @@ export default function App() {
           )}
         </div>
                                   <div>
-                                    <div className="font-bold text-sm text-slate-200">{c.nome}</div>
-                                    <div className="text-[10px] text-slate-500">{c.email}</div>
+                                    <div className="font-bold text-sm text-secondary">{c.nome}</div>
+                                    <div className="text-[10px] text-muted">{c.email}</div>
                                   </div>
                                 </div>
                               </td>
@@ -2937,37 +2937,37 @@ export default function App() {
                                   {DEPARTMENT_LABELS[c.departamento]}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">{c.funcao}</td>
-                              <td className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">{CONTRACT_LABELS[c.tipo]}</td>
+                              <td className="px-6 py-4 text-xs font-bold text-secondary uppercase">{c.funcao}</td>
+                              <td className="px-6 py-4 text-xs font-bold text-secondary uppercase">{CONTRACT_LABELS[c.tipo]}</td>
                               <td className="px-6 py-4">
                                 <Badge variant={STATUS_COLORS[c.status]}>{STATUS_LABELS[c.status]}</Badge>
                               </td>
                               <td className="px-6 py-4">
                                 <div className="flex gap-1">
                                   {c.is_rateado ? (
-                                    <span className="text-[9px] font-black text-slate-500 bg-slate-700/30 px-2 py-0.5 rounded-full uppercase border border-slate-600/50">RATEADO</span>
+                                    <span className="text-[9px] font-black text-muted bg-surface-3/30 px-2 py-0.5 rounded-full uppercase border border-base-strong/50">RATEADO</span>
                                   ) : (
-                                    <span className="text-[9px] font-black text-slate-500 bg-slate-700/30 px-2 py-0.5 rounded-full uppercase border border-slate-600/50">{c.unidade_fixa?.toUpperCase()}</span>
+                                    <span className="text-[9px] font-black text-muted bg-surface-3/30 px-2 py-0.5 rounded-full uppercase border border-base-strong/50">{c.unidade_fixa?.toUpperCase()}</span>
                                   )}
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-right font-mono font-bold text-slate-200 text-sm">
+                              <td className="px-6 py-4 text-right font-mono font-bold text-secondary text-sm">
                                 {formatCurrency(c.salario_base)}
                               </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-1 transition-all">
                       <Tooltip content="Editar">
-                        <button onClick={() => { setEditingCollab({ ...c, salario_base: getEffectiveBaseSalary(c) }); setIsCollabModalOpen(true); }} className="p-2 text-slate-400 hover:text-violet-400 transition-colors">
+                        <button onClick={() => { setEditingCollab({ ...c, salario_base: getEffectiveBaseSalary(c) }); setIsCollabModalOpen(true); }} className="p-2 text-secondary hover:text-accent transition-colors">
                           <Edit2 size={14} />
                         </button>
                       </Tooltip>
                       <Tooltip content={c.status === 'active' ? 'Inativar' : 'Reativar'}>
-                        <button onClick={() => handleToggleInactiveCollab(c)} className="p-2 text-slate-400 hover:text-amber-400 transition-colors">
+                        <button onClick={() => handleToggleInactiveCollab(c)} className="p-2 text-secondary hover:text-warning transition-colors">
                           <UserX size={14} />
                         </button>
                       </Tooltip>
                       <Tooltip content="Excluir">
-                        <button onClick={() => handleDeleteCollab(c)} className="p-2 text-slate-400 hover:text-rose-400 transition-colors">
+                        <button onClick={() => handleDeleteCollab(c)} className="p-2 text-secondary hover:text-danger transition-colors">
                           <Trash2 size={14} />
                         </button>
                       </Tooltip>
@@ -2997,7 +2997,7 @@ export default function App() {
                   {/* Filters */}
                   {!isMobile ? (
                   <div className="flex items-center gap-4">
-                    <div className="bg-slate-800 p-1 rounded-lg inline-flex">
+                    <div className="bg-surface-2 p-1 rounded-lg inline-flex">
                         {[
                             { id: 'todos', label: 'Consolidado' },
                             { id: 'cg', label: 'Campo Grande' },
@@ -3009,8 +3009,8 @@ export default function App() {
                                 onClick={() => setUnidadeFiltro(item.id as any)}
                                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                                   unidadeFiltro === item.id
-                                    ? 'bg-violet-600 text-white shadow-sm'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                    ? 'bg-accent text-white shadow-sm'
+                                    : 'text-secondary hover:text-white hover:bg-surface-3/50'
                                 }`}
                               >
                                 {item.label}
@@ -3021,9 +3021,9 @@ export default function App() {
                   ) : (
                     <div className="w-full">
                       {/* Mobile: Command Bar v2 (sem modais) */}
-                      <div className="sticky top-0 z-20 -mx-4 px-4 py-3 bg-[#060814]/70 backdrop-blur-xl border-b border-white/5">
+                      <div className="sticky top-0 z-20 -mx-4 px-4 py-3 bg-bg/70 backdrop-blur-xl border-b border-white/5">
                         {/* Unidades (pills) */}
-                        <div className="bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-full">
+                        <div className="bg-surface/40 border border-base p-1 rounded-2xl w-full">
                           <div className="grid grid-cols-4 gap-1">
                             {[
                               { id: 'todos', label: 'Consolidado', short: 'Todas' },
@@ -3038,8 +3038,8 @@ export default function App() {
                                 className={cn(
                                   'w-full px-2 py-2 rounded-xl text-xs font-black transition-all truncate',
                                   unidadeFiltro === u.id
-                                    ? 'bg-slate-800 text-white shadow-sm'
-                                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                                    ? 'bg-surface-2 text-white shadow-sm'
+                                    : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                                 )}
                                 aria-pressed={unidadeFiltro === u.id}
                                 title={u.label}
@@ -3051,7 +3051,7 @@ export default function App() {
                         </div>
 
                         {unidadeFiltro === 'todos' ? (
-                          <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                          <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-muted">
                             Somente leitura
                           </div>
                         ) : null}
@@ -3126,13 +3126,13 @@ export default function App() {
 
                             const styleEnabled = (kind: 'primary' | 'neutral' | 'danger') =>
                               kind === 'primary'
-                                ? 'bg-violet-600 hover:bg-violet-500 border-violet-500/30 text-white shadow-lg shadow-violet-600/20'
+                                ? 'bg-accent hover:bg-accent border-accent/30 text-white shadow-lg shadow-accent/20'
                                 : kind === 'danger'
-                                  ? 'bg-slate-900/50 hover:bg-rose-500/10 border-slate-800/70 hover:border-rose-500/30 text-rose-300'
-                                  : 'bg-slate-900/50 hover:bg-slate-900/70 border-slate-800/70 text-slate-200';
+                                  ? 'bg-surface/50 hover:bg-danger/10 border-base/70 hover:border-danger/30 text-danger'
+                                  : 'bg-surface/50 hover:bg-surface/70 border-base/70 text-secondary';
 
                             const styleDisabled =
-                              'opacity-40 cursor-not-allowed bg-slate-900/30 border-slate-800/50 text-slate-500';
+                              'opacity-40 cursor-not-allowed bg-surface/30 border-base/50 text-muted';
 
                             const renderBtn = (a: (typeof actionItems)[number]) => {
                               const Icon = a.icon;
@@ -3148,7 +3148,7 @@ export default function App() {
                                 >
                                   <Icon
                                     size={18}
-                                    className={a.disabled ? 'text-slate-500' : a.kind === 'danger' ? 'text-rose-300' : 'text-white'}
+                                    className={a.disabled ? 'text-muted' : a.kind === 'danger' ? 'text-danger' : 'text-white'}
                                   />
                                   <span className="leading-none">{a.label}</span>
                                 </button>
@@ -3185,8 +3185,8 @@ export default function App() {
                         disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
                         className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           unidadeFiltro === 'todos' || statusFolha !== 'rascunho'
-                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                            : 'bg-slate-800 hover:bg-slate-700 text-white'
+                            ? 'bg-surface-2 text-muted cursor-not-allowed'
+                            : 'bg-surface-2 hover:bg-surface-3 text-white'
                         }`}
                       >
                         <Plus size={16} />
@@ -3200,8 +3200,8 @@ export default function App() {
                         disabled={statusFolha !== 'rascunho'}
                         className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           statusFolha !== 'rascunho'
-                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                            : 'bg-slate-800 hover:bg-slate-700 text-white'
+                            ? 'bg-surface-2 text-muted cursor-not-allowed'
+                            : 'bg-surface-2 hover:bg-surface-3 text-white'
                         }`}
                       >
                         <Copy size={16} />
@@ -3215,8 +3215,8 @@ export default function App() {
                         disabled={!folhaAtual}
                         className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           !folhaAtual
-                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                            : 'bg-slate-800 hover:bg-slate-700 text-white'
+                            ? 'bg-surface-2 text-muted cursor-not-allowed'
+                            : 'bg-surface-2 hover:bg-surface-3 text-white'
                         }`}
                       >
                         <Plus size={16} />
@@ -3228,7 +3228,7 @@ export default function App() {
                       <Tooltip content="Excluir mês atual">
                         <button
                           onClick={handleDeleteMonth}
-                          className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-transparent hover:border-rose-500/30 rounded-lg text-sm font-medium transition-all"
+                          className="flex items-center justify-center gap-2 px-4 py-2 bg-surface-2 hover:bg-danger/20 text-danger border border-transparent hover:border-danger/30 rounded-lg text-sm font-medium transition-all"
                         >
                           <XCircle size={16} />
                           Excluir Mês
@@ -3239,7 +3239,7 @@ export default function App() {
                   {statusFolha === 'rascunho' && (
                     <button 
                       onClick={() => handleUpdateStatus('pendente')}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-violet-600/20"
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent rounded-lg text-sm font-medium transition-colors shadow-lg shadow-accent/20"
                     >
                       <CheckCircle size={16} />
                         Submeter
@@ -3290,11 +3290,11 @@ export default function App() {
                 </div>
                 
                 {!isMobile ? (
-                <Card className="overflow-hidden border-0 bg-slate-800/40">
+                <Card className="overflow-hidden border-0 bg-surface-2/40">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-slate-700/50 text-xs text-slate-400 font-medium">
+                        <tr className="border-b border-base-strong/50 text-xs text-secondary font-medium">
                           <th className="py-4 px-4 text-left">Colaborador</th>
                           <th className="py-4 px-2 text-center">Unid.</th>
                           <th className="py-4 px-2 text-center">Tipo</th>
@@ -3306,7 +3306,7 @@ export default function App() {
                           <th className="py-4 px-2 text-right">INSS</th>
                           <th className="py-4 px-2 text-right">Bistrô</th>
                           <th className="py-4 px-2 text-right">Descontos</th>
-                          <th className="py-4 px-4 text-right text-white font-bold">Total</th>
+                          <th className="py-4 px-4 text-right text-primary font-bold">Total</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3326,12 +3326,12 @@ export default function App() {
                           return (
                             <React.Fragment key={dept}>
                               <tr 
-                                className="bg-slate-900/50 cursor-pointer hover:bg-slate-800 transition-colors"
+                                className="bg-surface/50 cursor-pointer hover:bg-surface-2 transition-colors"
                                 onClick={() => setExpandedDept(prev => ({ ...prev, [dept]: !prev[dept] }))}
                               >
                                 <td colSpan={12} className="py-3 px-4">
                                   <div className="flex items-center gap-2">
-                                    {expandedDept[dept] ? <ChevronDown size={14} className="text-slate-500" /> : <ChevronUp size={14} className="text-slate-500" />}
+                                    {expandedDept[dept] ? <ChevronDown size={14} className="text-muted" /> : <ChevronUp size={14} className="text-muted" />}
                                     <span className={`font-bold text-xs uppercase tracking-widest ${deptColors[dept]}`}>
                                       {deptLabels[dept]} ({lancs.length})
                                     </span>
@@ -3349,11 +3349,11 @@ export default function App() {
                                 const bistroVal = typeof bistroMeta?.valor === 'number' ? bistroMeta.valor : Number(bistroMeta?.valor) || 0;
                                 const bistroRefYm = typeof bistroMeta?.ref_ym === 'string' ? bistroMeta.ref_ym : null;
                                 return (
-                                  <tr key={l.id} className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors group">
+                                  <tr key={l.id} className="border-b border-base-strong/30 hover:bg-surface-2/30 transition-colors group">
                                     <td className="py-3 px-4">
                                       <div className="flex items-center justify-between group/colab">
                                       <div className="flex items-center gap-3">
-                                          <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 overflow-hidden">
+                                          <div className="w-8 h-8 rounded-full bg-surface-3 flex items-center justify-center text-xs font-bold text-secondary overflow-hidden">
                                             {colab.id === 2 || colab.nome?.includes('Ana Paula') ? (
                                               <img src="/Avatar_Ana.png" alt="Ana Paula" className="w-full h-full object-cover" />
                                             ) : colab.foto_url ? (
@@ -3364,31 +3364,31 @@ export default function App() {
                                         </div>
                                         <div>
                                           <div className="flex items-center gap-2">
-                                            <div className="font-medium text-sm text-slate-200">{colab.nome || 'N/A'}</div>
+                                            <div className="font-medium text-sm text-secondary">{colab.nome || 'N/A'}</div>
                                             {l.detalhamento &&
                                               Object.entries(l.detalhamento)
                                                 .filter(([k]) => k !== '__bistro')
                                                 .some(([_, v]) => typeof v === 'string' && v.trim()) && (
                                               <Tooltip content={
                                                 <div className="space-y-2 p-1">
-                                                  <div className="text-[10px] font-black text-violet-400 uppercase tracking-widest border-b border-white/10 pb-1 mb-1">Detalhamento do Lançamento</div>
+                                                  <div className="text-[10px] font-black text-accent uppercase tracking-widest border-b border-white/10 pb-1 mb-1">Detalhamento do Lançamento</div>
                                                   {Object.entries(l.detalhamento)
                                                     .filter(([k, v]) => k !== '__bistro' && typeof v === 'string' && v.trim())
                                                     .map(([k, v]) => (
                                                     <div key={k} className="flex flex-col gap-0.5">
-                                                      <span className="text-[9px] font-bold text-slate-500 uppercase">{k}:</span>
-                                                      <span className="text-xs text-slate-200">{String(v)}</span>
+                                                      <span className="text-[9px] font-bold text-muted uppercase">{k}:</span>
+                                                      <span className="text-xs text-secondary">{String(v)}</span>
                                                     </div>
                                                   ))}
                                                 </div>
                                               }>
-                                                <div className="p-1 rounded-md bg-violet-500/10 text-violet-400">
+                                                <div className="p-1 rounded-md bg-accent/10 text-accent">
                                                   <Sparkles size={10} />
                                                 </div>
                                               </Tooltip>
                                             )}
                                           </div>
-                                          <div className="text-[10px] text-slate-500 uppercase">{colab.funcao || ''}</div>
+                                          <div className="text-[10px] text-muted uppercase">{colab.funcao || ''}</div>
                                         </div>
                                         </div>
                                         
@@ -3399,7 +3399,7 @@ export default function App() {
                                                 e.stopPropagation();
                                                 handleDeleteLancamento(l);
                                               }}
-                                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-all mr-2"
+                                              className="p-1.5 text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-all mr-2"
                                             >
                                               <Trash2 size={14} />
                                             </button>
@@ -3408,15 +3408,15 @@ export default function App() {
                                       </div>
                                     </td>
                                     <td className="py-3 px-2 text-center">
-                                      <span className="bg-slate-700 text-slate-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-slate-600">
+                                      <span className="bg-surface-3 text-secondary text-[10px] font-bold px-2.5 py-1 rounded-full border border-base-strong">
                                         {unidadeLabels[l.unidade] || l.unidade}
                                       </span>
                                     </td>
                                     <td className="py-3 px-2 text-center">
                                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
                                             colab.tipo === 'clt' 
-                                                ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' 
-                                                : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
+                                                ? 'bg-info/10 text-info border-info/20' 
+                                                : 'bg-accent/10 text-accent border-accent/20'
                                         }`}>
                                             {tipoLabels[colab.tipo] || colab.tipo?.slice(0,3)}
                                         </span>
@@ -3456,7 +3456,7 @@ export default function App() {
                                         onSave={(val) => saveLancamentoPatch(l, { passagem: val })} 
                                       />
                                     </td>
-                                    <td className="py-3 px-1 text-rose-400/80">
+                                    <td className="py-3 px-1 text-danger/80">
                                       <CellInput 
                                         value={l.inss} 
                                         disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
@@ -3467,21 +3467,21 @@ export default function App() {
                                       <Tooltip
                                         content={
                                           <div className="space-y-1">
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-300">Desconto Bistrô</div>
-                                            <div className="text-xs text-slate-200">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-success">Desconto Bistrô</div>
+                                            <div className="text-xs text-secondary">
                                               {bistroRefYm ? `Ref. ${bistroRefYm}` : 'Não aplicado'}
                                             </div>
-                                            <div className="text-xs text-slate-200 font-black">{formatCurrency(bistroVal)}</div>
+                                            <div className="text-xs text-secondary font-black">{formatCurrency(bistroVal)}</div>
                                           </div>
                                         }
                                         side="top"
                                       >
-                                        <span className={cn('font-mono text-xs font-bold', bistroVal > 0 ? 'text-emerald-300' : 'text-slate-600')}>
+                                        <span className={cn('font-mono text-xs font-bold', bistroVal > 0 ? 'text-success' : 'text-muted')}>
                                           {bistroVal > 0 ? formatCurrency(bistroVal) : '—'}
                                         </span>
                                       </Tooltip>
                                     </td>
-                                    <td className="py-3 px-1 text-rose-400/80">
+                                    <td className="py-3 px-1 text-danger/80">
                                       <CellInput 
                                         value={l.descontos} 
                                         disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
@@ -3490,7 +3490,7 @@ export default function App() {
                                     </td>
                                     <td className="py-3 px-4 text-right">
                                       <div className="flex flex-col items-end">
-                                      <span className="font-mono font-bold text-sm text-white">{formatCurrency(l.total)}</span>
+                                      <span className="font-mono font-bold text-sm text-primary">{formatCurrency(l.total)}</span>
                                         {(() => {
                                           const { prevMap } = aggregatedData;
                                           const prev = prevMap[l.colaborador_id];
@@ -3499,7 +3499,7 @@ export default function App() {
                                             const perc = ((currColabTotal - prev.total) / prev.total) * 100;
                                             if (Math.abs(perc) > 0.1) {
                                               return (
-                                                <span className={`text-[10px] font-bold ${perc > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                                <span className={`text-[10px] font-bold ${perc > 0 ? 'text-danger' : 'text-success'}`}>
                                                   {perc > 0 ? '+' : ''}{perc.toFixed(1)}%
                                                 </span>
                                               );
@@ -3512,11 +3512,11 @@ export default function App() {
                                   </tr>
                                 );
                               })}
-                               <tr className="bg-slate-800/30 border-t border-slate-700/50">
+                               <tr className="bg-surface-2/30 border-t border-base-strong/50">
                                    <td colSpan={3} className="py-3 px-4">
                                      <div className="flex items-center justify-between">
                                        <div className="flex flex-col gap-0.5">
-                                         <span className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">
+                                         <span className="text-[9px] font-medium text-muted uppercase tracking-wider">
                                            Resumo da Categoria
                                          </span>
                                          <span className={`text-[10px] font-bold uppercase tracking-widest ${deptColors[dept]}`}>
@@ -3524,39 +3524,39 @@ export default function App() {
                                          </span>
                                        </div>
                                        <div className="flex flex-col items-end gap-0.5 pr-6">
-                                         <span className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">
+                                         <span className="text-[9px] font-medium text-muted uppercase tracking-wider">
                                            Representatividade {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]}
                                          </span>
-                                         <span className="text-[11px] font-bold text-slate-400">
+                                         <span className="text-[11px] font-bold text-secondary">
                                            {filteredTotalGeral > 0 ? ((subtotal / filteredTotalGeral) * 100).toFixed(2) : '0.00'}%
                                          </span>
                                        </div>
                                      </div>
                                    </td>
                                    <td className="py-3 px-1 text-right">
-                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumSalario)}</span>
+                                     <span className="text-xs font-mono text-secondary font-bold">{formatCurrency(sumSalario)}</span>
                                    </td>
                                    <td className="py-3 px-1 text-right">
-                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumBonus)}</span>
+                                     <span className="text-xs font-mono text-secondary font-bold">{formatCurrency(sumBonus)}</span>
                                    </td>
                                    <td className="py-3 px-1 text-right">
-                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumComissao)}</span>
+                                     <span className="text-xs font-mono text-secondary font-bold">{formatCurrency(sumComissao)}</span>
                                    </td>
                                    <td className="py-3 px-1 text-right">
-                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumReembolso)}</span>
+                                     <span className="text-xs font-mono text-secondary font-bold">{formatCurrency(sumReembolso)}</span>
                                    </td>
                                    <td className="py-3 px-1 text-right">
-                                     <span className="text-xs font-mono text-slate-400 font-bold">{formatCurrency(sumPassagem)}</span>
+                                     <span className="text-xs font-mono text-secondary font-bold">{formatCurrency(sumPassagem)}</span>
                                    </td>
-                                   <td className="py-3 px-1 text-right text-rose-400/80">
+                                   <td className="py-3 px-1 text-right text-danger/80">
                                      <span className="text-xs font-mono font-bold">{formatCurrency(sumInss)}</span>
                                    </td>
-                                   <td className="py-3 px-1 text-right text-rose-400/80">
+                                   <td className="py-3 px-1 text-right text-danger/80">
                                      <span className="text-xs font-mono font-bold">{formatCurrency(sumDescontos)}</span>
                                    </td>
                                    <td className={`py-3 px-4 text-right font-mono font-bold text-sm ${deptColors[dept]}`}>
                                      <div className="flex flex-col items-end">
-                                       <span className="text-[9px] text-slate-500 uppercase font-medium mb-0.5">Subtotal {deptLabels[dept]}</span>
+                                       <span className="text-[9px] text-muted uppercase font-medium mb-0.5">Subtotal {deptLabels[dept]}</span>
                                        {formatCurrency(subtotal)}
                                      </div>
                                    </td>
@@ -3571,22 +3571,22 @@ export default function App() {
                 ) : (
                   <div className="space-y-4">
                     {/* Busca + atalhos */}
-                    <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+                    <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-2xl bg-slate-950/60 border border-slate-800/60 text-slate-400">
+                        <div className="p-2 rounded-2xl bg-bg/60 border border-base/60 text-secondary">
                           <Search size={16} />
                         </div>
                         <input
                           value={lancamentosSearch}
                           onChange={(e) => setLancamentosSearch(e.target.value)}
                           placeholder="Buscar colaborador (nome ou função)"
-                          className="w-full bg-transparent text-slate-100 placeholder:text-slate-500 text-sm font-bold outline-none"
+                          className="w-full bg-transparent text-secondary placeholder:text-muted text-sm font-bold outline-none"
                         />
                         {lancamentosSearch.trim() ? (
                           <button
                             type="button"
                             onClick={() => setLancamentosSearch('')}
-                            className="p-2 rounded-2xl bg-slate-950/60 border border-slate-800/60 text-slate-400"
+                            className="p-2 rounded-2xl bg-bg/60 border border-base/60 text-secondary"
                             aria-label="Limpar busca"
                           >
                             <X size={16} />
@@ -3597,14 +3597,14 @@ export default function App() {
                     </div>
 
                     {/* Summary bar discreta */}
-                    <div className="flex items-center justify-between bg-slate-900/40 border border-slate-800/60 rounded-3xl px-5 py-4">
+                    <div className="flex items-center justify-between bg-surface/40 border border-base/60 rounded-3xl px-5 py-4">
                       <div className="min-w-0">
-                        <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest truncate">
+                        <div className="text-[10px] text-muted font-black uppercase tracking-widest truncate">
                           Total {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]} • {lancamentosKPIs.total.count} colaboradores
                         </div>
-                        <div className="text-lg font-black text-white truncate">{formatCurrency(filteredTotalGeral)}</div>
+                        <div className="text-lg font-black text-primary truncate">{formatCurrency(filteredTotalGeral)}</div>
                       </div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted">
                         {statusFolha === 'rascunho' ? 'Rascunho' : statusFolha}
                       </div>
                     </div>
@@ -3624,22 +3624,22 @@ export default function App() {
                             <button
                               type="button"
                               onClick={() => setExpandedDept((prev) => ({ ...prev, [dept]: !prev[dept] }))}
-                              className="w-full flex items-center justify-between px-5 py-4 rounded-3xl bg-slate-900/40 border border-slate-800/60"
+                              className="w-full flex items-center justify-between px-5 py-4 rounded-3xl bg-surface/40 border border-base/60"
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 {expandedDept[dept] ? (
-                                  <ChevronDown size={18} className="text-slate-500 shrink-0" />
+                                  <ChevronDown size={18} className="text-muted shrink-0" />
                                 ) : (
-                                  <ChevronUp size={18} className="text-slate-500 shrink-0" />
+                                  <ChevronUp size={18} className="text-muted shrink-0" />
                                 )}
                                 <div className="min-w-0 text-left">
                                   <div className={cn("text-[11px] font-black uppercase tracking-widest truncate", deptColors[dept])}>
                                     {deptLabels[dept]} ({lancs.length})
                                   </div>
-                                  <div className="text-xs text-slate-400 font-bold truncate">{formatCurrency(subtotal)}</div>
+                                  <div className="text-xs text-secondary font-bold truncate">{formatCurrency(subtotal)}</div>
                                 </div>
                               </div>
-                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Abrir</span>
+                              <span className="text-[10px] font-black text-muted uppercase tracking-widest">Abrir</span>
                             </button>
 
                             {expandedDept[dept] ? (
@@ -3654,10 +3654,10 @@ export default function App() {
                                       className={cn(
                                         "flex items-center justify-between gap-2 px-3 py-2 rounded-2xl border text-[10px] font-black uppercase tracking-widest",
                                         variant === 'neg'
-                                          ? "bg-rose-500/10 border-rose-500/20 text-rose-200"
+                                          ? "bg-danger/10 border-danger/20 text-danger"
                                           : variant === 'pos'
-                                            ? "bg-slate-950/40 border-slate-800/60 text-slate-200"
-                                            : "bg-slate-950/20 border-slate-800/50 text-slate-500"
+                                            ? "bg-bg/40 border-base/60 text-secondary"
+                                            : "bg-bg/20 border-base/50 text-muted"
                                       )}
                                     >
                                       <span>{label}</span>
@@ -3676,26 +3676,26 @@ export default function App() {
                                         }
                                         setMobileLancDetail(l);
                                       }}
-                                      className="w-full text-left px-5 py-4 rounded-3xl bg-slate-900/40 border border-slate-800/60 hover:bg-slate-900/55 transition-colors"
+                                      className="w-full text-left px-5 py-4 rounded-3xl bg-surface/40 border border-base/60 hover:bg-surface/55 transition-colors"
                                     >
                                       <div className="flex items-start justify-between gap-4">
                                         <div className="min-w-0">
-                                          <div className="text-slate-100 font-black truncate">{colab.nome || 'N/A'}</div>
-                                          <div className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                            <span className="px-2 py-1 rounded-full bg-slate-950/40 border border-slate-800/60">
+                                          <div className="text-secondary font-black truncate">{colab.nome || 'N/A'}</div>
+                                          <div className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted">
+                                            <span className="px-2 py-1 rounded-full bg-bg/40 border border-base/60">
                                               {unidadeLabels[l.unidade] || l.unidade}
                                             </span>
-                                            <span className="px-2 py-1 rounded-full bg-slate-950/40 border border-slate-800/60">
+                                            <span className="px-2 py-1 rounded-full bg-bg/40 border border-base/60">
                                               {tipoLabel}
                                             </span>
                                           </div>
                                           {colab.funcao ? (
-                                            <div className="mt-1 text-xs text-slate-400 font-bold truncate">{colab.funcao}</div>
+                                            <div className="mt-1 text-xs text-secondary font-bold truncate">{colab.funcao}</div>
                                           ) : null}
                                         </div>
                                         <div className="shrink-0 text-right">
-                                          <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Total</div>
-                                          <div className="text-lg font-black text-white font-mono">{formatCurrency(l.total)}</div>
+                                          <div className="text-[10px] text-muted font-black uppercase tracking-widest">Total</div>
+                                          <div className="text-lg font-black text-primary font-mono">{formatCurrency(l.total)}</div>
                                         </div>
                                       </div>
 
@@ -3720,7 +3720,7 @@ export default function App() {
                                         [dept]: Math.min((prev[dept] ?? MOBILE_LANC_PAGE_SIZE) + MOBILE_LANC_PAGE_SIZE, lancs.length),
                                       }))
                                     }
-                                    className="w-full px-5 py-3 rounded-2xl bg-slate-900/30 border border-slate-800/60 text-slate-200 font-black text-sm hover:bg-slate-900/45 transition-colors"
+                                    className="w-full px-5 py-3 rounded-2xl bg-surface/30 border border-base/60 text-secondary font-black text-sm hover:bg-surface/45 transition-colors"
                                   >
                                     Mostrar mais ({lancs.length - visible.length})
                                   </button>
@@ -3736,11 +3736,11 @@ export default function App() {
                 
                 {!isMobile ? (
                 <div className="flex justify-end">
-                    <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 inline-flex flex-col items-end gap-1 min-w-[200px]">
-                      <span className="text-xs text-slate-500 uppercase tracking-wider">
+                    <div className="bg-surface-2 rounded-xl p-4 border border-base-strong inline-flex flex-col items-end gap-1 min-w-[200px]">
+                      <span className="text-xs text-muted uppercase tracking-wider">
                         Total {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]}
                       </span>
-                      <span className="text-2xl font-bold text-white">{formatCurrency(filteredTotalGeral)}</span>
+                      <span className="text-2xl font-bold text-primary">{formatCurrency(filteredTotalGeral)}</span>
                     </div>
                 </div>
                 ) : null}
@@ -3760,7 +3760,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setMobileLancDetail(null)}
-                            className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-black transition-all active:scale-95"
+                            className="flex-1 px-6 py-3.5 rounded-2xl bg-surface-2/60 hover:bg-surface-2 text-secondary font-black transition-all active:scale-95"
                           >
                             Fechar
                           </button>
@@ -3794,8 +3794,8 @@ export default function App() {
                             className={cn(
                               "flex-1 px-6 py-3.5 rounded-2xl font-black transition-all active:scale-95 shadow-lg",
                               statusFolha !== 'rascunho'
-                                ? "bg-slate-800/60 text-slate-500 cursor-not-allowed shadow-transparent"
-                                : "bg-slate-900/60 hover:bg-slate-900 text-white shadow-slate-950/30"
+                                ? "bg-surface-2/60 text-muted cursor-not-allowed shadow-transparent"
+                                : "bg-surface/60 hover:bg-surface text-white shadow-surface/30"
                             )}
                           >
                             Duplicar linha
@@ -3812,8 +3812,8 @@ export default function App() {
                           className={cn(
                             "w-full px-6 py-3.5 rounded-2xl font-black transition-all active:scale-95 shadow-lg",
                             statusFolha !== 'rascunho'
-                              ? "bg-slate-800/60 text-slate-500 cursor-not-allowed shadow-transparent"
-                              : "bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20"
+                              ? "bg-surface-2/60 text-muted cursor-not-allowed shadow-transparent"
+                              : "bg-danger hover:bg-danger text-white shadow-danger/20"
                           )}
                         >
                           Excluir linha
@@ -3830,22 +3830,22 @@ export default function App() {
                         const prevTotal = prev?.total || 0;
                         const perc = prevTotal > 0 ? ((currTotal - prevTotal) / prevTotal) * 100 : null;
                         return (
-                          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
+                          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
                             <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0">
-                                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Total do colaborador</div>
-                                <div className="text-2xl font-black text-white font-mono truncate">{formatCurrency(currTotal)}</div>
-                                <div className="mt-1 text-xs text-slate-400 font-bold">
+                                <div className="text-[10px] text-muted font-black uppercase tracking-widest">Total do colaborador</div>
+                                <div className="text-2xl font-black text-primary font-mono truncate">{formatCurrency(currTotal)}</div>
+                                <div className="mt-1 text-xs text-secondary font-bold">
                                   {mobileLancDetail.categoria ? deptLabels[mobileLancDetail.categoria] : ''}
                                   {' • '}
                                   Unidade {unidadeLabels[mobileLancDetail.unidade] || mobileLancDetail.unidade}
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
-                                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Anterior</div>
-                                <div className="text-sm font-black text-slate-200 font-mono">{prevTotal > 0 ? formatCurrency(prevTotal) : '—'}</div>
+                                <div className="text-[10px] text-muted font-black uppercase tracking-widest">Anterior</div>
+                                <div className="text-sm font-black text-secondary font-mono">{prevTotal > 0 ? formatCurrency(prevTotal) : '—'}</div>
                                 {perc !== null ? (
-                                  <div className={cn("mt-1 text-[11px] font-black", perc > 0 ? "text-rose-300" : "text-emerald-300")}>
+                                  <div className={cn("mt-1 text-[11px] font-black", perc > 0 ? "text-danger" : "text-success")}>
                                     {perc > 0 ? '+' : ''}{perc.toFixed(1)}%
                                   </div>
                                 ) : null}
@@ -3865,13 +3865,13 @@ export default function App() {
                           { k: 'inss', label: 'INSS', neg: true },
                           { k: 'descontos', label: 'Descontos', neg: true },
                         ] as const).map(({ k, label, neg }) => (
-                          <div key={k} className="flex items-center justify-between gap-4 bg-slate-900/40 border border-slate-800/60 rounded-3xl px-4 py-3">
-                            <div className="text-xs font-black uppercase tracking-widest text-slate-400">{label}</div>
+                          <div key={k} className="flex items-center justify-between gap-4 bg-surface/40 border border-base/60 rounded-3xl px-4 py-3">
+                            <div className="text-xs font-black uppercase tracking-widest text-secondary">{label}</div>
                             <div className="w-[170px]">
                               <CellInput
                                 value={(mobileLancDetail as any)[k] || 0}
                                 disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
-                                colorClass={neg ? 'text-rose-300' : 'text-slate-100'}
+                                colorClass={neg ? 'text-danger' : 'text-secondary'}
                                 onSave={(val) => saveLancamentoPatch(mobileLancDetail, { [k]: val } as any)}
                               />
                             </div>
@@ -3879,8 +3879,8 @@ export default function App() {
                         ))}
                       </div>
 
-                      <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
-                        <div className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Observação</div>
+                      <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+                        <div className="text-xs font-black uppercase tracking-widest text-secondary mb-2">Observação</div>
                         <textarea
                           spellCheck={false}
                           value={mobileLancObs}
@@ -3902,9 +3902,9 @@ export default function App() {
                             }
                           }}
                           placeholder="Anotações rápidas sobre esse lançamento…"
-                          className="w-full min-h-[90px] bg-slate-950/30 border border-slate-800/60 rounded-2xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-violet-500/40"
+                          className="w-full min-h-[90px] bg-bg/30 border border-base/60 rounded-2xl px-4 py-3 text-sm text-secondary placeholder:text-muted outline-none focus:ring-2 focus:ring-accent/40"
                         />
-                        <div className="mt-2 flex items-center justify-between text-[10px] font-bold text-slate-500">
+                        <div className="mt-2 flex items-center justify-between text-[10px] font-bold text-muted">
                           <span>Salva automaticamente ao sair do campo</span>
                           <span>{mobileLancObsSaving ? 'Salvando…' : '—'}</span>
                         </div>
@@ -3933,12 +3933,12 @@ export default function App() {
             {activeTab === 'comparativo' && (
               <div className="space-y-6">
                 {!comparativoMensal ? (
-                 <Card className="p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-slate-700 bg-transparent">
-                    <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-500">
+                 <Card className="p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-base-strong bg-transparent">
+                    <div className="w-16 h-16 bg-surface-2 rounded-full flex items-center justify-center mb-4 text-muted">
                         <BarChart3 size={32} />
                     </div>
                     <h3 className="text-xl font-semibold mb-2">Dados insuficientes</h3>
-                    <p className="text-slate-400 max-w-md">
+                    <p className="text-secondary max-w-md">
                         O comparativo histórico será ativado assim que houver mais de um mês de folha processado no sistema.
                     </p>
                  </Card>
@@ -3947,19 +3947,19 @@ export default function App() {
                     {/* IA & Sugestão da Ana */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <Card className="lg:col-span-2 overflow-hidden flex flex-col">
-                        <div className="p-6 border-b border-slate-700 flex items-start justify-between gap-4 bg-slate-800/20">
+                        <div className="p-6 border-b border-base-strong flex items-start justify-between gap-4 bg-surface-2/20">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <Sparkles size={16} className="text-cyan-400" />
-                              <h3 className="text-lg font-semibold text-white">Insights de IA</h3>
+                              <Sparkles size={16} className="text-info" />
+                              <h3 className="text-lg font-semibold text-primary">Insights de IA</h3>
                             </div>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-xs text-secondary">
                               Análise automática de sazonalidade e padrões de variação.
                             </p>
                           </div>
                           <button
                             onClick={() => selectedFolhaId && loadAiInsights(selectedFolhaId)}
-                            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold shrink-0 transition-colors border border-slate-700"
+                            className="px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold shrink-0 transition-colors border border-base-strong"
                             disabled={aiInsightsLoading || !selectedFolhaId}
                           >
                             {aiInsightsLoading ? 'Analisando...' : 'Atualizar'}
@@ -3967,19 +3967,19 @@ export default function App() {
                         </div>
                         <div className="p-6 flex-1">
                           {aiInsightsError ? (
-                            <div className="text-sm text-rose-300 bg-rose-500/10 p-4 rounded-2xl border border-rose-500/20 flex items-center gap-3">
+                            <div className="text-sm text-danger bg-danger/10 p-4 rounded-2xl border border-danger/20 flex items-center gap-3">
                               <AlertTriangle size={18} />
                               {aiInsightsError}
                             </div>
                           ) : aiInsightsLoading && !aiInsights ? (
-                            <div className="flex flex-col items-center justify-center h-48 text-slate-400 gap-4">
+                            <div className="flex flex-col items-center justify-center h-48 text-secondary gap-4">
                               <div className="relative">
-                                <Loader2 className="animate-spin text-cyan-400" size={32} />
-                                <Sparkles className="absolute -top-1 -right-1 text-amber-400 animate-pulse" size={12} />
+                                <Loader2 className="animate-spin text-info" size={32} />
+                                <Sparkles className="absolute -top-1 -right-1 text-warning animate-pulse" size={12} />
                               </div>
                               <div className="text-center">
-                                <span className="text-sm font-bold text-slate-200 block">Analisando Padrões...</span>
-                                <span className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Cruzando dados de sazonalidade e memória organizacional</span>
+                                <span className="text-sm font-bold text-secondary block">Analisando Padrões...</span>
+                                <span className="text-[10px] text-muted uppercase tracking-widest mt-1">Cruzando dados de sazonalidade e memória organizacional</span>
                               </div>
                             </div>
                           ) : aiInsights ? (
@@ -3987,12 +3987,12 @@ export default function App() {
                               {/* --- Section 1: Executive Summary --- */}
                               <section>
                                 <div className="flex items-center gap-2 mb-4">
-                                  <div className="w-1.5 h-4 bg-cyan-500 rounded-full"></div>
-                                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Resumo Executivo</h4>
+                                  <div className="w-1.5 h-4 bg-info rounded-full"></div>
+                                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Resumo Executivo</h4>
                                 </div>
-                                <div className="bg-slate-900/40 border border-slate-700/30 rounded-3xl p-6 relative overflow-hidden group">
-                                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-violet-500"></div>
-                                  <p className="text-slate-200 leading-relaxed text-sm md:text-base font-medium italic">
+                                <div className="bg-surface/40 border border-base-strong/30 rounded-3xl p-6 relative overflow-hidden group">
+                                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-info to-accent"></div>
+                                  <p className="text-secondary leading-relaxed text-sm md:text-base font-medium italic">
                                     {aiInsights.summary}
                                   </p>
                                 </div>
@@ -4002,38 +4002,38 @@ export default function App() {
                               {aiInsights?.response_json?.insights_detalhados?.length ? (
                                 <section>
                                   <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-1.5 h-4 bg-violet-500 rounded-full"></div>
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Ocorrências e Padrões</h4>
+                                    <div className="w-1.5 h-4 bg-accent rounded-full"></div>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Ocorrências e Padrões</h4>
                                   </div>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {aiInsights.response_json.insights_detalhados.map((ins: any, idx: number) => {
                                       const tipo = (ins.tipo || 'remuneracao').toLowerCase();
                                       const iconMap: Record<string, any> = {
-                                        turnover: { icon: UserX, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
-                                        comercial: { icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-                                        sazonalidade: { icon: Clock, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
-                                        remuneracao: { icon: Coins, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
-                                        default: { icon: Lightbulb, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' }
+                                        turnover: { icon: UserX, color: 'text-danger', bg: 'bg-danger/10', border: 'border-danger/20' },
+                                        comercial: { icon: TrendingUp, color: 'text-success', bg: 'bg-success/10', border: 'border-success/20' },
+                                        sazonalidade: { icon: Clock, color: 'text-info', bg: 'bg-info/10', border: 'border-info/20' },
+                                        remuneracao: { icon: Coins, color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/20' },
+                                        default: { icon: Lightbulb, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/20' }
                                       };
                                       const config = iconMap[tipo] || iconMap.default;
                                       const Icon = config.icon;
 
                                       return (
-                                        <div key={idx} className={`group p-5 rounded-2xl bg-slate-800/20 border ${config.border} hover:bg-slate-800/40 transition-all duration-300`}>
+                                        <div key={idx} className={`group p-5 rounded-2xl bg-surface-2/20 border ${config.border} hover:bg-surface-2/40 transition-all duration-300`}>
                                           <div className="flex items-start gap-4">
                                             <div className={`p-2.5 rounded-xl ${config.bg} ${config.color} shadow-inner`}>
                                               <Icon size={18} />
                                             </div>
                                             <div className="min-w-0 flex-1">
                                               <div className="flex items-center justify-between gap-2 mb-1.5">
-                                                <h5 className="text-sm font-bold text-white tracking-tight">{ins.titulo}</h5>
+                                                <h5 className="text-sm font-bold text-primary tracking-tight">{ins.titulo}</h5>
                                                 {ins.impacto_financeiro && (
-                                                  <span className={`text-[10px] font-mono font-bold ${ins.impacto_financeiro > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                                  <span className={`text-[10px] font-mono font-bold ${ins.impacto_financeiro > 0 ? 'text-danger' : 'text-success'}`}>
                                                     {ins.impacto_financeiro > 0 ? '+' : ''}{formatCurrency(ins.impacto_financeiro)}
                                                   </span>
                                                 )}
                                               </div>
-                                              <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300">
+                                              <p className="text-xs text-secondary leading-relaxed group-hover:text-secondary">
                                                 {ins.descricao}
                                               </p>
                                             </div>
@@ -4049,14 +4049,14 @@ export default function App() {
                               {aiInsights?.response_json?.recomendacoes?.length ? (
                                 <section>
                                   <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Sugestões de Ajuste</h4>
+                                    <div className="w-1.5 h-4 bg-warning rounded-full"></div>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Sugestões de Ajuste</h4>
                                   </div>
-                                  <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 space-y-3">
+                                  <div className="bg-warning/5 border border-warning/10 rounded-2xl p-4 space-y-3">
                                     {aiInsights.response_json.recomendacoes.map((rec: string, idx: number) => (
                                       <div key={idx} className="flex items-start gap-3">
-                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></div>
-                                        <p className="text-xs text-slate-300 leading-snug">{rec}</p>
+                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-warning shrink-0"></div>
+                                        <p className="text-xs text-secondary leading-snug">{rec}</p>
                                       </div>
                                     ))}
                                   </div>
@@ -4064,22 +4064,22 @@ export default function App() {
                               ) : null}
                             </div>
                           ) : (
-                            <div className="flex flex-col items-center justify-center h-48 text-slate-500 border-2 border-dashed border-slate-800 rounded-2xl gap-4">
-                              <div className="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center">
-                                <Sparkles size={24} className="text-slate-700" />
+                            <div className="flex flex-col items-center justify-center h-48 text-muted border-2 border-dashed border-base rounded-2xl gap-4">
+                              <div className="w-12 h-12 rounded-full bg-surface-2/50 flex items-center justify-center">
+                                <Sparkles size={24} className="text-primary" />
                               </div>
                               <div className="text-center">
                                 <span className="text-sm font-medium">Insights não gerados</span>
-                                <p className="text-[10px] text-slate-600 mt-1 max-w-[200px]">Clique em atualizar para processar as variações deste mês.</p>
+                                <p className="text-[10px] text-muted mt-1 max-w-[200px]">Clique em atualizar para processar as variações deste mês.</p>
                               </div>
                             </div>
                           )}
                         </div>
                       </Card>
 
-                      <Card className="overflow-hidden flex flex-col border-violet-500/20 shadow-violet-500/5">
-                        <div className="p-6 border-b border-slate-700 bg-violet-500/5 flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-violet-500/10 p-0.5 border border-violet-500/20 overflow-hidden shrink-0 shadow-lg">
+                      <Card className="overflow-hidden flex flex-col border-accent/20 shadow-accent/5">
+                        <div className="p-6 border-b border-base-strong bg-accent/5 flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-accent/10 p-0.5 border border-accent/20 overflow-hidden shrink-0 shadow-lg">
                             <img 
                               src="/Avatar_Ana.png" 
                               onError={(e) => { (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=Ana&background=8b5cf6&color=fff'; }}
@@ -4088,8 +4088,8 @@ export default function App() {
                             />
                           </div>
                           <div className="min-w-0">
-                            <h3 className="text-lg font-semibold text-white">Sugestão da Ana</h3>
-                            <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wider">RH & Gestão de Pessoas</p>
+                            <h3 className="text-lg font-semibold text-primary">Sugestão da Ana</h3>
+                            <p className="text-[10px] text-accent font-bold uppercase tracking-wider">RH & Gestão de Pessoas</p>
                           </div>
                         </div>
                         <div className="p-6 flex-1 flex flex-col gap-4">
@@ -4099,24 +4099,24 @@ export default function App() {
                               onChange={(e) => setAnaNote(e.target.value)}
                               onBlur={handleSaveAnaNote}
                               placeholder="Ana, registre aqui suas percepções sobre este fechamento..."
-                              className="w-full h-full min-h-[160px] bg-slate-900/40 border border-slate-700/50 rounded-2xl p-4 text-sm text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40 transition-all resize-none placeholder:text-slate-600"
+                              className="w-full h-full min-h-[160px] bg-surface/40 border border-base-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 transition-all resize-none placeholder:text-muted"
                               disabled={anaNoteSaving}
                               spellCheck="false"
                             />
               {anaNoteSaving && (
-                <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-violet-400 font-bold bg-slate-900 px-2 py-1 rounded-lg">
+                <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-accent font-bold bg-surface px-2 py-1 rounded-lg">
                   <Loader2 size={10} className="animate-spin" />
                   SALVANDO...
                 </div>
               )}
               {anaNoteSaved && (
-                <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-emerald-400 font-bold bg-slate-900 px-2 py-1 rounded-lg">
+                <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-success font-bold bg-surface px-2 py-1 rounded-lg">
                   <CheckCircle size={10} />
                   SALVO NA NUVEM
                 </div>
               )}
                           </div>
-                          <p className="text-[10px] text-slate-500 text-center">
+                          <p className="text-[10px] text-muted text-center">
                             Suas notas ajudam a treinar a IA para reconhecer padrões futuros.
                           </p>
                         </div>
@@ -4125,19 +4125,19 @@ export default function App() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card className="p-6">
-                        <h3 className="text-lg font-semibold mb-4 text-white">Resumo da Variação</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-primary">Resumo da Variação</h3>
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Total Mês Anterior</span>
+                            <span className="text-secondary">Total Mês Anterior</span>
                             <span className="font-mono text-white">{formatCurrency(comparativoMensal.totalAnterior)}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Total Mês Atual</span>
+                            <span className="text-secondary">Total Mês Atual</span>
                             <span className="font-mono text-white">{formatCurrency(totais.totalGeral)}</span>
                           </div>
-                          <div className="pt-4 border-t border-slate-700 flex justify-between items-center">
-                            <span className="font-semibold text-white">Diferença</span>
-                            <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varTotal > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                          <div className="pt-4 border-t border-base-strong flex justify-between items-center">
+                            <span className="font-semibold text-primary">Diferença</span>
+                            <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varTotal > 0 ? 'text-danger' : 'text-success'}`}>
                               {comparativoMensal.varTotal > 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                               {formatCurrency(totais.totalGeral - comparativoMensal.totalAnterior)} 
                               &nbsp;({comparativoMensal.varTotal > 0 ? '+' : ''}{comparativoMensal.varTotal.toFixed(1)}%)
@@ -4147,19 +4147,19 @@ export default function App() {
                       </Card>
 
                       <Card className="p-6">
-                        <h3 className="text-lg font-semibold mb-4 text-white">Variação de Equipe</h3>
+                        <h3 className="text-lg font-semibold mb-4 text-primary">Variação de Equipe</h3>
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Equipe Mês Anterior</span>
+                            <span className="text-secondary">Equipe Mês Anterior</span>
                             <span className="font-mono text-white">{comparativoMensal.headcountAnterior}</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Equipe Mês Atual</span>
+                            <span className="text-secondary">Equipe Mês Atual</span>
                             <span className="font-mono text-white">{totais.headcount.total}</span>
                           </div>
-                          <div className="pt-4 border-t border-slate-700 flex justify-between items-center">
-                            <span className="font-semibold text-white">Variação</span>
-                            <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varHeadcount > 0 ? 'text-cyan-400' : 'text-slate-400'}`}>
+                          <div className="pt-4 border-t border-base-strong flex justify-between items-center">
+                            <span className="font-semibold text-primary">Variação</span>
+                            <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varHeadcount > 0 ? 'text-info' : 'text-secondary'}`}>
                               {comparativoMensal.varHeadcount > 0 ? <Users size={18} /> : <Users size={18} />}
                               {totais.headcount.total - comparativoMensal.headcountAnterior} 
                               &nbsp;({comparativoMensal.varHeadcount > 0 ? '+' : ''}{comparativoMensal.varHeadcount.toFixed(0)}%)
@@ -4173,16 +4173,16 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setVariacoesOpen(!variacoesOpen)}
-                        className="w-full p-4 md:p-6 border-b border-slate-700 flex items-center justify-between text-left group transition-all active:bg-slate-800/40"
+                        className="w-full p-4 md:p-6 border-b border-base-strong flex items-center justify-between text-left group transition-all active:bg-surface-2/40"
                       >
                         <div className="min-w-0">
-                          <h3 className="text-base md:text-lg font-black text-white">Maiores Variações por Colaborador</h3>
-                          <p className="mt-1 text-[11px] md:text-xs text-slate-400 font-medium">
+                          <h3 className="text-base md:text-lg font-black text-primary">Maiores Variações por Colaborador</h3>
+                          <p className="mt-1 text-[11px] md:text-xs text-secondary font-medium">
                             {variacoesOpen ? 'Toque para recolher a análise detalhada' : 'Toque para expandir e ver as variações por colaborador'}
                           </p>
                         </div>
                         <div className={cn(
-                          "w-10 h-10 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center text-slate-400 group-hover:text-white transition-all",
+                          "w-10 h-10 rounded-2xl bg-surface-2/60 border border-base-strong/50 flex items-center justify-center text-secondary group-hover:text-white transition-all",
                           variacoesOpen ? "rotate-180" : ""
                         )}>
                           <ChevronDown size={20} />
@@ -4224,12 +4224,12 @@ export default function App() {
                           });
 
                         const colorFor = (status: string | null, perc: number) => {
-                          if (status === 'SAIU') return 'text-rose-400';
-                          if (status === 'NOVO') return 'text-emerald-400';
-                          if (perc > 15) return 'text-rose-400';
-                          if (perc < -15) return 'text-emerald-400';
-                          if (perc > 0) return 'text-amber-400';
-                          return 'text-slate-400';
+                          if (status === 'SAIU') return 'text-danger';
+                          if (status === 'NOVO') return 'text-success';
+                          if (perc > 15) return 'text-danger';
+                          if (perc < -15) return 'text-success';
+                          if (perc > 0) return 'text-warning';
+                          return 'text-secondary';
                         };
 
                         const statusPill = (status: string | null) => {
@@ -4238,8 +4238,8 @@ export default function App() {
                             <span className={cn(
                               "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border",
                               status === 'NOVO'
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                                ? "bg-success/10 text-success border-success/20"
+                                : "bg-danger/10 text-danger border-danger/20"
                             )}>
                               {status}
                             </span>
@@ -4249,18 +4249,18 @@ export default function App() {
                         return (
                           <>
                             {/* MOBILE: cards (no horizontal scroll) */}
-                            <div className="lg:hidden divide-y divide-slate-800/60">
+                            <div className="lg:hidden divide-y divide-base/60">
                               {items.map(({ id, nome, funcao, totalCurr, totalPrev, diff, perc, status }) => (
                                 <div key={id} className="p-4">
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2">
-                                        <div className="font-black text-slate-100 leading-snug break-words">
+                                        <div className="font-black text-secondary leading-snug break-words">
                                           {nome}
                                         </div>
                                         {statusPill(status)}
                                       </div>
-                                      <div className="mt-0.5 text-[11px] text-slate-500 font-bold truncate">
+                                      <div className="mt-0.5 text-[11px] text-muted font-bold truncate">
                                         {funcao || '—'}
                                       </div>
                                     </div>
@@ -4278,19 +4278,19 @@ export default function App() {
 
                                   {/* Metrics grid */}
                                   <div className="mt-3 grid grid-cols-2 gap-3">
-                                    <div className="rounded-2xl border border-slate-800/60 bg-slate-900/30 px-3 py-2">
-                                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                    <div className="rounded-2xl border border-base/60 bg-surface/30 px-3 py-2">
+                                      <div className="text-[9px] font-black uppercase tracking-widest text-muted">
                                         Mês anterior
                                       </div>
-                                      <div className="mt-0.5 font-mono text-sm text-slate-300">
+                                      <div className="mt-0.5 font-mono text-sm text-secondary">
                                         {totalPrev > 0 ? formatCurrency(totalPrev) : '—'}
                                       </div>
                                     </div>
-                                    <div className="rounded-2xl border border-slate-800/60 bg-slate-900/30 px-3 py-2">
-                                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                    <div className="rounded-2xl border border-base/60 bg-surface/30 px-3 py-2">
+                                      <div className="text-[9px] font-black uppercase tracking-widest text-muted">
                                         Mês atual
                                       </div>
-                                      <div className="mt-0.5 font-mono text-sm text-slate-100">
+                                      <div className="mt-0.5 font-mono text-sm text-secondary">
                                         {totalCurr > 0 ? formatCurrency(totalCurr) : '—'}
                                       </div>
                                     </div>
@@ -4298,7 +4298,7 @@ export default function App() {
 
                                   {/* Note (Ana) */}
                                   <div className="mt-3">
-                                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                                    <div className="text-[9px] font-black uppercase tracking-widest text-muted mb-2">
                                       Motivo (Ana)
                                     </div>
                                     <div className="relative">
@@ -4307,18 +4307,18 @@ export default function App() {
                                         onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
                                         onBlur={() => handleSaveNote(id)}
                                         placeholder="Ex.: férias (sem VT), bônus pontual, pico de matrículas..."
-                                        className="w-full h-[70px] resize-none bg-slate-900/40 border border-slate-700/50 rounded-2xl px-3 py-2 text-[11px] text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                                        className="w-full h-[70px] resize-none bg-surface/40 border border-base-strong/50 rounded-2xl px-3 py-2 text-[11px] text-secondary outline-none focus:ring-2 focus:ring-accent/40"
                                         disabled={noteSaving[id]}
                                         spellCheck="false"
                                       />
                                       {noteSaving[id] && (
-                                        <div className="absolute right-3 top-3 text-[10px] text-violet-400 font-bold flex items-center gap-1">
+                                        <div className="absolute right-3 top-3 text-[10px] text-accent font-bold flex items-center gap-1">
                                           <Loader2 size={10} className="animate-spin" />
                                           Salvando...
                                         </div>
                                       )}
                                       {noteSaved[id] && (
-                                        <div className="absolute right-3 top-3 text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                                        <div className="absolute right-3 top-3 text-[10px] text-success font-bold flex items-center gap-1">
                                           <CheckCircle size={10} />
                                           Salvo
                                         </div>
@@ -4333,7 +4333,7 @@ export default function App() {
                             <div className="hidden lg:block overflow-x-auto">
                               <table className="w-full text-left">
                                 <thead>
-                                  <tr className="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-wider">
+                                  <tr className="border-b border-base-strong text-xs text-secondary uppercase tracking-wider">
                                     <th className="py-4 px-6">Colaborador</th>
                                     <th className="py-4 px-2 text-right">Mês Anterior</th>
                                     <th className="py-4 px-2 text-right">Mês Atual</th>
@@ -4343,26 +4343,26 @@ export default function App() {
                                 </thead>
                                 <tbody>
                                   {items.map(({ id, nome, funcao, totalCurr, totalPrev, diff, perc, status }) => (
-                                    <tr key={id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
+                                    <tr key={id} className="border-b border-base-strong/50 hover:bg-surface-2/30">
                                       <td className="py-4 px-6">
                                         <div className="flex items-center gap-3">
                                           <div>
-                                            <div className="font-medium text-slate-200">{nome}</div>
-                                            <div className="text-xs text-slate-500">{funcao}</div>
+                                            <div className="font-medium text-secondary">{nome}</div>
+                                            <div className="text-xs text-muted">{funcao}</div>
                                           </div>
                                           {status && (
                                             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                              status === 'NOVO' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+                                              status === 'NOVO' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
                                             }`}>
                                               {status}
                                             </span>
                                           )}
                                         </div>
                                       </td>
-                                      <td className="py-4 px-2 text-right font-mono text-sm text-slate-400">
+                                      <td className="py-4 px-2 text-right font-mono text-sm text-secondary">
                                         {totalPrev > 0 ? formatCurrency(totalPrev) : '-'}
                                       </td>
-                                      <td className="py-4 px-2 text-right font-mono text-sm text-slate-200">
+                                      <td className="py-4 px-2 text-right font-mono text-sm text-secondary">
                                         {totalCurr > 0 ? formatCurrency(totalCurr) : '-'}
                                       </td>
                                       <td className="py-4 px-6">
@@ -4372,18 +4372,18 @@ export default function App() {
                                             onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
                                             onBlur={() => handleSaveNote(id)}
                                             placeholder="Ex.: férias (sem VT), bônus pontual, pico de matrículas..."
-                                            className="w-full min-w-[280px] h-[52px] resize-none bg-slate-900/40 border border-slate-700/50 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40"
+                                            className="w-full min-w-[280px] h-[52px] resize-none bg-surface/40 border border-base-strong/50 rounded-xl px-3 py-2 text-xs text-secondary outline-none focus:ring-2 focus:ring-accent/40"
                                             disabled={noteSaving[id]}
                                             spellCheck="false"
                                           />
                                           {noteSaving[id] && (
-                                            <div className="absolute right-3 top-3 text-[10px] text-violet-400 font-bold flex items-center gap-1">
+                                            <div className="absolute right-3 top-3 text-[10px] text-accent font-bold flex items-center gap-1">
                                               <Loader2 size={10} className="animate-spin" />
                                               SALVANDO...
                                             </div>
                                           )}
                                           {noteSaved[id] && (
-                                            <div className="absolute right-3 top-3 text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                                            <div className="absolute right-3 top-3 text-[10px] text-success font-bold flex items-center gap-1">
                                               <CheckCircle size={10} />
                                               SALVO
                                             </div>
@@ -4422,7 +4422,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setMobileCollabDetail(null)}
-                          className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-black transition-all active:scale-95"
+                          className="flex-1 px-6 py-3.5 rounded-2xl bg-surface-2/60 hover:bg-surface-2 text-secondary font-black transition-all active:scale-95"
                         >
                           Fechar
                         </button>
@@ -4433,7 +4433,7 @@ export default function App() {
                             setIsCollabModalOpen(true);
                             setMobileCollabDetail(null);
                           }}
-                          className="flex-1 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 active:scale-95"
+                          className="flex-1 px-6 py-3.5 rounded-2xl bg-accent hover:bg-accent text-white font-black transition-all shadow-lg shadow-accent/20 active:scale-95"
                         >
                           Editar
                         </button>
@@ -4443,7 +4443,7 @@ export default function App() {
                             handleToggleInactiveCollab(mobileCollabDetail);
                             setMobileCollabDetail(null);
                           }}
-                          className="flex-1 px-6 py-3.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all shadow-lg shadow-amber-600/20 active:scale-95"
+                          className="flex-1 px-6 py-3.5 rounded-2xl bg-warning hover:bg-warning text-white font-black transition-all shadow-lg shadow-warning/20 active:scale-95"
                         >
                           {mobileCollabDetail.status === 'active' ? 'Inativar' : 'Reativar'}
                         </button>
@@ -4453,7 +4453,7 @@ export default function App() {
                             handleDeleteCollab(mobileCollabDetail);
                             setMobileCollabDetail(null);
                           }}
-                          className="flex-1 px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black transition-all shadow-lg shadow-rose-600/20 active:scale-95"
+                          className="flex-1 px-6 py-3.5 rounded-2xl bg-danger hover:bg-danger text-white font-black transition-all shadow-lg shadow-danger/20 active:scale-95"
                         >
                           Excluir
                         </button>
@@ -4480,28 +4480,28 @@ export default function App() {
             {statusFolha === 'pendente' && (
               <div className="fixed bottom-6 left-0 right-0 px-4 z-40 pointer-events-none">
                 <div className="max-w-3xl mx-auto pointer-events-auto">
-                    <div className="bg-slate-800/90 backdrop-blur-md border border-amber-500/30 shadow-2xl shadow-black/50 p-4 rounded-2xl flex items-center justify-between gap-4">
+                    <div className="bg-surface-2/90 backdrop-blur-md border border-warning/30 shadow-2xl shadow-black/50 p-4 rounded-2xl flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-500/20 rounded-lg text-amber-400">
+                            <div className="p-2 bg-warning/20 rounded-lg text-warning">
                                 <Clock size={20} />
                             </div>
                             <div>
-                                <div className="font-bold text-white text-sm">Aprovação Necessária</div>
-                                <div className="text-xs text-slate-400">Esta folha está pendente de revisão.</div>
+                                <div className="font-bold text-primary text-sm">Aprovação Necessária</div>
+                                <div className="text-xs text-secondary">Esta folha está pendente de revisão.</div>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
                             <Tooltip content="Rejeitar">
                             <button 
                                 onClick={() => handleUpdateStatus('rascunho')}
-                                className="p-2 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors"
+                                className="p-2 hover:bg-danger/20 text-danger rounded-lg transition-colors"
                             >
                                 <XCircle size={20} />
                             </button>
                             </Tooltip>
                             <button 
                                 onClick={() => handleUpdateStatus('aprovada')}
-                                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm font-bold transition-colors shadow-lg shadow-emerald-500/20"
+                                className="flex items-center gap-2 px-4 py-2 bg-success hover:bg-success text-white rounded-lg text-sm font-bold transition-colors shadow-lg shadow-success/20"
                             >
                                 <CheckCircle size={16} />
                                 Aprovar
@@ -4518,7 +4518,7 @@ export default function App() {
       
       {/* Mobile Bottom Navbar (4 módulos) */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-[10500] border-t border-slate-800/70 bg-[#0f172a]"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[10500] border-t border-base/70 bg-surface"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)' }}
         aria-label="Navegação inferior"
       >
@@ -4541,13 +4541,13 @@ export default function App() {
                   className={cn(
                     'flex flex-col items-center justify-center gap-1.5 py-3 transition-all',
                     active
-                      ? 'text-violet-400'
-                      : 'text-slate-500 hover:text-slate-300'
+                      ? 'text-accent'
+                      : 'text-muted hover:text-secondary'
                   )}
                   aria-label={item.label}
                 >
                   <Icon className={cn("w-6 h-6 transition-all", active && "scale-110 drop-shadow-[0_0_8px_rgba(167,139,250,0.4)]")} />
-                  <span className={cn("text-[11px] font-medium transition-colors", active ? "text-violet-400" : "text-slate-500")}>
+                  <span className={cn("text-[11px] font-medium transition-colors", active ? "text-accent" : "text-muted")}>
                     {item.label}
                   </span>
                 </button>
