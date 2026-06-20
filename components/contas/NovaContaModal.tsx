@@ -195,13 +195,13 @@ export const NovaContaModal: React.FC<{
                 }
               }}
               className={cn(
-                "w-full sm:w-auto px-10 py-4 rounded-[2rem] text-white font-black shadow-xl transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2",
+                "w-full sm:w-auto px-10 py-4 rounded-[2rem] font-black shadow-xl transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2",
                 isFormValid && !saving
-                  ? "bg-accent hover:bg-accent/80 shadow-accent/20"
-                  : "bg-surface-3 cursor-not-allowed shadow-none opacity-60"
+                  ? "bg-accent hover:bg-accent/80 shadow-accent/20 text-white"
+                  : "bg-surface-3 cursor-not-allowed shadow-none opacity-60 text-muted"
               )}
             >
-              {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
+              {saving ? <div className="w-4 h-4 border-2 border-transparent border-t-current rounded-full animate-spin" /> : <Plus size={16} />}
               Confirmar Lançamento
             </button>
           </div>
