@@ -53,7 +53,7 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
             className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg overflow-hidden shrink-0"
             style={{ backgroundColor: deptColor }}
           >
-            {colaborador.id === 2 || colaborador.nome?.includes('Ana Paula') ? (
+            {colaborador.colaborador_id === 2 || colaborador.nome?.includes('Ana Paula') ? (
               <img src="/Avatar_Ana.png" alt="Ana Paula" className="w-full h-full object-cover" />
             ) : colaborador.foto_url ? (
               <img src={colaborador.foto_url} alt={colaborador.nome} className="w-full h-full object-cover" />

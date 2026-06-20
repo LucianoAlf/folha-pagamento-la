@@ -54,7 +54,8 @@ const COLOR_PRESETS = [
 
 type ListKey = `smart:${string}` | `list:${string}` | 'config';
 type Mode = 'tarefas' | 'config';
-type ViewMode = 'lista' | 'cards' | 'kanban' | 'mes' | 'semana' | '3dias' | 'dia';
+// Mantido em sincronia com AgendaViewMode (AgendaHeader) — mesmos membros.
+type ViewMode = 'lista' | 'cards' | 'kanban' | 'mes' | 'calendario' | 'semana' | '3dias' | 'dia';
 
 const SMART_MEUDIA = 'smart:meu-dia' as const;
 const SMART_IMPORTANTE = 'smart:importante' as const;

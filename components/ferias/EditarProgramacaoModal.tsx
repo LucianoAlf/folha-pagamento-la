@@ -214,10 +214,8 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
                 📅 Data de Início
               </label>
               <DatePicker
-                selected={dataInicio}
-                onChange={handleDataInicioChange}
-                minDate={parseISODate(periodo.concessivo_inicio)}
-                maxDate={parseISODate(periodo.concessivo_fim)}
+                value={dataInicio ? toISODate(dataInicio) : undefined}
+                onChange={(s) => handleDataInicioChange(s ? parseISODate(s) : null)}
                 className="w-full"
               />
             </div>
@@ -227,10 +225,8 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
                 📅 Data de Fim
               </label>
               <DatePicker
-                selected={dataFim}
-                onChange={setDataFim}
-                minDate={dataInicio || undefined}
-                maxDate={parseISODate(periodo.concessivo_fim)}
+                value={dataFim ? toISODate(dataFim) : undefined}
+                onChange={(s) => setDataFim(s ? parseISODate(s) : null)}
                 className="w-full"
               />
             </div>

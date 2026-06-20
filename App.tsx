@@ -2176,10 +2176,13 @@ export default function App() {
                               ? (draftLancamento as any)[activeNoteField]
                               : (editingLancamento as any)?.[activeNoteField]) ?? 0;
 
-                          const noteValue =
-                            (isCreatingLancamento
+                          const noteRaw =
+                            isCreatingLancamento
                               ? draftLancamento.detalhamento?.[activeNoteField]
-                              : editingLancamento?.detalhamento?.[activeNoteField]) || '';
+                              : editingLancamento?.detalhamento?.[activeNoteField];
+                          // detalhamento pode conter metadados (BistroDescontoMeta);
+                          // estes campos de nota são sempre texto.
+                          const noteValue = typeof noteRaw === 'string' ? noteRaw : '';
 
                           return (
                             <div className="space-y-3">

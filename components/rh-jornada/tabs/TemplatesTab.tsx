@@ -548,10 +548,10 @@ export const TemplatesTab: React.FC = () => {
                           async () => {
                             await rhJornadaService.updateTemplateStage(stage.id, {
                               titulo: stage.titulo,
-                              categoria: stage.categoria,
+                              categoria: stage.categoria as RhStageCategory,
                               ordem: stage.ordem,
                               obrigatoria: stage.obrigatoria,
-                              responsavel_padrao_papel: stage.responsavel_padrao_papel || null,
+                              responsavel_padrao_papel: (stage.responsavel_padrao_papel || null) as RhParticipantRole | null,
                               instrucoes: stage.instrucoes || null,
                               modelo_mensagem: stage.modelo_mensagem || null,
                               link_referencia: stage.link_referencia || null,
@@ -1018,7 +1018,7 @@ export const TemplatesTab: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <button type="button" onClick={async () => { const template = selectedPdiTemplate; setSaving(true); await run(async () => { await rhJornadaService.updatePdiTemplate(template.id, pdiTemplateForm); await refreshPdiTemplateDetails(template.id); }, { success: 'Template de PDI salvo.', error: 'Não foi possível salvar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Salvar template de PDI</button>
+                      <button type="button" onClick={async () => { const template = selectedPdiTemplate; setSaving(true); await run(async () => { await rhJornadaService.updatePdiTemplate(template.id, { ...pdiTemplateForm, ciclo_tipo: pdiTemplateForm.ciclo_tipo || null }); await refreshPdiTemplateDetails(template.id); }, { success: 'Template de PDI salvo.', error: 'Não foi possível salvar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Salvar template de PDI</button>
                       <button type="button" onClick={async () => { const template = selectedPdiTemplate; setSaving(true); await run(async () => { await rhJornadaService.archivePdiTemplate(template.id); await refreshPdiTemplateDetails(template.id); }, { success: 'Template de PDI arquivado.', error: 'Não foi possível arquivar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all">Arquivar</button>
                     </div>
 

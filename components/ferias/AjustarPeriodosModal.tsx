@@ -109,6 +109,8 @@ export const AjustarPeriodosModal: React.FC<{
               dias_vendidos: p.dias_vendidos || 0,
               status: p.status,
               observacoes: p.observacoes || '',
+              concessivo_inicio: p.concessivo_inicio,
+              concessivo_fim: p.concessivo_fim,
             },
           ])
         )
@@ -426,6 +428,8 @@ export const AjustarPeriodosModal: React.FC<{
                             dias_vendidos: 0,
                             status: p.status,
                             observacoes: '',
+                            concessivo_inicio: p.concessivo_inicio,
+                            concessivo_fim: p.concessivo_fim,
                           }),
                           observacoes: e.target.value,
                         },

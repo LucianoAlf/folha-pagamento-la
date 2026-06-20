@@ -204,11 +204,11 @@ export const rhJornadaService = {
   },
 
   async fetchDashboardAiInsights(force = false): Promise<RhDashboardAiInsight> {
-    return this.invokeAiFunction<RhDashboardAiInsight>('rh-ai-dashboard-insights', { force });
+    return rhJornadaService.invokeAiFunction<RhDashboardAiInsight>('rh-ai-dashboard-insights', { force });
   },
 
   async fetchJourneyAiInsights(colaboradorId: number, planId?: string | null, force = false): Promise<RhJourneyAiInsight> {
-    return this.invokeAiFunction<RhJourneyAiInsight>('rh-ai-journey-insights', {
+    return rhJornadaService.invokeAiFunction<RhJourneyAiInsight>('rh-ai-journey-insights', {
       colaboradorId,
       planId: planId || null,
       force,
@@ -1232,11 +1232,11 @@ export const rhJornadaService = {
       body.fileBase64 = await readFileAsBase64(input.file);
     }
 
-    return this.invokeAiFunction<RhCandidateAiDraft>('rh-ai-candidate-parse', body);
+    return rhJornadaService.invokeAiFunction<RhCandidateAiDraft>('rh-ai-candidate-parse', body);
   },
 
   async compareCandidatesWithAi(candidateIds: string[]): Promise<RhCandidateComparisonResult> {
-    return this.invokeAiFunction<RhCandidateComparisonResult>('rh-ai-candidate-compare', { candidateIds });
+    return rhJornadaService.invokeAiFunction<RhCandidateComparisonResult>('rh-ai-candidate-compare', { candidateIds });
   },
 
   async updateCandidate(id: string, payload: Partial<RhCandidateCreateInput> & { status?: string }): Promise<RhCandidate> {

@@ -413,7 +413,7 @@ export const ToggleSwitch: React.FC<{
   onCheckedChange: (next: boolean) => void;
   disabled?: boolean;
   size?: 'sm' | 'md';
-  variant?: 'violet' | 'emerald' | 'cyan';
+  variant?: 'violet' | 'emerald' | 'cyan' | 'rose' | 'amber';
   ariaLabel?: string;
 }> = ({ checked, onCheckedChange, disabled = false, size = 'md', variant = 'violet', ariaLabel }) => {
   const dims =
@@ -426,7 +426,11 @@ export const ToggleSwitch: React.FC<{
       ? { onBg: 'bg-emerald-500/25 border-emerald-500/40', onDot: 'bg-emerald-400' }
       : variant === 'cyan'
         ? { onBg: 'bg-cyan-500/20 border-cyan-500/35', onDot: 'bg-cyan-300' }
-        : { onBg: 'bg-violet-500/15 border-violet-500/30', onDot: 'bg-violet-300' };
+        : variant === 'rose'
+          ? { onBg: 'bg-rose-500/25 border-rose-500/40', onDot: 'bg-rose-400' }
+          : variant === 'amber'
+            ? { onBg: 'bg-amber-500/25 border-amber-500/40', onDot: 'bg-amber-400' }
+            : { onBg: 'bg-violet-500/15 border-violet-500/30', onDot: 'bg-violet-300' };
 
   return (
     <button
@@ -740,6 +744,7 @@ interface CustomSelectProps {
   icon?: React.ElementType;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -749,6 +754,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   icon: Icon,
   placeholder = 'Selecione...',
   className = '',
+  disabled = false,
 }) => {
   // Radix Select NÃO permite Select.Item com value="".
   // Porém usamos "" como "nenhuma seleção" em alguns campos (ex.: lista/unidade).
@@ -761,6 +767,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   return (
     <Select.Root
       value={safeValue}
+      disabled={disabled}
       onValueChange={(v) => onValueChange(v === EMPTY_SENTINEL ? '' : v)}
     >
       <Select.Trigger 

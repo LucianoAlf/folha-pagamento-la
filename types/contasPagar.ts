@@ -32,7 +32,10 @@ export interface ContaPagar {
   recorrente_modelo_id?: string | null;
 }
 
-export type StatusVisual = 'vencida' | 'urgente' | 'pendente' | 'pago';
+// 'hoje' é um estado visual previsto pela UI (badges/cores dedicados). Hoje
+// getStatusVisual ainda não o produz (contas que vencem hoje caem em 'urgente');
+// manter no tipo deixa os componentes que já o tratam coerentes.
+export type StatusVisual = 'vencida' | 'urgente' | 'hoje' | 'pendente' | 'pago';
 
 export const METODOS_PAGAMENTO = [
   'PIX',

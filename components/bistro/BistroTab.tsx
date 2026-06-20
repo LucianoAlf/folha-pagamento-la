@@ -306,18 +306,24 @@ export const BistroTab: React.FC<{
       .eq('folha_id', folhaAtual.id)
       .eq('colaborador_id', colabId)
       .limit(1)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          console.warn('[bistro] fetch lucia lancamento failed', error);
-          setLuciaLancRemote(null);
-          return;
+      // .then(onFulfilled, onRejected) em vez de .finally: o builder do
+      // Supabase é PromiseLike (sem .finally tipado). O loading=false roda
+      // em ambos os casos, replicando o finally.
+      .then(
+        ({ data, error }) => {
+          if (cancelled) return;
+          if (error) {
+            console.warn('[bistro] fetch lucia lancamento failed', error);
+            setLuciaLancRemote(null);
+          } else {
+            setLuciaLancRemote((data && data.length ? (data[0] as any) : null) as any);
+          }
+          setLuciaLancRemoteLoading(false);
+        },
+        () => {
+          if (!cancelled) setLuciaLancRemoteLoading(false);
         }
-        setLuciaLancRemote((data && data.length ? (data[0] as any) : null) as any);
-      })
-      .finally(() => {
-        if (!cancelled) setLuciaLancRemoteLoading(false);
-      });
+      );
     return () => {
       cancelled = true;
     };

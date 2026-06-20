@@ -3,7 +3,7 @@ import { Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 
 export type AgendaMode = 'tarefas' | 'config';
-export type AgendaViewMode = 'lista' | 'kanban' | 'mes' | 'semana' | '3dias' | 'dia';
+export type AgendaViewMode = 'lista' | 'cards' | 'kanban' | 'mes' | 'calendario' | 'semana' | '3dias' | 'dia';
 
 export const AgendaHeader: React.FC<{
   leftIcon?: React.ReactNode;
@@ -121,9 +121,9 @@ export const AgendaHeader: React.FC<{
                     onClick={onOpenConfig}
                     className={cn(
                       'w-10 h-10 md:w-11 md:h-11 rounded-2xl border flex items-center justify-center transition-all',
-                      mode === 'config'
-                        ? 'bg-violet-500/15 border-violet-500/25 text-violet-300'
-                        : 'bg-slate-900/20 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900/40'
+                      // Este botão só é renderizado no modo 'tarefas' (ternário acima),
+                      // então sempre exibe o estilo inativo.
+                      'bg-slate-900/20 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900/40'
                     )}
                     aria-label="Configurações"
                   >

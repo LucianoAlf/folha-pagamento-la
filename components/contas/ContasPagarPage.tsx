@@ -1915,7 +1915,7 @@ export const ContasPagarPage: React.FC<{
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className={cn(
                       "text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider",
-                      c.tipo_custo === 'FIXO' ? "bg-blue-500/10 text-blue-400" : "bg-amber-500/10 text-amber-400"
+                      c.tipo_custo === 'fixo' ? "bg-blue-500/10 text-blue-400" : "bg-amber-500/10 text-amber-400"
                     )}>
                       {c.tipo_custo || 'VARIÁVEL'}
                     </span>
