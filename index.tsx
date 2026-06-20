@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ToastProvider } from './hooks/useToast';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ThemeProvider } from './hooks/useTheme';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -19,8 +20,8 @@ function FatalBootError({ error }: { error: unknown }) {
       style={{
         minHeight: '100vh',
         padding: 24,
-        background: '#0f172a',
-        color: 'white',
+        background: 'rgb(var(--bg))',
+        color: 'rgb(var(--text))',
         fontFamily:
           "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,Arial,sans-serif",
       }}
@@ -61,9 +62,11 @@ async function bootstrap() {
     root.render(
       <React.StrictMode>
         <ErrorBoundary>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
+          <ThemeProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </ThemeProvider>
         </ErrorBoundary>
       </React.StrictMode>
     );
