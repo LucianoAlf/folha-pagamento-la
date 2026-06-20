@@ -40,3 +40,6 @@ supabase/.temp/
 /tmp-deploy-results/
 /tmp-mcp-invoke/
 /tmp-mcp-args/
+
+# Superpowers visual brainstorming companion (mockups/state)
+.superpowers/
