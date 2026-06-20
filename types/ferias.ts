@@ -209,6 +209,13 @@ export interface FeriasAiInsightsJson {
   recomendacoes_operacionais: string[];
 }
 
+/** Retorno da edge function ferias-ai-insights (wrapper com metadados). */
+export interface FeriasAiInsightResult {
+  data: FeriasAiInsightsJson;
+  generatedAt: string;
+  cached: boolean;
+}
+
 /**
  * Insight de IA armazenado no banco
  */

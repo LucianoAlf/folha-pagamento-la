@@ -498,10 +498,10 @@ export const TimeSelect: React.FC<{
   );
 };
 
-export const Modal: React.FC<{ 
-  isOpen: boolean; 
-  onClose: () => void; 
-  title: string; 
+export const Modal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
   subtitle?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -509,11 +509,18 @@ export const Modal: React.FC<{
   headerClassName?: string;
   position?: 'center' | 'bottom' | 'left';
   overlayClassName?: string;
-}> = ({ isOpen, onClose, title, subtitle, children, footer, className = '', headerClassName = '', position = 'center', overlayClassName = '' }) => {
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  headerIcon?: React.ReactNode;
+}> = ({ isOpen, onClose, title, subtitle, children, footer, className = '', headerClassName = '', position = 'center', overlayClassName = '', size, headerIcon }) => {
   const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose);
   const titleId = useId();
   const subtitleId = useId();
   if (!isOpen) return null;
+
+  // Largura no modo 'center'. Default preservado em max-w-2xl (= 'lg').
+  const sizeClass = size
+    ? { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-2xl', xl: 'max-w-4xl' }[size]
+    : 'max-w-2xl';
 
   return (
     <div
@@ -539,7 +546,7 @@ export const Modal: React.FC<{
           "w-full flex flex-col p-0 overflow-visible shadow-2xl animate-in duration-200 focus:outline-none",
           position === 'bottom' ? "max-w-none rounded-t-3xl rounded-b-none max-h-[85vh] slide-in-from-bottom" :
           position === 'left' ? "w-[280px] max-w-[85vw] h-full rounded-none slide-in-from-left" :
-          "max-w-2xl max-h-[90vh] zoom-in fade-in",
+          `${sizeClass} max-h-[90vh] zoom-in fade-in`,
           className
         )}
       >
@@ -547,13 +554,16 @@ export const Modal: React.FC<{
           "sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b shrink-0 transition-colors",
           headerClassName || "bg-slate-900/80 backdrop-blur-md border-slate-700/50"
         )}>
-          <div className="min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            {headerIcon ? <div className="shrink-0">{headerIcon}</div> : null}
+            <div className="min-w-0">
             <div id={titleId} className="text-white font-black text-lg tracking-wider uppercase truncate">{title}</div>
             {subtitle ? (
               <div id={subtitleId} className="mt-1 text-[11px] font-bold text-white/85 leading-snug">
                 {subtitle}
               </div>
             ) : null}
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -687,7 +697,7 @@ export const AlertDialog: React.FC<{
   );
 };
 
-export const Badge: React.FC<{ children: React.ReactNode; variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple' }> = ({ children, variant = 'default' }) => {
+export const Badge: React.FC<{ children: React.ReactNode; variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple'; className?: string }> = ({ children, variant = 'default', className = '' }) => {
   const variants = {
     default: 'bg-slate-700 text-slate-300',
     success: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
@@ -697,7 +707,7 @@ export const Badge: React.FC<{ children: React.ReactNode; variant?: 'default' | 
     purple: 'bg-violet-500/20 text-violet-400 border border-violet-500/30',
   };
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${variants[variant]}`}>
+    <span className={cn(`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${variants[variant]}`, className)}>
       {children}
     </span>
   );

@@ -1965,7 +1965,7 @@ export const ContasPagarPage: React.FC<{
             }}
             title="Confirmar Exclusão"
             message={`Tem certeza que deseja excluir a categoria \"${confirmDeleteCategoria.nome}\"?`}
-            confirmText="Excluir"
+            confirmLabel="Excluir"
             variant="danger"
           />
         )}

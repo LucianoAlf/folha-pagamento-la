@@ -9,6 +9,7 @@ import {
   FeriasProgramacao,
   FeriasColaboradorStatus,
   FeriasAiInsight,
+  FeriasAiInsightResult,
   FeriasHistoricoAcao,
   FeriasProgramacaoInput,
   FeriasValorCalculado,
@@ -361,7 +362,7 @@ export const feriasService = {
     departamento?: string;
     unidade?: string;
     force?: boolean;
-  }): Promise<FeriasAiInsight> {
+  }): Promise<FeriasAiInsightResult> {
     const { data, error } = await supabase.functions.invoke('ferias-ai-insights', {
       body: input,
     });
@@ -371,7 +372,7 @@ export const feriasService = {
       throw new Error(`Erro ao gerar insights IA: ${msg}`);
     }
 
-    return data as FeriasAiInsight;
+    return data as FeriasAiInsightResult;
   },
 
   /**

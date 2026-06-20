@@ -596,8 +596,8 @@ export const FeriasPage: React.FC = () => {
           message={`Tem certeza que deseja cancelar a programação de férias de ${
             new Date(programacaoSelecionada.data_inicio).toLocaleDateString('pt-BR')
           } a ${new Date(programacaoSelecionada.data_fim).toLocaleDateString('pt-BR')}?`}
-          confirmText="Sim, Cancelar"
-          cancelText="Não, Manter"
+          confirmLabel="Sim, Cancelar"
+          cancelLabel="Não, Manter"
           variant="danger"
         />
       )}

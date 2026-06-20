@@ -117,6 +117,7 @@ export interface NotificacaoConfig {
   google_calendar_id?: string | null;
   // Agenda
   agenda_lembrete_tarefas_ativo?: boolean;
+  agenda_lembrete_aniversarios_ativo?: boolean;
   resumo_diario_ativo: boolean;
   resumo_diario_hora: string;
   resumo_semanal_ativo: boolean;
@@ -142,6 +143,16 @@ export interface NotificacaoConfig {
   folha_alerta_fechamento_ativo?: boolean;
   folha_alerta_fechamento_dia?: number;
   folha_alerta_aprovacao_pendente_ativo?: boolean;
+  // Férias (espelha a edge function whatsapp-ferias-alertas)
+  ferias_alerta_vencimento_multa?: boolean;
+  ferias_alerta_concessivo_critico?: boolean;
+  ferias_alerta_concessivo_dias?: number;
+  ferias_alerta_pagamento_pendente?: boolean;
+  ferias_alerta_aquisitivo_prox?: boolean;
+  ferias_alerta_aquisitivo_dias?: number;
+  ferias_resumo_mensal_ativo?: boolean;
+  ferias_resumo_mensal_dia?: number;
+  ferias_resumo_mensal_hora?: number;
   // Aparência da Agenda
   agenda_bg_preset?: string | null;
   agenda_bg_url?: string | null;
