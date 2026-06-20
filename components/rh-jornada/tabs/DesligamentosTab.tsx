@@ -105,7 +105,7 @@ const DesligamentoCreateModal: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-3 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-300 font-black hover:bg-slate-900/60 transition-all"
+            className="px-6 py-3 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all"
           >
             Cancelar
           </button>
@@ -154,8 +154,8 @@ const DesligamentoCreateModal: React.FC<{
               }
             }}
             className={cn(
-              'px-8 py-3 rounded-2xl font-black text-white transition-all flex items-center gap-2',
-              saving || !templateId || !colaboradorId || !dataInicio ? 'bg-slate-700 opacity-60 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500'
+              'px-8 py-3 rounded-2xl font-black text-primary transition-all flex items-center gap-2',
+              saving || !templateId || !colaboradorId || !dataInicio ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-accent hover:bg-accent'
             )}
           >
             <Plus className="w-4 h-4" />
@@ -165,74 +165,74 @@ const DesligamentoCreateModal: React.FC<{
       }
     >
       <div className="space-y-6">
-        {error ? <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm font-bold text-rose-300">{error}</div> : null}
+        {error ? <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm font-bold text-danger">{error}</div> : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Colaborador *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Colaborador *</div>
             <CustomSelect value={colaboradorId} onValueChange={setColaboradorId} options={colaboradorOptions} placeholder="Selecione..." />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Modelo *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Modelo *</div>
             <CustomSelect value={templateId} onValueChange={setTemplateId} options={templateOptions} placeholder="Selecione..." />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Data de abertura *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Data de abertura *</div>
             <DatePicker value={dataInicio} onChange={setDataInicio} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Fim previsto</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Fim previsto</div>
             <DatePicker value={dataFim} onChange={setDataFim} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Motivo *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Motivo *</div>
             <CustomSelect value={motivoTipo} onValueChange={setMotivoTipo} options={MOTIVO_OPTIONS} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Aviso prévio *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Aviso prévio *</div>
             <CustomSelect value={avisoTipo} onValueChange={setAvisoTipo} options={AVISO_OPTIONS} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Início do aviso</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Início do aviso</div>
             <DatePicker value={avisoInicio} onChange={setAvisoInicio} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Fim do aviso</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Fim do aviso</div>
             <DatePicker value={avisoFim} onChange={setAvisoFim} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Redução de jornada</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Redução de jornada</div>
             <CustomSelect value={reducao} onValueChange={setReducao} options={REDUCAO_OPTIONS} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Prioridade</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Prioridade</div>
             <CustomSelect value={prioridade} onValueChange={setPrioridade} options={PRIORIDADE_OPTIONS} />
           </div>
           <div className="md:col-span-2">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Título</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Título</div>
             <input
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               placeholder="Ex: Desligamento João Silva"
-              className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+              className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
             />
           </div>
           <div className="md:col-span-2">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Detalhamento do motivo</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Detalhamento do motivo</div>
             <textarea
               value={motivoDetalhado}
               onChange={(e) => setMotivoDetalhado(e.target.value)}
               rows={4}
-              className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none"
+              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
               placeholder="Explique o contexto e o motivo detalhado da saída"
             />
           </div>
           <div className="md:col-span-2">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Observações operacionais</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Observações operacionais</div>
             <textarea
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               rows={4}
-              className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none"
+              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
               placeholder="Alinhamentos do aviso prévio, financeiro, acessos e próximos passos"
             />
           </div>
@@ -347,38 +347,38 @@ export const DesligamentosTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Ativos</div>
-          <div className="mt-2 text-3xl font-black text-white">{activeProcessesCount}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Desligamentos abertos</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Ativos</div>
+          <div className="mt-2 text-3xl font-black text-primary">{activeProcessesCount}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Desligamentos abertos</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Etapas</div>
-          <div className="mt-2 text-3xl font-black text-white">{selectedProcess?.total_etapas || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400 truncate">{selectedProcessContext}</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Etapas</div>
+          <div className="mt-2 text-3xl font-black text-primary">{selectedProcess?.total_etapas || 0}</div>
+          <div className="mt-1 text-xs font-bold text-muted truncate">{selectedProcessContext}</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Aviso</div>
-          <div className="mt-2 text-xl font-black text-amber-300">{offboarding?.aviso_previo_tipo || '—'}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Tipo de aviso prévio</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Aviso</div>
+          <div className="mt-2 text-xl font-black text-warning">{offboarding?.aviso_previo_tipo || '—'}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Tipo de aviso prévio</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Status doc.</div>
-          <div className="mt-2 text-xl font-black text-violet-300">{offboarding?.status_documental || 'pendente'}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Controle rescisório</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Status doc.</div>
+          <div className="mt-2 text-xl font-black text-accent">{offboarding?.status_documental || 'pendente'}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Controle rescisório</div>
         </Card>
       </div>
 
-      <Card className="p-5 border border-slate-700/50">
+      <Card className="p-5 border border-strong/50">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-white text-lg font-black">Desligamentos ativos</div>
-            <div className="text-sm font-bold text-slate-400">Abra a jornada de saída com aviso prévio, checklist e etapas de encerramento.</div>
+            <div className="text-primary text-lg font-black">Desligamentos ativos</div>
+            <div className="text-sm font-bold text-muted">Abra a jornada de saída com aviso prévio, checklist e etapas de encerramento.</div>
           </div>
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="px-5 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black flex items-center gap-2 transition-all"
+            className="px-5 py-3.5 rounded-2xl bg-accent hover:bg-accent text-white font-black flex items-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
             Novo desligamento
@@ -387,19 +387,19 @@ export const DesligamentosTab: React.FC = () => {
       </Card>
 
       {processes.length === 0 ? (
-        <Card className="p-10 border border-dashed border-slate-700 bg-slate-900/30 text-center">
-          <div className="mx-auto w-14 h-14 rounded-3xl bg-slate-800/70 flex items-center justify-center mb-4">
-            <LogOut className="w-6 h-6 text-slate-400" />
+        <Card className="p-10 border border-dashed border-strong bg-surface/30 text-center">
+          <div className="mx-auto w-14 h-14 rounded-3xl bg-surface-2/70 flex items-center justify-center mb-4">
+            <LogOut className="w-6 h-6 text-muted" />
           </div>
-          <div className="text-white font-black">Nenhum desligamento criado</div>
-          <div className="mt-2 text-sm font-bold text-slate-400">Use o modelo padrão para abrir a primeira jornada de saída.</div>
+          <div className="text-primary font-black">Nenhum desligamento criado</div>
+          <div className="mt-2 text-sm font-bold text-muted">Use o modelo padrão para abrir a primeira jornada de saída.</div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
-          <Card className="p-5 border border-slate-700/50">
+          <Card className="p-5 border border-strong/50">
             <div className="flex items-center gap-2 mb-4">
-              <Route className="w-4 h-4 text-cyan-300" />
-              <h3 className="text-white text-base font-black">Lista de processos</h3>
+              <Route className="w-4 h-4 text-info" />
+              <h3 className="text-primary text-base font-black">Lista de processos</h3>
             </div>
             <div className="space-y-3">
               {processes.map((process) => {
@@ -413,14 +413,14 @@ export const DesligamentosTab: React.FC = () => {
                     onClick={() => setSelectedProcessId(process.id)}
                     className={[
                       'w-full rounded-3xl border p-4 text-left transition-all',
-                      active ? 'border-violet-500/30 bg-violet-500/10' : 'border-slate-800 bg-slate-900/30 hover:bg-slate-900/50',
+                      active ? 'border-accent/30 bg-accent/10' : 'border-base bg-surface/30 hover:bg-surface/50',
                     ].join(' ')}
                   >
-                    <div className="text-white font-black truncate">{process.titulo}</div>
-                    <div className="mt-1 text-xs font-bold text-slate-400 truncate">{colaborador?.nome || process.cargo || 'Colaborador'}</div>
+                    <div className="text-primary font-black truncate">{process.titulo}</div>
+                    <div className="mt-1 text-xs font-bold text-muted truncate">{colaborador?.nome || process.cargo || 'Colaborador'}</div>
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <Badge variant={status.variant}>{status.label}</Badge>
-                      <div className="text-[11px] font-bold text-slate-500">{Math.round(process.percentual_conclusao)}%</div>
+                      <div className="text-[11px] font-bold text-muted">{Math.round(process.percentual_conclusao)}%</div>
                     </div>
                   </button>
                 );
@@ -429,11 +429,11 @@ export const DesligamentosTab: React.FC = () => {
           </Card>
 
           <div className="space-y-6">
-            <Card className="p-5 border border-slate-700/50">
+            <Card className="p-5 border border-strong/50">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <div className="text-white text-xl font-black">{selectedProcess?.titulo || 'Selecione um processo'}</div>
-                  <div className="mt-1 text-sm font-bold text-slate-400">
+                  <div className="text-primary text-xl font-black">{selectedProcess?.titulo || 'Selecione um processo'}</div>
+                  <div className="mt-1 text-sm font-bold text-muted">
                     {selectedProcess?.colaborador_id ? collaboratorMap.get(selectedProcess.colaborador_id)?.nome : selectedProcess?.cargo}
                   </div>
                 </div>
@@ -449,29 +449,29 @@ export const DesligamentosTab: React.FC = () => {
 
               {selectedProcess ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Abertura</div>
-                    <div className="mt-2 text-sm font-black text-white">{new Date(`${selectedProcess.data_inicio}T00:00:00`).toLocaleDateString('pt-BR')}</div>
+                  <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Abertura</div>
+                    <div className="mt-2 text-sm font-black text-primary">{new Date(`${selectedProcess.data_inicio}T00:00:00`).toLocaleDateString('pt-BR')}</div>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Fim previsto</div>
-                    <div className="mt-2 text-sm font-black text-white">
+                  <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Fim previsto</div>
+                    <div className="mt-2 text-sm font-black text-primary">
                       {selectedProcess.data_fim_prevista ? new Date(`${selectedProcess.data_fim_prevista}T00:00:00`).toLocaleDateString('pt-BR') : 'Não informado'}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Cargo</div>
-                    <div className="mt-2 text-sm font-black text-white">{selectedProcess.cargo || 'Não informado'}</div>
+                  <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Cargo</div>
+                    <div className="mt-2 text-sm font-black text-primary">{selectedProcess.cargo || 'Não informado'}</div>
                   </div>
                 </div>
               ) : null}
             </Card>
 
             <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_.9fr] gap-6">
-              <Card className="p-5 border border-slate-700/50">
+              <Card className="p-5 border border-strong/50">
                 <div className="flex items-center gap-2 mb-4">
-                  <ClipboardList className="w-4 h-4 text-amber-300" />
-                  <h3 className="text-white text-base font-black">Timeline de etapas</h3>
+                  <ClipboardList className="w-4 h-4 text-warning" />
+                  <h3 className="text-primary text-base font-black">Timeline de etapas</h3>
                 </div>
                 <div className="space-y-3">
                   {stages.map((stage) => {
@@ -483,13 +483,13 @@ export const DesligamentosTab: React.FC = () => {
                         onClick={() => setSelectedStageId(stage.id)}
                         className={cn(
                           'w-full rounded-2xl border p-4 text-left transition-all',
-                          selectedStageId === stage.id ? 'border-violet-500/40 bg-violet-500/10' : 'border-slate-800 bg-slate-900/30 hover:bg-slate-900/50'
+                          selectedStageId === stage.id ? 'border-accent/40 bg-accent/10' : 'border-base bg-surface/30 hover:bg-surface/50'
                         )}
                       >
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                           <div>
-                            <div className="text-white font-black">{stage.ordem}. {stage.titulo}</div>
-                            <div className="mt-1 text-xs font-bold text-slate-400">
+                            <div className="text-primary font-black">{stage.ordem}. {stage.titulo}</div>
+                            <div className="mt-1 text-xs font-bold text-muted">
                               Categoria: {stage.categoria}
                               {stage.data_limite ? ` • Prazo: ${new Date(`${stage.data_limite}T00:00:00`).toLocaleDateString('pt-BR')}` : ''}
                             </div>
@@ -499,22 +499,22 @@ export const DesligamentosTab: React.FC = () => {
                       </button>
                     );
                   })}
-                  {stages.length === 0 ? <div className="text-sm font-bold text-slate-500">As etapas aparecerão aqui após a criação do processo.</div> : null}
+                  {stages.length === 0 ? <div className="text-sm font-bold text-muted">As etapas aparecerão aqui após a criação do processo.</div> : null}
                 </div>
               </Card>
 
-              <Card className="p-5 border border-slate-700/50">
+              <Card className="p-5 border border-strong/50">
                 <div className="flex items-center gap-2 mb-4">
-                  <FileWarning className="w-4 h-4 text-rose-300" />
-                  <h3 className="text-white text-base font-black">Dados do desligamento</h3>
+                  <FileWarning className="w-4 h-4 text-danger" />
+                  <h3 className="text-primary text-base font-black">Dados do desligamento</h3>
                 </div>
                 {offboarding ? (
                   <div className="space-y-3">
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
+                    <div className="rounded-2xl border border-base bg-surface/30 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">PDFs oficiais</div>
-                          <div className="mt-2 text-sm font-bold text-slate-300">Gere o aviso prévio oficial e mantenha o histórico dos documentos gerados nesta jornada.</div>
+                          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">PDFs oficiais</div>
+                          <div className="mt-2 text-sm font-bold text-secondary">Gere o aviso prévio oficial e mantenha o histórico dos documentos gerados nesta jornada.</div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <button
@@ -538,8 +538,8 @@ export const DesligamentosTab: React.FC = () => {
                               setGenerating(false);
                             }}
                             className={cn(
-                              'px-4 py-2.5 rounded-2xl font-black text-white flex items-center gap-2 transition-all',
-                              !selectedProcessId || generating ? 'bg-slate-700 opacity-60 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500'
+                              'px-4 py-2.5 rounded-2xl font-black text-primary flex items-center gap-2 transition-all',
+                              !selectedProcessId || generating ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-accent hover:bg-accent'
                             )}
                           >
                             <FileText className="w-4 h-4" />
@@ -566,8 +566,8 @@ export const DesligamentosTab: React.FC = () => {
                               setGenerating(false);
                             }}
                             className={cn(
-                              'px-4 py-2.5 rounded-2xl font-black text-white flex items-center gap-2 transition-all',
-                              !selectedProcessId || generating ? 'bg-slate-700 opacity-60 cursor-not-allowed' : 'bg-slate-800 hover:bg-slate-700'
+                              'px-4 py-2.5 rounded-2xl font-black text-primary flex items-center gap-2 transition-all',
+                              !selectedProcessId || generating ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-surface-2 hover:bg-surface-3'
                             )}
                           >
                             <FileText className="w-4 h-4" />
@@ -578,10 +578,10 @@ export const DesligamentosTab: React.FC = () => {
                       {generatedDocs.length > 0 ? (
                         <div className="mt-4 space-y-2">
                           {generatedDocs.map((doc) => (
-                            <div key={doc.id} className="rounded-2xl border border-slate-800 bg-slate-950/40 p-3 flex flex-wrap items-center justify-between gap-3">
+                            <div key={doc.id} className="rounded-2xl border border-base bg-bg/40 p-3 flex flex-wrap items-center justify-between gap-3">
                               <div>
-                                <div className="text-white font-black">{doc.tipo_documento.replaceAll('_', ' ')}</div>
-                                <div className="mt-1 text-xs font-bold text-slate-500">
+                                <div className="text-primary font-black">{doc.tipo_documento.replaceAll('_', ' ')}</div>
+                                <div className="mt-1 text-xs font-bold text-muted">
                                   {new Date(doc.gerado_em).toLocaleString('pt-BR')}
                                 </div>
                               </div>
@@ -598,7 +598,7 @@ export const DesligamentosTab: React.FC = () => {
                                   },
                                   { error: 'Não foi possível abrir o documento.' }
                                 )}
-                                className="px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 flex items-center gap-2 transition-all"
+                                className="px-4 py-2.5 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 flex items-center gap-2 transition-all"
                               >
                                 <Eye className="w-4 h-4" />
                                 Abrir
@@ -608,34 +608,34 @@ export const DesligamentosTab: React.FC = () => {
                         </div>
                       ) : null}
                     </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Motivo</div>
-                      <div className="mt-2 text-sm font-black text-white">{MOTIVO_OPTIONS.find((item) => item.value === offboarding.motivo_tipo)?.label || offboarding.motivo_tipo}</div>
+                    <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Motivo</div>
+                      <div className="mt-2 text-sm font-black text-primary">{MOTIVO_OPTIONS.find((item) => item.value === offboarding.motivo_tipo)?.label || offboarding.motivo_tipo}</div>
                     </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Aviso prévio</div>
-                      <div className="mt-2 text-sm font-black text-white">{AVISO_OPTIONS.find((item) => item.value === offboarding.aviso_previo_tipo)?.label || offboarding.aviso_previo_tipo}</div>
-                      <div className="mt-1 text-xs font-bold text-slate-400">
+                    <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Aviso prévio</div>
+                      <div className="mt-2 text-sm font-black text-primary">{AVISO_OPTIONS.find((item) => item.value === offboarding.aviso_previo_tipo)?.label || offboarding.aviso_previo_tipo}</div>
+                      <div className="mt-1 text-xs font-bold text-muted">
                         {offboarding.aviso_previo_inicio || offboarding.aviso_previo_fim
                           ? `${offboarding.aviso_previo_inicio ? new Date(`${offboarding.aviso_previo_inicio}T00:00:00`).toLocaleDateString('pt-BR') : '—'} até ${offboarding.aviso_previo_fim ? new Date(`${offboarding.aviso_previo_fim}T00:00:00`).toLocaleDateString('pt-BR') : '—'}`
                           : 'Sem datas informadas'}
                       </div>
                     </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Redução / Liberação</div>
-                      <div className="mt-2 text-sm font-black text-white">{REDUCAO_OPTIONS.find((item) => item.value === offboarding.opcao_reducao_jornada)?.label || 'Não se aplica'}</div>
+                    <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Redução / Liberação</div>
+                      <div className="mt-2 text-sm font-black text-primary">{REDUCAO_OPTIONS.find((item) => item.value === offboarding.opcao_reducao_jornada)?.label || 'Não se aplica'}</div>
                     </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Motivo detalhado</div>
-                      <div className="mt-2 text-sm font-bold text-slate-300">{offboarding.motivo_detalhado || 'Sem detalhamento adicional.'}</div>
+                    <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Motivo detalhado</div>
+                      <div className="mt-2 text-sm font-bold text-secondary">{offboarding.motivo_detalhado || 'Sem detalhamento adicional.'}</div>
                     </div>
-                    <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Observações</div>
-                      <div className="mt-2 text-sm font-bold text-slate-300">{offboarding.observacoes || 'Sem observações adicionais.'}</div>
+                    <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Observações</div>
+                      <div className="mt-2 text-sm font-bold text-secondary">{offboarding.observacoes || 'Sem observações adicionais.'}</div>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-sm font-bold text-slate-500">Os dados específicos do desligamento aparecerão aqui.</div>
+                  <div className="text-sm font-bold text-muted">Os dados específicos do desligamento aparecerão aqui.</div>
                 )}
               </Card>
             </div>

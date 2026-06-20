@@ -135,45 +135,45 @@ export const CandidatosTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Total</div>
-          <div className="mt-2 text-3xl font-black text-white">{candidates.length}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Base ativa de candidatos</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Total</div>
+          <div className="mt-2 text-3xl font-black text-primary">{candidates.length}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Base ativa de candidatos</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Entrevistas</div>
-          <div className="mt-2 text-3xl font-black text-white">{counts.entrevista || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Aguardando conversa RH</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Entrevistas</div>
+          <div className="mt-2 text-3xl font-black text-primary">{counts.entrevista || 0}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Aguardando conversa RH</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Aula teste</div>
-          <div className="mt-2 text-3xl font-black text-white">{counts.aula_teste || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Em avaliação técnica</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Aula teste</div>
+          <div className="mt-2 text-3xl font-black text-primary">{counts.aula_teste || 0}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Em avaliação técnica</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Aprovados</div>
-          <div className="mt-2 text-3xl font-black text-emerald-300">{counts.aprovado || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Prontos para onboarding</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Aprovados</div>
+          <div className="mt-2 text-3xl font-black text-success">{counts.aprovado || 0}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Prontos para onboarding</div>
         </Card>
       </div>
 
-      <Card className="p-5 border border-slate-700/50">
+      <Card className="p-5 border border-strong/50">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-4 flex-1">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Status</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Status</div>
               <CustomSelect value={statusFilter} onValueChange={setStatusFilter} options={STATUS_OPTIONS} />
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Busca</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Busca</div>
               <div className="relative">
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar por nome, cargo, e-mail ou vínculo"
-                  className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                  className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
-                <Filter className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Filter className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-muted" />
               </div>
             </div>
           </div>
@@ -181,7 +181,7 @@ export const CandidatosTab: React.FC = () => {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="px-5 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black flex items-center justify-center gap-2 transition-all"
+            className="px-5 py-3.5 rounded-2xl bg-accent hover:bg-accent text-white font-black flex items-center justify-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
             Novo candidato
@@ -189,19 +189,19 @@ export const CandidatosTab: React.FC = () => {
         </div>
       </Card>
 
-      <Card className="p-5 border border-slate-700/50">
+      <Card className="p-5 border border-strong/50">
         <div className="flex items-center gap-2 mb-4">
-          <UserPlus className="w-4 h-4 text-violet-300" />
-          <h3 className="text-white text-base font-black">Pipeline de recrutamento</h3>
+          <UserPlus className="w-4 h-4 text-accent" />
+          <h3 className="text-primary text-base font-black">Pipeline de recrutamento</h3>
         </div>
 
         {filteredCandidates.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-700 bg-slate-900/30 p-8 text-center">
-            <div className="mx-auto w-14 h-14 rounded-3xl bg-slate-800/70 flex items-center justify-center mb-4">
-              <FileSearch className="w-6 h-6 text-slate-400" />
+          <div className="rounded-3xl border border-dashed border-strong bg-surface/30 p-8 text-center">
+            <div className="mx-auto w-14 h-14 rounded-3xl bg-surface-2/70 flex items-center justify-center mb-4">
+              <FileSearch className="w-6 h-6 text-muted" />
             </div>
-            <div className="text-white font-black">Nenhum candidato encontrado</div>
-            <div className="mt-2 text-sm font-bold text-slate-400">
+            <div className="text-primary font-black">Nenhum candidato encontrado</div>
+            <div className="mt-2 text-sm font-bold text-muted">
               Ajuste os filtros ou crie o primeiro candidato para iniciar o fluxo de recrutamento.
             </div>
           </div>
@@ -223,45 +223,45 @@ export const CandidatosTab: React.FC = () => {
                   tabIndex={0}
                   className={`rounded-3xl border p-5 text-left transition-all ${
                     selectedCandidateId === candidate.id
-                      ? 'border-violet-500/60 bg-violet-500/10'
-                      : 'border-slate-800 bg-slate-900/30 hover:border-slate-700'
+                      ? 'border-accent/60 bg-accent/10'
+                      : 'border-base bg-surface/30 hover:border-strong'
                   }`}
                 >
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div className="min-w-0">
-                      <div className="text-white text-lg font-black truncate">{candidate.nome}</div>
+                      <div className="text-primary text-lg font-black truncate">{candidate.nome}</div>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         <Badge variant={meta.variant}>{meta.label}</Badge>
                         {candidate.tipo_vinculo_pretendido ? <Badge variant="info">{candidate.tipo_vinculo_pretendido}</Badge> : null}
                       </div>
                     </div>
-                    <div className="text-right text-xs text-slate-500 font-bold">
+                    <div className="text-right text-xs text-muted font-bold">
                       {candidate.created_at ? new Date(candidate.created_at).toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
                   </div>
 
                   <div className="mt-4 space-y-3 text-sm">
-                    <div className="flex items-center gap-2 text-slate-300 font-bold">
-                      <Briefcase className="w-4 h-4 text-slate-500" />
+                    <div className="flex items-center gap-2 text-secondary font-bold">
+                      <Briefcase className="w-4 h-4 text-muted" />
                       <span>{candidate.cargo_pretendido || 'Cargo não informado'}</span>
                     </div>
                     {candidate.email ? (
-                      <div className="flex items-center gap-2 text-slate-300 font-bold">
-                        <Mail className="w-4 h-4 text-slate-500" />
+                      <div className="flex items-center gap-2 text-secondary font-bold">
+                        <Mail className="w-4 h-4 text-muted" />
                         <span className="truncate">{candidate.email}</span>
                       </div>
                     ) : null}
                     {candidate.telefone ? (
-                      <div className="flex items-center gap-2 text-slate-300 font-bold">
-                        <Phone className="w-4 h-4 text-slate-500" />
+                      <div className="flex items-center gap-2 text-secondary font-bold">
+                        <Phone className="w-4 h-4 text-muted" />
                         <span>{candidate.telefone}</span>
                       </div>
                     ) : null}
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/30 p-4">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Resumo operacional</div>
-                    <div className="text-sm font-bold text-slate-300 leading-relaxed">
+                  <div className="mt-4 rounded-2xl border border-base bg-bg/30 p-4">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Resumo operacional</div>
+                    <div className="text-sm font-bold text-secondary leading-relaxed">
                       {candidate.questionario_resumo || candidate.observacoes || 'Sem resumo operacional registrado ainda.'}
                     </div>
                   </div>
@@ -274,7 +274,7 @@ export const CandidatosTab: React.FC = () => {
                           e.stopPropagation();
                           setApprovalOpen(candidate);
                         }}
-                        className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center gap-2 transition-all"
+                        className="px-4 py-2.5 rounded-2xl bg-success hover:bg-success text-white font-black flex items-center gap-2 transition-all"
                       >
                         <CheckCircle2 className="w-4 h-4" />
                         Aprovar
@@ -297,7 +297,7 @@ export const CandidatosTab: React.FC = () => {
                             }
                           );
                         }}
-                        className="px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 flex items-center gap-2 transition-all"
+                        className="px-4 py-2.5 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 flex items-center gap-2 transition-all"
                       >
                         <XCircle className="w-4 h-4" />
                         Reprovar
@@ -313,23 +313,23 @@ export const CandidatosTab: React.FC = () => {
 
       {selectedCandidate ? (
         <div className="grid grid-cols-1 2xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
-          <Card className="p-5 border border-slate-700/50">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Candidato selecionado</div>
-            <div className="mt-3 text-2xl font-black text-white">{selectedCandidate.nome}</div>
+          <Card className="p-5 border border-strong/50">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Candidato selecionado</div>
+            <div className="mt-3 text-2xl font-black text-primary">{selectedCandidate.nome}</div>
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge variant={STATUS_META[selectedCandidate.status].variant}>{STATUS_META[selectedCandidate.status].label}</Badge>
               {selectedCandidate.tipo_vinculo_pretendido ? <Badge variant="info">{selectedCandidate.tipo_vinculo_pretendido}</Badge> : null}
             </div>
-            <div className="mt-5 space-y-3 text-sm font-bold text-slate-300">
+            <div className="mt-5 space-y-3 text-sm font-bold text-secondary">
               <div>{selectedCandidate.cargo_pretendido || 'Cargo não informado'}</div>
               {selectedCandidate.email ? <div>{selectedCandidate.email}</div> : null}
               {selectedCandidate.telefone ? <div>{selectedCandidate.telefone}</div> : null}
-              {selectedCandidate.questionario_resumo ? <div className="text-slate-400">{selectedCandidate.questionario_resumo}</div> : null}
-              {selectedCandidate.curriculo_storage_path ? <div className="text-cyan-300">Currículo anexado ao candidato.</div> : null}
+              {selectedCandidate.questionario_resumo ? <div className="text-muted">{selectedCandidate.questionario_resumo}</div> : null}
+              {selectedCandidate.curriculo_storage_path ? <div className="text-info">Currículo anexado ao candidato.</div> : null}
             </div>
 
             <div className="mt-5 space-y-3">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Status do pipeline</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Status do pipeline</div>
               <CustomSelect value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as RhCandidateStatus)} options={STATUS_OPTIONS.slice(1)} />
               <button
                 type="button"
@@ -347,7 +347,7 @@ export const CandidatosTab: React.FC = () => {
                     }
                   );
                 }}
-                className="w-full px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all"
+                className="w-full px-4 py-3 rounded-2xl bg-accent hover:bg-accent text-white font-black transition-all"
               >
                 Salvar status do candidato
               </button>
@@ -355,7 +355,7 @@ export const CandidatosTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditingCandidate(selectedCandidate)}
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 transition-all flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all flex items-center justify-center gap-2"
                 >
                   <Pencil className="w-4 h-4" />
                   Editar cadastro
@@ -378,7 +378,7 @@ export const CandidatosTab: React.FC = () => {
                       }
                     );
                   }}
-                  className="w-full px-4 py-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-2xl border border-danger/30 bg-danger/10 text-danger font-black hover:bg-danger/15 transition-all flex items-center justify-center gap-2"
                 >
                   <Archive className="w-4 h-4" />
                   Arquivar candidato
@@ -386,9 +386,9 @@ export const CandidatosTab: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
-              <div className="flex items-center gap-2 text-white font-black">
-                <Sparkles className="w-4 h-4 text-cyan-300" />
+            <div className="mt-5 rounded-2xl border border-info/20 bg-info/10 p-4">
+              <div className="flex items-center gap-2 text-primary font-black">
+                <Sparkles className="w-4 h-4 text-info" />
                 Comparativo IA entre candidatos
               </div>
               <div className="mt-3">
@@ -416,27 +416,27 @@ export const CandidatosTab: React.FC = () => {
                   );
                   setComparing(false);
                 }}
-                className={`mt-3 w-full px-4 py-3 rounded-2xl font-black text-white transition-all ${
-                  !comparisonCandidateId || comparing ? 'bg-slate-700 opacity-60 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500'
+                className={`mt-3 w-full px-4 py-3 rounded-2xl font-black text-primary transition-all ${
+                  !comparisonCandidateId || comparing ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-info hover:bg-info'
                 }`}
               >
                 {comparing ? <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Gerando comparativo</span> : 'Gerar comparativo IA'}
               </button>
               {comparison ? (
                 <div className="mt-4 space-y-3">
-                  <div className="text-sm font-bold text-slate-200">{comparison.resumo_executivo}</div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-3">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Recomendação</div>
-                    <div className="text-sm font-bold text-emerald-200">{comparison.recomendacao_final}</div>
+                  <div className="text-sm font-bold text-secondary">{comparison.resumo_executivo}</div>
+                  <div className="rounded-2xl border border-base bg-bg/40 p-3">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Recomendação</div>
+                    <div className="text-sm font-bold text-success">{comparison.recomendacao_final}</div>
                   </div>
                   <div className="space-y-2">
                     {comparison.ranking.map((item) => (
-                      <div key={item.candidate_id} className="rounded-2xl border border-slate-800 bg-slate-950/40 p-3">
+                      <div key={item.candidate_id} className="rounded-2xl border border-base bg-bg/40 p-3">
                         <div className="flex items-center justify-between gap-3">
-                          <div className="text-white font-black">{item.nome}</div>
+                          <div className="text-primary font-black">{item.nome}</div>
                           <Badge variant="purple">{item.score}</Badge>
                         </div>
-                        <div className="mt-1 text-xs font-bold text-slate-400">{item.motivo}</div>
+                        <div className="mt-1 text-xs font-bold text-muted">{item.motivo}</div>
                       </div>
                     ))}
                   </div>
@@ -446,12 +446,12 @@ export const CandidatosTab: React.FC = () => {
           </Card>
 
           <div className="space-y-6">
-            <Card className="p-5 border border-slate-700/50">
+            <Card className="p-5 border border-strong/50">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Processo de recrutamento</div>
-                  <div className="mt-2 text-white text-xl font-black">{selectedProcess?.titulo || 'Processo ainda não materializado'}</div>
-                  <div className="mt-1 text-sm font-bold text-slate-400">
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Processo de recrutamento</div>
+                  <div className="mt-2 text-primary text-xl font-black">{selectedProcess?.titulo || 'Processo ainda não materializado'}</div>
+                  <div className="mt-1 text-sm font-bold text-muted">
                     {selectedProcess ? `${selectedProcess.status} • ${selectedProcess.prioridade}` : 'Crie um modelo de recrutamento para materialização automática.'}
                   </div>
                 </div>
@@ -467,8 +467,8 @@ export const CandidatosTab: React.FC = () => {
                       onClick={() => setSelectedStageId(stage.id)}
                       className={`px-4 py-2.5 rounded-2xl text-sm font-black transition-all ${
                         selectedStageId === stage.id
-                          ? 'bg-violet-600 text-white'
-                          : 'border border-slate-800 bg-slate-900/30 text-slate-300 hover:bg-slate-900/60'
+                          ? 'bg-accent text-white'
+                          : 'border border-base bg-surface/30 text-secondary hover:bg-surface/60'
                       }`}
                     >
                       {stage.titulo}

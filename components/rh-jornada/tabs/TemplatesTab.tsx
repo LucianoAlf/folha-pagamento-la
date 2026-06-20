@@ -257,50 +257,50 @@ export const TemplatesTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="p-5 border border-violet-500/20 bg-violet-500/5">
+      <Card className="p-5 border border-accent/20 bg-accent/5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-violet-200/80 font-black">Governança de templates</div>
-            <div className="mt-2 text-lg font-black text-white">{selectedTemplateContext}</div>
-            <div className="mt-1 text-sm font-bold text-slate-300">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-accent/80 font-black">Governança de templates</div>
+            <div className="mt-2 text-lg font-black text-primary">{selectedTemplateContext}</div>
+            <div className="mt-1 text-sm font-bold text-secondary">
               {selectedTemplate ? `${selectedTemplate.tipo_processo} • v${selectedTemplate.versao}` : 'Selecione um template operacional para editar etapas, checklist e documentos.'}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-black">Template de PDI em foco</div>
-            <div className="mt-2 text-base font-black text-white truncate">{selectedPdiTemplateContext}</div>
-            <div className="mt-1 text-xs font-bold text-slate-400">{pdiTemplates.filter((item) => item.ativo).length} ativos</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Template de PDI em foco</div>
+            <div className="mt-2 text-base font-black text-primary truncate">{selectedPdiTemplateContext}</div>
+            <div className="mt-1 text-xs font-bold text-muted">{pdiTemplates.filter((item) => item.ativo).length} ativos</div>
           </div>
         </div>
       </Card>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Templates ativos</div>
-          <div className="mt-2 text-3xl font-black text-white">{templates.filter((item) => item.ativo).length}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Base operacional do módulo</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Templates ativos</div>
+          <div className="mt-2 text-3xl font-black text-primary">{templates.filter((item) => item.ativo).length}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Base operacional do módulo</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Etapas</div>
-          <div className="mt-2 text-3xl font-black text-white">{stages.length}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400 truncate">{selectedTemplateContext}</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Etapas</div>
+          <div className="mt-2 text-3xl font-black text-primary">{stages.length}</div>
+          <div className="mt-1 text-xs font-bold text-muted truncate">{selectedTemplateContext}</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Documentos</div>
-          <div className="mt-2 text-3xl font-black text-white">{documents.length}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Materialização documental prevista</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Documentos</div>
+          <div className="mt-2 text-3xl font-black text-primary">{documents.length}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Materialização documental prevista</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Versão</div>
-          <div className="mt-2 text-3xl font-black text-emerald-300">v{selectedTemplate?.versao || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Controle de governança do template</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Versão</div>
+          <div className="mt-2 text-3xl font-black text-success">v{selectedTemplate?.versao || 0}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Controle de governança do template</div>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-6">
-        <Card className="p-5 border border-slate-700/50">
+        <Card className="p-5 border border-strong/50">
           <div className="flex items-center gap-2 mb-4">
-            <LibraryBig className="w-4 h-4 text-violet-300" />
-            <h3 className="text-white text-base font-black">Catálogo de templates</h3>
+            <LibraryBig className="w-4 h-4 text-accent" />
+            <h3 className="text-primary text-base font-black">Catálogo de templates</h3>
           </div>
           <div className="space-y-3">
             <button
@@ -324,7 +324,7 @@ export const TemplatesTab: React.FC = () => {
                 );
                 setSaving(false);
               }}
-              className="w-full rounded-3xl border border-dashed border-violet-500/40 bg-violet-500/10 p-4 text-left text-violet-200 font-black hover:bg-violet-500/15 transition-all"
+              className="w-full rounded-3xl border border-dashed border-accent/40 bg-accent/10 p-4 text-left text-accent font-black hover:bg-accent/15 transition-all"
             >
               <div className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
@@ -341,18 +341,18 @@ export const TemplatesTab: React.FC = () => {
                   className={[
                     'w-full rounded-3xl border p-4 text-left transition-all',
                     active
-                      ? 'border-violet-500/30 bg-violet-500/10'
-                      : 'border-slate-800 bg-slate-900/30 hover:bg-slate-900/50',
+                      ? 'border-accent/30 bg-accent/10'
+                      : 'border-base bg-surface/30 hover:bg-surface/50',
                   ].join(' ')}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-white font-black truncate">{template.nome}</div>
-                      <div className="mt-1 text-xs font-bold text-slate-400 line-clamp-2">{template.descricao || 'Sem descrição.'}</div>
+                      <div className="text-primary font-black truncate">{template.nome}</div>
+                      <div className="mt-1 text-xs font-bold text-muted line-clamp-2">{template.descricao || 'Sem descrição.'}</div>
                     </div>
                     <Badge variant={template.ativo ? 'success' : 'default'}>{template.tipo_processo}</Badge>
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-[11px] font-bold text-slate-500">
+                  <div className="mt-3 flex items-center gap-2 text-[11px] font-bold text-muted">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     versão {template.versao}
                   </div>
@@ -363,12 +363,12 @@ export const TemplatesTab: React.FC = () => {
         </Card>
 
         <div className="space-y-6">
-          <Card className="p-5 border border-slate-700/50">
+          <Card className="p-5 border border-strong/50">
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <div className="text-white text-xl font-black">{selectedTemplate?.nome || 'Selecione um template'}</div>
-                  <div className="mt-1 text-sm font-bold text-slate-400">
+                  <div className="text-primary text-xl font-black">{selectedTemplate?.nome || 'Selecione um template'}</div>
+                  <div className="mt-1 text-sm font-bold text-muted">
                     {selectedTemplate?.descricao || 'Selecione um template para ver etapas e documentos obrigatórios.'}
                   </div>
                 </div>
@@ -379,15 +379,15 @@ export const TemplatesTab: React.FC = () => {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Nome</div>
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Nome</div>
                       <input
                         value={templateForm.nome}
                         onChange={(e) => setTemplateForm((prev) => ({ ...prev, nome: e.target.value }))}
-                        className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                        className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
                       />
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Tipo de processo</div>
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Tipo de processo</div>
                       <CustomSelect
                         value={templateForm.tipo_processo}
                         onValueChange={(value) => setTemplateForm((prev) => ({ ...prev, tipo_processo: value as RhProcessType }))}
@@ -395,12 +395,12 @@ export const TemplatesTab: React.FC = () => {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Descrição</div>
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Descrição</div>
                       <textarea
                         value={templateForm.descricao}
                         onChange={(e) => setTemplateForm((prev) => ({ ...prev, descricao: e.target.value }))}
                         rows={3}
-                        className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none"
+                        className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
                       />
                     </div>
                   </div>
@@ -423,7 +423,7 @@ export const TemplatesTab: React.FC = () => {
                         );
                         setSaving(false);
                       }}
-                      className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black flex items-center gap-2 transition-all"
+                      className="px-4 py-2.5 rounded-2xl bg-accent hover:bg-accent text-white font-black flex items-center gap-2 transition-all"
                     >
                       <Save className="w-4 h-4" />
                       Salvar template
@@ -445,7 +445,7 @@ export const TemplatesTab: React.FC = () => {
                         );
                         setSaving(false);
                       }}
-                      className="px-4 py-2.5 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 flex items-center gap-2 transition-all"
+                      className="px-4 py-2.5 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 flex items-center gap-2 transition-all"
                     >
                       <CopyPlus className="w-4 h-4" />
                       Nova versão
@@ -467,7 +467,7 @@ export const TemplatesTab: React.FC = () => {
                         );
                         setSaving(false);
                       }}
-                      className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all"
+                      className="px-4 py-2.5 rounded-2xl border border-danger/30 bg-danger/10 text-danger font-black hover:bg-danger/15 transition-all"
                     >
                       Arquivar template
                     </button>
@@ -478,28 +478,28 @@ export const TemplatesTab: React.FC = () => {
           </Card>
 
           <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_.9fr] gap-6">
-            <Card className="p-5 border border-slate-700/50">
+            <Card className="p-5 border border-strong/50">
               <div className="flex items-center gap-2 mb-4">
-                <Layers3 className="w-4 h-4 text-cyan-300" />
-                <h3 className="text-white text-base font-black">Etapas oficiais</h3>
+                <Layers3 className="w-4 h-4 text-info" />
+                <h3 className="text-primary text-base font-black">Etapas oficiais</h3>
               </div>
               <div className="space-y-3">
                 {stages.map((stage) => (
                   <div
                     key={stage.id}
-                    className={`rounded-2xl border p-4 ${selectedStageId === stage.id ? 'border-cyan-400/40 bg-cyan-500/10' : 'border-slate-800 bg-slate-900/30'}`}
+                    className={`rounded-2xl border p-4 ${selectedStageId === stage.id ? 'border-info/40 bg-info/10' : 'border-base bg-surface/30'}`}
                   >
                     <div className="grid grid-cols-1 md:grid-cols-[90px_minmax(0,1fr)_180px] gap-3">
                       <input
                         value={stage.ordem}
                         onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, ordem: Number(e.target.value) || item.ordem } : item))}
-                        className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                        className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40"
                       />
                       <input
                         value={stage.titulo}
                         onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, titulo: e.target.value } : item))}
                         onClick={() => setSelectedStageId(stage.id)}
-                        className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                        className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40"
                       />
                       <CustomSelect
                         value={stage.categoria}
@@ -508,12 +508,12 @@ export const TemplatesTab: React.FC = () => {
                       />
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                      <label className="flex items-center gap-2 text-sm font-bold text-secondary">
                         <input
                           type="checkbox"
                           checked={stage.obrigatoria}
                           onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, obrigatoria: e.target.checked } : item))}
-                          className="accent-cyan-500"
+                          className="accent-info"
                         />
                         Obrigatória
                       </label>
@@ -533,14 +533,14 @@ export const TemplatesTab: React.FC = () => {
                         onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, link_referencia: e.target.value } : item))}
                         onClick={() => setSelectedStageId(stage.id)}
                         placeholder="Link de referência"
-                        className="min-w-[240px] flex-1 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                        className="min-w-[240px] flex-1 rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40"
                       />
                       <input
                         value={stage.link_reuniao || ''}
                         onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, link_reuniao: e.target.value } : item))}
                         onClick={() => setSelectedStageId(stage.id)}
                         placeholder="Link de reunião"
-                        className="min-w-[240px] flex-1 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                        className="min-w-[240px] flex-1 rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40"
                       />
                       <button
                         type="button"
@@ -566,7 +566,7 @@ export const TemplatesTab: React.FC = () => {
                             error: 'Não foi possível salvar a etapa.',
                           }
                         )}
-                        className="px-4 py-2 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all"
+                        className="px-4 py-2 rounded-2xl bg-info hover:bg-info text-white font-black transition-all"
                       >
                         Salvar etapa
                       </button>
@@ -578,7 +578,7 @@ export const TemplatesTab: React.FC = () => {
                         onClick={() => setSelectedStageId(stage.id)}
                         rows={3}
                         placeholder="Instruções da etapa"
-                        className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                        className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary resize-none focus:outline-none focus:ring-2 focus:ring-info/40"
                       />
                       <textarea
                         value={stage.modelo_mensagem || ''}
@@ -586,32 +586,32 @@ export const TemplatesTab: React.FC = () => {
                         onClick={() => setSelectedStageId(stage.id)}
                         rows={3}
                         placeholder="Modelo de mensagem"
-                        className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                        className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary resize-none focus:outline-none focus:ring-2 focus:ring-info/40"
                       />
                     </div>
                     <div className="mt-3 flex flex-wrap gap-4">
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                      <label className="flex items-center gap-2 text-sm font-bold text-secondary">
                         <input
                           type="checkbox"
                           checked={stage.notificar_responsaveis}
                           onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, notificar_responsaveis: e.target.checked } : item))}
-                          className="accent-cyan-500"
+                          className="accent-info"
                         />
                         Notificar responsáveis
                       </label>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                      <label className="flex items-center gap-2 text-sm font-bold text-secondary">
                         <input
                           type="checkbox"
                           checked={stage.notificar_colaborador}
                           onChange={(e) => setStages((prev) => prev.map((item) => item.id === stage.id ? { ...item, notificar_colaborador: e.target.checked } : item))}
-                          className="accent-cyan-500"
+                          className="accent-info"
                         />
                         Notificar colaborador
                       </label>
                     </div>
                   </div>
                 ))}
-                {stages.length === 0 ? <div className="text-sm font-bold text-slate-500">Nenhuma etapa carregada.</div> : null}
+                {stages.length === 0 ? <div className="text-sm font-bold text-muted">Nenhuma etapa carregada.</div> : null}
               </div>
               {selectedTemplate ? (
                 <>
@@ -620,25 +620,25 @@ export const TemplatesTab: React.FC = () => {
                     value={newStage.ordem}
                     onChange={(e) => setNewStage((prev) => ({ ...prev, ordem: e.target.value }))}
                     placeholder="Ordem"
-                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40"
                   />
                   <input
                     value={newStage.titulo}
                     onChange={(e) => setNewStage((prev) => ({ ...prev, titulo: e.target.value, codigo: prev.codigo || e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
                     placeholder="Nova etapa"
-                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40"
                   />
                   <input
                     value={newStage.link_referencia}
                     onChange={(e) => setNewStage((prev) => ({ ...prev, link_referencia: e.target.value }))}
                     placeholder="Link de referência"
-                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40"
                   />
                   <input
                     value={newStage.link_reuniao}
                     onChange={(e) => setNewStage((prev) => ({ ...prev, link_reuniao: e.target.value }))}
                     placeholder="Link de reunião"
-                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40"
                   />
                   <CustomSelect value={newStage.categoria} onValueChange={(value) => setNewStage((prev) => ({ ...prev, categoria: value as RhStageCategory }))} options={CATEGORY_OPTIONS} />
                   <button
@@ -671,7 +671,7 @@ export const TemplatesTab: React.FC = () => {
                         }
                       );
                     }}
-                    className="px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all"
+                    className="px-4 py-3 rounded-2xl bg-info hover:bg-info text-white font-black transition-all"
                   >
                     Adicionar etapa
                   </button>
@@ -682,12 +682,12 @@ export const TemplatesTab: React.FC = () => {
                     onValueChange={(value) => setNewStage((prev) => ({ ...prev, responsavel_padrao_papel: value as RhParticipantRole }))}
                     options={ROLE_OPTIONS}
                   />
-                  <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-300">
+                  <label className="flex items-center gap-2 rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary">
                     <input
                       type="checkbox"
                       checked={newStage.obrigatoria}
                       onChange={(e) => setNewStage((prev) => ({ ...prev, obrigatoria: e.target.checked }))}
-                      className="accent-cyan-500"
+                      className="accent-info"
                     />
                     Etapa obrigatória
                   </label>
@@ -698,32 +698,32 @@ export const TemplatesTab: React.FC = () => {
                     onChange={(e) => setNewStage((prev) => ({ ...prev, instrucoes: e.target.value }))}
                     rows={3}
                     placeholder="Instruções padrão da etapa"
-                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary resize-none focus:outline-none focus:ring-2 focus:ring-info/40"
                   />
                   <textarea
                     value={newStage.modelo_mensagem}
                     onChange={(e) => setNewStage((prev) => ({ ...prev, modelo_mensagem: e.target.value }))}
                     rows={3}
                     placeholder="Modelo de mensagem padrão"
-                    className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary resize-none focus:outline-none focus:ring-2 focus:ring-info/40"
                   />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-4">
-                  <label className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                  <label className="flex items-center gap-2 text-sm font-bold text-secondary">
                     <input
                       type="checkbox"
                       checked={newStage.notificar_responsaveis}
                       onChange={(e) => setNewStage((prev) => ({ ...prev, notificar_responsaveis: e.target.checked }))}
-                      className="accent-cyan-500"
+                      className="accent-info"
                     />
                     Notificar responsáveis
                   </label>
-                  <label className="flex items-center gap-2 text-sm font-bold text-slate-300">
+                  <label className="flex items-center gap-2 text-sm font-bold text-secondary">
                     <input
                       type="checkbox"
                       checked={newStage.notificar_colaborador}
                       onChange={(e) => setNewStage((prev) => ({ ...prev, notificar_colaborador: e.target.checked }))}
-                      className="accent-cyan-500"
+                      className="accent-info"
                     />
                     Notificar colaborador
                   </label>
@@ -733,24 +733,24 @@ export const TemplatesTab: React.FC = () => {
             </Card>
 
             <div className="space-y-6">
-              <Card className="p-5 border border-slate-700/50">
+              <Card className="p-5 border border-strong/50">
                 <div className="flex items-center gap-2 mb-4">
-                  <FileBadge className="w-4 h-4 text-amber-300" />
-                  <h3 className="text-white text-base font-black">Documentos obrigatórios</h3>
+                  <FileBadge className="w-4 h-4 text-warning" />
+                  <h3 className="text-primary text-base font-black">Documentos obrigatórios</h3>
                 </div>
                 <div className="space-y-3">
                   {documents.map((document) => (
-                    <div key={document.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
+                    <div key={document.id} className="rounded-2xl border border-base bg-surface/30 p-4">
                       <div className="grid grid-cols-1 md:grid-cols-[1fr_100px_auto] gap-3">
                         <input
                           value={document.tipo_documento}
                           onChange={(e) => setDocuments((prev) => prev.map((item) => item.id === document.id ? { ...item, tipo_documento: e.target.value } : item))}
-                          className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                          className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-warning/40"
                         />
                         <input
                           value={document.ordem}
                           onChange={(e) => setDocuments((prev) => prev.map((item) => item.id === document.id ? { ...item, ordem: Number(e.target.value) || item.ordem } : item))}
-                          className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                          className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-warning/40"
                         />
                         <button
                           type="button"
@@ -768,23 +768,23 @@ export const TemplatesTab: React.FC = () => {
                               error: 'Não foi possível salvar o documento.',
                             }
                           )}
-                          className="px-4 py-2 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all"
+                          className="px-4 py-2 rounded-2xl bg-warning hover:bg-warning text-white font-black transition-all"
                         >
                           Salvar
                         </button>
                       </div>
-                      <label className="mt-3 flex items-center gap-2 text-sm font-bold text-slate-300">
+                      <label className="mt-3 flex items-center gap-2 text-sm font-bold text-secondary">
                         <input
                           type="checkbox"
                           checked={document.obrigatorio}
                           onChange={(e) => setDocuments((prev) => prev.map((item) => item.id === document.id ? { ...item, obrigatorio: e.target.checked } : item))}
-                          className="accent-amber-500"
+                          className="accent-warning"
                         />
                         Obrigatório
                       </label>
                     </div>
                   ))}
-                  {documents.length === 0 ? <div className="text-sm font-bold text-slate-500">Nenhum documento obrigatório configurado.</div> : null}
+                  {documents.length === 0 ? <div className="text-sm font-bold text-muted">Nenhum documento obrigatório configurado.</div> : null}
                 </div>
 
                 {selectedTemplate ? (
@@ -793,13 +793,13 @@ export const TemplatesTab: React.FC = () => {
                       value={newDocument.tipo_documento}
                       onChange={(e) => setNewDocument((prev) => ({ ...prev, tipo_documento: e.target.value }))}
                       placeholder="Novo documento"
-                      className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                      className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-warning/40"
                     />
                     <input
                       value={newDocument.ordem}
                       onChange={(e) => setNewDocument((prev) => ({ ...prev, ordem: e.target.value }))}
                       placeholder="Ordem"
-                      className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                      className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-warning/40"
                     />
                     <button
                       type="button"
@@ -822,7 +822,7 @@ export const TemplatesTab: React.FC = () => {
                           }
                         );
                       }}
-                      className="px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all"
+                      className="px-4 py-3 rounded-2xl bg-warning hover:bg-warning text-white font-black transition-all"
                     >
                       Adicionar documento
                     </button>
@@ -830,32 +830,32 @@ export const TemplatesTab: React.FC = () => {
                 ) : null}
               </Card>
 
-              <Card className="p-5 border border-slate-700/50">
+              <Card className="p-5 border border-strong/50">
                 <div className="flex items-center gap-2 mb-4">
-                  <ClipboardList className="w-4 h-4 text-emerald-300" />
-                  <h3 className="text-white text-base font-black">Checklist da etapa</h3>
+                  <ClipboardList className="w-4 h-4 text-success" />
+                  <h3 className="text-primary text-base font-black">Checklist da etapa</h3>
                   {selectedStage ? <Badge variant="info">{selectedStage.titulo}</Badge> : null}
                 </div>
                 <div className="space-y-3">
                   {checklistItems.map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4 space-y-3">
+                    <div key={item.id} className="rounded-2xl border border-base bg-surface/30 p-4 space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-[90px_1fr_180px_auto] gap-3">
                         <input
                           value={item.ordem}
                           onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, ordem: Number(e.target.value) || current.ordem } : current))}
-                          className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                          className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-success/40"
                         />
                         <input
                           value={item.titulo}
                           onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))}
-                          className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                          className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-success/40"
                         />
-                        <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-300">
+                        <label className="flex items-center gap-2 rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary">
                           <input
                             type="checkbox"
                             checked={item.obrigatorio}
                             onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, obrigatorio: e.target.checked } : current))}
-                            className="accent-emerald-500"
+                            className="accent-success"
                           />
                           Obrigatório
                         </label>
@@ -878,7 +878,7 @@ export const TemplatesTab: React.FC = () => {
                                 error: 'Não foi possível salvar o item do checklist.',
                               }
                             )}
-                            className="px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black transition-all"
+                            className="px-4 py-2 rounded-2xl bg-success hover:bg-success text-white font-black transition-all"
                           >
                             Salvar
                           </button>
@@ -894,7 +894,7 @@ export const TemplatesTab: React.FC = () => {
                                 error: 'Não foi possível excluir o item do checklist.',
                               }
                             )}
-                            className="p-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 transition-all"
+                            className="p-2 rounded-2xl border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20 transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -905,20 +905,20 @@ export const TemplatesTab: React.FC = () => {
                         onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, descricao: e.target.value } : current))}
                         rows={3}
                         placeholder="Descrição do item"
-                        className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                        className="w-full rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary resize-none focus:outline-none focus:ring-2 focus:ring-success/40"
                       />
                       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
                         <input
                           value={item.link_url || ''}
                           onChange={(e) => setChecklistItems((prev) => prev.map((current) => current.id === item.id ? { ...current, link_url: e.target.value } : current))}
                           placeholder="Link opcional"
-                          className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                          className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-success/40"
                         />
                         {item.link_url ? (
                           <button
                             type="button"
                             onClick={() => window.open(item.link_url!, '_blank', 'noopener,noreferrer')}
-                            className="px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-200 font-black hover:bg-slate-900/60 flex items-center gap-2 transition-all"
+                            className="px-4 py-3 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 flex items-center gap-2 transition-all"
                           >
                             <ExternalLink className="w-4 h-4" />
                             Abrir
@@ -927,7 +927,7 @@ export const TemplatesTab: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                  {checklistItems.length === 0 ? <div className="text-sm font-bold text-slate-500">Nenhum item de checklist para a etapa selecionada.</div> : null}
+                  {checklistItems.length === 0 ? <div className="text-sm font-bold text-muted">Nenhum item de checklist para a etapa selecionada.</div> : null}
                 </div>
 
                 {selectedStage ? (
@@ -936,28 +936,28 @@ export const TemplatesTab: React.FC = () => {
                       value={newChecklist.titulo}
                       onChange={(e) => setNewChecklist((prev) => ({ ...prev, titulo: e.target.value }))}
                       placeholder="Novo item de checklist"
-                      className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-success/40"
                     />
                     <textarea
                       value={newChecklist.descricao}
                       onChange={(e) => setNewChecklist((prev) => ({ ...prev, descricao: e.target.value }))}
                       rows={3}
                       placeholder="Descrição padrão do item"
-                      className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      className="w-full rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary resize-none focus:outline-none focus:ring-2 focus:ring-success/40"
                     />
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3">
                       <input
                         value={newChecklist.link_url}
                         onChange={(e) => setNewChecklist((prev) => ({ ...prev, link_url: e.target.value }))}
                         placeholder="Link opcional"
-                        className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                        className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-success/40"
                       />
-                      <label className="flex items-center gap-2 rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-300">
+                      <label className="flex items-center gap-2 rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary">
                         <input
                           type="checkbox"
                           checked={newChecklist.obrigatorio}
                           onChange={(e) => setNewChecklist((prev) => ({ ...prev, obrigatorio: e.target.checked }))}
-                          className="accent-emerald-500"
+                          className="accent-success"
                         />
                         Obrigatório
                       </label>
@@ -984,7 +984,7 @@ export const TemplatesTab: React.FC = () => {
                             }
                           );
                         }}
-                        className="px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black transition-all"
+                        className="px-4 py-3 rounded-2xl bg-success hover:bg-success text-white font-black transition-all"
                       >
                         Adicionar item
                       </button>
@@ -996,66 +996,66 @@ export const TemplatesTab: React.FC = () => {
           </div>
 
           <div className="mt-8 space-y-6">
-            <Card className="p-5 border border-slate-700/50">
+            <Card className="p-5 border border-strong/50">
               <div className="flex items-center justify-between gap-4 mb-4">
-                <div><div className="text-white text-xl font-black">Templates de PDI</div><div className="mt-1 text-sm font-bold text-slate-400">Padronize trilhas, competências, objetivos e checkpoints por cargo.</div></div>
-                <button type="button" onClick={async () => { setSaving(true); await run(async () => { const created = await rhJornadaService.createPdiTemplate({ nome: 'Novo template de PDI', descricao: 'Ajuste trilha, competências e objetivos.', ativo: true }); await refreshPdiTemplateDetails(created.id); }, { success: 'Template de PDI criado.', error: 'Não foi possível criar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Novo template de PDI</button>
+                <div><div className="text-primary text-xl font-black">Templates de PDI</div><div className="mt-1 text-sm font-bold text-muted">Padronize trilhas, competências, objetivos e checkpoints por cargo.</div></div>
+                <button type="button" onClick={async () => { setSaving(true); await run(async () => { const created = await rhJornadaService.createPdiTemplate({ nome: 'Novo template de PDI', descricao: 'Ajuste trilha, competências e objetivos.', ativo: true }); await refreshPdiTemplateDetails(created.id); }, { success: 'Template de PDI criado.', error: 'Não foi possível criar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl bg-accent hover:bg-accent text-white font-black transition-all">Novo template de PDI</button>
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)] gap-6">
                 <div className="space-y-3">
-                  {pdiTemplates.map((template) => <button key={template.id} type="button" onClick={() => setSelectedPdiTemplateId(template.id)} className={['w-full rounded-3xl border p-4 text-left transition-all', template.id === selectedPdiTemplateId ? 'border-violet-500/30 bg-violet-500/10' : 'border-slate-800 bg-slate-900/30 hover:bg-slate-900/50'].join(' ')}><div className="text-white font-black">{template.nome}</div><div className="mt-1 text-xs font-bold text-slate-400">{template.escopo_cargo || 'Sem cargo'} • v{template.versao}</div><div className="mt-3"><Badge variant={template.ativo ? 'success' : 'default'}>{template.ciclo_tipo || 'personalizado'}</Badge></div></button>)}
+                  {pdiTemplates.map((template) => <button key={template.id} type="button" onClick={() => setSelectedPdiTemplateId(template.id)} className={['w-full rounded-3xl border p-4 text-left transition-all', template.id === selectedPdiTemplateId ? 'border-accent/30 bg-accent/10' : 'border-base bg-surface/30 hover:bg-surface/50'].join(' ')}><div className="text-white font-black">{template.nome}</div><div className="mt-1 text-xs font-bold text-muted">{template.escopo_cargo || 'Sem cargo'} • v{template.versao}</div><div className="mt-3"><Badge variant={template.ativo ? 'success' : 'default'}>{template.ciclo_tipo || 'personalizado'}</Badge></div></button>)}
                 </div>
 
                 {selectedPdiTemplate ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input value={pdiTemplateForm.nome} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, nome: e.target.value }))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" placeholder="Nome do template" />
-                      <input value={pdiTemplateForm.escopo_cargo} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, escopo_cargo: e.target.value }))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" placeholder="Cargo alvo" />
-                      <div className="md:col-span-2"><textarea value={pdiTemplateForm.descricao} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, descricao: e.target.value }))} rows={3} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none" placeholder="Descrição do template" /></div>
+                      <input value={pdiTemplateForm.nome} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, nome: e.target.value }))} className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" placeholder="Nome do template" />
+                      <input value={pdiTemplateForm.escopo_cargo} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, escopo_cargo: e.target.value }))} className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" placeholder="Cargo alvo" />
+                      <div className="md:col-span-2"><textarea value={pdiTemplateForm.descricao} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, descricao: e.target.value }))} rows={3} className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none" placeholder="Descrição do template" /></div>
                       <CustomSelect value={pdiTemplateForm.ciclo_tipo} onValueChange={(value) => setPdiTemplateForm((prev) => ({ ...prev, ciclo_tipo: value as RhPdiCycleType | '' }))} options={PDI_CYCLE_OPTIONS} />
-                      <div className="flex items-center gap-3"><label className="flex items-center gap-2 text-sm font-bold text-slate-300"><input type="checkbox" checked={pdiTemplateForm.ativo} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, ativo: e.target.checked }))} className="accent-violet-500" />Ativo</label></div>
+                      <div className="flex items-center gap-3"><label className="flex items-center gap-2 text-sm font-bold text-secondary"><input type="checkbox" checked={pdiTemplateForm.ativo} onChange={(e) => setPdiTemplateForm((prev) => ({ ...prev, ativo: e.target.checked }))} className="accent-accent" />Ativo</label></div>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <button type="button" onClick={async () => { const template = selectedPdiTemplate; setSaving(true); await run(async () => { await rhJornadaService.updatePdiTemplate(template.id, { ...pdiTemplateForm, ciclo_tipo: pdiTemplateForm.ciclo_tipo || null }); await refreshPdiTemplateDetails(template.id); }, { success: 'Template de PDI salvo.', error: 'Não foi possível salvar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all">Salvar template de PDI</button>
-                      <button type="button" onClick={async () => { const template = selectedPdiTemplate; setSaving(true); await run(async () => { await rhJornadaService.archivePdiTemplate(template.id); await refreshPdiTemplateDetails(template.id); }, { success: 'Template de PDI arquivado.', error: 'Não foi possível arquivar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 font-black hover:bg-rose-500/15 transition-all">Arquivar</button>
+                      <button type="button" onClick={async () => { const template = selectedPdiTemplate; setSaving(true); await run(async () => { await rhJornadaService.updatePdiTemplate(template.id, { ...pdiTemplateForm, ciclo_tipo: pdiTemplateForm.ciclo_tipo || null }); await refreshPdiTemplateDetails(template.id); }, { success: 'Template de PDI salvo.', error: 'Não foi possível salvar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl bg-accent hover:bg-accent text-white font-black transition-all">Salvar template de PDI</button>
+                      <button type="button" onClick={async () => { const template = selectedPdiTemplate; setSaving(true); await run(async () => { await rhJornadaService.archivePdiTemplate(template.id); await refreshPdiTemplateDetails(template.id); }, { success: 'Template de PDI arquivado.', error: 'Não foi possível arquivar o template de PDI.' }); setSaving(false); }} className="px-4 py-2.5 rounded-2xl border border-danger/30 bg-danger/10 text-danger font-black hover:bg-danger/15 transition-all">Arquivar</button>
                     </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                      <Card className="p-5 border border-slate-700/50">
-                        <div className="text-white font-black mb-4">Competencias base</div>
+                      <Card className="p-5 border border-strong/50">
+                        <div className="text-primary font-black mb-4">Competencias base</div>
                         <div className="space-y-3">
-                          {pdiCompetences.map((item) => <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4"><input value={item.nome} onChange={(e) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, nome: e.target.value } : current))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.categoria} onValueChange={(value) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, categoria: value as typeof item.categoria } : current))} options={RH_PDI_COMPETENCE_CATEGORIES.map((value) => ({ value, label: value }))} /><input value={item.nivel_alvo} onChange={(e) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, nivel_alvo: Number(e.target.value) || current.nivel_alvo } : current))} className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.updatePdiTemplateCompetence(item.id, { nome: item.nome, categoria: item.categoria, nivel_alvo: item.nivel_alvo, ordem: item.ordem }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Competência salva.', error: 'Não foi possível salvar a competência.' })} className="mt-3 px-4 py-2 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all">Salvar</button></div>)}
-                          <div className="grid grid-cols-1 gap-3"><input value={newPdiCompetence.nome} onChange={(e) => setNewPdiCompetence((prev) => ({ ...prev, nome: e.target.value }))} placeholder="Nova competencia" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiCompetence.categoria} onValueChange={(value) => setNewPdiCompetence((prev) => ({ ...prev, categoria: value as typeof prev.categoria }))} options={RH_PDI_COMPETENCE_CATEGORIES.map((value) => ({ value, label: value }))} /><input value={newPdiCompetence.nivel_alvo} onChange={(e) => setNewPdiCompetence((prev) => ({ ...prev, nivel_alvo: e.target.value }))} placeholder="Nivel alvo" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.createPdiTemplateCompetence({ template_id: selectedPdiTemplate.id, nome: newPdiCompetence.nome, categoria: newPdiCompetence.categoria, nivel_alvo: Number(newPdiCompetence.nivel_alvo || 3), ordem: pdiCompetences.length + 1 }); setNewPdiCompetence({ nome: '', categoria: RH_PDI_COMPETENCE_CATEGORIES[0], nivel_alvo: '3' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Competência adicionada.', error: 'Não foi possível adicionar a competência.' })} className="px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-black transition-all">Adicionar competencia</button></div>
+                          {pdiCompetences.map((item) => <div key={item.id} className="rounded-2xl border border-base bg-surface/30 p-4"><input value={item.nome} onChange={(e) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, nome: e.target.value } : current))} className="w-full rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.categoria} onValueChange={(value) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, categoria: value as typeof item.categoria } : current))} options={RH_PDI_COMPETENCE_CATEGORIES.map((value) => ({ value, label: value }))} /><input value={item.nivel_alvo} onChange={(e) => setPdiCompetences((prev) => prev.map((current) => current.id === item.id ? { ...current, nivel_alvo: Number(e.target.value) || current.nivel_alvo } : current))} className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.updatePdiTemplateCompetence(item.id, { nome: item.nome, categoria: item.categoria, nivel_alvo: item.nivel_alvo, ordem: item.ordem }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Competência salva.', error: 'Não foi possível salvar a competência.' })} className="mt-3 px-4 py-2 rounded-2xl bg-info hover:bg-info text-white font-black transition-all">Salvar</button></div>)}
+                          <div className="grid grid-cols-1 gap-3"><input value={newPdiCompetence.nome} onChange={(e) => setNewPdiCompetence((prev) => ({ ...prev, nome: e.target.value }))} placeholder="Nova competencia" className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40" /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiCompetence.categoria} onValueChange={(value) => setNewPdiCompetence((prev) => ({ ...prev, categoria: value as typeof prev.categoria }))} options={RH_PDI_COMPETENCE_CATEGORIES.map((value) => ({ value, label: value }))} /><input value={newPdiCompetence.nivel_alvo} onChange={(e) => setNewPdiCompetence((prev) => ({ ...prev, nivel_alvo: e.target.value }))} placeholder="Nivel alvo" className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.createPdiTemplateCompetence({ template_id: selectedPdiTemplate.id, nome: newPdiCompetence.nome, categoria: newPdiCompetence.categoria, nivel_alvo: Number(newPdiCompetence.nivel_alvo || 3), ordem: pdiCompetences.length + 1 }); setNewPdiCompetence({ nome: '', categoria: RH_PDI_COMPETENCE_CATEGORIES[0], nivel_alvo: '3' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Competência adicionada.', error: 'Não foi possível adicionar a competência.' })} className="px-4 py-3 rounded-2xl bg-info hover:bg-info text-white font-black transition-all">Adicionar competencia</button></div>
                         </div>
                       </Card>
 
-                      <Card className="p-5 border border-slate-700/50">
-                        <div className="text-white font-black mb-4">Objetivos padrao</div>
+                      <Card className="p-5 border border-strong/50">
+                        <div className="text-primary font-black mb-4">Objetivos padrao</div>
                         <div className="space-y-3">
-                          {pdiObjectives.map((item) => <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4"><input value={item.titulo} onChange={(e) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.tipo} onValueChange={(value) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, tipo: value as typeof item.tipo } : current))} options={RH_PDI_OBJECTIVE_TYPES.map((value) => ({ value, label: value }))} /><input value={item.prazo_offset_dias || 0} onChange={(e) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, prazo_offset_dias: Number(e.target.value) || 0 } : current))} className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.updatePdiTemplateObjective(item.id, { titulo: item.titulo, tipo: item.tipo, prazo_offset_dias: item.prazo_offset_dias, competencia_template_id: item.competencia_template_id || null, ordem: item.ordem, obrigatorio: item.obrigatorio, score_peso: item.score_peso }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Objetivo salvo.', error: 'Não foi possível salvar o objetivo.' })} className="mt-3 px-4 py-2 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black transition-all">Salvar</button></div>)}
-                          <div className="grid grid-cols-1 gap-3"><input value={newPdiObjective.titulo} onChange={(e) => setNewPdiObjective((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Novo objetivo" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /><CustomSelect value={newPdiObjective.competencia_template_id} onValueChange={(value) => setNewPdiObjective((prev) => ({ ...prev, competencia_template_id: value }))} options={[{ value: '', label: 'Sem competencia vinculada' }, ...pdiCompetences.map((item) => ({ value: item.id, label: item.nome }))]} /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiObjective.tipo} onValueChange={(value) => setNewPdiObjective((prev) => ({ ...prev, tipo: value as typeof prev.tipo }))} options={RH_PDI_OBJECTIVE_TYPES.map((value) => ({ value, label: value }))} /><input value={newPdiObjective.prazo_offset_dias} onChange={(e) => setNewPdiObjective((prev) => ({ ...prev, prazo_offset_dias: e.target.value }))} placeholder="Prazo em dias" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.createPdiTemplateObjective({ template_id: selectedPdiTemplate.id, competencia_template_id: newPdiObjective.competencia_template_id || null, titulo: newPdiObjective.titulo, tipo: newPdiObjective.tipo, descricao: null, obrigatorio: true, score_peso: 10, ordem: pdiObjectives.length + 1, prazo_offset_dias: Number(newPdiObjective.prazo_offset_dias || 30) }); setNewPdiObjective({ competencia_template_id: '', titulo: '', tipo: RH_PDI_OBJECTIVE_TYPES[0], prazo_offset_dias: '30' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Objetivo adicionado.', error: 'Não foi possível adicionar o objetivo.' })} className="px-4 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black transition-all">Adicionar objetivo</button></div>
+                          {pdiObjectives.map((item) => <div key={item.id} className="rounded-2xl border border-base bg-surface/30 p-4"><input value={item.titulo} onChange={(e) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))} className="w-full rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.tipo} onValueChange={(value) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, tipo: value as typeof item.tipo } : current))} options={RH_PDI_OBJECTIVE_TYPES.map((value) => ({ value, label: value }))} /><input value={item.prazo_offset_dias || 0} onChange={(e) => setPdiObjectives((prev) => prev.map((current) => current.id === item.id ? { ...current, prazo_offset_dias: Number(e.target.value) || 0 } : current))} className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.updatePdiTemplateObjective(item.id, { titulo: item.titulo, tipo: item.tipo, prazo_offset_dias: item.prazo_offset_dias, competencia_template_id: item.competencia_template_id || null, ordem: item.ordem, obrigatorio: item.obrigatorio, score_peso: item.score_peso }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Objetivo salvo.', error: 'Não foi possível salvar o objetivo.' })} className="mt-3 px-4 py-2 rounded-2xl bg-info hover:bg-info text-white font-black transition-all">Salvar</button></div>)}
+                          <div className="grid grid-cols-1 gap-3"><input value={newPdiObjective.titulo} onChange={(e) => setNewPdiObjective((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Novo objetivo" className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40" /><CustomSelect value={newPdiObjective.competencia_template_id} onValueChange={(value) => setNewPdiObjective((prev) => ({ ...prev, competencia_template_id: value }))} options={[{ value: '', label: 'Sem competencia vinculada' }, ...pdiCompetences.map((item) => ({ value: item.id, label: item.nome }))]} /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiObjective.tipo} onValueChange={(value) => setNewPdiObjective((prev) => ({ ...prev, tipo: value as typeof prev.tipo }))} options={RH_PDI_OBJECTIVE_TYPES.map((value) => ({ value, label: value }))} /><input value={newPdiObjective.prazo_offset_dias} onChange={(e) => setNewPdiObjective((prev) => ({ ...prev, prazo_offset_dias: e.target.value }))} placeholder="Prazo em dias" className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-info/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.createPdiTemplateObjective({ template_id: selectedPdiTemplate.id, competencia_template_id: newPdiObjective.competencia_template_id || null, titulo: newPdiObjective.titulo, tipo: newPdiObjective.tipo, descricao: null, obrigatorio: true, score_peso: 10, ordem: pdiObjectives.length + 1, prazo_offset_dias: Number(newPdiObjective.prazo_offset_dias || 30) }); setNewPdiObjective({ competencia_template_id: '', titulo: '', tipo: RH_PDI_OBJECTIVE_TYPES[0], prazo_offset_dias: '30' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Objetivo adicionado.', error: 'Não foi possível adicionar o objetivo.' })} className="px-4 py-3 rounded-2xl bg-info hover:bg-info text-white font-black transition-all">Adicionar objetivo</button></div>
                         </div>
                       </Card>
 
-                      <Card className="p-5 border border-slate-700/50">
-                        <div className="text-white font-black mb-4">Checkpoints padrao</div>
+                      <Card className="p-5 border border-strong/50">
+                        <div className="text-primary font-black mb-4">Checkpoints padrao</div>
                         <div className="space-y-3">
-                          {pdiCheckpoints.map((item) => <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4"><input value={item.titulo} onChange={(e) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.tipo} onValueChange={(value) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, tipo: value as typeof item.tipo } : current))} options={RH_PDI_CHECKPOINT_TYPES.map((value) => ({ value, label: value }))} /><input value={item.prazo_offset_dias || 0} onChange={(e) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, prazo_offset_dias: Number(e.target.value) || 0 } : current))} className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.updatePdiTemplateCheckpoint(item.id, { titulo: item.titulo, tipo: item.tipo, prazo_offset_dias: item.prazo_offset_dias, objetivo_template_id: item.objetivo_template_id || null, ordem: item.ordem }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Checkpoint salvo.', error: 'Não foi possível salvar o checkpoint.' })} className="mt-3 px-4 py-2 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all">Salvar</button></div>)}
-                          <div className="grid grid-cols-1 gap-3"><input value={newPdiCheckpoint.titulo} onChange={(e) => setNewPdiCheckpoint((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Novo checkpoint" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /><CustomSelect value={newPdiCheckpoint.objetivo_template_id} onValueChange={(value) => setNewPdiCheckpoint((prev) => ({ ...prev, objetivo_template_id: value }))} options={[{ value: '', label: 'Sem objetivo vinculado' }, ...pdiObjectives.map((item) => ({ value: item.id, label: item.titulo }))]} /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiCheckpoint.tipo} onValueChange={(value) => setNewPdiCheckpoint((prev) => ({ ...prev, tipo: value as typeof prev.tipo }))} options={RH_PDI_CHECKPOINT_TYPES.map((value) => ({ value, label: value }))} /><input value={newPdiCheckpoint.prazo_offset_dias} onChange={(e) => setNewPdiCheckpoint((prev) => ({ ...prev, prazo_offset_dias: e.target.value }))} placeholder="Prazo em dias" className="rounded-2xl border border-slate-800 bg-[#0a0d14] px-4 py-3 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.createPdiTemplateCheckpoint({ template_id: selectedPdiTemplate.id, objetivo_template_id: newPdiCheckpoint.objetivo_template_id || null, titulo: newPdiCheckpoint.titulo, tipo: newPdiCheckpoint.tipo, ordem: pdiCheckpoints.length + 1, prazo_offset_dias: Number(newPdiCheckpoint.prazo_offset_dias || 30) }); setNewPdiCheckpoint({ objetivo_template_id: '', titulo: '', tipo: RH_PDI_CHECKPOINT_TYPES[0], prazo_offset_dias: '30' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Checkpoint adicionado.', error: 'Não foi possível adicionar o checkpoint.' })} className="px-4 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition-all">Adicionar checkpoint</button></div>
+                          {pdiCheckpoints.map((item) => <div key={item.id} className="rounded-2xl border border-base bg-surface/30 p-4"><input value={item.titulo} onChange={(e) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, titulo: e.target.value } : current))} className="w-full rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-warning/40" /><div className="mt-3 grid grid-cols-2 gap-3"><CustomSelect value={item.tipo} onValueChange={(value) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, tipo: value as typeof item.tipo } : current))} options={RH_PDI_CHECKPOINT_TYPES.map((value) => ({ value, label: value }))} /><input value={item.prazo_offset_dias || 0} onChange={(e) => setPdiCheckpoints((prev) => prev.map((current) => current.id === item.id ? { ...current, prazo_offset_dias: Number(e.target.value) || 0 } : current))} className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-warning/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.updatePdiTemplateCheckpoint(item.id, { titulo: item.titulo, tipo: item.tipo, prazo_offset_dias: item.prazo_offset_dias, objetivo_template_id: item.objetivo_template_id || null, ordem: item.ordem }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Checkpoint salvo.', error: 'Não foi possível salvar o checkpoint.' })} className="mt-3 px-4 py-2 rounded-2xl bg-warning hover:bg-warning text-white font-black transition-all">Salvar</button></div>)}
+                          <div className="grid grid-cols-1 gap-3"><input value={newPdiCheckpoint.titulo} onChange={(e) => setNewPdiCheckpoint((prev) => ({ ...prev, titulo: e.target.value }))} placeholder="Novo checkpoint" className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-warning/40" /><CustomSelect value={newPdiCheckpoint.objetivo_template_id} onValueChange={(value) => setNewPdiCheckpoint((prev) => ({ ...prev, objetivo_template_id: value }))} options={[{ value: '', label: 'Sem objetivo vinculado' }, ...pdiObjectives.map((item) => ({ value: item.id, label: item.titulo }))]} /><div className="grid grid-cols-2 gap-3"><CustomSelect value={newPdiCheckpoint.tipo} onValueChange={(value) => setNewPdiCheckpoint((prev) => ({ ...prev, tipo: value as typeof prev.tipo }))} options={RH_PDI_CHECKPOINT_TYPES.map((value) => ({ value, label: value }))} /><input value={newPdiCheckpoint.prazo_offset_dias} onChange={(e) => setNewPdiCheckpoint((prev) => ({ ...prev, prazo_offset_dias: e.target.value }))} placeholder="Prazo em dias" className="rounded-2xl border border-base bg-bg px-4 py-3 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-warning/40" /></div><button type="button" onClick={() => run(async () => { await rhJornadaService.createPdiTemplateCheckpoint({ template_id: selectedPdiTemplate.id, objetivo_template_id: newPdiCheckpoint.objetivo_template_id || null, titulo: newPdiCheckpoint.titulo, tipo: newPdiCheckpoint.tipo, ordem: pdiCheckpoints.length + 1, prazo_offset_dias: Number(newPdiCheckpoint.prazo_offset_dias || 30) }); setNewPdiCheckpoint({ objetivo_template_id: '', titulo: '', tipo: RH_PDI_CHECKPOINT_TYPES[0], prazo_offset_dias: '30' }); await refreshPdiTemplateDetails(selectedPdiTemplate.id); }, { success: 'Checkpoint adicionado.', error: 'Não foi possível adicionar o checkpoint.' })} className="px-4 py-3 rounded-2xl bg-warning hover:bg-warning text-white font-black transition-all">Adicionar checkpoint</button></div>
                         </div>
                       </Card>
                     </div>
                   </div>
-                ) : <div className="text-sm font-bold text-slate-500">Selecione um template de PDI para editar.</div>}
+                ) : <div className="text-sm font-bold text-muted">Selecione um template de PDI para editar.</div>}
               </div>
             </Card>
           </div>
 
           {error ? (
-            <Card className="p-4 border border-amber-500/30 bg-amber-500/10">
-              <div className="flex items-center gap-2 text-amber-200 font-black text-sm">
+            <Card className="p-4 border border-warning/30 bg-warning/10">
+              <div className="flex items-center gap-2 text-warning font-black text-sm">
                 <ClipboardList className="w-4 h-4" />
                 {error}
               </div>

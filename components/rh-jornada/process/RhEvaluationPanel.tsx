@@ -125,19 +125,19 @@ export const RhEvaluationPanel: React.FC<{
   if (!processId) return null;
 
   return (
-    <Card className="p-5 border border-slate-700/50">
+    <Card className="p-5 border border-strong/50">
       <div className="flex items-center gap-2 mb-4">
-        <ClipboardCheck className="w-4 h-4 text-emerald-300" />
-        <h3 className="text-white text-base font-black">Avaliações</h3>
+        <ClipboardCheck className="w-4 h-4 text-success" />
+        <h3 className="text-primary text-base font-black">Avaliações</h3>
         {stage ? <Badge variant="info">Etapa atual</Badge> : null}
       </div>
 
       <div className="space-y-3 mb-5">
         {evaluations.map((evaluation) => (
-          <div key={evaluation.id} className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
+          <div key={evaluation.id} className="rounded-2xl border border-base bg-surface/30 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <div className="text-white font-black">{TYPE_OPTIONS.find((item) => item.value === evaluation.tipo)?.label || evaluation.tipo}</div>
+                <div className="text-primary font-black">{TYPE_OPTIONS.find((item) => item.value === evaluation.tipo)?.label || evaluation.tipo}</div>
                 {evaluation.decisao ? <Badge variant={decisionVariant[evaluation.decisao]}>{evaluation.decisao}</Badge> : null}
                 {typeof evaluation.nota === 'number' ? <Badge variant="purple">Nota {evaluation.nota}</Badge> : null}
               </div>
@@ -154,7 +154,7 @@ export const RhEvaluationPanel: React.FC<{
                       setNotes(evaluation.observacoes || '');
                       setEvaluatorUserId(evaluation.avaliador_user_id || '');
                     }}
-                    className="px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/50 text-xs font-black text-slate-200 hover:bg-slate-900/70 transition-all flex items-center gap-2"
+                    className="px-3 py-2 rounded-xl border border-base bg-surface/50 text-xs font-black text-secondary hover:bg-surface/70 transition-all flex items-center gap-2"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Editar
@@ -176,7 +176,7 @@ export const RhEvaluationPanel: React.FC<{
                         }
                       );
                     }}
-                    className="px-3 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs font-black text-rose-200 hover:bg-rose-500/20 transition-all flex items-center gap-2"
+                    className="px-3 py-2 rounded-xl border border-danger/30 bg-danger/10 text-xs font-black text-danger hover:bg-danger/20 transition-all flex items-center gap-2"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Excluir
@@ -184,37 +184,37 @@ export const RhEvaluationPanel: React.FC<{
                 </div>
               ) : null}
             </div>
-            {evaluation.resumo ? <div className="mt-2 text-sm font-bold text-slate-200">{evaluation.resumo}</div> : null}
-            {evaluation.observacoes ? <div className="mt-2 text-xs font-bold text-slate-400 whitespace-pre-wrap">{evaluation.observacoes}</div> : null}
-            <div className="mt-3 text-[11px] font-bold text-slate-500">{new Date(evaluation.realizada_em).toLocaleString('pt-BR')}</div>
+            {evaluation.resumo ? <div className="mt-2 text-sm font-bold text-secondary">{evaluation.resumo}</div> : null}
+            {evaluation.observacoes ? <div className="mt-2 text-xs font-bold text-muted whitespace-pre-wrap">{evaluation.observacoes}</div> : null}
+            <div className="mt-3 text-[11px] font-bold text-muted">{new Date(evaluation.realizada_em).toLocaleString('pt-BR')}</div>
           </div>
         ))}
-        {evaluations.length === 0 ? <div className="text-sm font-bold text-slate-500">Nenhuma avaliação registrada ainda.</div> : null}
+        {evaluations.length === 0 ? <div className="text-sm font-bold text-muted">Nenhuma avaliação registrada ainda.</div> : null}
       </div>
 
-      {!canCreateEvaluation ? <div className="mb-5 text-sm font-bold text-slate-500">Você tem acesso de leitura às avaliações deste processo.</div> : null}
+      {!canCreateEvaluation ? <div className="mb-5 text-sm font-bold text-muted">Você tem acesso de leitura às avaliações deste processo.</div> : null}
       {editingEvaluationId ? (
-        <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3">
-          <div className="text-sm font-bold text-cyan-200">Editando uma avaliação existente.</div>
-          <button type="button" onClick={resetForm} className="px-3 py-2 rounded-xl border border-slate-800 bg-slate-900/40 text-xs font-black text-slate-200 hover:bg-slate-900/60 transition-all">Cancelar edição</button>
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3">
+          <div className="text-sm font-bold text-info">Editando uma avaliação existente.</div>
+          <button type="button" onClick={resetForm} className="px-3 py-2 rounded-xl border border-base bg-surface/40 text-xs font-black text-secondary hover:bg-surface/60 transition-all">Cancelar edição</button>
         </div>
       ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Tipo</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Tipo</div>
           <CustomSelect value={evaluationType} onValueChange={(value) => setEvaluationType(value as RhEvaluationType)} options={TYPE_OPTIONS} />
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Decisão</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Decisão</div>
           <CustomSelect value={decision} onValueChange={(value) => setDecision(value as RhEvaluationDecision)} options={DECISION_OPTIONS} />
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Avaliador</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Avaliador</div>
           <CustomSelect value={evaluatorUserId} onValueChange={setEvaluatorUserId} options={userOptions} placeholder="Selecione..." />
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Nota</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Nota</div>
           <input
             type="number"
             min="0"
@@ -223,26 +223,26 @@ export const RhEvaluationPanel: React.FC<{
             value={score}
             onChange={(e) => setScore(e.target.value)}
             placeholder="0 a 10"
-            className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+            className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
         </div>
         <div className="md:col-span-2">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Resumo</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Resumo</div>
           <input
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             placeholder="Síntese da avaliação"
-            className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+            className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
         </div>
         <div className="md:col-span-2">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Observações</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Observações</div>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Pontos fortes, ajustes, contexto e encaminhamentos"
-            className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none"
+            className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
           />
         </div>
       </div>
@@ -291,8 +291,8 @@ export const RhEvaluationPanel: React.FC<{
             setSaving(false);
           }}
           className={cn(
-            'px-5 py-3 rounded-2xl font-black text-white flex items-center gap-2 transition-all',
-            !canCreateEvaluation || saving || !summary.trim() ? 'bg-slate-700 opacity-60 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500'
+            'px-5 py-3 rounded-2xl font-black text-primary flex items-center gap-2 transition-all',
+            !canCreateEvaluation || saving || !summary.trim() ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-success hover:bg-success'
           )}
         >
           {saving ? <Save className="w-4 h-4" /> : editingEvaluationId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}

@@ -78,7 +78,7 @@ const OnboardingCreateModal: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-3 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-300 font-black hover:bg-slate-900/60 transition-all"
+            className="px-6 py-3 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all"
           >
             Cancelar
           </button>
@@ -114,8 +114,8 @@ const OnboardingCreateModal: React.FC<{
               }
             }}
             className={cn(
-              'px-8 py-3 rounded-2xl font-black text-white transition-all flex items-center gap-2',
-              saving || !templateId || !colaboradorId || !dataInicio ? 'bg-slate-700 opacity-60 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500'
+              'px-8 py-3 rounded-2xl font-black text-primary transition-all flex items-center gap-2',
+              saving || !templateId || !colaboradorId || !dataInicio ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-accent hover:bg-accent'
             )}
           >
             <Plus className="w-4 h-4" />
@@ -125,44 +125,44 @@ const OnboardingCreateModal: React.FC<{
       }
     >
       <div className="space-y-6">
-        {error ? <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm font-bold text-rose-300">{error}</div> : null}
+        {error ? <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm font-bold text-danger">{error}</div> : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Colaborador *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Colaborador *</div>
             <CustomSelect value={colaboradorId} onValueChange={setColaboradorId} options={colaboradorOptions} placeholder="Selecione..." />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Modelo *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Modelo *</div>
             <CustomSelect value={templateId} onValueChange={setTemplateId} options={templateOptions} placeholder="Selecione..." />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Início *</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Início *</div>
             <DatePicker value={dataInicio} onChange={setDataInicio} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Fim previsto</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Fim previsto</div>
             <DatePicker value={dataFim} onChange={setDataFim} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Prioridade</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Prioridade</div>
             <CustomSelect value={prioridade} onValueChange={setPrioridade} options={PRIORIDADE_OPTIONS} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Título</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Título</div>
             <input
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               placeholder="Ex: Onboarding João Silva"
-              className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+              className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
             />
           </div>
           <div className="md:col-span-2">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Observações</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Observações</div>
             <textarea
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               rows={4}
-              className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none"
+              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
               placeholder="Anotações da admissão, mentor, prioridades ou contexto do onboarding"
             />
           </div>
@@ -260,38 +260,38 @@ export const OnboardingTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Ativos</div>
-          <div className="mt-2 text-3xl font-black text-white">{activeProcessesCount}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Onboardings em andamento</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Ativos</div>
+          <div className="mt-2 text-3xl font-black text-primary">{activeProcessesCount}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Onboardings em andamento</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Etapas</div>
-          <div className="mt-2 text-3xl font-black text-white">{selectedProcess?.total_etapas || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400 truncate">{selectedProcessContext}</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Etapas</div>
+          <div className="mt-2 text-3xl font-black text-primary">{selectedProcess?.total_etapas || 0}</div>
+          <div className="mt-1 text-xs font-bold text-muted truncate">{selectedProcessContext}</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Concluídas</div>
-          <div className="mt-2 text-3xl font-black text-emerald-300">{selectedProcess?.etapas_concluidas || 0}</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Etapas fechadas</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Concluídas</div>
+          <div className="mt-2 text-3xl font-black text-success">{selectedProcess?.etapas_concluidas || 0}</div>
+          <div className="mt-1 text-xs font-bold text-muted">Etapas fechadas</div>
         </Card>
-        <Card className="p-5 border border-slate-700/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Progresso</div>
-          <div className="mt-2 text-3xl font-black text-violet-300">{Math.round(selectedProcess?.percentual_conclusao || 0)}%</div>
-          <div className="mt-1 text-xs font-bold text-slate-400">Conclusão estimada</div>
+        <Card className="p-5 border border-strong/50">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Progresso</div>
+          <div className="mt-2 text-3xl font-black text-accent">{Math.round(selectedProcess?.percentual_conclusao || 0)}%</div>
+          <div className="mt-1 text-xs font-bold text-muted">Conclusão estimada</div>
         </Card>
       </div>
 
-      <Card className="p-5 border border-slate-700/50">
+      <Card className="p-5 border border-strong/50">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-white text-lg font-black">Onboardings ativos</div>
-            <div className="text-sm font-bold text-slate-400">Crie a jornada de entrada e acompanhe o avanço por etapa.</div>
+            <div className="text-primary text-lg font-black">Onboardings ativos</div>
+            <div className="text-sm font-bold text-muted">Crie a jornada de entrada e acompanhe o avanço por etapa.</div>
           </div>
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="px-5 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black flex items-center gap-2 transition-all"
+            className="px-5 py-3.5 rounded-2xl bg-accent hover:bg-accent text-white font-black flex items-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
             Novo onboarding
@@ -300,19 +300,19 @@ export const OnboardingTab: React.FC = () => {
       </Card>
 
       {processes.length === 0 ? (
-        <Card className="p-10 border border-dashed border-slate-700 bg-slate-900/30 text-center">
-          <div className="mx-auto w-14 h-14 rounded-3xl bg-slate-800/70 flex items-center justify-center mb-4">
-            <Users className="w-6 h-6 text-slate-400" />
+        <Card className="p-10 border border-dashed border-strong bg-surface/30 text-center">
+          <div className="mx-auto w-14 h-14 rounded-3xl bg-surface-2/70 flex items-center justify-center mb-4">
+            <Users className="w-6 h-6 text-muted" />
           </div>
-          <div className="text-white font-black">Nenhum onboarding criado</div>
-          <div className="mt-2 text-sm font-bold text-slate-400">Use o modelo oficial para abrir o primeiro processo de entrada.</div>
+          <div className="text-primary font-black">Nenhum onboarding criado</div>
+          <div className="mt-2 text-sm font-bold text-muted">Use o modelo oficial para abrir o primeiro processo de entrada.</div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
-          <Card className="p-5 border border-slate-700/50">
+          <Card className="p-5 border border-strong/50">
             <div className="flex items-center gap-2 mb-4">
-              <Route className="w-4 h-4 text-cyan-300" />
-              <h3 className="text-white text-base font-black">Lista de processos</h3>
+              <Route className="w-4 h-4 text-info" />
+              <h3 className="text-primary text-base font-black">Lista de processos</h3>
             </div>
             <div className="space-y-3">
               {processes.map((process) => {
@@ -326,14 +326,14 @@ export const OnboardingTab: React.FC = () => {
                     onClick={() => setSelectedProcessId(process.id)}
                     className={[
                       'w-full rounded-3xl border p-4 text-left transition-all',
-                      active ? 'border-violet-500/30 bg-violet-500/10' : 'border-slate-800 bg-slate-900/30 hover:bg-slate-900/50',
+                      active ? 'border-accent/30 bg-accent/10' : 'border-base bg-surface/30 hover:bg-surface/50',
                     ].join(' ')}
                   >
-                    <div className="text-white font-black truncate">{process.titulo}</div>
-                    <div className="mt-1 text-xs font-bold text-slate-400 truncate">{colaborador?.nome || process.cargo || 'Colaborador'}</div>
+                    <div className="text-primary font-black truncate">{process.titulo}</div>
+                    <div className="mt-1 text-xs font-bold text-muted truncate">{colaborador?.nome || process.cargo || 'Colaborador'}</div>
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <Badge variant={status.variant}>{status.label}</Badge>
-                      <div className="text-[11px] font-bold text-slate-500">{Math.round(process.percentual_conclusao)}%</div>
+                      <div className="text-[11px] font-bold text-muted">{Math.round(process.percentual_conclusao)}%</div>
                     </div>
                   </button>
                 );
@@ -342,11 +342,11 @@ export const OnboardingTab: React.FC = () => {
           </Card>
 
           <div className="space-y-6">
-            <Card className="p-5 border border-slate-700/50">
+            <Card className="p-5 border border-strong/50">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <div className="text-white text-xl font-black">{selectedProcess?.titulo || 'Selecione um processo'}</div>
-                  <div className="mt-1 text-sm font-bold text-slate-400">
+                  <div className="text-primary text-xl font-black">{selectedProcess?.titulo || 'Selecione um processo'}</div>
+                  <div className="mt-1 text-sm font-bold text-muted">
                     {selectedProcess?.colaborador_id ? collaboratorMap.get(selectedProcess.colaborador_id)?.nome : selectedProcess?.cargo}
                   </div>
                 </div>
@@ -362,28 +362,28 @@ export const OnboardingTab: React.FC = () => {
 
               {selectedProcess ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Início</div>
-                    <div className="mt-2 text-sm font-black text-white">{new Date(`${selectedProcess.data_inicio}T00:00:00`).toLocaleDateString('pt-BR')}</div>
+                  <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Início</div>
+                    <div className="mt-2 text-sm font-black text-primary">{new Date(`${selectedProcess.data_inicio}T00:00:00`).toLocaleDateString('pt-BR')}</div>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Fim previsto</div>
-                    <div className="mt-2 text-sm font-black text-white">
+                  <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Fim previsto</div>
+                    <div className="mt-2 text-sm font-black text-primary">
                       {selectedProcess.data_fim_prevista ? new Date(`${selectedProcess.data_fim_prevista}T00:00:00`).toLocaleDateString('pt-BR') : 'Não informado'}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">Cargo</div>
-                    <div className="mt-2 text-sm font-black text-white">{selectedProcess.cargo || 'Não informado'}</div>
+                  <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Cargo</div>
+                    <div className="mt-2 text-sm font-black text-primary">{selectedProcess.cargo || 'Não informado'}</div>
                   </div>
                 </div>
               ) : null}
             </Card>
 
-            <Card className="p-5 border border-slate-700/50">
+            <Card className="p-5 border border-strong/50">
               <div className="flex items-center gap-2 mb-4">
-                <ClipboardList className="w-4 h-4 text-amber-300" />
-                <h3 className="text-white text-base font-black">Timeline de etapas</h3>
+                <ClipboardList className="w-4 h-4 text-warning" />
+                <h3 className="text-primary text-base font-black">Timeline de etapas</h3>
               </div>
               <div className="space-y-3">
                 {stages.map((stage) => {
@@ -395,13 +395,13 @@ export const OnboardingTab: React.FC = () => {
                       onClick={() => setSelectedStageId(stage.id)}
                       className={cn(
                         'w-full rounded-2xl border p-4 text-left transition-all',
-                        selectedStageId === stage.id ? 'border-violet-500/40 bg-violet-500/10' : 'border-slate-800 bg-slate-900/30 hover:bg-slate-900/50'
+                        selectedStageId === stage.id ? 'border-accent/40 bg-accent/10' : 'border-base bg-surface/30 hover:bg-surface/50'
                       )}
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div>
-                          <div className="text-white font-black">{stage.ordem}. {stage.titulo}</div>
-                          <div className="mt-1 text-xs font-bold text-slate-400">
+                          <div className="text-primary font-black">{stage.ordem}. {stage.titulo}</div>
+                          <div className="mt-1 text-xs font-bold text-muted">
                             Categoria: {stage.categoria}
                             {stage.agendado_em
                               ? ` • Agendado: ${new Date(stage.agendado_em).toLocaleString('pt-BR')}`
@@ -415,7 +415,7 @@ export const OnboardingTab: React.FC = () => {
                     </button>
                   );
                 })}
-                {stages.length === 0 ? <div className="text-sm font-bold text-slate-500">As etapas aparecerão aqui após a criação do processo.</div> : null}
+                {stages.length === 0 ? <div className="text-sm font-bold text-muted">As etapas aparecerão aqui após a criação do processo.</div> : null}
               </div>
             </Card>
 

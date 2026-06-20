@@ -98,7 +98,7 @@ export const CandidateApprovalModal: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-3 rounded-2xl border border-slate-800 bg-slate-900/40 text-slate-300 font-black hover:bg-slate-900/60 transition-all"
+            className="px-6 py-3 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all"
           >
             Cancelar
           </button>
@@ -136,10 +136,10 @@ export const CandidateApprovalModal: React.FC<{
               }
             }}
             className={cn(
-              'px-8 py-3 rounded-2xl font-black text-white transition-all flex items-center gap-2',
+              'px-8 py-3 rounded-2xl font-black text-primary transition-all flex items-center gap-2',
               saving || !nome.trim() || !funcao.trim() || (createOnboardingNow && !templateId)
-                ? 'bg-slate-700 opacity-60 cursor-not-allowed'
-                : 'bg-emerald-600 hover:bg-emerald-500'
+                ? 'bg-surface-3 opacity-60 cursor-not-allowed'
+                : 'bg-success hover:bg-success/80'
             )}
           >
             <CheckCircle2 className="w-4 h-4" />
@@ -149,71 +149,71 @@ export const CandidateApprovalModal: React.FC<{
       }
     >
       <div className="space-y-6">
-        {error ? <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm font-bold text-rose-300">{error}</div> : null}
+        {error ? <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm font-bold text-danger">{error}</div> : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Nome</div>
-            <input value={nome} onChange={(e) => setNome(e.target.value)} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" />
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Nome</div>
+            <input value={nome} onChange={(e) => setNome(e.target.value)} className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Função</div>
-            <input value={funcao} onChange={(e) => setFuncao(e.target.value)} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" />
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Função</div>
+            <input value={funcao} onChange={(e) => setFuncao(e.target.value)} className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Departamento</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Departamento</div>
             <CustomSelect value={departamento} onValueChange={(v) => setDepartamento(v as any)} options={DEPARTMENT_OPTIONS} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Contrato</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Contrato</div>
             <CustomSelect value={tipo} onValueChange={(v) => setTipo(v as any)} options={CONTRACT_OPTIONS} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Salário base</div>
-            <input type="number" min="0" value={salarioBase} onChange={(e) => setSalarioBase(e.target.value)} className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-3.5 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40" />
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Salário base</div>
+            <input type="number" min="0" value={salarioBase} onChange={(e) => setSalarioBase(e.target.value)} className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Data de admissão</div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Data de admissão</div>
             <DatePicker value={dataAdmissao} onChange={setDataAdmissao} />
           </div>
           <div className="flex items-center gap-3">
-            <input id="rateado" type="checkbox" checked={isRateado} onChange={(e) => setIsRateado(e.target.checked)} className="accent-violet-500" />
-            <label htmlFor="rateado" className="text-sm font-bold text-slate-300">Colaborador rateado</label>
+            <input id="rateado" type="checkbox" checked={isRateado} onChange={(e) => setIsRateado(e.target.checked)} className="accent-accent" />
+            <label htmlFor="rateado" className="text-sm font-bold text-secondary">Colaborador rateado</label>
           </div>
           {!isRateado ? (
             <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Unidade fixa</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Unidade fixa</div>
               <CustomSelect value={unidade} onValueChange={setUnidade} options={UNIDADE_OPTIONS} />
             </div>
           ) : <div />}
         </div>
 
-        <div className="rounded-3xl border border-slate-800 bg-slate-950/30 p-5">
+        <div className="rounded-3xl border border-base bg-bg/30 p-5">
           <div className="flex items-center gap-3 mb-4">
-            <input id="create-onboarding-now" type="checkbox" checked={createOnboardingNow} onChange={(e) => setCreateOnboardingNow(e.target.checked)} className="accent-violet-500" />
-            <label htmlFor="create-onboarding-now" className="text-sm font-black text-white">Criar onboarding agora</label>
+            <input id="create-onboarding-now" type="checkbox" checked={createOnboardingNow} onChange={(e) => setCreateOnboardingNow(e.target.checked)} className="accent-accent" />
+            <label htmlFor="create-onboarding-now" className="text-sm font-black text-primary">Criar onboarding agora</label>
           </div>
 
           {createOnboardingNow ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Modelo de integração</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Modelo de integração</div>
                 <CustomSelect value={templateId} onValueChange={setTemplateId} options={templateOptions} placeholder="Selecione..." />
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Início do onboarding</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Início do onboarding</div>
                 <DatePicker value={onboardingInicio} onChange={setOnboardingInicio} />
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Fim previsto</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Fim previsto</div>
                 <DatePicker value={onboardingFim} onChange={setOnboardingFim} />
               </div>
               <div className="md:col-span-2">
-                <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-2">Observações do onboarding</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Observações do onboarding</div>
                 <textarea
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}
                   rows={3}
-                  className="w-full rounded-2xl border border-slate-800 bg-[#0a0d14] px-5 py-4 text-sm font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/40 resize-none"
+                  className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
                   placeholder="Observações iniciais para a jornada de entrada"
                 />
               </div>
