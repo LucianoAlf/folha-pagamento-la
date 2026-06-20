@@ -17,6 +17,7 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "allowJs": true,
+    "esModuleInterop": true,
     "jsx": "react-jsx",
     "paths": {
       "@/*": [
@@ -25,5 +26,11 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "supabase",
+    "scripts"
+  ]
 }
