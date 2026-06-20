@@ -30,12 +30,12 @@ export const Tooltip: React.FC<{
           sideOffset={5}
           className={cn(
             // Precisa ficar acima de Modals/Dialogs (que usam z ~12000-13000)
-            "z-[14000] overflow-hidden rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xl animate-in fade-in zoom-in-95 duration-200",
+            "z-[14000] overflow-hidden rounded-xl bg-surface-2 px-3 py-2 text-xs font-bold text-primary shadow-xl animate-in fade-in zoom-in-95 duration-200",
             className
           )}
         >
           {content}
-          <TooltipPrimitive.Arrow className="fill-slate-900" />
+          <TooltipPrimitive.Arrow className="fill-[rgb(var(--surface-2))]" />
         </TooltipPrimitive.Content>
       </TooltipPrimitive.Portal>
     </TooltipPrimitive.Root>
@@ -124,12 +124,12 @@ export const DatePicker: React.FC<{
           onChange={handleInputChange}
           placeholder={placeholder}
           className={cn(
-            'w-full flex items-center justify-between px-5 py-3.5 rounded-2xl border bg-slate-50 dark:bg-slate-800 text-sm font-bold',
-            'border-slate-200 dark:border-slate-700',
-            'text-slate-900 dark:text-slate-100',
-            'focus:outline-none focus:ring-2 focus:ring-violet-500/60',
-            'placeholder:text-slate-400',
-            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-300 dark:hover:border-slate-600',
+            'w-full flex items-center justify-between px-5 py-3.5 rounded-2xl border bg-surface-2 text-sm font-bold',
+            'border-base',
+            'text-primary',
+            'focus:outline-none focus:ring-2 focus:ring-accent/60',
+            'placeholder:text-muted',
+            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-strong',
             className
           )}
         />
@@ -137,7 +137,7 @@ export const DatePicker: React.FC<{
           <button
             type="button"
             disabled={disabled}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-400 group-hover:text-violet-500"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 hover:bg-surface-3 rounded-lg transition-colors text-muted group-hover:text-accent"
           >
             <Calendar size={16} />
           </button>
@@ -148,10 +148,10 @@ export const DatePicker: React.FC<{
         <Popover.Content
           sideOffset={10}
           align="start"
-          className="z-[14000] rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0a0d14] shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
+          className="z-[14000] rounded-[2rem] border border-base bg-surface shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
         >
           {variant === 'monthYear' && (
-            <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100/60 dark:border-slate-800/80">
+            <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-base">
               <button
                 type="button"
                 disabled={month <= new Date(minYear, 0, 1)}
@@ -162,8 +162,8 @@ export const DatePicker: React.FC<{
                 }}
                 className={cn(
                   "w-10 h-10 rounded-2xl border flex items-center justify-center transition-all",
-                  "border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-300",
-                  "hover:bg-slate-100 dark:hover:bg-slate-900 active:scale-95",
+                  "border-base bg-surface-2/50 text-secondary",
+                  "hover:bg-surface-3 active:scale-95",
                   (month <= new Date(minYear, 0, 1)) && "opacity-40 pointer-events-none"
                 )}
                 aria-label="Mês anterior"
@@ -210,8 +210,8 @@ export const DatePicker: React.FC<{
                 }}
                 className={cn(
                   "w-10 h-10 rounded-2xl border flex items-center justify-center transition-all",
-                  "border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-300",
-                  "hover:bg-slate-100 dark:hover:bg-slate-900 active:scale-95",
+                  "border-base bg-surface-2/50 text-secondary",
+                  "hover:bg-surface-3 active:scale-95",
                   (month >= new Date(maxYear, 11, 1)) && "opacity-40 pointer-events-none"
                 )}
                 aria-label="Próximo mês"
@@ -254,18 +254,18 @@ export const DatePicker: React.FC<{
             />
           </div>
 
-          <div className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-4">
+          <div className="pt-6 mt-4 border-t border-base flex justify-between gap-4">
             <button
               type="button"
               onClick={() => onChange(undefined)}
-              className="flex-1 px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest transition-all"
+              className="flex-1 px-4 py-3 rounded-2xl bg-surface-2 hover:bg-surface-3 text-secondary text-[10px] font-black uppercase tracking-widest transition-all"
             >
               Limpar
             </button>
             <Popover.Close asChild>
               <button
                 type="button"
-                className="flex-[1.5] px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-violet-600/20 active:scale-95"
+                className="flex-[1.5] px-4 py-3 rounded-2xl bg-accent hover:bg-accent/90 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-accent/20 active:scale-95"
               >
                 Confirmar
               </button>
@@ -369,14 +369,14 @@ export const Button: React.FC<
   }
 > = ({ variant = 'ghost', className = '', disabled, children, ...props }) => {
   const base =
-    'inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50 disabled:pointer-events-none';
+    'inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-accent/50 disabled:opacity-50 disabled:pointer-events-none';
 
   const variants = {
     primary:
-      'bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/20 border border-violet-500/30',
+      'bg-accent hover:bg-accent/90 text-white shadow-lg shadow-accent/20 border border-accent/30',
     outline:
-      'bg-slate-900/30 hover:bg-slate-800/50 text-slate-200 border border-slate-700/60 hover:border-slate-600',
-    ghost: 'bg-slate-900/20 hover:bg-slate-800/40 text-slate-200 border border-slate-800/50',
+      'bg-surface/30 hover:bg-surface-2/50 text-secondary border border-strong/60 hover:border-strong',
+    ghost: 'bg-surface/20 hover:bg-surface-2/40 text-secondary border border-base/50',
   } satisfies Record<NonNullable<React.ComponentProps<typeof Button>['variant']>, string>;
 
   return (
@@ -395,11 +395,11 @@ export const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode; className?: string }
 >(({ children, className = '', ...rest }, ref) => {
-  // Se className contém bg-slate-950, não aplicar o bg padrão do dark mode
-  const hasCustomBg = className.includes('bg-slate-950') || className.includes('bg-slate-900');
+  // Se o call site já define a própria superfície, não aplica o padrão.
+  const hasCustomBg = /\bbg-(surface|bg|slate-)/.test(className);
   const baseClass = hasCustomBg
     ? 'rounded-2xl'
-    : 'bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-2xl';
+    : 'bg-surface border border-base rounded-2xl';
   return (
     <div ref={ref} className={cn(baseClass, className)} {...rest}>
       {children}
@@ -423,14 +423,14 @@ export const ToggleSwitch: React.FC<{
 
   const color =
     variant === 'emerald'
-      ? { onBg: 'bg-emerald-500/25 border-emerald-500/40', onDot: 'bg-emerald-400' }
+      ? { onBg: 'bg-success/25 border-success/40', onDot: 'bg-success' }
       : variant === 'cyan'
-        ? { onBg: 'bg-cyan-500/20 border-cyan-500/35', onDot: 'bg-cyan-300' }
+        ? { onBg: 'bg-info/20 border-info/35', onDot: 'bg-info' }
         : variant === 'rose'
-          ? { onBg: 'bg-rose-500/25 border-rose-500/40', onDot: 'bg-rose-400' }
+          ? { onBg: 'bg-danger/25 border-danger/40', onDot: 'bg-danger' }
           : variant === 'amber'
-            ? { onBg: 'bg-amber-500/25 border-amber-500/40', onDot: 'bg-amber-400' }
-            : { onBg: 'bg-violet-500/15 border-violet-500/30', onDot: 'bg-violet-300' };
+            ? { onBg: 'bg-warning/25 border-warning/40', onDot: 'bg-warning' }
+            : { onBg: 'bg-accent/15 border-accent/30', onDot: 'bg-accent' };
 
   return (
     <button
@@ -446,15 +446,15 @@ export const ToggleSwitch: React.FC<{
       className={cn(
         'rounded-full border transition-all relative outline-none',
         dims.track,
-        checked ? color.onBg : 'bg-slate-900/50 border-slate-800',
-        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-slate-700'
+        checked ? color.onBg : 'bg-surface/50 border-base',
+        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-strong'
       )}
     >
       <span
         className={cn(
           'absolute rounded-full transition-all',
           dims.dot,
-          checked ? `${dims.on} ${color.onDot}` : 'translate-x-0 bg-slate-600'
+          checked ? `${dims.on} ${color.onDot}` : 'translate-x-0 bg-muted'
         )}
       />
     </button>
@@ -559,14 +559,14 @@ export const Modal: React.FC<{
         {(title || subtitle || headerIcon) && (
           <div className={cn(
             "sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b shrink-0 transition-colors",
-            headerClassName || "bg-slate-900/80 backdrop-blur-md border-slate-700/50"
+            headerClassName || "bg-surface/80 backdrop-blur-md border-strong/50"
           )}>
             <div className="flex items-center gap-3 min-w-0">
               {headerIcon ? <div className="shrink-0">{headerIcon}</div> : null}
               <div className="min-w-0">
-                <div id={titleId} className="text-white font-black text-lg tracking-wider uppercase truncate">{title}</div>
+                <div id={titleId} className="text-primary font-black text-lg tracking-wider uppercase truncate">{title}</div>
                 {subtitle ? (
-                  <div id={subtitleId} className="mt-1 text-[11px] font-bold text-white/85 leading-snug">
+                  <div id={subtitleId} className="mt-1 text-[11px] font-bold text-secondary leading-snug">
                     {subtitle}
                   </div>
                 ) : null}
@@ -574,7 +574,7 @@ export const Modal: React.FC<{
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+              className="p-2 text-muted hover:text-primary hover:bg-surface-2 rounded-xl transition-all"
               aria-label="Fechar"
             >
               <X size={20} />
@@ -582,13 +582,13 @@ export const Modal: React.FC<{
           </div>
         )}
         <div className={cn(
-          "overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent",
+          "overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-base-strong scrollbar-track-transparent",
           position === 'bottom' ? "p-5" : "p-6 md:p-8"
         )}>
           {children}
         </div>
         {footer && (
-          <div className="sticky bottom-0 z-10 p-6 bg-slate-900/80 backdrop-blur-md border-t border-slate-700/50 shrink-0">
+          <div className="sticky bottom-0 z-10 p-6 bg-surface/80 backdrop-blur-md border-t border-strong/50 shrink-0">
             {footer}
           </div>
         )}
@@ -624,27 +624,27 @@ export const ConfirmDialog: React.FC<{
         aria-labelledby={titleId}
         aria-describedby={messageId}
         tabIndex={-1}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
+        className="bg-surface border border-base rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
       >
         <div className="p-8 text-center">
-          <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'}`}>
+          <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-danger/10 text-danger' : 'bg-accent/10 text-accent'}`}>
             <AlertCircle size={32} />
           </div>
-          <h3 id={titleId} className="text-2xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
-          <p id={messageId} className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">{message}</p>
+          <h3 id={titleId} className="text-2xl font-bold text-primary mb-3">{title}</h3>
+          <p id={messageId} className="text-secondary leading-relaxed mb-8">{message}</p>
           <div className="flex gap-4">
             <button
               onClick={onClose}
-              className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-bold transition-all active:scale-95"
+              className="flex-1 px-6 py-3.5 rounded-2xl bg-surface-2 hover:bg-surface-3 text-primary font-bold transition-all active:scale-95"
             >
               {cancelLabel}
             </button>
             <button
               onClick={async () => { await onConfirm(); onClose(); }}
               className={`flex-1 px-6 py-3.5 rounded-2xl font-bold text-white transition-all active:scale-95 shadow-lg ${
-                variant === 'danger' 
-                  ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20' 
-                  : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/20'
+                variant === 'danger'
+                  ? 'bg-danger hover:bg-danger/90 shadow-danger/20'
+                  : 'bg-accent hover:bg-accent/90 shadow-accent/20'
               }`}
             >
               {confirmLabel}
@@ -681,20 +681,20 @@ export const AlertDialog: React.FC<{
         aria-labelledby={titleId}
         aria-describedby={messageId}
         tabIndex={-1}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
+        className="bg-surface border border-base rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
       >
         <div className="p-8 text-center">
-          <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-violet-500/10 text-violet-500'}`}>
+          <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-danger/10 text-danger' : 'bg-accent/10 text-accent'}`}>
             <AlertCircle size={32} />
           </div>
-          <h3 id={titleId} className="text-2xl font-bold text-slate-900 dark:text-white mb-3">{title}</h3>
-          <p id={messageId} className="text-slate-500 dark:text-slate-400 leading-relaxed mb-8">{message}</p>
+          <h3 id={titleId} className="text-2xl font-bold text-primary mb-3">{title}</h3>
+          <p id={messageId} className="text-secondary leading-relaxed mb-8">{message}</p>
           <button
             onClick={onClose}
             className={`w-full px-6 py-3.5 rounded-2xl font-bold text-white transition-all active:scale-95 shadow-lg ${
               variant === 'danger'
-                ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'
-                : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/20'
+                ? 'bg-danger hover:bg-danger/90 shadow-danger/20'
+                : 'bg-accent hover:bg-accent/90 shadow-accent/20'
             }`}
           >
             {actionLabel}
@@ -707,12 +707,12 @@ export const AlertDialog: React.FC<{
 
 export const Badge: React.FC<{ children: React.ReactNode; variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple'; className?: string }> = ({ children, variant = 'default', className = '' }) => {
   const variants = {
-    default: 'bg-slate-700 text-slate-300',
-    success: 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
-    warning: 'bg-amber-500/20 text-amber-400 border border-emerald-500/30',
-    danger: 'bg-rose-500/20 text-rose-400 border border-rose-500/30',
-    info: 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30',
-    purple: 'bg-violet-500/20 text-violet-400 border border-violet-500/30',
+    default: 'bg-surface-2 text-secondary',
+    success: 'bg-success/20 text-success border border-success/30',
+    warning: 'bg-warning/20 text-warning border border-warning/30',
+    danger: 'bg-danger/20 text-danger border border-danger/30',
+    info: 'bg-info/20 text-info border border-info/30',
+    purple: 'bg-accent/20 text-accent border border-accent/30',
   };
   return (
     <span className={cn(`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${variants[variant]}`, className)}>
@@ -723,18 +723,18 @@ export const Badge: React.FC<{ children: React.ReactNode; variant?: 'default' | 
 
 export const LoadingSpinner: React.FC = () => (
   <div className="flex flex-col items-center justify-center py-20 gap-4">
-    <div className="w-10 h-10 border-4 border-slate-700 border-t-violet-500 rounded-full animate-spin"></div>
-    <div className="text-slate-400">Carregando dados do Supabase...</div>
+    <div className="w-10 h-10 border-4 border-base border-t-accent rounded-full animate-spin"></div>
+    <div className="text-secondary">Carregando dados do Supabase...</div>
   </div>
 );
 
 export const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => (
   <Card className="p-8 text-center max-w-md mx-auto mt-10">
-    <div className="text-lg font-semibold text-white mb-2">Erro ao carregar dados</div>
-    <div className="text-slate-400 mb-4">{message}</div>
-    <button 
+    <div className="text-lg font-semibold text-primary mb-2">Erro ao carregar dados</div>
+    <div className="text-secondary mb-4">{message}</div>
+    <button
       onClick={onRetry}
-      className="px-4 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-sm font-medium transition-colors text-white"
+      className="px-4 py-2 bg-accent hover:bg-accent/90 rounded-lg text-sm font-medium transition-colors text-white"
     >
       Tentar novamente
     </button>
@@ -775,16 +775,16 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       onValueChange={(v) => onValueChange(v === EMPTY_SENTINEL ? '' : v)}
     >
       <Select.Trigger 
-        className={`flex items-center gap-2 bg-slate-900/50 hover:bg-slate-800 text-slate-200 px-4 py-3 rounded-xl border border-slate-700 focus:ring-2 focus:ring-violet-500 outline-none transition-all w-full justify-between group cursor-pointer whitespace-nowrap ${className}`}
+        className={`flex items-center gap-2 bg-surface/50 hover:bg-surface-2 text-secondary px-4 py-3 rounded-xl border border-strong focus:ring-2 focus:ring-accent outline-none transition-all w-full justify-between group cursor-pointer whitespace-nowrap ${className}`}
       >
         <div className="flex items-center gap-2 pointer-events-none min-w-0">
           {SelectedIcon ? (
-            <SelectedIcon size={16} className="text-slate-400 group-hover:text-violet-400 transition-colors shrink-0" />
+            <SelectedIcon size={16} className="text-muted group-hover:text-accent transition-colors shrink-0" />
           ) : null}
           <Select.Value placeholder={placeholder} className="truncate" />
         </div>
         <Select.Icon className="pointer-events-none">
-          <ChevronDown size={14} className="text-slate-500" />
+          <ChevronDown size={14} className="text-muted" />
         </Select.Icon>
       </Select.Trigger>
 
@@ -792,7 +792,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         <Select.Content 
           // Inline zIndex to avoid any stacking-context edge cases inside other overlays/popovers.
           style={{ zIndex: 999999 }}
-          className="overflow-hidden bg-slate-900 rounded-xl border border-slate-700 shadow-2xl shadow-black/60 z-[99999] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
+          className="overflow-hidden bg-surface rounded-xl border border-strong shadow-2xl shadow-black/60 z-[99999] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
           position="popper"
           sideOffset={8}
         >
@@ -801,14 +801,14 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               <Select.Item
                 key={opt.value || EMPTY_SENTINEL}
                 value={opt.value === '' ? EMPTY_SENTINEL : opt.value}
-                className="flex items-center justify-between px-3 py-2.5 text-sm text-slate-300 rounded-lg outline-none cursor-pointer hover:bg-violet-500/20 hover:text-white focus:bg-violet-500/20 focus:text-white transition-colors data-[state=checked]:text-violet-400 data-[state=checked]:font-bold data-[highlighted]:bg-violet-500/20 data-[highlighted]:text-white select-none"
+                className="flex items-center justify-between px-3 py-2.5 text-sm text-secondary rounded-lg outline-none cursor-pointer hover:bg-accent/20 hover:text-primary focus:bg-accent/20 focus:text-primary transition-colors data-[state=checked]:text-accent data-[state=checked]:font-bold data-[highlighted]:bg-accent/20 data-[highlighted]:text-primary select-none"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   {opt.icon ? <opt.icon size={16} className="shrink-0 opacity-80" /> : null}
                   <Select.ItemText>{opt.label}</Select.ItemText>
                 </div>
                 <Select.ItemIndicator>
-                  <Check size={14} className="text-violet-400" />
+                  <Check size={14} className="text-accent" />
                 </Select.ItemIndicator>
               </Select.Item>
             ))}
