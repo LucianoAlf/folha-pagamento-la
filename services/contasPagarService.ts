@@ -456,6 +456,7 @@ export function getStatusVisual(conta: ContaPagar): StatusVisual {
   const diffDias = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 
   if (diffDias < 0) return 'vencida';
+  if (diffDias === 0) return 'hoje';
   if (diffDias <= 7) return 'urgente';
   return 'pendente';
 }

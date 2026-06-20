@@ -1,22 +1,22 @@
 // =====================================================
 // HOOK - useAsyncAction (padrão P1 da auditoria)
-// Envolve uma mutação async em try/catch, gerencia o estado
-// `running` (para desabilitar botões e evitar duplo-clique) e
-// dispara toast de sucesso/erro de forma consistente.
+// Envolve uma mutação async em try/catch e dispara toast de sucesso/erro
+// de forma consistente. Substitui os `onClick={async ...}` sem tratamento
+// que falhavam em silêncio (RLS/rede).
 //
-// Substitui os `onClick={async ...}` sem tratamento que falhavam
-// em silêncio (RLS/rede). Espelha o `runAction` de DesenvolvimentoTab,
-// porém compartilhado e com feedback via toast.
+// Não gerencia estado de loading: os call sites usam seus próprios flags
+// locais (setSaving/setSending/...) para spinners e disable de botões.
+// Por isso o hook não causa re-render — é só try/catch + toast.
 //
 // Uso:
-//   const { running, run } = useAsyncAction();
-//   <button disabled={running} onClick={() => run(
+//   const { run } = useAsyncAction();
+//   <button disabled={saving} onClick={() => run(
 //     () => contasPagarService.pagar(id),
 //     { success: 'Conta paga', onSuccess: () => { onClose(); refresh(); } }
 //   )}>Pagar</button>
 // =====================================================
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback } from 'react';
 import { useToast } from './useToast';
 
 export interface RunOptions<T> {
@@ -34,22 +34,12 @@ export interface RunOptions<T> {
 
 export function useAsyncAction() {
   const { success: toastSuccess, error: toastError } = useToast();
-  const [running, setRunning] = useState(false);
-  const mounted = useRef(true);
-
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   const run = useCallback(
     async <T,>(
       fn: () => Promise<T>,
       opts: RunOptions<T> = {}
     ): Promise<T | undefined> => {
-      setRunning(true);
       try {
         const data = await fn();
         if (opts.success) toastSuccess(opts.success);
@@ -66,12 +56,10 @@ export function useAsyncAction() {
         opts.onError?.(err);
         if (opts.rethrow) throw err;
         return undefined;
-      } finally {
-        if (mounted.current) setRunning(false);
       }
     },
     [toastSuccess, toastError]
   );
 
-  return { running, run };
+  return { run };
 }

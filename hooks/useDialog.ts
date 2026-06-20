@@ -75,6 +75,12 @@ export function useDialog<T extends HTMLElement = HTMLDivElement>(
       // Apenas o diálogo do topo reage a Esc/Tab.
       if (!isTopmost()) return;
 
+      // Se o foco está dentro de um portal do Radix (Select/Popover/Dropdown
+      // abertos, renderizados fora do container), deixa o Radix tratar o
+      // teclado — não fechamos o diálogo nem prendemos o Tab.
+      const focused = document.activeElement as HTMLElement | null;
+      if (focused?.closest('[data-radix-popper-content-wrapper]')) return;
+
       if (e.key === 'Escape') {
         onCloseRef.current();
         return;
@@ -126,8 +132,13 @@ export function useDialog<T extends HTMLElement = HTMLDivElement>(
         document.body.style.overflow = savedBodyOverflow;
       }
 
-      // Restaura o foco para quem estava focado antes de abrir.
-      previouslyFocused.current?.focus?.({ preventScroll: true });
+      // Restaura o foco só se ele "se perdeu" ao fechar (foi para o body).
+      // Se já está num elemento real (ex.: outro diálogo ainda aberto, em
+      // fechamento fora de ordem), não roubamos o foco de volta.
+      const activeNow = document.activeElement;
+      if (activeNow === document.body || activeNow === null) {
+        previouslyFocused.current?.focus?.({ preventScroll: true });
+      }
     };
   }, [isOpen]);
 

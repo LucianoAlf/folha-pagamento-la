@@ -143,10 +143,10 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
       <div className="mt-4 pt-3 border-t border-slate-800/50 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 overflow-hidden">
           <Badge 
-            variant={conta.status === 'pago' ? 'success' : (statusVisual === 'vencida' ? 'danger' : (statusVisual === 'urgente' ? 'warning' : 'info'))}
+            variant={conta.status === 'pago' ? 'success' : (statusVisual === 'vencida' ? 'danger' : (statusVisual === 'urgente' || statusVisual === 'hoje' ? 'warning' : 'info'))}
             className="text-[10px] font-black px-2.5 h-6 inline-flex items-center whitespace-nowrap"
           >
-            {conta.status === 'pago' ? 'Pago' : (statusVisual === 'vencida' ? 'Pendente' : (statusVisual === 'urgente' ? 'Urgente' : 'Pendente'))}
+            {conta.status === 'pago' ? 'Pago' : (statusVisual === 'vencida' ? 'Pendente' : (statusVisual === 'hoje' ? 'Hoje' : (statusVisual === 'urgente' ? 'Urgente' : 'Pendente')))}
           </Badge>
           
           {conta.categoria && (
