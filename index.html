@@ -2,10 +2,12 @@
 <html lang="pt-BR" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <script>try{var t=localStorage.getItem('theme')||'dark';var c=document.documentElement.classList;c.toggle('dark',t!=='light');c.toggle('light',t==='light');}catch(e){}</script>
     <!-- Favicons -->
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
     <link rel="shortcut icon" href="/icons/favicon.png" />
+    <link rel="stylesheet" href="/styles/theme.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Super Folha - Sistema de Gestão</title>
 
@@ -44,22 +46,32 @@
               sans: ['Inter', 'sans-serif'],
             },
             colors: {
-              slate: {
-                850: '#162031',
-                900: '#0f172a',
-                950: '#020617',
-              }
+              slate: { 850: '#162031', 900: '#0f172a', 950: '#020617' },
+              bg:            'rgb(var(--bg) / <alpha-value>)',
+              surface:       'rgb(var(--surface) / <alpha-value>)',
+              'surface-2':   'rgb(var(--surface-2) / <alpha-value>)',
+              'surface-3':   'rgb(var(--surface-3) / <alpha-value>)',
+              primary:       'rgb(var(--text) / <alpha-value>)',
+              secondary:     'rgb(var(--text-2) / <alpha-value>)',
+              muted:         'rgb(var(--text-3) / <alpha-value>)',
+              base:          'rgb(var(--border) / <alpha-value>)',
+              'base-strong': 'rgb(var(--border-strong) / <alpha-value>)',
+              accent:        'rgb(var(--accent) / <alpha-value>)',
+              success:       'rgb(var(--success) / <alpha-value>)',
+              warning:       'rgb(var(--warning) / <alpha-value>)',
+              danger:        'rgb(var(--danger) / <alpha-value>)',
+              info:          'rgb(var(--info) / <alpha-value>)',
             }
           }
         }
       }
     </script>
     <style>
-        body { background-color: #0f172a; color: white; }
+        body { background-color: rgb(var(--bg)); color: rgb(var(--text)); }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
         /* Remove setas de inputs numéricos */
         input::-webkit-outer-spin-button,
