@@ -241,13 +241,13 @@ export const FeriasPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-950">
+    <div className="h-full flex flex-col bg-bg">
       {/* Header */}
       <div className="px-4 md:px-6 pt-6 pb-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-black text-white flex items-center gap-3">
-              <Calendar className="text-violet-500" size={28} />
+              <Calendar className="text-accent" size={28} />
               {activeTab === 'dashboard' ? 'Férias CLT' :
                activeTab === 'colaboradores' ? 'Colaboradores CLT' :
                activeTab === 'programacoes' ? 'Programações de Férias' :
@@ -255,7 +255,7 @@ export const FeriasPage: React.FC = () => {
                activeTab === 'insights' ? 'IA de Férias' :
                'Férias CLT'}
             </h1>
-            <p className="text-sm text-slate-500 font-bold mt-1">
+            <p className="text-sm text-muted font-bold mt-1">
               {activeTab === 'dashboard' ? 'Gestão completa de férias de colaboradores CLT' :
                activeTab === 'colaboradores' ? 'Gerencie o status e períodos aquisitivos dos colaboradores' :
                activeTab === 'programacoes' ? 'Acompanhe as férias programadas e em gozo' :
@@ -273,7 +273,7 @@ export const FeriasPage: React.FC = () => {
         {/* Tabs */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-500">
           {/* Desktop Tabs (MusiClass Style) */}
-          <div className="hidden lg:block border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm">
+          <div className="hidden lg:block border-b border-base/60 bg-surface/20 backdrop-blur-sm">
             <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
               {tabs.map((tab) => (
                 <button
@@ -281,28 +281,28 @@ export const FeriasPage: React.FC = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
                     "relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group",
-                    activeTab === tab.id 
-                      ? "text-violet-400" 
-                      : "text-slate-500 hover:text-slate-200"
+                    activeTab === tab.id
+                      ? "text-accent"
+                      : "text-muted hover:text-primary"
                   )}
                 >
                   <tab.icon size={16} className={cn(
                     "transition-colors",
-                    activeTab === tab.id ? "text-violet-400" : "text-slate-600 group-hover:text-slate-400"
+                    activeTab === tab.id ? "text-accent" : "text-muted group-hover:text-secondary"
                   )} />
                   {tab.label}
                   {tab.premium && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 ml-1">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-warning/20 text-warning border border-warning/30 ml-1">
                       PRO
                     </span>
                   )}
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="min-w-[18px] h-[18px] flex items-center justify-center text-[10px] px-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 ml-1">
+                    <span className="min-w-[18px] h-[18px] flex items-center justify-center text-[10px] px-1 rounded-full bg-danger/20 text-danger border border-danger/30 ml-1">
                       {tab.badge}
                     </span>
                   )}
                   {activeTab === tab.id && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
                   )}
                 </button>
               ))}
@@ -311,10 +311,10 @@ export const FeriasPage: React.FC = () => {
 
           {/* Mobile Tabs (Cockpit Premium Style) */}
           <div className="lg:hidden mb-6">
-            <div className="relative flex bg-[#0f172a] p-1 rounded-xl border border-slate-800/50 shadow-inner overflow-hidden">
+            <div className="relative flex bg-surface p-1 rounded-xl border border-base/50 shadow-inner overflow-hidden">
               {/* Indicador Deslizante (Sliding Background) */}
-              <div 
-                className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-slate-800/80 rounded-lg border border-slate-700/30 shadow-lg"
+              <div
+                className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-surface-2/80 rounded-lg border border-strong/30 shadow-lg"
                 style={{
                   width: `calc(${100 / Math.max(tabs.length, 1)}% - 10px)`,
                   left: `calc(${(tabs.findIndex(t => t.id === activeTab) * 100) / Math.max(tabs.length, 1)}% + 5px)`,
@@ -328,9 +328,9 @@ export const FeriasPage: React.FC = () => {
                   className={cn(
                     "relative z-10 flex-1 py-3 font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap",
                     tabs.length >= 5 ? "text-[10px]" : "text-[11px]",
-                    activeTab === tab.id 
-                      ? "text-violet-400 scale-[1.02]" 
-                      : "text-slate-500 hover:text-slate-200"
+                    activeTab === tab.id
+                      ? "text-accent scale-[1.02]"
+                      : "text-muted hover:text-primary"
                   )}
                 >
                   {getShortLabel(tab.id)}
@@ -345,15 +345,15 @@ export const FeriasPage: React.FC = () => {
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-5">
         {/* Error Alert */}
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2">
-            <AlertCircle size={16} className="text-rose-400 shrink-0 mt-0.5" />
+          <div className="mb-4 p-3 rounded-xl bg-danger/10 border border-danger/30 flex items-start gap-2">
+            <AlertCircle size={16} className="text-danger shrink-0 mt-0.5" />
             <div className="flex-1">
-              <div className="text-sm font-bold text-rose-400">Erro</div>
-              <div className="text-xs text-rose-300/70 mt-0.5">{error}</div>
+              <div className="text-sm font-bold text-danger">Erro</div>
+              <div className="text-xs text-danger/70 mt-0.5">{error}</div>
             </div>
             <button
               onClick={() => setError(null)}
-              className="text-rose-400 hover:text-rose-300 text-xs"
+              className="text-danger hover:text-danger/80 text-xs"
             >
               ✕
             </button>
@@ -368,14 +368,14 @@ export const FeriasPage: React.FC = () => {
 
             {/* Alertas Críticos */}
             {!isLoading && colaboradores.some((c) => c.tem_ferias_vencidas) && (
-              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30">
+              <div className="p-4 rounded-xl bg-danger/10 border border-danger/30">
                 <div className="flex items-start gap-3 mb-3">
-                  <AlertCircle size={20} className="text-rose-400 shrink-0 mt-0.5" />
+                  <AlertCircle size={20} className="text-danger shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-bold text-rose-400">
+                    <h3 className="text-sm font-bold text-danger">
                       🚨 Férias Vencidas - Ação Imediata Necessária
                     </h3>
-                    <p className="text-xs text-rose-300/70 mt-1">
+                    <p className="text-xs text-danger/70 mt-1">
                       Os colaboradores abaixo possuem férias vencidas e devem ser pagas em
                       DOBRO. Programe as férias urgentemente para evitar multas.
                     </p>
@@ -387,11 +387,11 @@ export const FeriasPage: React.FC = () => {
                     .map((c) => (
                       <div
                         key={c.colaborador_id}
-                        className="p-3 rounded-lg bg-slate-900/40 border border-rose-500/20 flex items-center justify-between"
+                        className="p-3 rounded-lg bg-surface/40 border border-danger/20 flex items-center justify-between"
                       >
                         <div>
-                          <div className="text-sm font-bold text-slate-200">{c.nome}</div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-sm font-bold text-secondary">{c.nome}</div>
+                          <div className="text-xs text-secondary">
                             {c.total_dias_saldo} dias pendentes •{' '}
                             {c.periodos_vencidos} período{c.periodos_vencidos === 1 ? '' : 's'} vencido
                             {c.proxima_expiracao
@@ -416,7 +416,7 @@ export const FeriasPage: React.FC = () => {
 
             {/* Lista de Colaboradores (com filtros) */}
             <div>
-              <h2 className="text-lg font-bold text-slate-200 mb-3">
+              <h2 className="text-lg font-bold text-secondary mb-3">
                 Todos os Colaboradores CLT
               </h2>
               <FeriasColaboradorList
@@ -434,7 +434,7 @@ export const FeriasPage: React.FC = () => {
 
         {activeTab === 'colaboradores' && (
           <div>
-            <h2 className="text-lg font-bold text-slate-200 mb-4">
+            <h2 className="text-lg font-bold text-secondary mb-4">
               Gerenciar Colaboradores CLT
             </h2>
             <FeriasColaboradorList
@@ -452,10 +452,10 @@ export const FeriasPage: React.FC = () => {
         {activeTab === 'programacoes' && (
           <div>
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-200">
+              <h2 className="text-lg font-bold text-secondary">
                 Férias Programadas
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-secondary mt-1">
                 Visualize e gerencie todas as programações de férias
               </p>
             </div>
@@ -473,8 +473,8 @@ export const FeriasPage: React.FC = () => {
         {activeTab === 'historico' && (
           <div>
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-200">Histórico e Auditoria</h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <h2 className="text-lg font-bold text-secondary">Histórico e Auditoria</h2>
+              <p className="text-xs text-secondary mt-1">
                 Registro de acoes (programacao, aprovacao, pagamentos, cancelamentos)
               </p>
             </div>
@@ -484,19 +484,19 @@ export const FeriasPage: React.FC = () => {
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-20 rounded-xl bg-slate-800/30 border border-slate-800 animate-pulse"
+                    className="h-20 rounded-xl bg-surface-2/30 border border-base animate-pulse"
                   />
                 ))}
               </div>
             ) : historico.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
-                  <History size={32} className="text-slate-600" />
+                <div className="w-16 h-16 rounded-2xl bg-surface-2/50 flex items-center justify-center mb-4">
+                  <History size={32} className="text-muted" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-300 mb-1">
+                <h3 className="text-lg font-bold text-secondary mb-1">
                   Nenhuma acao registrada
                 </h3>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted">
                   Quando voce programar/editar/pagar ferias, as acoes aparecem aqui
                 </p>
               </div>
@@ -505,14 +505,14 @@ export const FeriasPage: React.FC = () => {
                 {historico.map((h) => (
                   <div
                     key={h.id}
-                    className="p-4 rounded-xl bg-slate-900/40 border border-slate-800 hover:border-slate-700 transition-colors"
+                    className="p-4 rounded-xl bg-surface/40 border border-base hover:border-strong transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="text-sm font-bold text-slate-200">
+                        <div className="text-sm font-bold text-secondary">
                           {h.acao}
                         </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
+                        <div className="text-xs text-muted mt-0.5">
                           {h.created_at
                             ? new Date(h.created_at).toLocaleString('pt-BR')
                             : ''}
@@ -520,12 +520,12 @@ export const FeriasPage: React.FC = () => {
                           {h.entidade_tipo ? ` • ${h.entidade_tipo}` : ''}
                         </div>
                         {h.observacao && (
-                          <div className="text-xs text-slate-400 mt-2">
+                          <div className="text-xs text-secondary mt-2">
                             {h.observacao}
                           </div>
                         )}
                       </div>
-                      <div className="text-[10px] text-slate-600 font-bold">
+                      <div className="text-[10px] text-muted font-bold">
                         {h.entidade_id ? String(h.entidade_id).slice(0, 8) : ''}
                       </div>
                     </div>

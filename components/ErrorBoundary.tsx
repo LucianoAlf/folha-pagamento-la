@@ -51,23 +51,23 @@ export class ErrorBoundary extends Component<
     return (
       <div
         role="alert"
-        className="min-h-screen flex items-center justify-center p-6 bg-slate-950 text-slate-200 font-sans"
+        className="min-h-screen flex items-center justify-center p-6 bg-bg text-secondary font-sans"
       >
-        <div className="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-md p-8 shadow-2xl shadow-black/40">
-          <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-5">
+        <div className="w-full max-w-lg rounded-3xl border border-base bg-surface/60 backdrop-blur-md p-8 shadow-2xl shadow-[var(--shadow-card)]">
+          <div className="w-14 h-14 rounded-2xl bg-danger/10 border border-danger/30 flex items-center justify-center mb-5">
             <span className="text-3xl" aria-hidden="true">
               ⚠️
             </span>
           </div>
-          <h1 className="text-xl font-black text-slate-100">
+          <h1 className="text-xl font-black text-primary">
             Algo deu errado nesta tela
           </h1>
-          <p className="mt-2 text-sm text-slate-400 leading-relaxed">
+          <p className="mt-2 text-sm text-secondary leading-relaxed">
             Um erro inesperado interrompeu a renderização. Você pode tentar
             novamente — se persistir, recarregue a página.
           </p>
 
-          <pre className="mt-4 max-h-40 overflow-auto rounded-xl border border-slate-800 bg-black/30 p-3 text-xs text-rose-300/80 whitespace-pre-wrap break-words">
+          <pre className="mt-4 max-h-40 overflow-auto rounded-xl border border-base bg-black/30 p-3 text-xs text-danger/80 whitespace-pre-wrap break-words">
             {error.name}: {error.message}
           </pre>
 
@@ -75,14 +75,14 @@ export class ErrorBoundary extends Component<
             <button
               type="button"
               onClick={this.reset}
-              className="flex-1 px-5 py-3 rounded-2xl font-black text-white bg-violet-600 hover:bg-violet-500 transition-colors active:scale-95"
+              className="flex-1 px-5 py-3 rounded-2xl font-black text-white bg-accent hover:bg-accent/90 transition-colors active:scale-95"
             >
               Tentar novamente
             </button>
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="flex-1 px-5 py-3 rounded-2xl font-black text-slate-200 border border-slate-700 bg-slate-900/40 hover:bg-slate-900/70 transition-colors active:scale-95"
+              className="flex-1 px-5 py-3 rounded-2xl font-black text-secondary border border-strong bg-surface/40 hover:bg-surface/70 transition-colors active:scale-95"
             >
               Recarregar a página
             </button>

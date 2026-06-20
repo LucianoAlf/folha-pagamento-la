@@ -93,7 +93,7 @@ export const FeriasColaboradorList: React.FC<FeriasColaboradorListProps> = ({
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
-            className="h-48 rounded-xl bg-slate-800/30 border border-slate-800 animate-pulse"
+            className="h-48 rounded-xl bg-surface-2/30 border border-base animate-pulse"
           />
         ))}
       </div>
@@ -108,14 +108,14 @@ export const FeriasColaboradorList: React.FC<FeriasColaboradorListProps> = ({
         <div className="flex-1 relative">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary"
           />
           <input
             type="text"
             placeholder="Buscar por nome, função..."
             value={filtros.busca || ''}
             onChange={(e) => handleBuscaChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:border-violet-500/50 transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 bg-surface/40 border border-base rounded-xl text-secondary text-sm placeholder:text-muted focus:outline-none focus:border-accent/50 transition-colors"
           />
         </div>
 
@@ -150,7 +150,7 @@ export const FeriasColaboradorList: React.FC<FeriasColaboradorListProps> = ({
       </div>
 
       {/* Contador */}
-      <div className="flex items-center gap-2 text-sm text-slate-400">
+      <div className="flex items-center gap-2 text-sm text-secondary">
         <Users size={16} />
         <span>
           {colaboradores.length === 0
@@ -164,13 +164,13 @@ export const FeriasColaboradorList: React.FC<FeriasColaboradorListProps> = ({
       {/* Lista de Colaboradores */}
       {colaboradores.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
-            <Users size={32} className="text-slate-600" />
+          <div className="w-16 h-16 rounded-2xl bg-surface-2/50 flex items-center justify-center mb-4">
+            <Users size={32} className="text-muted" />
           </div>
-          <h3 className="text-lg font-bold text-slate-300 mb-1">
+          <h3 className="text-lg font-bold text-secondary mb-1">
             Nenhum colaborador encontrado
           </h3>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted">
             Ajuste os filtros ou adicione colaboradores CLT
           </p>
         </div>
@@ -192,8 +192,8 @@ export const FeriasColaboradorList: React.FC<FeriasColaboradorListProps> = ({
               ref={observerTarget}
               className="h-20 flex items-center justify-center"
             >
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
-                <div className="w-4 h-4 border-2 border-slate-600 border-t-violet-500 rounded-full animate-spin" />
+              <div className="flex items-center gap-2 text-secondary text-sm">
+                <div className="w-4 h-4 border-2 border-surface-3 border-t-accent rounded-full animate-spin" />
                 Carregando mais...
               </div>
             </div>

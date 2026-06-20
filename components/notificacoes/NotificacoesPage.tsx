@@ -89,7 +89,7 @@ export const NotificacoesPage: React.FC = () => {
 
   // Padrão do sistema: Card “dark” com borda (como usamos no resto do app)
   // OBS: quando usamos bg-slate-* o componente Card não aplica borda padrão automaticamente.
-  const cardClass = 'bg-slate-950/85 border border-slate-800/70 backdrop-blur-none';
+  const cardClass = 'bg-bg/85 border border-base/70 backdrop-blur-none';
 
   const diasSemana = useMemo(
     () => [
@@ -195,7 +195,7 @@ export const NotificacoesPage: React.FC = () => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-slate-500 text-sm">Carregando notificações…</div>
+        <div className="text-muted text-sm">Carregando notificações…</div>
       </div>
     );
   }
@@ -205,12 +205,12 @@ export const NotificacoesPage: React.FC = () => {
       {/* Mobile Premium Header Card */}
       {isMobile ? (
         <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-          <Card className="p-4 bg-slate-900/40 border border-slate-800/60">
+          <Card className="p-4 bg-surface/40 border border-base/60">
             <div className="flex items-center gap-3 mb-1">
-              <Bell className="w-5 h-5 text-violet-400" />
-              <h2 className="text-xl font-black text-white leading-tight">Central de Notificações</h2>
+              <Bell className="w-5 h-5 text-accent" />
+              <h2 className="text-xl font-black text-primary leading-tight">Central de Notificações</h2>
             </div>
-            <p className="text-sm text-slate-500 font-medium mt-1 leading-snug">
+            <p className="text-sm text-muted font-medium mt-1 leading-snug">
               Configure alertas automáticos por WhatsApp para todos os módulos do sistema.
             </p>
           </Card>
@@ -219,10 +219,10 @@ export const NotificacoesPage: React.FC = () => {
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-violet-400" />
-              <h2 className="text-2xl font-black text-white">Configurações de Notificações</h2>
+              <Bell className="w-5 h-5 text-accent" />
+              <h2 className="text-2xl font-black text-primary">Configurações de Notificações</h2>
             </div>
-            <p className="text-sm text-slate-500 font-bold mt-1">
+            <p className="text-sm text-muted font-bold mt-1">
               Centralize WhatsApp, Agenda e alertas automáticos por módulo (com overrides por item quando necessário).
             </p>
           </div>
@@ -235,7 +235,7 @@ export const NotificacoesPage: React.FC = () => {
               disabled={saving}
               className={cn(
                 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all',
-                'bg-violet-600/90 hover:bg-violet-600 border-violet-500/40 text-white font-black shadow-lg shadow-violet-600/10',
+                'bg-accent/90 hover:bg-accent border-accent/40 text-white font-black shadow-lg shadow-[var(--shadow-card)]',
                 saving && 'opacity-70 cursor-not-allowed'
               )}
             >
@@ -248,16 +248,16 @@ export const NotificacoesPage: React.FC = () => {
 
       {error ? (
         <div className="mb-6">
-          <Card className={cn('p-4 border-rose-500/30 bg-rose-500/10')}>
-            <div className="text-rose-200 font-bold">Erro</div>
-            <div className="text-rose-200/80 text-sm mt-1">{error}</div>
+          <Card className={cn('p-4 border-danger/30 bg-danger/10')}>
+            <div className="text-danger font-bold">Erro</div>
+            <div className="text-danger/80 text-sm mt-1">{error}</div>
           </Card>
         </div>
       ) : null}
 
       <div className="grid grid-cols-1 gap-6">
         {/* WhatsApp */}
-        <Card className={cn('p-0 overflow-hidden', cardClass, 'bg-slate-950/95')}>
+        <Card className={cn('p-0 overflow-hidden', cardClass, 'bg-bg/95')}>
           <div
             role={isMobile ? 'button' : undefined}
             tabIndex={isMobile ? 0 : -1}
@@ -270,21 +270,21 @@ export const NotificacoesPage: React.FC = () => {
               }
             }}
             className={cn(
-              'w-full px-6 py-4 border-b border-slate-800/70 flex items-center justify-between',
-              isMobile && 'cursor-pointer active:bg-slate-900/40 transition-colors'
+              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              isMobile && 'cursor-pointer active:bg-surface/40 transition-colors'
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                <Smartphone className="w-5 h-5 text-emerald-300" />
+              <div className="w-10 h-10 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center">
+                <Smartphone className="w-5 h-5 text-success" />
               </div>
               <div className="text-left">
-                <div className="text-white font-black">WhatsApp</div>
-                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Canal de envio</div>
+                <div className="text-primary font-black">WhatsApp</div>
+                <div className="text-xs text-secondary font-bold uppercase tracking-widest">Canal de envio</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {!isMobile && <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Ativo</div>}
+              {!isMobile && <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Ativo</div>}
               <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                 <ToggleSwitch
                   checked={!!config.whatsapp_ativo}
@@ -294,26 +294,26 @@ export const NotificacoesPage: React.FC = () => {
                 />
               </div>
               {isMobile && (
-                accordionOpen.whatsapp ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />
+                accordionOpen.whatsapp ? <ChevronUp className="w-5 h-5 text-muted" /> : <ChevronDown className="w-5 h-5 text-muted" />
               )}
             </div>
           </div>
           {(!isMobile || accordionOpen.whatsapp) && (
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-base/60">
               <div className="px-6 py-5 space-y-4">
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Número</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Número</div>
                   <input
                     value={String(config.whatsapp_numero || '')}
                     onChange={(e) => setConfig((prev) => ({ ...prev, whatsapp_numero: e.target.value }))}
                     placeholder="55DDDNUMERO"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full px-4 py-3 rounded-xl bg-surface/50 border border-base text-secondary outline-none focus:ring-2 focus:ring-accent"
                   />
                   {waTestStatus !== 'idle' ? (
                     <div
                       className={cn(
                         'mt-2 text-xs font-bold',
-                        waTestStatus === 'success' ? 'text-emerald-300' : 'text-rose-300'
+                        waTestStatus === 'success' ? 'text-success' : 'text-danger'
                       )}
                     >
                       {waTestMsg}
@@ -326,7 +326,7 @@ export const NotificacoesPage: React.FC = () => {
                   disabled={waTesting || !config.whatsapp_ativo || !String(config.whatsapp_numero || '').trim()}
                   className={cn(
                     'inline-flex items-center gap-2 px-5 py-3 rounded-xl border transition-all w-full justify-center',
-                    'bg-emerald-600/90 hover:bg-emerald-600 border-emerald-500/30 text-white font-black',
+                    'bg-success/90 hover:bg-success border-success/30 text-white font-black',
                     'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
                 >
@@ -344,30 +344,30 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('agenda')}
             className={cn(
-              'w-full px-6 py-4 border-b border-slate-800/70 flex items-center justify-between',
-              isMobile && 'active:bg-slate-900/40 transition-colors'
+              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-violet-300" />
+              <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-accent" />
               </div>
               <div className="text-left">
-                <div className="text-white font-black">Agenda</div>
-                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Lembretes e resumos</div>
+                <div className="text-primary font-black">Agenda</div>
+                <div className="text-xs text-secondary font-bold uppercase tracking-widest">Lembretes e resumos</div>
               </div>
             </div>
             {isMobile && (
-              accordionOpen.agenda ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />
+              accordionOpen.agenda ? <ChevronUp className="w-5 h-5 text-muted" /> : <ChevronDown className="w-5 h-5 text-muted" />
             )}
           </button>
           {(!isMobile || accordionOpen.agenda) && (
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-base/60">
               <div className="px-6 py-5 space-y-6">
                 {/* Lembrete de tarefas */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">Lembrete de tarefas</div>
+                    <div className="text-sm text-secondary font-black">Lembrete de tarefas</div>
                     <ToggleSwitch
                       checked={config.agenda_lembrete_tarefas_ativo !== false}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, agenda_lembrete_tarefas_ativo: next }))}
@@ -389,8 +389,8 @@ export const NotificacoesPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm text-slate-300 font-black">Lembrete de aniversários</div>
-                      <div className="text-xs text-slate-500 font-bold mt-0.5">Conforme configuração de cada aniversário</div>
+                      <div className="text-sm text-secondary font-black">Lembrete de aniversários</div>
+                      <div className="text-xs text-muted font-bold mt-0.5">Conforme configuração de cada aniversário</div>
                     </div>
                     <ToggleSwitch
                       checked={config.agenda_lembrete_aniversarios_ativo !== false}
@@ -404,7 +404,7 @@ export const NotificacoesPage: React.FC = () => {
                 {/* Resumo diário */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">Resumo diário</div>
+                    <div className="text-sm text-secondary font-black">Resumo diário</div>
                     <ToggleSwitch
                       checked={!!config.resumo_diario_ativo}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, resumo_diario_ativo: next }))}
@@ -424,7 +424,7 @@ export const NotificacoesPage: React.FC = () => {
                 {/* Resumo semanal */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">Resumo semanal</div>
+                    <div className="text-sm text-secondary font-black">Resumo semanal</div>
                     <ToggleSwitch
                       checked={!!config.resumo_semanal_ativo}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, resumo_semanal_ativo: next }))}
@@ -459,29 +459,29 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('rh')}
             className={cn(
-              'w-full px-6 py-4 border-b border-slate-800/70 flex items-center justify-between',
-              isMobile && 'active:bg-slate-900/40 transition-colors'
+              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center">
-                <ClipboardCheck className="w-5 h-5 text-fuchsia-300" />
+              <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+                <ClipboardCheck className="w-5 h-5 text-accent" />
               </div>
               <div className="text-left">
-                <div className="text-white font-black">Jornada RH</div>
-                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Agenda e lembretes da Ana</div>
+                <div className="text-primary font-black">Jornada RH</div>
+                <div className="text-xs text-secondary font-bold uppercase tracking-widest">Agenda e lembretes da Ana</div>
               </div>
             </div>
             {isMobile && (
-              accordionOpen.rh ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />
+              accordionOpen.rh ? <ChevronUp className="w-5 h-5 text-muted" /> : <ChevronDown className="w-5 h-5 text-muted" />
             )}
           </button>
           {(!isMobile || accordionOpen.rh) && (
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-base/60">
               <div className="px-6 py-5 space-y-6">
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/25 px-4 py-3">
-                  <div className="text-sm text-slate-200 font-black">Espelhamento automatico na Agenda</div>
-                  <div className="mt-1 text-xs text-slate-500 font-medium leading-relaxed">
+                <div className="rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                  <div className="text-sm text-secondary font-black">Espelhamento automatico na Agenda</div>
+                  <div className="mt-1 text-xs text-muted font-medium leading-relaxed">
                     Tudo o que for agendado na Jornada RH continua aparecendo na Agenda da Ana. Aqui voce configura a antecedencia dos lembretes desses espelhos.
                   </div>
                 </div>
@@ -489,8 +489,8 @@ export const NotificacoesPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm text-slate-300 font-black">Processos RH</div>
-                      <div className="text-xs text-slate-500 font-medium mt-0.5">Recrutamento, onboarding e desligamento.</div>
+                      <div className="text-sm text-secondary font-black">Processos RH</div>
+                      <div className="text-xs text-muted font-medium mt-0.5">Recrutamento, onboarding e desligamento.</div>
                     </div>
                     <ToggleSwitch
                       checked={config.rh_agenda_lembrete_processos_ativo !== false}
@@ -510,8 +510,8 @@ export const NotificacoesPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm text-slate-300 font-black">Etapas da Jornada</div>
-                      <div className="text-xs text-slate-500 font-medium mt-0.5">Entrevistas, boas-vindas, treinamentos e tarefas operacionais.</div>
+                      <div className="text-sm text-secondary font-black">Etapas da Jornada</div>
+                      <div className="text-xs text-muted font-medium mt-0.5">Entrevistas, boas-vindas, treinamentos e tarefas operacionais.</div>
                     </div>
                     <ToggleSwitch
                       checked={config.rh_agenda_lembrete_etapas_ativo !== false}
@@ -531,8 +531,8 @@ export const NotificacoesPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm text-slate-300 font-black">Checkpoints de PDI</div>
-                      <div className="text-xs text-slate-500 font-medium mt-0.5">Acompanhamentos de 30, 60, 90 dias e ciclos do desenvolvimento.</div>
+                      <div className="text-sm text-secondary font-black">Checkpoints de PDI</div>
+                      <div className="text-xs text-muted font-medium mt-0.5">Acompanhamentos de 30, 60, 90 dias e ciclos do desenvolvimento.</div>
                     </div>
                     <ToggleSwitch
                       checked={config.rh_agenda_lembrete_pdi_ativo !== false}
@@ -549,9 +549,9 @@ export const NotificacoesPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/25 px-4 py-3">
-                  <div className="text-sm text-slate-200 font-black">WhatsApp da Jornada RH</div>
-                  <div className="mt-1 text-xs text-slate-500 font-medium leading-relaxed">
+                <div className="rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                  <div className="text-sm text-secondary font-black">WhatsApp da Jornada RH</div>
+                  <div className="mt-1 text-xs text-muted font-medium leading-relaxed">
                     O canal de WhatsApp continua sendo configurado acima. Dentro da Jornada RH, cada etapa pode marcar se deve avisar os responsaveis e o colaborador.
                   </div>
                 </div>
@@ -566,34 +566,34 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('contas')}
             className={cn(
-              'w-full px-6 py-4 border-b border-slate-800/70 flex items-center justify-between',
-              isMobile && 'active:bg-slate-900/40 transition-colors'
+              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-cyan-300" />
+              <div className="w-10 h-10 rounded-xl bg-info/10 border border-info/20 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-info" />
               </div>
               <div className="text-left">
-                <div className="text-white font-black">Contas a Pagar</div>
-                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Alertas e resumo</div>
+                <div className="text-primary font-black">Contas a Pagar</div>
+                <div className="text-xs text-secondary font-bold uppercase tracking-widest">Alertas e resumo</div>
               </div>
             </div>
             {isMobile && (
-              accordionOpen.contas ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />
+              accordionOpen.contas ? <ChevronUp className="w-5 h-5 text-muted" /> : <ChevronDown className="w-5 h-5 text-muted" />
             )}
           </button>
           {(!isMobile || accordionOpen.contas) && (
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-base/60">
               <div className="px-6 py-5 space-y-6">
                 {/* Alertas por vencimento */}
                 <div className="space-y-3">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-3">
                     Alertas por vencimento
                   </div>
                   <div className="grid grid-cols-1 gap-3">
-                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/25 px-4 py-3">
-                      <div className="text-sm text-slate-200 font-black whitespace-nowrap">3 dias antes</div>
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                      <div className="text-sm text-secondary font-black whitespace-nowrap">3 dias antes</div>
                       <ToggleSwitch
                         checked={!!config.contas_alerta_3d}
                         onCheckedChange={(next) => setConfig((prev) => ({ ...prev, contas_alerta_3d: next }))}
@@ -602,8 +602,8 @@ export const NotificacoesPage: React.FC = () => {
                         ariaLabel="Ativar alerta 3 dias antes"
                       />
                     </div>
-                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/25 px-4 py-3">
-                      <div className="text-sm text-slate-200 font-black whitespace-nowrap">1 dia antes</div>
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                      <div className="text-sm text-secondary font-black whitespace-nowrap">1 dia antes</div>
                       <ToggleSwitch
                         checked={!!config.contas_alerta_1d}
                         onCheckedChange={(next) => setConfig((prev) => ({ ...prev, contas_alerta_1d: next }))}
@@ -612,8 +612,8 @@ export const NotificacoesPage: React.FC = () => {
                         ariaLabel="Ativar alerta 1 dia antes"
                       />
                     </div>
-                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/25 px-4 py-3">
-                      <div className="text-sm text-slate-200 font-black whitespace-nowrap">No dia</div>
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                      <div className="text-sm text-secondary font-black whitespace-nowrap">No dia</div>
                       <ToggleSwitch
                         checked={!!config.contas_alerta_no_dia}
                         onCheckedChange={(next) => setConfig((prev) => ({ ...prev, contas_alerta_no_dia: next }))}
@@ -624,7 +624,7 @@ export const NotificacoesPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] shrink-0">Horário</div>
+                    <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em] shrink-0">Horário</div>
                     <TimeSelect
                       value={String(config.contas_alerta_hora || '08:00')}
                       onValueChange={(v) => setConfig((prev) => ({ ...prev, contas_alerta_hora: v }))}
@@ -637,7 +637,7 @@ export const NotificacoesPage: React.FC = () => {
                 {/* Resumo semanal */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">Resumo semanal de contas</div>
+                    <div className="text-sm text-secondary font-black">Resumo semanal de contas</div>
                     <ToggleSwitch
                       checked={!!config.contas_resumo_semanal_ativo}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, contas_resumo_semanal_ativo: next }))}
@@ -672,30 +672,30 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('folha')}
             className={cn(
-              'w-full px-6 py-4 border-b border-slate-800/70 flex items-center justify-between',
-              isMobile && 'active:bg-slate-900/40 transition-colors'
+              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-amber-300" />
+              <div className="w-10 h-10 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-warning" />
               </div>
               <div className="text-left">
-                <div className="text-white font-black">Folha de Pagamento</div>
-                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Alertas operacionais</div>
+                <div className="text-primary font-black">Folha de Pagamento</div>
+                <div className="text-xs text-secondary font-bold uppercase tracking-widest">Alertas operacionais</div>
               </div>
             </div>
             {isMobile && (
-              accordionOpen.folha ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />
+              accordionOpen.folha ? <ChevronUp className="w-5 h-5 text-muted" /> : <ChevronDown className="w-5 h-5 text-muted" />
             )}
           </button>
           {(!isMobile || accordionOpen.folha) && (
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-base/60">
               <div className="px-6 py-5 space-y-6">
                 {/* Alerta de fechamento */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">Alerta de fechamento</div>
+                    <div className="text-sm text-secondary font-black">Alerta de fechamento</div>
                     <ToggleSwitch
                       checked={!!config.folha_alerta_fechamento_ativo}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, folha_alerta_fechamento_ativo: next }))}
@@ -704,7 +704,7 @@ export const NotificacoesPage: React.FC = () => {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Dia</div>
+                    <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Dia</div>
                     <input
                       type="number"
                       min={1}
@@ -712,7 +712,7 @@ export const NotificacoesPage: React.FC = () => {
                       value={Number(config.folha_alerta_fechamento_dia ?? 25)}
                       onChange={(e) => setConfig((prev) => ({ ...prev, folha_alerta_fechamento_dia: Number(e.target.value || 25) }))}
                       className={cn(
-                        'w-full px-3 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none',
+                        'w-full px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
                         !config.folha_alerta_fechamento_ativo && 'opacity-60 pointer-events-none'
                       )}
                     />
@@ -722,7 +722,7 @@ export const NotificacoesPage: React.FC = () => {
                 {/* Alerta de aprovação pendente */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">Alerta de aprovação pendente</div>
+                    <div className="text-sm text-secondary font-black">Alerta de aprovação pendente</div>
                     <ToggleSwitch
                       checked={!!config.folha_alerta_aprovacao_pendente_ativo}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, folha_alerta_aprovacao_pendente_ativo: next }))}
@@ -730,8 +730,8 @@ export const NotificacoesPage: React.FC = () => {
                       ariaLabel="Ativar alerta de aprovação pendente"
                     />
                   </div>
-                  <div className="text-xs text-slate-500 font-medium leading-relaxed">
-                    Envia quando existir folha em status <span className="text-slate-300 font-bold">pendente</span>
+                  <div className="text-xs text-muted font-medium leading-relaxed">
+                    Envia quando existir folha em status <span className="text-secondary font-bold">pendente</span>
                   </div>
                 </div>
               </div>
@@ -745,30 +745,30 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('ferias')}
             className={cn(
-              'w-full px-6 py-4 border-b border-slate-800/70 flex items-center justify-between',
-              isMobile && 'active:bg-slate-900/40 transition-colors'
+              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-violet-300" />
+              <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-accent" />
               </div>
               <div className="text-left">
-                <div className="text-white font-black">Férias CLT</div>
-                <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">Alertas de vencimento</div>
+                <div className="text-primary font-black">Férias CLT</div>
+                <div className="text-xs text-secondary font-bold uppercase tracking-widest">Alertas de vencimento</div>
               </div>
             </div>
             {isMobile && (
-              accordionOpen.ferias ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />
+              accordionOpen.ferias ? <ChevronUp className="w-5 h-5 text-muted" /> : <ChevronDown className="w-5 h-5 text-muted" />
             )}
           </button>
           {(!isMobile || accordionOpen.ferias) && (
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-base/60">
               <div className="px-6 py-5 space-y-6">
                 {/* Alerta de férias vencidas (CRÍTICO) */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">🚨 Férias vencidas (MULTA)</div>
+                    <div className="text-sm text-secondary font-black">🚨 Férias vencidas (MULTA)</div>
                     <ToggleSwitch
                       checked={!!config.ferias_alerta_vencimento_multa}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_alerta_vencimento_multa: next }))}
@@ -776,15 +776,15 @@ export const NotificacoesPage: React.FC = () => {
                       ariaLabel="Ativar alerta de férias vencidas"
                     />
                   </div>
-                  <div className="text-xs text-slate-500 font-medium leading-relaxed">
-                    Alerta CRÍTICO quando período concessivo vencer. Férias devem ser pagas em <span className="text-rose-400 font-bold">DOBRO</span>.
+                  <div className="text-xs text-muted font-medium leading-relaxed">
+                    Alerta CRÍTICO quando período concessivo vencer. Férias devem ser pagas em <span className="text-danger font-bold">DOBRO</span>.
                   </div>
                 </div>
 
                 {/* Alerta de concessivo próximo de vencer */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">⏰ Período concessivo próximo</div>
+                    <div className="text-sm text-secondary font-black">⏰ Período concessivo próximo</div>
                     <ToggleSwitch
                       checked={!!config.ferias_alerta_concessivo_critico}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_alerta_concessivo_critico: next }))}
@@ -793,7 +793,7 @@ export const NotificacoesPage: React.FC = () => {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Alertar com</div>
+                    <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Alertar com</div>
                     <input
                       type="number"
                       min={7}
@@ -801,18 +801,18 @@ export const NotificacoesPage: React.FC = () => {
                       value={Number(config.ferias_alerta_concessivo_dias ?? 60)}
                       onChange={(e) => setConfig((prev) => ({ ...prev, ferias_alerta_concessivo_dias: Number(e.target.value || 60) }))}
                       className={cn(
-                        'w-20 px-3 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none',
+                        'w-20 px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
                         !config.ferias_alerta_concessivo_critico && 'opacity-60 pointer-events-none'
                       )}
                     />
-                    <div className="text-xs text-slate-500 font-medium">dias de antecedência</div>
+                    <div className="text-xs text-muted font-medium">dias de antecedência</div>
                   </div>
                 </div>
 
                 {/* Alerta de pagamento pendente */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">💳 Pagamento pendente</div>
+                    <div className="text-sm text-secondary font-black">💳 Pagamento pendente</div>
                     <ToggleSwitch
                       checked={!!config.ferias_alerta_pagamento_pendente}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_alerta_pagamento_pendente: next }))}
@@ -820,7 +820,7 @@ export const NotificacoesPage: React.FC = () => {
                       ariaLabel="Ativar alerta de pagamento pendente"
                     />
                   </div>
-                  <div className="text-xs text-slate-500 font-medium leading-relaxed">
+                  <div className="text-xs text-muted font-medium leading-relaxed">
                     Alerta quando férias programadas estiverem próximas e pagamento não foi efetuado (prazo: 2 dias antes).
                   </div>
                 </div>
@@ -828,7 +828,7 @@ export const NotificacoesPage: React.FC = () => {
                 {/* Alerta de período aquisitivo próximo */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">📅 Período aquisitivo próximo</div>
+                    <div className="text-sm text-secondary font-black">📅 Período aquisitivo próximo</div>
                     <ToggleSwitch
                       checked={!!config.ferias_alerta_aquisitivo_prox}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_alerta_aquisitivo_prox: next }))}
@@ -837,7 +837,7 @@ export const NotificacoesPage: React.FC = () => {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Alertar com</div>
+                    <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Alertar com</div>
                     <input
                       type="number"
                       min={7}
@@ -845,18 +845,18 @@ export const NotificacoesPage: React.FC = () => {
                       value={Number(config.ferias_alerta_aquisitivo_dias ?? 30)}
                       onChange={(e) => setConfig((prev) => ({ ...prev, ferias_alerta_aquisitivo_dias: Number(e.target.value || 30) }))}
                       className={cn(
-                        'w-20 px-3 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none',
+                        'w-20 px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
                         !config.ferias_alerta_aquisitivo_prox && 'opacity-60 pointer-events-none'
                       )}
                     />
-                    <div className="text-xs text-slate-500 font-medium">dias de antecedência</div>
+                    <div className="text-xs text-muted font-medium">dias de antecedência</div>
                   </div>
                 </div>
 
                 {/* Resumo mensal */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-slate-300 font-black">📊 Resumo mensal</div>
+                    <div className="text-sm text-secondary font-black">📊 Resumo mensal</div>
                     <ToggleSwitch
                       checked={!!config.ferias_resumo_mensal_ativo}
                       onCheckedChange={(next) => setConfig((prev) => ({ ...prev, ferias_resumo_mensal_ativo: next }))}
@@ -866,7 +866,7 @@ export const NotificacoesPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
-                      <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Dia</div>
+                      <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Dia</div>
                       <input
                         type="number"
                         min={1}
@@ -874,13 +874,13 @@ export const NotificacoesPage: React.FC = () => {
                         value={Number(config.ferias_resumo_mensal_dia ?? 1)}
                         onChange={(e) => setConfig((prev) => ({ ...prev, ferias_resumo_mensal_dia: Number(e.target.value || 1) }))}
                         className={cn(
-                          'w-full px-3 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none',
+                          'w-full px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
                           !config.ferias_resumo_mensal_ativo && 'opacity-60 pointer-events-none'
                         )}
                       />
                     </div>
                     <div className="space-y-1">
-                      <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">Hora</div>
+                      <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Hora</div>
                       <input
                         type="number"
                         min={0}
@@ -888,13 +888,13 @@ export const NotificacoesPage: React.FC = () => {
                         value={Number(config.ferias_resumo_mensal_hora ?? 8)}
                         onChange={(e) => setConfig((prev) => ({ ...prev, ferias_resumo_mensal_hora: Number(e.target.value || 8) }))}
                         className={cn(
-                          'w-full px-3 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 outline-none',
+                          'w-full px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
                           !config.ferias_resumo_mensal_ativo && 'opacity-60 pointer-events-none'
                         )}
                       />
                     </div>
                   </div>
-                  <div className="text-xs text-slate-500 font-medium leading-relaxed">
+                  <div className="text-xs text-muted font-medium leading-relaxed">
                     Resumo executivo com estatísticas gerais, situações críticas e próximas férias programadas.
                   </div>
                 </div>
@@ -907,7 +907,7 @@ export const NotificacoesPage: React.FC = () => {
       {/* Sticky Save Bar (Mobile) */}
       {isMobile && (
         <div 
-          className="fixed left-0 right-0 z-[10400] bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/70 p-4 animate-in slide-in-from-bottom-2 duration-300"
+          className="fixed left-0 right-0 z-[10400] bg-bg/95 backdrop-blur-xl border-t border-base/70 p-4 animate-in slide-in-from-bottom-2 duration-300"
           style={{ bottom: 'calc(88px + env(safe-area-inset-bottom))' }}
         >
           <button
@@ -916,7 +916,7 @@ export const NotificacoesPage: React.FC = () => {
             disabled={saving}
             className={cn(
               'w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl border transition-all',
-              'bg-violet-600/90 hover:bg-violet-600 active:scale-[0.98] border-violet-500/40 text-white font-black shadow-lg shadow-violet-600/20',
+              'bg-accent/90 hover:bg-accent active:scale-[0.98] border-accent/40 text-white font-black shadow-lg shadow-[var(--shadow-card)]',
               saving && 'opacity-70 cursor-not-allowed'
             )}
           >

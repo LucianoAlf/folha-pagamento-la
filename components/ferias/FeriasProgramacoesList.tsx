@@ -62,7 +62,7 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-32 rounded-xl bg-slate-800/30 border border-slate-800 animate-pulse"
+            className="h-32 rounded-xl bg-surface-2/30 border border-base animate-pulse"
           />
         ))}
       </div>
@@ -72,13 +72,13 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
   if (programacoes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
-          <Calendar size={32} className="text-slate-600" />
+        <div className="w-16 h-16 rounded-2xl bg-surface-2/50 flex items-center justify-center mb-4">
+          <Calendar size={32} className="text-muted" />
         </div>
-        <h3 className="text-lg font-bold text-slate-300 mb-1">
+        <h3 className="text-lg font-bold text-secondary mb-1">
           Nenhuma programação encontrada
         </h3>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           Programe férias para colaboradores CLT para visualizá-las aqui
         </p>
       </div>
@@ -117,7 +117,7 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
         return (
           <div
             key={prog.id}
-            className="p-4 rounded-xl bg-slate-900/40 border border-slate-800 hover:border-slate-700 transition-colors"
+            className="p-4 rounded-xl bg-surface/40 border border-base hover:border-strong transition-colors"
           >
             <div className="flex items-start justify-between gap-4">
               {/* Info Principal */}
@@ -125,8 +125,8 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
                 {/* Header: Colaborador + Status */}
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <User size={16} className="text-slate-400" />
-                    <span className="text-sm font-bold text-slate-200">
+                    <User size={16} className="text-secondary" />
+                    <span className="text-sm font-bold text-secondary">
                       {colaborador.nome}
                     </span>
                   </div>
@@ -143,12 +143,12 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
 
                 {/* Datas */}
                 <div className="flex items-center gap-2">
-                  <Calendar size={14} className="text-violet-400" />
-                  <span className="text-sm text-slate-300">
+                  <Calendar size={14} className="text-accent" />
+                  <span className="text-sm text-secondary">
                     {dataInicio.toLocaleDateString('pt-BR')} a{' '}
                     {dataFim.toLocaleDateString('pt-BR')}
                   </span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted">
                     ({prog.dias_corridos} dias corridos)
                   </span>
                 </div>
@@ -157,12 +157,12 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
                 <div className="flex items-start gap-2">
                   {prog.pagamento_efetuado ? (
                     <>
-                      <CheckCircle size={14} className="text-emerald-400 mt-0.5" />
+                      <CheckCircle size={14} className="text-success mt-0.5" />
                       <div>
-                        <span className="text-xs font-bold text-emerald-400">
+                        <span className="text-xs font-bold text-success">
                           Pagamento Efetuado
                         </span>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-secondary">
                           {prog.data_pagamento &&
                             `Em ${new Date(
                               prog.data_pagamento
@@ -179,20 +179,20 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
                       <Clock
                         size={14}
                         className={`${
-                          estaAtrasado ? 'text-rose-400' : 'text-amber-400'
+                          estaAtrasado ? 'text-danger' : 'text-warning'
                         } mt-0.5`}
                       />
                       <div>
                         <span
                           className={`text-xs font-bold ${
-                            estaAtrasado ? 'text-rose-400' : 'text-amber-400'
+                            estaAtrasado ? 'text-danger' : 'text-warning'
                           }`}
                         >
                           {estaAtrasado
                             ? '🚨 Pagamento Atrasado!'
                             : 'Aguardando Pagamento'}
                         </span>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-secondary">
                           Prazo: até {dataLimitePagamento.toLocaleDateString('pt-BR')}
                           {estaAtrasado && ' (vencido)'}
                         </div>
@@ -203,8 +203,8 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
 
                 {/* Observações */}
                 {prog.observacoes && (
-                  <div className="p-2 rounded-lg bg-slate-800/40 border border-slate-700">
-                    <div className="text-xs text-slate-400">
+                  <div className="p-2 rounded-lg bg-surface-2/40 border border-strong">
+                    <div className="text-xs text-secondary">
                       💬 {prog.observacoes}
                     </div>
                   </div>
@@ -212,9 +212,9 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
 
                 {/* Alerta de Pagamento Atrasado */}
                 {estaAtrasado && (
-                  <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-start gap-2">
-                    <AlertCircle size={14} className="text-rose-400 shrink-0 mt-0.5" />
-                    <div className="text-xs text-rose-300/70">
+                  <div className="p-3 rounded-lg bg-danger/10 border border-danger/30 flex items-start gap-2">
+                    <AlertCircle size={14} className="text-danger shrink-0 mt-0.5" />
+                    <div className="text-xs text-danger/70">
                       O prazo de pagamento venceu. Registre o pagamento ou verifique
                       se houve atraso.
                     </div>
@@ -249,7 +249,7 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
                 {podeCancelar && (
                   <button
                     onClick={() => onCancelar(prog)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black transition-all bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 whitespace-nowrap active:scale-95"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black transition-all bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 whitespace-nowrap active:scale-95"
                   >
                     <X size={12} />
                     <span className="hidden md:inline">Cancelar</span>

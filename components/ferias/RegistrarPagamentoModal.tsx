@@ -139,23 +139,23 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="shrink-0 flex items-center justify-between p-4 md:p-6 border-b border-slate-800/50">
+        <div className="shrink-0 flex items-center justify-between p-4 md:p-6 border-b border-base/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center">
-              <DollarSign size={20} className="text-emerald-400" />
+            <div className="w-10 h-10 rounded-xl bg-success/20 border border-success/30 flex items-center justify-center">
+              <DollarSign size={20} className="text-success" />
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-black text-slate-100">
+              <h2 className="text-lg md:text-xl font-black text-primary">
                 Registrar Pagamento de Férias
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-secondary mt-0.5">
                 {colaborador.nome}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
+            className="text-secondary hover:text-primary transition-colors"
           >
             <X size={20} />
           </button>
@@ -164,15 +164,15 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {/* Info das Férias */}
-          <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800">
-            <div className="text-xs font-bold text-slate-400 mb-2">
+          <div className="p-4 rounded-xl bg-surface/40 border border-base">
+            <div className="text-xs font-bold text-secondary mb-2">
               Período de Férias
             </div>
-            <div className="text-sm text-slate-200">
+            <div className="text-sm text-secondary">
               {new Date(programacao.data_inicio).toLocaleDateString('pt-BR')} a{' '}
               {new Date(programacao.data_fim).toLocaleDateString('pt-BR')}
             </div>
-            <div className="text-xs text-slate-400 mt-1">
+            <div className="text-xs text-secondary mt-1">
               {programacao.dias_corridos} dias corridos
               {programacao.vendeu_abono &&
                 ` • ${programacao.dias_abono} dias de abono`}
@@ -183,28 +183,28 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
           <div
             className={`p-4 rounded-xl border ${
               estaAtrasado
-                ? 'bg-rose-500/10 border-rose-500/30'
-                : 'bg-amber-500/10 border-amber-500/30'
+                ? 'bg-danger/10 border-danger/30'
+                : 'bg-warning/10 border-warning/30'
             }`}
           >
             <div className="flex items-start gap-2">
               <AlertCircle
                 size={16}
                 className={`${
-                  estaAtrasado ? 'text-rose-400' : 'text-amber-400'
+                  estaAtrasado ? 'text-danger' : 'text-warning'
                 } shrink-0 mt-0.5`}
               />
               <div>
                 <div
                   className={`text-sm font-bold ${
-                    estaAtrasado ? 'text-rose-400' : 'text-amber-400'
+                    estaAtrasado ? 'text-danger' : 'text-warning'
                   } mb-1`}
                 >
                   {estaAtrasado ? '🚨 Prazo Vencido!' : '⏰ Prazo de Pagamento'}
                 </div>
                 <div
                   className={`text-xs ${
-                    estaAtrasado ? 'text-rose-300/70' : 'text-amber-300/70'
+                    estaAtrasado ? 'text-danger/70' : 'text-warning/70'
                   }`}
                 >
                   Deve ser pago até{' '}
@@ -218,19 +218,19 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
 
           {/* Valor Calculado */}
           {isCalculating ? (
-            <div className="p-4 rounded-xl bg-violet-600/10 border border-violet-500/30 flex items-center gap-3">
-              <div className="w-5 h-5 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
-              <span className="text-sm text-slate-300">Calculando valor...</span>
+            <div className="p-4 rounded-xl bg-accent/10 border border-accent/30 flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+              <span className="text-sm text-secondary">Calculando valor...</span>
             </div>
           ) : valorCalculado !== null ? (
-            <div className="p-4 rounded-xl bg-violet-600/10 border border-violet-500/30">
-              <div className="text-xs font-bold text-violet-400 mb-2">
+            <div className="p-4 rounded-xl bg-accent/10 border border-accent/30">
+              <div className="text-xs font-bold text-accent mb-2">
                 💰 Valor Calculado (Estimado)
               </div>
-              <div className="text-2xl font-black text-slate-100">
+              <div className="text-2xl font-black text-primary">
                 R$ {valorCalculado.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xs text-secondary mt-1">
                 Férias + 1/3 constitucional
                 {programacao.vendeu_abono && ' + abono pecuniário'}
               </div>
@@ -238,9 +238,9 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
           ) : null}
 
           {/* Modalidade */}
-          <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800">
+          <div className="p-4 rounded-xl bg-surface/40 border border-base">
             <div className="flex items-center justify-between gap-3 mb-2">
-              <div className="text-sm font-black text-slate-200">Modalidade de Pagamento</div>
+              <div className="text-sm font-black text-secondary">Modalidade de Pagamento</div>
               {pagamentoModalidade === 'somente_terco' ? (
                 <Badge variant="info">1/3</Badge>
               ) : (
@@ -254,9 +254,9 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
                 { value: 'completo', label: 'Completo (ferias + 1/3)' },
                 { value: 'somente_terco', label: 'Somente adicional de 1/3' },
               ]}
-              className="bg-slate-950/40 border-slate-800/60"
+              className="bg-bg/40 border-base/60"
             />
-            <div className="text-xs text-slate-500 mt-2">
+            <div className="text-xs text-muted mt-2">
               Sugerido: {' '}
               {valorCalculado
                 ? (pagamentoModalidade === 'somente_terco'
@@ -269,12 +269,12 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
 
           {/* Data de Pagamento */}
           <div>
-            <label className="block text-sm font-bold text-slate-200 mb-2">
+            <label className="block text-sm font-bold text-secondary mb-2">
               📅 Data do Pagamento
             </label>
             <DatePicker value={dataPagamento} onChange={setDataPagamento} className="w-full" />
             {dataPagamento && !estaDentroPrazo && !estaAtrasado && (
-              <p className="text-xs text-amber-400 mt-2">
+              <p className="text-xs text-warning mt-2">
                 ⚠️ Data após o prazo legal. Certifique-se de que o pagamento foi
                 realizado no prazo.
               </p>
@@ -283,11 +283,11 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
 
           {/* Valor Pago */}
           <div>
-            <label className="block text-sm font-bold text-slate-200 mb-2">
+            <label className="block text-sm font-bold text-secondary mb-2">
               💵 Valor Pago (R$)
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm font-bold">
                 R$
               </span>
               <input
@@ -295,35 +295,35 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
                 value={valorPago}
                 onChange={handleValorChange}
                 placeholder="0,00"
-                className="w-full pl-12 pr-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
+                className="w-full pl-12 pr-4 py-2.5 bg-surface/40 border border-base rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
               />
             </div>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-secondary mt-1">
               Informe o valor efetivamente pago ao colaborador
             </p>
           </div>
 
           {/* Observações */}
           <div>
-            <label className="block text-sm font-bold text-slate-200 mb-2">
+            <label className="block text-sm font-bold text-secondary mb-2">
               💬 Observações (opcional)
             </label>
             <textarea
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               rows={3}
-              className="w-full px-4 py-2.5 bg-slate-900/40 border border-slate-800 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors resize-none"
+              className="w-full px-4 py-2.5 bg-surface/40 border border-base rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors resize-none"
               placeholder="Método de pagamento, detalhes adicionais..."
             />
           </div>
 
           {/* Erro */}
           {erro && (
-            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30">
+            <div className="p-4 rounded-xl bg-danger/10 border border-danger/30">
               <div className="flex items-start gap-2">
-                <AlertCircle size={16} className="text-rose-400 shrink-0 mt-0.5" />
+                <AlertCircle size={16} className="text-danger shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <div className="text-sm font-bold text-rose-400">{erro}</div>
+                  <div className="text-sm font-bold text-danger">{erro}</div>
                 </div>
               </div>
             </div>
@@ -331,7 +331,7 @@ export const RegistrarPagamentoModal: React.FC<RegistrarPagamentoModalProps> = (
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 flex gap-3 p-4 md:p-6 border-t border-slate-800/50">
+        <div className="shrink-0 flex gap-3 p-4 md:p-6 border-t border-base/50">
           <Button onClick={onClose} variant="outline" className="flex-1">
             Cancelar
           </Button>

@@ -61,24 +61,24 @@ export default function InstallPWAPrompt() {
     <div className="fixed left-4 right-4 md:left-auto md:right-4 md:w-[420px] z-[12000]"
       style={{ bottom: 'calc(88px + env(safe-area-inset-bottom))' }}
     >
-      <div className="relative bg-gradient-to-br from-[#0b1020]/95 to-[#0a0d14]/95 border border-violet-500/20 rounded-2xl p-5 shadow-2xl backdrop-blur-xl">
+      <div className="relative bg-gradient-to-br from-surface/95 to-bg/95 border border-accent/20 rounded-2xl p-5 shadow-2xl backdrop-blur-xl">
         <button
           type="button"
           onClick={dismiss}
-          className="absolute top-3 right-3 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+          className="absolute top-3 right-3 p-2 text-secondary hover:text-primary hover:bg-white/10 rounded-xl transition-colors"
           aria-label="Fechar"
         >
           <X className="w-4 h-4" />
         </button>
 
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-violet-500/10 rounded-2xl border border-violet-500/15">
-            <Smartphone className="w-7 h-7 text-violet-300" />
+          <div className="p-3 bg-accent/10 rounded-2xl border border-accent/15">
+            <Smartphone className="w-7 h-7 text-accent" />
           </div>
 
           <div className="flex-1 pr-8">
-            <div className="text-white font-black text-base leading-tight">Instalar LA Music</div>
-            <div className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+            <div className="text-primary font-black text-base leading-tight">Instalar LA Music</div>
+            <div className="text-xs text-muted font-medium mt-1 leading-relaxed">
               {isIOS
                 ? 'No iPhone: toque em “Compartilhar” e depois “Adicionar à Tela de Início”.'
                 : 'Instale como app para abrir mais rápido e ter uma experiência mais fluida.'}
@@ -89,13 +89,13 @@ export default function InstallPWAPrompt() {
                 type="button"
                 onClick={handleInstall}
                 disabled={!deferredPrompt}
-                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98]"
+                className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-accent hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black shadow-lg shadow-[var(--shadow-card)] transition-all active:scale-[0.98]"
               >
                 <Download className="w-4 h-4" />
                 Instalar agora
               </button>
             ) : (
-              <div className="mt-4 text-[11px] font-bold text-violet-200 bg-violet-500/10 border border-violet-500/15 px-3 py-2 rounded-xl">
+              <div className="mt-4 text-[11px] font-bold text-accent bg-accent/10 border border-accent/15 px-3 py-2 rounded-xl">
                 Compartilhar → Adicionar à Tela de Início
               </div>
             )}

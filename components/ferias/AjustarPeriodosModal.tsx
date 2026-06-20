@@ -176,15 +176,15 @@ export const AjustarPeriodosModal: React.FC<{
       }
       className="max-w-3xl"
     >
-      <div className="mb-4 p-3 rounded-xl bg-slate-900/40 border border-slate-800 flex items-start gap-2">
-        <Info size={16} className="text-cyan-400 shrink-0 mt-0.5" />
-        <div className="flex-1 text-xs text-slate-300">
-          <div className="font-bold text-slate-200 mb-1">Como preencher</div>
+      <div className="mb-4 p-3 rounded-xl bg-surface/40 border border-base flex items-start gap-2">
+        <Info size={16} className="text-info shrink-0 mt-0.5" />
+        <div className="flex-1 text-xs text-secondary">
+          <div className="font-bold text-secondary mb-1">Como preencher</div>
           <div>
             Se a pessoa tirou 20 dias + 10 dias no mesmo ano, voce soma em <span className="font-bold">Dias gozados</span> (30).
             Para anos diferentes, voce ajusta o periodo correspondente.
           </div>
-          <div className="text-slate-500 mt-1">
+          <div className="text-muted mt-1">
             Dica: o sistema so cria um periodo novo quando o aquisitivo fecha 12 meses.
           </div>
         </div>
@@ -209,7 +209,7 @@ export const AjustarPeriodosModal: React.FC<{
       </div>
 
       {nextPeriodoInfo && (
-        <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90">
+        <div className="mb-4 p-3 rounded-xl bg-warning/10 border border-warning/20 text-xs text-warning/90">
           Proximo periodo aquisitivo previsto:{' '}
           <span className="font-bold">
             {nextPeriodoInfo.start.toLocaleDateString('pt-BR')} a {nextPeriodoInfo.end.toLocaleDateString('pt-BR')}
@@ -220,22 +220,22 @@ export const AjustarPeriodosModal: React.FC<{
       )}
 
       {error && (
-        <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2">
-          <AlertCircle size={16} className="text-rose-400 shrink-0 mt-0.5" />
+        <div className="mb-4 p-3 rounded-xl bg-danger/10 border border-danger/30 flex items-start gap-2">
+          <AlertCircle size={16} className="text-danger shrink-0 mt-0.5" />
           <div className="flex-1">
-            <div className="text-sm font-bold text-rose-400">Erro</div>
-            <div className="text-xs text-rose-300/70 mt-0.5">{error}</div>
+            <div className="text-sm font-bold text-danger">Erro</div>
+            <div className="text-xs text-danger/70 mt-0.5">{error}</div>
           </div>
         </div>
       )}
 
       {isLoading ? (
-        <div className="py-10 flex items-center justify-center text-slate-400">
+        <div className="py-10 flex items-center justify-center text-secondary">
           <Loader2 size={18} className="animate-spin mr-2" />
           Carregando periodos...
         </div>
       ) : periodos.length === 0 ? (
-        <div className="py-10 text-center text-slate-400">
+        <div className="py-10 text-center text-secondary">
           Nenhum periodo encontrado para este colaborador.
         </div>
       ) : (
@@ -247,14 +247,14 @@ export const AjustarPeriodosModal: React.FC<{
             return (
               <div
                 key={p.id}
-                className="p-4 rounded-xl bg-slate-900/40 border border-slate-800"
+                className="p-4 rounded-xl bg-surface/40 border border-base"
               >
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="min-w-0">
-                    <div className="text-sm font-black text-slate-100 truncate">
+                    <div className="text-sm font-black text-primary truncate">
                       Periodo {new Date(p.data_inicio).getFullYear()}-{new Date(p.data_fim).getFullYear()}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-xs text-muted mt-0.5">
                       Aquisitivo: {new Date(p.data_inicio).toLocaleDateString('pt-BR')} a{' '}
                       {new Date(p.data_fim).toLocaleDateString('pt-BR')} • Concessivo:{' '}
                       {new Date(p.concessivo_inicio).toLocaleDateString('pt-BR')} a{' '}
@@ -268,16 +268,16 @@ export const AjustarPeriodosModal: React.FC<{
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div className="md:col-span-1">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 px-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-muted mb-1 px-1">
                       Dias direito
                     </label>
-                    <div className="px-3 py-2.5 rounded-xl bg-slate-950/40 border border-slate-800/60 text-sm text-slate-200 font-bold">
+                    <div className="px-3 py-2.5 rounded-xl bg-bg/40 border border-base/60 text-sm text-secondary font-bold">
                       {p.dias_direito}
                     </div>
                   </div>
 
                   <div className="md:col-span-1">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 px-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-muted mb-1 px-1">
                       Dias gozados
                     </label>
                     <input
@@ -298,13 +298,13 @@ export const AjustarPeriodosModal: React.FC<{
                           },
                         }))
                       }
-                      className="w-full px-3 py-2.5 bg-slate-950/40 border border-slate-800/60 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
+                      className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                       inputMode="numeric"
                     />
                   </div>
 
                   <div className="md:col-span-1">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 px-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-muted mb-1 px-1">
                       Dias vendidos
                     </label>
                     <input
@@ -325,13 +325,13 @@ export const AjustarPeriodosModal: React.FC<{
                           },
                         }))
                       }
-                      className="w-full px-3 py-2.5 bg-slate-950/40 border border-slate-800/60 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
+                      className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                       inputMode="numeric"
                     />
                   </div>
 
                   <div className="md:col-span-1">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 px-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-muted mb-1 px-1">
                       Status
                     </label>
                     <CustomSelect
@@ -353,14 +353,14 @@ export const AjustarPeriodosModal: React.FC<{
                         }))
                       }
                       options={statusOptions}
-                      className="bg-slate-950/40 border-slate-800/60"
+                      className="bg-bg/40 border-base/60"
                     />
                   </div>
                 </div>
 
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 px-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-muted mb-1 px-1">
                       Concessivo Inicio
                     </label>
                     <input
@@ -382,11 +382,11 @@ export const AjustarPeriodosModal: React.FC<{
                           },
                         }))
                       }
-                      className="w-full px-3 py-2.5 bg-slate-950/40 border border-slate-800/60 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
+                      className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 px-1">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-muted mb-1 px-1">
                       Concessivo Fim
                     </label>
                     <input
@@ -408,13 +408,13 @@ export const AjustarPeriodosModal: React.FC<{
                           },
                         }))
                       }
-                      className="w-full px-3 py-2.5 bg-slate-950/40 border border-slate-800/60 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
+                      className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                     />
                   </div>
                 </div>
 
                 <div className="mt-3">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1 px-1">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-muted mb-1 px-1">
                     Observacoes
                   </label>
                   <textarea
@@ -436,13 +436,13 @@ export const AjustarPeriodosModal: React.FC<{
                       }))
                     }
                     rows={2}
-                    className="w-full px-3 py-2.5 bg-slate-950/40 border border-slate-800/60 rounded-xl text-slate-200 text-sm focus:outline-none focus:border-violet-500/50 transition-colors"
+                    className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                   />
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <div className="text-xs text-slate-500">
-                    Saldo: <span className="text-slate-300 font-bold">{p.dias_saldo}</span> dia(s)
+                  <div className="text-xs text-muted">
+                    Saldo: <span className="text-secondary font-bold">{p.dias_saldo}</span> dia(s)
                   </div>
                   <Button
                     onClick={() => handleSave(p)}

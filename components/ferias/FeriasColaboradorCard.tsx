@@ -44,9 +44,9 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
     : null;
 
   return (
-    <Card className="bg-[#0f172a]/40 border border-slate-800/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
+    <Card className="bg-surface/40 border border-base/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
       {/* Header com Avatar e Info Básica */}
-      <div className="p-4 border-b border-slate-800/50 relative">
+      <div className="p-4 border-b border-base/50 relative">
         <div className="flex items-center gap-4">
           {/* Avatar */}
           <div
@@ -64,7 +64,7 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
 
           {/* Info Colaborador */}
           <div className="flex-1 min-w-0 pr-24">
-            <h3 className="font-black text-slate-100 truncate text-base">
+            <h3 className="font-black text-primary truncate text-base">
               {colaborador.nome}
             </h3>
             <div className="flex items-center gap-2 mt-0.5">
@@ -75,7 +75,7 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
                 {DEPARTMENT_LABELS[colaborador.departamento] || colaborador.departamento}
               </span>
               {colaborador.funcao && (
-                <span className="text-[10px] text-slate-400 font-bold uppercase truncate">
+                <span className="text-[10px] text-secondary font-bold uppercase truncate">
                   • {colaborador.funcao}
                 </span>
               )}
@@ -95,18 +95,18 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
       <div className="p-4 space-y-3">
         {/* Data de Admissão */}
         <div className="flex items-center gap-2 text-xs">
-          <Calendar size={14} className="text-slate-500 shrink-0" />
-          <span className="text-slate-400">Admissão:</span>
-          <span className="text-slate-300 font-medium">
+          <Calendar size={14} className="text-muted shrink-0" />
+          <span className="text-secondary">Admissão:</span>
+          <span className="text-secondary font-medium">
             {new Date(colaborador.data_admissao).toLocaleDateString('pt-BR')}
           </span>
         </div>
 
         {/* Saldo de Dias */}
         <div className="flex items-center gap-2 text-xs">
-          <CalendarCheck size={14} className="text-emerald-500 shrink-0" />
-          <span className="text-slate-400">Saldo disponível:</span>
-          <span className="text-emerald-400 font-bold">
+          <CalendarCheck size={14} className="text-success shrink-0" />
+          <span className="text-secondary">Saldo disponível:</span>
+          <span className="text-success font-bold">
             {colaborador.total_dias_saldo || 0} dias
           </span>
         </div>
@@ -118,22 +118,22 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
               size={14}
               className={`shrink-0 ${
                 colaborador.tem_ferias_vencidas
-                  ? 'text-rose-500'
+                  ? 'text-danger'
                   : diasAteExpiracao && diasAteExpiracao <= 30
-                  ? 'text-amber-500'
-                  : 'text-cyan-500'
+                  ? 'text-warning'
+                  : 'text-info'
               }`}
             />
-            <span className="text-slate-400">
+            <span className="text-secondary">
               Concessivo atual vence em:
             </span>
             <span
               className={`font-bold ${
                 colaborador.tem_ferias_vencidas
-                  ? 'text-rose-400'
+                  ? 'text-danger'
                   : diasAteExpiracao && diasAteExpiracao <= 30
-                  ? 'text-amber-400'
-                  : 'text-cyan-400'
+                  ? 'text-warning'
+                  : 'text-info'
               }`}
             >
               {new Date(colaborador.proxima_expiracao).toLocaleDateString('pt-BR')}
@@ -146,14 +146,14 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
 
         {/* Alerta Crítico (Férias Vencidas) */}
         {colaborador.tem_ferias_vencidas && (
-          <div className="flex items-start gap-2 p-2 rounded-lg bg-rose-500/10 border border-rose-500/30">
-            <AlertCircle size={14} className="text-rose-500 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 p-2 rounded-lg bg-danger/10 border border-danger/30">
+            <AlertCircle size={14} className="text-danger shrink-0 mt-0.5" />
             <div className="text-xs">
-              <div className="text-rose-400 font-bold">CRÍTICO - Férias Vencidas</div>
-              <div className="text-rose-300/70 text-[10px] mt-0.5">
+              <div className="text-danger font-bold">CRÍTICO - Férias Vencidas</div>
+              <div className="text-danger/70 text-[10px] mt-0.5">
                 {colaborador.periodos_vencidos} período{colaborador.periodos_vencidos === 1 ? '' : 's'} vencido(s)
               </div>
-              <div className="text-rose-300/70 text-[10px] mt-0.5">
+              <div className="text-danger/70 text-[10px] mt-0.5">
                 Multa: pagamento em DOBRO!
               </div>
             </div>
@@ -162,11 +162,11 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
 
         {/* Férias Programadas (se houver) */}
         {colaborador.ferias_programadas > 0 && colaborador.proximas_ferias_inicio && (
-          <div className="flex items-center gap-2 text-xs p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
-            <Calendar size={14} className="text-cyan-400 shrink-0" />
+          <div className="flex items-center gap-2 text-xs p-2 rounded-lg bg-info/10 border border-info/30">
+            <Calendar size={14} className="text-info shrink-0" />
             <div className="flex-1">
-              <span className="text-slate-400">Próximas férias:</span>
-              <span className="text-cyan-400 font-medium ml-1">
+              <span className="text-secondary">Próximas férias:</span>
+              <span className="text-info font-medium ml-1">
                 {new Date(colaborador.proximas_ferias_inicio).toLocaleDateString('pt-BR')}
               </span>
             </div>
@@ -175,10 +175,10 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
       </div>
 
       {/* Actions Footer */}
-      <div className="p-3 border-t border-slate-800/50 bg-slate-900/20 flex gap-2">
+      <div className="p-3 border-t border-base/50 bg-surface/20 flex gap-2">
         <button
           onClick={() => onProgramarFerias(colaborador)}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 rounded-xl text-violet-400 hover:text-violet-300 text-xs font-bold transition-all active:scale-95"
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-accent/20 hover:bg-accent/30 border border-accent/30 rounded-xl text-accent hover:text-accent/80 text-xs font-bold transition-all active:scale-95"
         >
           <Calendar size={14} />
           Programar Férias
@@ -187,7 +187,7 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
         <Tooltip content="Ajustar Períodos">
           <button
             onClick={() => onVerHistorico(colaborador)}
-            className="w-9 h-9 flex items-center justify-center bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 rounded-xl text-slate-400 hover:text-slate-300 transition-all active:scale-95"
+            className="w-9 h-9 flex items-center justify-center bg-surface-2/60 hover:bg-surface-3/60 border border-strong/50 rounded-xl text-secondary hover:text-primary transition-all active:scale-95"
           >
             <Pencil size={14} />
           </button>
