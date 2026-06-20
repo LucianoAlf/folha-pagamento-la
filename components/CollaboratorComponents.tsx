@@ -80,8 +80,8 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
   const statusColor = STATUS_COLORS[collaborator.status];
 
   return (
-    <Card className="bg-[#0f172a]/40 border border-slate-800/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
-      <div className="p-4 border-b border-slate-800/50 relative">
+    <Card className="bg-surface/40 border border-base/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
+      <div className="p-4 border-b border-base/50 relative">
         <div className="flex items-center gap-4">
           <div 
             className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg overflow-hidden shrink-0"
@@ -96,10 +96,10 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
             )}
           </div>
           <div className="flex-1 min-w-0 pr-24">
-            <h3 className="font-black text-slate-100 truncate text-base">
+            <h3 className="font-black text-primary truncate text-base">
               {collaborator.nome}
               {collaborator.unidade_fixa && !isMobile && (
-                <span className="ml-1 text-slate-500 font-medium text-xs">({collaborator.unidade_fixa.toUpperCase()})</span>
+                <span className="ml-1 text-muted font-medium text-xs">({collaborator.unidade_fixa.toUpperCase()})</span>
               )}
             </h3>
             <div className="flex items-center gap-2 mt-0.5">
@@ -110,7 +110,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
                 {DEPARTMENT_LABELS[collaborator.departamento]}
               </span>
               {collaborator.funcao && (
-                <span className="text-[10px] text-slate-400 font-bold uppercase truncate">
+                <span className="text-[10px] text-secondary font-bold uppercase truncate">
                   • {collaborator.funcao}
                 </span>
               )}
@@ -123,7 +123,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <Tooltip content="Editar">
             <button 
               onClick={() => onEdit(collaborator)}
-              className="w-8 h-8 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-xl text-slate-400 hover:text-violet-400 shadow-sm transition-all active:scale-90"
+              className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-xl text-secondary hover:text-accent shadow-sm transition-all active:scale-90"
             >
               <Edit2 size={12} />
             </button>
@@ -132,7 +132,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <Tooltip content={collaborator.status === 'active' ? 'Inativar' : 'Reativar'}>
             <button
               onClick={() => onToggleInactive(collaborator)}
-              className="w-8 h-8 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-xl text-slate-400 hover:text-amber-400 shadow-sm transition-all active:scale-90"
+              className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-xl text-secondary hover:text-warning shadow-sm transition-all active:scale-90"
             >
               <UserX size={12} />
             </button>
@@ -141,7 +141,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <Tooltip content="Excluir">
             <button 
               onClick={() => onDelete(collaborator)}
-              className="w-8 h-8 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-xl text-slate-400 hover:text-rose-400 shadow-sm transition-all active:scale-90"
+              className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-xl text-secondary hover:text-danger shadow-sm transition-all active:scale-90"
             >
               <Trash2 size={12} />
             </button>
@@ -154,21 +154,21 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <Badge variant={statusColor} className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest">
             {STATUS_LABELS[collaborator.status]}
           </Badge>
-          <span className="text-[10px] font-black text-slate-500 bg-slate-800/40 px-3 py-1 rounded-full uppercase border border-slate-700/50">
+          <span className="text-[10px] font-black text-muted bg-surface-2/40 px-3 py-1 rounded-full uppercase border border-strong/50">
             {CONTRACT_LABELS[collaborator.tipo]}
           </span>
         </div>
 
         <div className="space-y-2">
           {collaborator.telefone && (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Phone size={12} className="text-slate-500" />
+            <div className="flex items-center gap-2 text-xs text-secondary">
+              <Phone size={12} className="text-muted" />
               {collaborator.telefone}
             </div>
           )}
           {collaborator.email && (
-            <div className="flex items-center gap-2 text-xs text-slate-400 truncate">
-              <Mail size={12} className="text-slate-500" />
+            <div className="flex items-center gap-2 text-xs text-secondary truncate">
+              <Mail size={12} className="text-muted" />
               {collaborator.email}
             </div>
           )}
@@ -176,13 +176,13 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <div className="flex flex-wrap gap-1.5 mt-2">
             {collaborator.is_rateado ? (
               ['Campo Grande', 'Recreio', 'Barra'].map(u => (
-                <span key={u} className="text-[9px] font-bold text-slate-500 bg-slate-800/30 border border-slate-700/50 px-2 py-0.5 rounded-full uppercase">
+                <span key={u} className="text-[9px] font-bold text-muted bg-surface-2/30 border border-strong/50 px-2 py-0.5 rounded-full uppercase">
                   {u}
                 </span>
               ))
             ) : (
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Building size={12} className="text-slate-500" />
+              <div className="flex items-center gap-2 text-xs text-secondary">
+                <Building size={12} className="text-muted" />
                 Unidade {collaborator.unidade_fixa?.toUpperCase() || 'N/A'}
               </div>
             )}
@@ -191,7 +191,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           {collaborator.instrumentos && collaborator.instrumentos.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-1">
               {collaborator.instrumentos.map(instr => (
-                <span key={instr} className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase">
+                <span key={instr} className="text-[9px] font-bold text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded-full uppercase">
                   {instr}
                 </span>
               ))}
@@ -200,16 +200,16 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
         </div>
       </div>
 
-      <div className="px-4 py-3 bg-slate-900/60 border-t border-slate-800/50 flex items-center justify-between">
+      <div className="px-4 py-3 bg-surface/60 border-t border-base/50 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <span className="text-emerald-500"><DollarSign size={14} /></span>
-          <span className="text-sm font-black text-slate-200">
+          <span className="text-success"><DollarSign size={14} /></span>
+          <span className="text-sm font-black text-secondary">
             {formatCurrency(collaborator.salario_base)}
-            <span className="text-[10px] text-slate-500 font-medium"> /mês</span>
+            <span className="text-[10px] text-muted font-medium"> /mês</span>
           </span>
         </div>
         {collaborator.data_admissao && (
-          <span className="text-[10px] text-slate-500 font-medium">
+          <span className="text-[10px] text-muted font-medium">
             Desde {new Date(collaborator.data_admissao).toLocaleDateString('pt-BR')}
           </span>
         )}
@@ -400,22 +400,22 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[12000] bg-[#0a0e1a] flex flex-col">
+    <div className="fixed inset-0 z-[12000] bg-bg flex flex-col">
       {/* Header */}
-      <header 
-        className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-slate-800/50"
+      <header
+        className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-base/50"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
       >
         <button 
           onClick={currentStepIndex > 0 ? goPrev : onClose}
-          className="flex items-center gap-1 text-slate-300 text-sm font-bold min-w-[80px]"
+          className="flex items-center gap-1 text-secondary text-sm font-bold min-w-[80px]"
         >
           <ArrowLeft size={18} />
           {currentStepIndex > 0 ? 'Voltar' : 'Cancelar'}
         </button>
         
         <div className="text-center">
-          <div className="text-xs font-black text-slate-400 uppercase tracking-widest">
+          <div className="text-xs font-black text-secondary uppercase tracking-widest">
             Passo {currentStepIndex + 1} de {totalSteps}
           </div>
         </div>
@@ -425,8 +425,8 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
       </header>
 
       {/* Progress Bar */}
-      <div className="px-4 py-2 bg-[#0a0e1a]">
-        <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
+      <div className="px-4 py-2 bg-bg">
+        <div className="h-1 rounded-full bg-surface-2 overflow-hidden">
           <div 
             className="h-full rounded-full transition-all duration-300 ease-out"
             style={{ width: `${progressPct}%`, backgroundColor: deptColor }}
@@ -448,17 +448,17 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
             {currentStep && <currentStep.icon size={14} />}
             {currentStep?.label}
           </div>
-          <h1 className="text-2xl font-black text-white">
+          <h1 className="text-2xl font-black text-primary">
             {initialData ? 'Editar Colaborador' : 'Novo Colaborador'}
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-secondary mt-1">
             {DEPARTMENT_LABELS[form.departamento as CollaboratorDepartment]}
           </p>
         </div>
 
         {/* Error Message */}
         {submitError && (
-          <div className="mb-4 px-4 py-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm font-bold">
+          <div className="mb-4 px-4 py-3 rounded-2xl bg-danger/10 border border-danger/20 text-danger text-sm font-bold">
             {submitError}
           </div>
         )}
@@ -469,11 +469,11 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
             <>
               {/* Photo */}
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+                <div className="w-16 h-16 rounded-2xl bg-surface-2 border border-strong overflow-hidden flex items-center justify-center shrink-0">
                   {form.foto_url ? (
                     <img src={form.foto_url} alt="Foto" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="text-slate-500" size={28} />
+                    <User className="text-muted" size={28} />
                   )}
                 </div>
                 <div className="flex-1">
@@ -487,7 +487,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   <button
                     type="button"
                     onClick={() => document.getElementById('wizard-photo-input')?.click()}
-                    className="px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-sm font-bold flex items-center gap-2"
+                    className="px-4 py-2.5 rounded-xl bg-surface-2 border border-strong text-secondary text-sm font-bold flex items-center gap-2"
                   >
                     <Plus size={16} /> Adicionar Foto
                   </button>
@@ -495,7 +495,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     <button
                       type="button"
                       onClick={() => updateForm({ foto_url: undefined })}
-                      className="ml-2 px-3 py-2.5 rounded-xl text-slate-500 text-sm font-bold"
+                      className="ml-2 px-3 py-2.5 rounded-xl text-muted text-sm font-bold"
                     >
                       Remover
                     </button>
@@ -505,14 +505,14 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
               {/* Name */}
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                  Nome Completo <span className="text-rose-400">*</span>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">
+                  Nome Completo <span className="text-danger">*</span>
                 </label>
                 <input 
                   type="text" 
                   value={form.nome || ''} 
                   onChange={(e) => updateForm({ nome: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white text-base font-medium placeholder:text-slate-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base font-medium placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all"
                   placeholder="Nome do colaborador"
                 />
               </div>
@@ -520,22 +520,22 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
               {/* CPF & RG */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">CPF</label>
+                  <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">CPF</label>
                   <input 
                     type="text" 
                     value={form.cpf || ''} 
                     onChange={(e) => updateForm({ cpf: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white font-mono text-base placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary font-mono text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="000.000.000-00"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">RG</label>
+                  <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">RG</label>
                   <input 
                     type="text" 
                     value={form.rg || ''} 
                     onChange={(e) => updateForm({ rg: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white font-mono text-base placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary font-mono text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="00.000.000-0"
                   />
                 </div>
@@ -543,31 +543,31 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
               {/* Email */}
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">E-mail</label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">E-mail</label>
                 <input 
                   type="email" 
                   value={form.email || ''} 
                   onChange={(e) => updateForm({ email: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white text-base placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                   placeholder="email@exemplo.com"
                 />
               </div>
 
               {/* Phone */}
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Telefone</label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Telefone</label>
                 <input 
                   type="text" 
                   value={form.telefone || ''} 
                   onChange={(e) => updateForm({ telefone: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white text-base placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                   placeholder="(00) 00000-0000"
                 />
               </div>
 
               {/* Birth Date */}
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Data de Nascimento</label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Data de Nascimento</label>
                 <DatePicker
                   value={form.data_nascimento}
                   onChange={(v) => updateForm({ data_nascimento: v })}
@@ -583,7 +583,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
           {activeSection === 'employment' && (
             <>
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Departamento <span className="text-rose-400">*</span></label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Departamento <span className="text-danger">*</span></label>
                 <CustomSelect
                   value={form.departamento || ''}
                   onValueChange={(v) => updateForm({ departamento: v as any })}
@@ -592,18 +592,18 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Função/Cargo</label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Função/Cargo</label>
                 <input 
                   type="text" 
                   value={form.funcao || ''} 
                   onChange={(e) => updateForm({ funcao: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white text-base placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                   placeholder="Ex: Analista Financeiro"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Tipo de Contrato</label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Tipo de Contrato</label>
                 <CustomSelect
                   value={form.tipo || ''}
                   onValueChange={(v) => updateForm({ tipo: v as any })}
@@ -612,7 +612,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Status</label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Status</label>
                 <CustomSelect
                   value={form.status || ''}
                   onValueChange={(v) => updateForm({ status: v as any })}
@@ -621,7 +621,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Data de Admissão</label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Data de Admissão</label>
                 <DatePicker
                   value={form.data_admissao}
                   onChange={(v) => updateForm({ data_admissao: v })}
@@ -637,25 +637,25 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
           {activeSection === 'remuneration' && (
             <>
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Salário/Honorário Base</label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Salário/Honorário Base</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary font-bold">R$</span>
                   <input 
                     type="number" 
                     value={form.salario_base || 0} 
                     onChange={(e) => updateForm({ salario_base: Number(e.target.value) })}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white text-base font-mono placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base font-mono placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="0,00"
                   />
                 </div>
               </div>
 
-              <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
+              <div className="p-4 bg-info/5 border border-info/20 rounded-2xl">
                 <div className="flex items-start gap-3">
-                  <ShieldAlert size={20} className="text-blue-400 shrink-0 mt-0.5" />
+                  <ShieldAlert size={20} className="text-info shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-black text-white mb-1">Composições Fixas</h4>
-                    <p className="text-xs text-slate-400 leading-relaxed">
+                    <h4 className="text-sm font-black text-primary mb-1">Composições Fixas</h4>
+                    <p className="text-xs text-secondary leading-relaxed">
                       Este valor é a base para o cálculo da folha. Adicionais variáveis são lançados mensalmente na aba de lançamentos.
                     </p>
                   </div>
@@ -672,34 +672,34 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   onClick={() => updateForm({ is_rateado: false })}
                   className={cn(
                     "p-4 rounded-2xl border-2 text-left transition-all",
-                    !form.is_rateado 
-                      ? "border-violet-500 bg-violet-500/10" 
-                      : "border-slate-700 hover:border-slate-600"
+                    !form.is_rateado
+                      ? "border-accent bg-accent/10"
+                      : "border-strong hover:border-strong"
                   )}
                 >
-                  <Building size={24} className={!form.is_rateado ? "text-violet-400" : "text-slate-500"} />
-                  <h4 className="font-bold text-sm mt-3 text-white">Uma Unidade</h4>
-                  <p className="text-[10px] text-slate-400 mt-1">100% alocado em uma unidade fixa.</p>
+                  <Building size={24} className={!form.is_rateado ? "text-accent" : "text-muted"} />
+                  <h4 className="font-bold text-sm mt-3 text-primary">Uma Unidade</h4>
+                  <p className="text-[10px] text-secondary mt-1">100% alocado em uma unidade fixa.</p>
                 </button>
                 <button 
                   type="button"
                   onClick={() => updateForm({ is_rateado: true })}
                   className={cn(
                     "p-4 rounded-2xl border-2 text-left transition-all",
-                    form.is_rateado 
-                      ? "border-violet-500 bg-violet-500/10" 
-                      : "border-slate-700 hover:border-slate-600"
+                    form.is_rateado
+                      ? "border-accent bg-accent/10"
+                      : "border-strong hover:border-strong"
                   )}
                 >
-                  <RefreshCw size={24} className={form.is_rateado ? "text-violet-400" : "text-slate-500"} />
-                  <h4 className="font-bold text-sm mt-3 text-white">Rateado</h4>
-                  <p className="text-[10px] text-slate-400 mt-1">Dividido entre unidades.</p>
+                  <RefreshCw size={24} className={form.is_rateado ? "text-accent" : "text-muted"} />
+                  <h4 className="font-bold text-sm mt-3 text-primary">Rateado</h4>
+                  <p className="text-[10px] text-secondary mt-1">Dividido entre unidades.</p>
                 </button>
               </div>
 
               {!form.is_rateado && (
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Unidade Principal</label>
+                  <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Unidade Principal</label>
                   <CustomSelect
                     value={form.unidade_fixa || ''}
                     onValueChange={(v) => updateForm({ unidade_fixa: v })}
@@ -717,34 +717,34 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
           {activeSection === 'banking' && (
             <>
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Chave PIX</label>
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Chave PIX</label>
                 <input 
                   type="text" 
                   value={form.pix || ''} 
                   onChange={(e) => updateForm({ pix: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white text-base placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                   placeholder="CPF, E-mail, Telefone ou Aleatória"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Banco</label>
+                  <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Banco</label>
                   <input 
                     type="text" 
                     value={form.banco || ''} 
                     onChange={(e) => updateForm({ banco: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white text-base placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="Ex: Itaú"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Agência</label>
+                  <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Agência</label>
                   <input 
                     type="text" 
                     value={form.agencia || ''} 
                     onChange={(e) => updateForm({ agencia: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white text-base placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="0000"
                   />
                 </div>
@@ -752,17 +752,17 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Conta</label>
+                  <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Conta</label>
                   <input 
                     type="text" 
                     value={form.conta || ''} 
                     onChange={(e) => updateForm({ conta: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-700 bg-slate-800/50 text-white text-base placeholder:text-slate-500 focus:border-violet-500 outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="00000-0"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Tipo</label>
+                  <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Tipo</label>
                   <CustomSelect
                     value={form.tipo_conta || ''}
                     onValueChange={(v) => updateForm({ tipo_conta: v })}
@@ -778,7 +778,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
           {activeSection === 'instruments' && (
             <>
-              <p className="text-sm text-slate-400 mb-4">Selecione os instrumentos que este professor leciona:</p>
+              <p className="text-sm text-secondary mb-4">Selecione os instrumentos que este professor leciona:</p>
               <div className="grid grid-cols-2 gap-3">
                 {['Piano', 'Violão', 'Guitarra', 'Bateria', 'Canto', 'Teclado', 'Baixo', 'Violino', 'Musicalização', 'Produção Musical', 'Bandas', 'Ukulelê', 'Cavaquinho'].map(instr => {
                   const isSelected = (form.instrumentos || []).includes(instr);
@@ -793,14 +793,14 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       }}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-sm font-bold transition-all",
-                        isSelected 
-                          ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" 
-                          : "border-slate-700 text-slate-300 hover:border-slate-600"
+                        isSelected
+                          ? "border-success bg-success/10 text-success"
+                          : "border-strong text-secondary hover:border-strong"
                       )}
                     >
                       <div className={cn(
                         "w-5 h-5 rounded-md border-2 flex items-center justify-center",
-                        isSelected ? "border-emerald-500 bg-emerald-500" : "border-slate-500"
+                        isSelected ? "border-success bg-success" : "border-muted"
                       )}>
                         {isSelected && <Check size={12} className="text-white" />}
                       </div>
@@ -816,7 +816,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
       {/* Footer */}
       <footer 
-        className="shrink-0 px-4 pt-4 border-t border-slate-800/50 bg-[#0a0e1a]"
+        className="shrink-0 px-4 pt-4 border-t border-base/50 bg-bg"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
       >
         {/* Progress Dots */}
@@ -826,11 +826,11 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
               key={idx}
               className={cn(
                 "w-2 h-2 rounded-full transition-all",
-                idx === currentStepIndex 
-                  ? "w-6 bg-violet-500" 
-                  : idx < currentStepIndex 
-                    ? "bg-violet-500/50" 
-                    : "bg-slate-700"
+                idx === currentStepIndex
+                  ? "w-6 bg-accent"
+                  : idx < currentStepIndex
+                    ? "bg-accent/50"
+                    : "bg-surface-3"
               )}
             />
           ))}
@@ -867,11 +867,11 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
             className="shrink-0 px-4 py-3 flex items-center justify-between"
             style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
           >
-            <button onClick={cropper.resetCropper} className="text-slate-300 text-sm font-bold">
+            <button onClick={cropper.resetCropper} className="text-secondary text-sm font-bold">
               Cancelar
             </button>
             <span className="text-white font-black">Ajustar Foto</span>
-            <button onClick={cropper.applyCrop} className="text-violet-400 text-sm font-bold">
+            <button onClick={cropper.applyCrop} className="text-accent text-sm font-bold">
               Aplicar
             </button>
           </header>
@@ -895,7 +895,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
             style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
           >
             <div className="flex items-center gap-4">
-              <span className="text-xs text-slate-400 w-12">Zoom</span>
+              <span className="text-xs text-secondary w-12">Zoom</span>
               <input
                 type="range"
                 min={1}
@@ -905,7 +905,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                 onChange={(e) => cropper.setZoom(Number(e.target.value))}
                 className="flex-1"
               />
-              <span className="text-xs text-slate-400 w-12 text-right">{cropper.zoom.toFixed(2)}x</span>
+              <span className="text-xs text-secondary w-12 text-right">{cropper.zoom.toFixed(2)}x</span>
             </div>
           </div>
         </div>
@@ -945,7 +945,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#0f172a] w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[calc(100vh-3rem)] animate-in zoom-in-95">
+      <div className="bg-surface w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[calc(100vh-3rem)] animate-in zoom-in-95">
         {/* Header */}
         <div 
           className="p-6 flex items-center justify-between shrink-0"
@@ -969,7 +969,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar */}
-          <div className="w-64 bg-slate-50 dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-800 p-4 space-y-2 shrink-0 overflow-y-auto">
+          <div className="w-64 bg-surface-2 border-r border-base p-4 space-y-2 shrink-0 overflow-y-auto">
             {visibleSections.map((section, index) => {
               const Icon = section.icon;
               const isActive = activeSection === section.id;
@@ -980,45 +980,45 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
                     isActive
-                      ? "bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700"
-                      : "hover:bg-white/50 dark:hover:bg-slate-800/50 text-slate-500"
+                      ? "bg-surface-2 shadow-lg border border-base"
+                      : "hover:bg-surface-3 text-muted"
                   )}
                 >
-                  <div className={cn("p-2 rounded-lg", isActive ? "bg-blue-500 text-white" : "bg-slate-200 dark:bg-slate-800")}>
+                  <div className={cn("p-2 rounded-lg", isActive ? "bg-info text-white" : "bg-surface-2")}>
                     <Icon size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Passo {index + 1}</div>
-                    <div className={cn("text-xs font-bold truncate", isActive ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400")}>
+                    <div className="text-[10px] font-black text-secondary uppercase tracking-widest">Passo {index + 1}</div>
+                    <div className={cn("text-xs font-bold truncate", isActive ? "text-primary" : "text-secondary")}>
                       {section.label}
                     </div>
                   </div>
-                  {isActive && <ChevronRight className="w-4 h-4 text-blue-500" />}
+                  {isActive && <ChevronRight className="w-4 h-4 text-info" />}
                 </button>
               );
             })}
           </div>
 
           {/* Form Content */}
-          <div className="flex-1 p-8 overflow-y-auto bg-white dark:bg-[#0f172a]">
+          <div className="flex-1 p-8 overflow-y-auto bg-surface">
             {activeSection === 'personal' && (
               <div className="max-w-2xl space-y-6">
                 {submitError && (
-                  <div className="px-5 py-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm font-bold">
+                  <div className="px-5 py-3 rounded-2xl bg-danger/10 border border-danger/20 text-danger text-sm font-bold">
                     {submitError}
                   </div>
                 )}
 
                 <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-surface-2 border border-base overflow-hidden flex items-center justify-center shrink-0">
                     {form.foto_url ? (
                       <img src={form.foto_url} alt="Foto do colaborador" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="text-slate-400" size={26} />
+                      <User className="text-muted" size={26} />
                     )}
                   </div>
                   <div className="flex-1">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Foto</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Foto</label>
                     <div className="flex items-center gap-3">
                       <input
                         id="collab-photo-input"
@@ -1030,7 +1030,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       <button
                         type="button"
                         onClick={() => document.getElementById('collab-photo-input')?.click()}
-                        className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 transition-colors flex items-center gap-2"
+                        className="px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold transition-colors flex items-center gap-2"
                       >
                         <Plus size={14} /> Selecionar Imagem
                       </button>
@@ -1038,7 +1038,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                         <button
                           type="button"
                           onClick={() => updateForm({ foto_url: undefined })}
-                          className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 shrink-0"
+                          className="px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold shrink-0"
                         >
                           Remover
                         </button>
@@ -1048,61 +1048,61 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nome Completo *</label>
+                  <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Nome Completo *</label>
                   <input 
                     type="text" 
                     value={form.nome || ''} 
                     onChange={(e) => updateForm({ nome: e.target.value })}
-                    className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                    className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
                     placeholder="Nome do colaborador"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">CPF</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">CPF</label>
                     <input 
                       type="text" 
                       value={form.cpf || ''} 
                       onChange={(e) => updateForm({ cpf: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold font-mono"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold font-mono"
                       placeholder="000.000.000-00"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">RG</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">RG</label>
                     <input 
                       type="text" 
                       value={form.rg || ''} 
                       onChange={(e) => updateForm({ rg: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold font-mono"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold font-mono"
                       placeholder="00.000.000-0"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">E-mail</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">E-mail</label>
                     <input 
                       type="email" 
                       value={form.email || ''} 
                       onChange={(e) => updateForm({ email: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
                       placeholder="email@exemplo.com"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Telefone</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Telefone</label>
                     <input 
                       type="text" 
                       value={form.telefone || ''} 
                       onChange={(e) => updateForm({ telefone: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
                       placeholder="(00) 00000-0000"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data de Nascimento</label>
+                  <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Data de Nascimento</label>
                   <DatePicker
                     value={form.data_nascimento}
                     onChange={(v) => updateForm({ data_nascimento: v })}
@@ -1119,7 +1119,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
               <div className="max-w-2xl space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Departamento *</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Departamento *</label>
                     <CustomSelect
                       value={form.departamento || ''}
                       onValueChange={(v) => updateForm({ departamento: v as any })}
@@ -1127,19 +1127,19 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Função/Cargo</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Função/Cargo</label>
                     <input 
                       type="text" 
                       value={form.funcao || ''} 
                       onChange={(e) => updateForm({ funcao: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
                       placeholder="Ex: Analista Financeiro"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tipo de Contrato</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Tipo de Contrato</label>
                     <CustomSelect
                       value={form.tipo || ''}
                       onValueChange={(v) => updateForm({ tipo: v as any })}
@@ -1147,7 +1147,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Status</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Status</label>
                     <CustomSelect
                       value={form.status || ''}
                       onValueChange={(v) => updateForm({ status: v as any })}
@@ -1156,7 +1156,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data de Admissão</label>
+                  <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Data de Admissão</label>
                   <DatePicker
                     value={form.data_admissao}
                     onChange={(v) => updateForm({ data_admissao: v })}
@@ -1172,26 +1172,26 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
             {activeSection === 'remuneration' && (
               <div className="max-w-2xl space-y-6">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Salário/Honorário Base (R$)</label>
+                  <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Salário/Honorário Base (R$)</label>
                   <div className="relative">
-                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</span>
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-secondary font-bold">R$</span>
                     <input 
                       type="number" 
                       value={form.salario_base || 0} 
                       onChange={(e) => updateForm({ salario_base: Number(e.target.value) })}
-                      className="w-full pl-14 pr-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                      className="w-full pl-14 pr-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
                       placeholder="0,00"
                     />
                   </div>
                 </div>
-                <div className="p-6 bg-blue-500/5 border border-blue-500/20 rounded-3xl">
+                <div className="p-6 bg-info/5 border border-info/20 rounded-3xl">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 bg-blue-500 text-white rounded-2xl shadow-lg shadow-blue-500/20">
+                    <div className="p-3 bg-info text-white rounded-2xl shadow-lg shadow-info/20">
                       <ShieldAlert size={24} />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider mb-1">Composições Fixas</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      <h4 className="text-sm font-black text-primary uppercase tracking-wider mb-1">Composições Fixas</h4>
+                      <p className="text-xs text-secondary leading-relaxed">
                         Este valor é a base para o cálculo da folha. Adicionais variáveis (bônus, comissão) são lançados mensalmente na aba de lançamentos.
                       </p>
                     </div>
@@ -1208,31 +1208,31 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     className={cn(
                       "p-6 rounded-3xl border-2 text-left transition-all",
                       !form.is_rateado 
-                        ? "border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/10" 
-                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                        ? "border-info bg-info/5 shadow-lg shadow-info/10"
+                        : "border-base hover:border-strong"
                     )}
                   >
-                    <Building size={24} className={!form.is_rateado ? "text-blue-500" : "text-slate-400"} />
+                    <Building size={24} className={!form.is_rateado ? "text-info" : "text-muted"} />
                     <h4 className="font-bold text-sm mt-4">100% Uma Unidade</h4>
-                    <p className="text-[10px] text-slate-500 mt-1">Custo alocado integralmente em uma unidade fixa.</p>
+                    <p className="text-[10px] text-secondary mt-1">Custo alocado integralmente em uma unidade fixa.</p>
                   </button>
                   <button 
                     onClick={() => updateForm({ is_rateado: true })}
                     className={cn(
                       "p-6 rounded-3xl border-2 text-left transition-all",
                       form.is_rateado 
-                        ? "border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/10" 
-                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                        ? "border-info bg-info/5 shadow-lg shadow-info/10"
+                        : "border-base hover:border-strong"
                     )}
                   >
-                    <RefreshCw size={24} className={form.is_rateado ? "text-blue-500" : "text-slate-400"} />
+                    <RefreshCw size={24} className={form.is_rateado ? "text-info" : "text-muted"} />
                     <h4 className="font-bold text-sm mt-4">Custo Rateado</h4>
-                    <p className="text-[10px] text-slate-500 mt-1">Custo dividido entre múltiplas unidades (Staff Corporativo).</p>
+                    <p className="text-[10px] text-secondary mt-1">Custo dividido entre múltiplas unidades (Staff Corporativo).</p>
                   </button>
                 </div>
                 {!form.is_rateado && (
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Unidade Principal</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Unidade Principal</label>
                     <CustomSelect
                       value={form.unidade_fixa || ''}
                       onValueChange={(v) => updateForm({ unidade_fixa: v })}
@@ -1250,50 +1250,50 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
             {activeSection === 'banking' && (
               <div className="max-w-2xl space-y-6">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Chave PIX</label>
+                  <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Chave PIX</label>
                   <input 
                     type="text" 
                     value={form.pix || ''} 
                     onChange={(e) => updateForm({ pix: e.target.value })}
-                    className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                    className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
                     placeholder="CPF, E-mail, Telefone ou Aleatória"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Banco</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Banco</label>
                     <input 
                       type="text" 
                       value={form.banco || ''} 
                       onChange={(e) => updateForm({ banco: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
                       placeholder="Ex: Itaú, Nubank"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Agência</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Agência</label>
                     <input 
                       type="text" 
                       value={form.agencia || ''} 
                       onChange={(e) => updateForm({ agencia: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
                       placeholder="0000"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Número da Conta</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Número da Conta</label>
                     <input 
                       type="text" 
                       value={form.conta || ''} 
                       onChange={(e) => updateForm({ conta: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
                       placeholder="00000-0"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tipo de Conta</label>
+                    <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Tipo de Conta</label>
                     <CustomSelect
                       value={form.tipo_conta || ''}
                       onValueChange={(v) => updateForm({ tipo_conta: v })}
@@ -1309,7 +1309,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
             {activeSection === 'instruments' && (
               <div className="max-w-2xl space-y-6">
-                <p className="text-xs text-slate-500">Selecione os instrumentos que este professor leciona.</p>
+                <p className="text-xs text-secondary">Selecione os instrumentos que este professor leciona.</p>
                 <div className="grid grid-cols-3 gap-3">
                   {['Piano', 'Violão', 'Guitarra', 'Bateria', 'Canto', 'Teclado', 'Baixo', 'Violino', 'Musicalização', 'Produção Musical', 'Bandas', 'Ukulelê', 'Cavaquinho'].map(instr => {
                     const isSelected = (form.instrumentos || []).includes(instr);
@@ -1325,14 +1325,14 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                         }}
                         className={cn(
                           "flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-sm font-bold",
-                          isSelected 
-                            ? "border-emerald-500 bg-emerald-500/10 text-emerald-500" 
-                            : "border-slate-200 dark:border-slate-700 hover:border-emerald-500/50"
+                          isSelected
+                            ? "border-success bg-success/10 text-success"
+                            : "border-base hover:border-success/50"
                         )}
                       >
                         <div className={cn(
                           "w-4 h-4 rounded-md border-2 flex items-center justify-center transition-all",
-                          isSelected ? "border-emerald-500 bg-emerald-500" : "border-slate-300"
+                          isSelected ? "border-success bg-success" : "border-strong"
                         )}>
                           {isSelected && <Check size={10} className="text-white" />}
                         </div>
@@ -1347,10 +1347,10 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
         </div>
 
         {/* Footer */}
-        <div className="p-6 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex gap-4 shrink-0">
-          <button 
+        <div className="p-6 bg-surface-2 border-t border-base flex gap-4 shrink-0">
+          <button
             onClick={onClose}
-            className="flex-1 px-6 py-4 rounded-2xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition-all active:scale-95"
+            className="flex-1 px-6 py-4 rounded-2xl bg-surface-2 hover:bg-surface-3 text-secondary font-bold transition-all active:scale-95"
           >
             Cancelar
           </button>
@@ -1369,19 +1369,19 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
       {/* Cropper Overlay */}
       {cropper.isCropOpen && cropper.cropImageSrc && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <div className="text-slate-900 dark:text-white font-black">Ajustar Foto</div>
+          <div className="w-full max-w-2xl bg-surface rounded-[2rem] border border-base shadow-2xl overflow-hidden">
+            <div className="px-6 py-5 border-b border-base flex items-center justify-between">
+              <div className="text-primary font-black">Ajustar Foto</div>
               <button
                 onClick={cropper.resetCropper}
-                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+                className="p-2 rounded-xl hover:bg-surface-3 text-muted"
               >
                 <X size={18} />
               </button>
             </div>
 
             <div className="p-6 space-y-5">
-              <div className="relative w-full h-[360px] rounded-2xl overflow-hidden bg-slate-950">
+              <div className="relative w-full h-[360px] rounded-2xl overflow-hidden bg-bg">
                 <Cropper
                   image={cropper.cropImageSrc}
                   crop={cropper.crop}
@@ -1396,7 +1396,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="text-xs font-bold text-slate-500 w-14">Zoom</div>
+                <div className="text-xs font-bold text-muted w-14">Zoom</div>
                 <input
                   type="range"
                   min={1}
@@ -1406,20 +1406,20 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   onChange={(e) => cropper.setZoom(Number(e.target.value))}
                   className="w-full"
                 />
-                <div className="text-xs font-mono text-slate-500 w-14 text-right">{cropper.zoom.toFixed(2)}x</div>
+                <div className="text-xs font-mono text-muted w-14 text-right">{cropper.zoom.toFixed(2)}x</div>
               </div>
             </div>
 
-            <div className="px-6 py-5 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-3">
+            <div className="px-6 py-5 border-t border-base flex items-center justify-end gap-3">
               <button
                 onClick={cropper.resetCropper}
-                className="px-5 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-black"
+                className="px-5 py-3 rounded-2xl bg-surface-2 hover:bg-surface-3 text-secondary text-sm font-black"
               >
                 Cancelar
               </button>
               <button
                 onClick={cropper.applyCrop}
-                className="px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-black shadow-lg shadow-violet-600/20"
+                className="px-5 py-3 rounded-2xl bg-accent hover:bg-accent/90 text-white text-sm font-black shadow-lg shadow-accent/20"
               >
                 Aplicar
               </button>

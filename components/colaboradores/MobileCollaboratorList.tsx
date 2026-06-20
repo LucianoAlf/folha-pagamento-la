@@ -43,15 +43,15 @@ export const MobileCollaboratorList: React.FC<{
   }, [hasMore, items.length]);
 
   return (
-    <div className="rounded-3xl border border-slate-800/60 bg-slate-950/60 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800/60 bg-slate-950/70">
-        <div className="text-white font-black">Colaboradores</div>
-        <div className="text-xs text-slate-500 font-bold mt-1">
+    <div className="rounded-3xl border border-base/60 bg-bg/60 overflow-hidden">
+      <div className="px-5 py-4 border-b border-base/60 bg-bg/70">
+        <div className="text-primary font-black">Colaboradores</div>
+        <div className="text-xs text-muted font-bold mt-1">
           Exibindo {Math.min(visibleCount, items.length)} de {items.length}
         </div>
       </div>
 
-      <div className="divide-y divide-slate-800/60">
+      <div className="divide-y divide-base/60">
         {visibleItems.map((c) => {
           const deptColor = DEPARTMENT_COLORS[c.departamento];
           const deptLabel = DEPARTMENT_LABELS[c.departamento];
@@ -65,7 +65,7 @@ export const MobileCollaboratorList: React.FC<{
           return (
             <div
               key={c.id}
-              className="w-full text-left px-5 py-4 hover:bg-slate-900/35 transition-colors select-none touch-manipulation"
+              className="w-full text-left px-5 py-4 hover:bg-surface/35 transition-colors select-none touch-manipulation"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -84,17 +84,17 @@ export const MobileCollaboratorList: React.FC<{
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-black text-slate-100 text-sm truncate">{c.nome}</div>
-                      <div className="text-xs text-slate-500 font-bold truncate mt-0.5 flex items-center gap-1.5">
+                      <div className="font-black text-primary text-sm truncate">{c.nome}</div>
+                      <div className="text-xs text-muted font-bold truncate mt-0.5 flex items-center gap-1.5">
                         {c.status === 'active' ? (
                           <span className="relative flex h-1.5 w-1.5 shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success"></span>
                           </span>
                         ) : (
                           <span className={cn(
                             "h-1.5 w-1.5 rounded-full shrink-0",
-                            c.status === 'inactive' ? "bg-rose-500" : "bg-amber-500"
+                            c.status === 'inactive' ? "bg-danger" : "bg-warning"
                           )} />
                         )}
                         {c.funcao || 'Colaborador'}
@@ -102,7 +102,7 @@ export const MobileCollaboratorList: React.FC<{
                     </div>
 
                     <div className="text-right shrink-0">
-                      <div className="text-slate-100 font-black text-sm">{formatCurrency(Number((c as any).salario_base) || 0)}</div>
+                      <div className="text-primary font-black text-sm">{formatCurrency(Number((c as any).salario_base) || 0)}</div>
                     </div>
                   </div>
 
@@ -117,7 +117,7 @@ export const MobileCollaboratorList: React.FC<{
                       {unidadeLabel ? (
                         <span className={cn(
                           'text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
-                          'bg-slate-900/30 border-slate-800 text-slate-400'
+                          'bg-surface/30 border-base text-secondary'
                         )}>
                           {unidadeLabel}
                         </span>
@@ -128,7 +128,7 @@ export const MobileCollaboratorList: React.FC<{
                       <button
                         type="button"
                         onClick={() => onEdit(c)}
-                        className="w-6 h-6 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-violet-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-lg text-secondary active:text-accent active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
                         aria-label="Editar"
                       >
                         <Edit2 size={11} />
@@ -137,7 +137,7 @@ export const MobileCollaboratorList: React.FC<{
                       <button
                         type="button"
                         onClick={() => onToggleInactive(c)}
-                        className="w-6 h-6 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-amber-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-lg text-secondary active:text-warning active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
                         aria-label={c.status === 'active' ? 'Inativar' : 'Reativar'}
                       >
                         <UserX size={11} />
@@ -146,7 +146,7 @@ export const MobileCollaboratorList: React.FC<{
                       <button
                         type="button"
                         onClick={() => onDelete(c)}
-                        className="w-6 h-6 flex items-center justify-center bg-slate-800/60 border border-slate-700/50 rounded-lg text-slate-400 active:text-rose-400 active:bg-slate-800 transition-all active:scale-90 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-lg text-secondary active:text-danger active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
                         aria-label="Excluir"
                       >
                         <Trash2 size={11} />
@@ -160,14 +160,14 @@ export const MobileCollaboratorList: React.FC<{
         })}
 
         {items.length === 0 ? (
-          <div className="px-5 py-10 text-center text-slate-500 font-bold">Nenhum colaborador encontrado.</div>
+          <div className="px-5 py-10 text-center text-muted font-bold">Nenhum colaborador encontrado.</div>
         ) : null}
       </div>
 
       <div ref={sentinelRef} />
 
       {hasMore ? (
-        <div className="px-5 py-4 border-t border-slate-800/60 bg-slate-950/70 text-center text-xs text-slate-500 font-bold">
+        <div className="px-5 py-4 border-t border-base/60 bg-bg/70 text-center text-xs text-muted font-bold">
           Carregando mais…
         </div>
       ) : null}
