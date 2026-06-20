@@ -81,23 +81,23 @@ export const ContaLembretesWhatsApp: React.FC<{
     if (saving) return <Badge variant="info">Salvando…</Badge>;
     if (saved) return <Badge variant="success">Salvo</Badge>;
     return hasOverride ? (
-      <Badge variant="info" className="bg-violet-500/10 text-violet-300 border-violet-500/20">
+      <Badge variant="info" className="bg-accent/10 text-accent border-accent/20">
         Personalizado
       </Badge>
     ) : null;
   }, [hasOverride, loading, saved, saving]);
 
   return (
-    <div className={cn('rounded-2xl border border-slate-800 bg-slate-950/20', dense ? 'p-4' : 'p-5')}>
+    <div className={cn('rounded-2xl border border-base bg-bg/20', dense ? 'p-4' : 'p-5')}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <Bell className="w-4 h-4 text-violet-400" />
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">WhatsApp</div>
+          <Bell className="w-4 h-4 text-accent" />
+          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">WhatsApp</div>
           {headerRight}
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <div className="text-white font-black">Lembretes desta conta</div>
+          <div className="text-primary font-black">Lembretes desta conta</div>
         </div>
 
         {showOpenCentral && !hasOverride ? (
@@ -112,7 +112,7 @@ export const ContaLembretesWhatsApp: React.FC<{
                     // ignore
                   }
                 }}
-                className="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950/30 text-slate-400 font-bold hover:bg-slate-950/45 transition-all text-[10px] uppercase tracking-widest"
+                className="px-3 py-1.5 rounded-xl border border-base bg-bg/30 text-secondary font-bold hover:bg-bg/45 transition-all text-[10px] uppercase tracking-widest"
               >
                 Config. Globais
               </button>
@@ -121,16 +121,16 @@ export const ContaLembretesWhatsApp: React.FC<{
         ) : null}
 
         {!dense ? (
-          <p className="text-[11px] text-slate-500 font-bold leading-relaxed">
-            Esta conta segue o padrão definido no módulo <span className="text-slate-400">Notificações</span>. Se você
-            alterar algo abaixo, ela passará a ter um ajuste <span className="text-violet-400/80">individual</span>.
+          <p className="text-[11px] text-muted font-bold leading-relaxed">
+            Esta conta segue o padrão definido no módulo <span className="text-secondary">Notificações</span>. Se você
+            alterar algo abaixo, ela passará a ter um ajuste <span className="text-accent/80">individual</span>.
           </p>
         ) : null}
       </div>
 
       <div className={cn('mt-4', dense && 'mt-3')}>
         {loading ? (
-          <div className="text-xs text-slate-500 font-bold flex items-center gap-2">
+          <div className="text-xs text-muted font-bold flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" />
             Carregando…
           </div>
@@ -145,9 +145,9 @@ export const ContaLembretesWhatsApp: React.FC<{
             ).map((it) => (
               <div
                 key={it.key}
-                className={cn('flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-all', 'border-slate-800 bg-slate-950/25 hover:bg-slate-950/40')}
+                className={cn('flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-all', 'border-base bg-bg/25 hover:bg-bg/40')}
               >
-                <span className="text-sm text-slate-200 font-bold">{it.label}</span>
+                <span className="text-sm text-secondary font-bold">{it.label}</span>
                 <ToggleSwitch
                   checked={!!(state as any)[it.key]}
                   onCheckedChange={(nextVal) => {
@@ -167,10 +167,10 @@ export const ContaLembretesWhatsApp: React.FC<{
 
       {hasOverride && !loading ? (
         <div className={cn('mt-4 flex items-center justify-between', dense && 'mt-3')}>
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-2">
+          <div className="text-[10px] text-muted font-bold uppercase tracking-widest flex items-center gap-2">
             {saved ? (
               <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-success" />
                 Atualizado
               </>
             ) : (
@@ -196,7 +196,7 @@ export const ContaLembretesWhatsApp: React.FC<{
               }}
               className={cn(
                 'px-4 py-2 rounded-xl border transition-all text-[10px] uppercase tracking-widest font-black inline-flex items-center gap-2',
-                'border-slate-800 bg-slate-950/20 text-slate-400 hover:text-white hover:bg-slate-950/35',
+                'border-base bg-bg/20 text-secondary hover:text-primary hover:bg-bg/35',
                 saving && 'opacity-60 cursor-not-allowed'
               )}
             >

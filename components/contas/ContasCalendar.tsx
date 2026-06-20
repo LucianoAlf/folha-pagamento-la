@@ -120,7 +120,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
       const title =
         status === 'vencida' ? 'Vencidas' : status === 'pendente' ? (iso === hojeISO ? 'Vencendo hoje / Pendentes' : 'Pendentes') : 'Pagas';
       const dot =
-        status === 'vencida' ? 'bg-rose-500' : status === 'pendente' ? 'bg-amber-400' : 'bg-emerald-400';
+        status === 'vencida' ? 'bg-danger' : status === 'pendente' ? 'bg-warning' : 'bg-success';
       const total = inStatus.reduce((s, c) => s + (Number(c.valor) || 0), 0);
 
       const maxItems = 8;
@@ -132,30 +132,30 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
           <div className="flex items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className={cn('w-2 h-2 rounded-full', dot)} />
-              <div className="text-[11px] font-black text-white truncate">{title}</div>
-              <div className="text-[10px] font-black text-slate-400">({inStatus.length})</div>
+              <div className="text-[11px] font-black text-primary truncate">{title}</div>
+              <div className="text-[10px] font-black text-secondary">({inStatus.length})</div>
             </div>
-            <div className="text-[11px] font-black text-slate-200">{formatCurrency(total)}</div>
+            <div className="text-[11px] font-black text-secondary">{formatCurrency(total)}</div>
           </div>
 
           <div className={cn('space-y-1.5', inStatus.length > 4 && 'max-h-[220px] overflow-auto pr-1')}>
             {show.map((c) => (
               <div key={c.id} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-[11px] text-slate-200 font-bold truncate">{c.descricao}</div>
-                  <div className="text-[10px] text-slate-500 font-bold truncate">
+                  <div className="text-[11px] text-secondary font-bold truncate">{c.descricao}</div>
+                  <div className="text-[10px] text-muted font-bold truncate">
                     {(c.categoria?.nome || 'Sem categoria')}{' '}
-                    <span className="text-slate-600">•</span>{' '}
+                    <span className="text-muted">•</span>{' '}
                     {(c.unidade || 'todas').toUpperCase()}
                   </div>
                 </div>
-                <div className="text-[11px] font-black text-slate-100 whitespace-nowrap">
+                <div className="text-[11px] font-black text-secondary whitespace-nowrap">
                   {formatCurrency(Number(c.valor) || 0)}
                 </div>
               </div>
             ))}
             {remaining > 0 ? (
-              <div className="text-[10px] text-slate-400 font-black pt-1">
+              <div className="text-[10px] text-secondary font-black pt-1">
                 + {remaining} outra{remaining > 1 ? 's' : ''}…
               </div>
             ) : null}
@@ -173,12 +173,12 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-sm font-black text-white">{monthLabel}</div>
+        <div className="text-sm font-black text-primary">{monthLabel}</div>
         {selectedDate ? (
           <button
             type="button"
             onClick={() => onSelectDate(undefined)}
-            className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-200 transition-colors"
+            className="text-[10px] font-black uppercase tracking-widest text-muted hover:text-secondary transition-colors"
           >
             Limpar seleção
           </button>
@@ -187,7 +187,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
 
       <div className="grid grid-cols-7 gap-2">
         {weekDays.map((wd) => (
-          <div key={wd} className="text-[10px] font-black uppercase tracking-widest text-slate-600 px-2">
+          <div key={wd} className="text-[10px] font-black uppercase tracking-widest text-muted px-2">
             {wd}
           </div>
         ))}
@@ -216,8 +216,8 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
               }}
               className={cn(
                 'relative rounded-2xl border transition-all text-left p-2 lg:p-3 h-[46px] lg:h-[92px] overflow-hidden cursor-pointer group',
-                inMonth ? 'border-slate-800 bg-slate-900/10 hover:bg-slate-900/20' : 'border-slate-900/10 bg-slate-950/10 opacity-40 cursor-default',
-                isSelected && 'ring-2 ring-violet-500/60 border-violet-500/40 bg-violet-500/10'
+                inMonth ? 'border-base bg-surface/10 hover:bg-surface/20' : 'border-surface/10 bg-bg/10 opacity-40 cursor-default',
+                isSelected && 'ring-2 ring-accent/60 border-accent/40 bg-accent/10'
               )}
               style={{ backgroundColor: bg }}
               role="button"
@@ -225,7 +225,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
               aria-label={iso}
             >
               <div className="flex items-center justify-between">
-                <div className={cn('text-xs font-black', inMonth ? 'text-slate-200' : 'text-slate-600')}>
+                <div className={cn('text-xs font-black', inMonth ? 'text-secondary' : 'text-muted')}>
                   {format(d, 'd')}
                 </div>
                 {stats && stats.count > 0 ? (
@@ -233,28 +233,28 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                     {hasVencida ? (
                       <Tooltip
                         content={tooltipContentFor(iso, 'vencida')}
-                        className="p-3 rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl"
+                        className="p-3 rounded-2xl border border-strong bg-bg/95 shadow-2xl"
                         side="top"
                       >
-                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-rose-500" />
+                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-danger" />
                       </Tooltip>
                     ) : null}
                     {hasPendente ? (
                       <Tooltip
                         content={tooltipContentFor(iso, 'pendente')}
-                        className="p-3 rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl"
+                        className="p-3 rounded-2xl border border-strong bg-bg/95 shadow-2xl"
                         side="top"
                       >
-                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-amber-400" />
+                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-warning" />
                       </Tooltip>
                     ) : null}
                     {hasPago ? (
                       <Tooltip
                         content={tooltipContentFor(iso, 'pago')}
-                        className="p-3 rounded-2xl border border-slate-700 bg-slate-950/95 shadow-2xl"
+                        className="p-3 rounded-2xl border border-strong bg-bg/95 shadow-2xl"
                         side="top"
                       >
-                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-emerald-400" />
+                        <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-success" />
                       </Tooltip>
                     ) : null}
                   </div>
@@ -265,15 +265,15 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
 
               {stats && stats.count > 0 ? (
                 <div className="hidden lg:block mt-1 lg:mt-2 space-y-1">
-                  <div className="text-[10px] font-black text-slate-200">
+                  <div className="text-[10px] font-black text-secondary">
                     {stats.count} conta{stats.count > 1 ? 's' : ''}
                   </div>
-                  <div className="text-[10px] font-black text-slate-100 truncate">
+                  <div className="text-[10px] font-black text-secondary truncate">
                     {formatCurrency(stats.total)}
                   </div>
                 </div>
               ) : (
-                <div className="hidden lg:block mt-1 lg:mt-2 text-[10px] text-slate-600 font-bold">—</div>
+                <div className="hidden lg:block mt-1 lg:mt-2 text-[10px] text-muted font-bold">—</div>
               )}
 
               {inMonth && onCreateForDate ? (
@@ -285,7 +285,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                         e.stopPropagation();
                         onCreateForDate(iso);
                       }}
-                      className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-6 h-6 lg:w-8 lg:h-8 rounded-lg lg:rounded-xl bg-slate-900/60 border border-slate-800 text-slate-300 hover:text-white hover:bg-violet-600/20 hover:border-violet-500/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+                      className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-6 h-6 lg:w-8 lg:h-8 rounded-lg lg:rounded-xl bg-surface/60 border border-base text-secondary hover:text-primary hover:bg-accent/20 hover:border-accent/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
                       aria-label="Nova conta para este dia"
                     >
                       <Plus size={14} />
@@ -299,9 +299,9 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
       </div>
 
       {/* Legenda Desktop */}
-      <div className="hidden lg:block mt-3 text-[10px] text-slate-500 font-bold">
-        * Fundo violeta = volume do dia (heatmap). Bolinhas: <span className="text-rose-300">Vencida</span> •{' '}
-        <span className="text-amber-300">Pendente</span> • <span className="text-emerald-300">Pago</span>
+      <div className="hidden lg:block mt-3 text-[10px] text-muted font-bold">
+        * Fundo violeta = volume do dia (heatmap). Bolinhas: <span className="text-danger">Vencida</span> •{' '}
+        <span className="text-warning">Pendente</span> • <span className="text-success">Pago</span>
       </div>
     </div>
   );

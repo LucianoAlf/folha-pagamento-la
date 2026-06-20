@@ -1106,13 +1106,13 @@ export const ContasPagarPage: React.FC<{
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-black text-white">{tabTitle}</h2>
-          <p className="text-sm text-slate-500 font-bold mt-1">{tabSubtitle}</p>
+          <h2 className="text-2xl font-black text-primary">{tabTitle}</h2>
+          <p className="text-sm text-muted font-bold mt-1">{tabSubtitle}</p>
         </div>
       </div>
 
       {/* Desktop Tab Bar */}
-      <div className="hidden lg:block border-b border-slate-800/60 bg-slate-900/20 backdrop-blur-sm mb-6">
+      <div className="hidden lg:block border-b border-base/60 bg-surface/20 backdrop-blur-sm mb-6">
         <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
           {CONTAS_TABS.map(tab => (
             <button
@@ -1120,13 +1120,13 @@ export const ContasPagarPage: React.FC<{
               onClick={() => setMode(tab.id)}
               className={cn(
                 'relative flex items-center gap-2.5 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap group',
-                mode === tab.id ? 'text-violet-400' : 'text-slate-500 hover:text-slate-200'
+                mode === tab.id ? 'text-accent' : 'text-muted hover:text-secondary'
               )}
             >
-              <tab.icon size={16} className={cn('transition-colors', mode === tab.id ? 'text-violet-400' : 'text-slate-600 group-hover:text-slate-400')} />
+              <tab.icon size={16} className={cn('transition-colors', mode === tab.id ? 'text-accent' : 'text-muted group-hover:text-secondary')} />
               {tab.label}
               {mode === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
               )}
             </button>
           ))}
@@ -1135,9 +1135,9 @@ export const ContasPagarPage: React.FC<{
 
       {/* Mobile Tab Bar */}
       <div className="lg:hidden mb-6">
-        <div className="relative flex bg-[#0f172a] p-1 rounded-xl border border-slate-800/50 shadow-inner overflow-hidden">
+        <div className="relative flex bg-surface p-1 rounded-xl border border-base/50 shadow-inner overflow-hidden">
           <div
-            className="absolute top-1.5 bottom-1.5 transition-all duration-500 bg-slate-800/80 rounded-lg border border-slate-700/30 shadow-lg"
+            className="absolute top-1.5 bottom-1.5 transition-all duration-500 bg-surface-2/80 rounded-lg border border-strong/30 shadow-lg"
             style={{
               width: `calc(${100 / CONTAS_TABS.length}% - 10px)`,
               left: `calc(${(tabBarIdx * 100) / CONTAS_TABS.length}% + 5px)`,
@@ -1149,7 +1149,7 @@ export const ContasPagarPage: React.FC<{
               onClick={() => setMode(tab.id)}
               className={cn(
                 'relative z-10 flex-1 py-3 font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap text-[10px]',
-                mode === tab.id ? 'text-violet-400 scale-[1.02]' : 'text-slate-500 hover:text-slate-200'
+                mode === tab.id ? 'text-accent scale-[1.02]' : 'text-muted hover:text-secondary'
               )}
             >
               {tab.shortLabel}
@@ -1175,7 +1175,7 @@ export const ContasPagarPage: React.FC<{
       <div className="w-full animate-in fade-in slide-in-from-top-4 duration-500">
         {/* Mobile: Controles (unidade + ações) — rollback */}
         <div className="lg:hidden flex flex-col gap-3 mb-6">
-          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
@@ -1183,7 +1183,7 @@ export const ContasPagarPage: React.FC<{
                 onClick={() => setUnidadeFiltro(u.id as any)}
                 className={cn(
                   'px-4 py-2 rounded-xl text-xs font-black transition-all',
-                  unidadeFiltro === u.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                  unidadeFiltro === u.id ? 'bg-surface-2 text-primary shadow-sm' : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                 )}
               >
                 {u.mobile}
@@ -1202,10 +1202,10 @@ export const ContasPagarPage: React.FC<{
                     // ignore
                   }
                 }}
-                className="flex-none px-4 py-3 rounded-2xl bg-slate-900/50 border border-slate-800/70 text-slate-200 font-black hover:bg-slate-900/70 transition-all active:scale-[0.98]"
+                className="flex-none px-4 py-3 rounded-2xl bg-surface/50 border border-base/70 text-secondary font-black hover:bg-surface/70 transition-all active:scale-[0.98]"
                 aria-label="Notificações"
               >
-                <Bell size={16} className="text-violet-300" />
+                <Bell size={16} className="text-accent" />
               </button>
             </Tooltip>
             <button
@@ -1214,7 +1214,7 @@ export const ContasPagarPage: React.FC<{
                 setNovaContaDefaults(null);
                 setNovaOpen(true);
               }}
-              className="flex-1 px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 rounded-2xl bg-accent hover:bg-accent/80 text-white font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <Plus size={16} />
               Nova Conta
@@ -1224,7 +1224,7 @@ export const ContasPagarPage: React.FC<{
 
         {/* Desktop: manter layout atual */}
         <div className="hidden lg:flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
@@ -1232,7 +1232,7 @@ export const ContasPagarPage: React.FC<{
                 onClick={() => setUnidadeFiltro(u.id as any)}
                 className={cn(
                   'px-4 py-2 rounded-xl text-xs font-black transition-all',
-                  unidadeFiltro === u.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                  unidadeFiltro === u.id ? 'bg-surface-2 text-primary shadow-sm' : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                 )}
               >
                 <span className="lg:hidden">{u.mobile}</span>
@@ -1243,7 +1243,7 @@ export const ContasPagarPage: React.FC<{
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Mês de Referência</div>
+              <div className="text-[10px] font-bold text-muted uppercase tracking-widest mr-1">Mês de Referência</div>
               <CustomSelect
                 value={competenciaFiltro}
                 onValueChange={setCompetenciaFiltro}
@@ -1261,16 +1261,16 @@ export const ContasPagarPage: React.FC<{
                     // ignore
                   }
                 }}
-                className="inline-flex items-center gap-2 px-4 py-3.5 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-200 font-black hover:bg-slate-900/45 hover:border-violet-500/30 transition-all active:scale-[0.98]"
+                className="inline-flex items-center gap-2 px-4 py-3.5 rounded-2xl border border-base bg-surface/30 text-secondary font-black hover:bg-surface/45 hover:border-accent/30 transition-all active:scale-[0.98]"
               >
-                <Bell size={16} className="text-violet-300" />
+                <Bell size={16} className="text-accent" />
                 Notificações
               </button>
             </Tooltip>
             <button
               type="button"
               onClick={() => setNovaOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98]"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-accent hover:bg-accent/80 text-white font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.98]"
             >
               <Plus size={16} />
               Nova Conta
@@ -1283,31 +1283,31 @@ export const ContasPagarPage: React.FC<{
           <div className="mb-6">
             <button
               onClick={() => setAlertsOpen(!alertsOpen)}
-              className="w-full flex items-center justify-between p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl hover:bg-amber-500/15 transition-all text-left group"
+              className="w-full flex items-center justify-between p-4 bg-warning/10 border border-warning/20 rounded-2xl hover:bg-warning/15 transition-all text-left group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500">
+                <div className="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center text-warning">
                   <AlertTriangle size={20} />
                 </div>
                 <div>
-                  <div className="text-amber-500 font-black flex items-center gap-2">
+                  <div className="text-warning font-black flex items-center gap-2">
                     {anomalies.length} Alertas Detectados
                   </div>
-                  <div className="text-amber-500/70 text-xs font-bold">Revise as variações bruscas antes de fechar o mês</div>
+                  <div className="text-warning/70 text-xs font-bold">Revise as variações bruscas antes de fechar o mês</div>
                 </div>
               </div>
-              <ChevronDown className={cn("text-amber-500 transition-transform duration-300", alertsOpen && "rotate-180")} />
+              <ChevronDown className={cn("text-warning transition-transform duration-300", alertsOpen && "rotate-180")} />
             </button>
             
             {alertsOpen && (
               <div className="mt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
                 {anomalies.map((a, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-slate-900/40 border border-slate-800 rounded-2xl">
+                  <div key={i} className="flex items-center justify-between p-4 bg-surface/40 border border-base rounded-2xl">
                     <div className="flex items-center gap-3">
-                      <div className={cn("w-2 h-2 rounded-full", a.variant === 'rose' ? "bg-rose-500" : "bg-emerald-500")}></div>
+                      <div className={cn("w-2 h-2 rounded-full", a.variant === 'rose' ? "bg-danger" : "bg-success")}></div>
                       <div>
-                        <div className="text-sm font-bold text-white">{a.title}</div>
-                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{a.description}</div>
+                        <div className="text-sm font-bold text-primary">{a.title}</div>
+                        <div className="text-[10px] text-muted font-bold uppercase tracking-widest">{a.description}</div>
                       </div>
                     </div>
                   </div>
@@ -1353,8 +1353,8 @@ export const ContasPagarPage: React.FC<{
         {/* Gráficos (2 cards) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
-            <h3 className="text-lg font-black text-white mb-6 flex items-center gap-2">
-              <Tag size={20} className="text-violet-400" />
+            <h3 className="text-lg font-black text-primary mb-6 flex items-center gap-2">
+              <Tag size={20} className="text-accent" />
               Distribuição por Categoria
             </h3>
             <div className="flex flex-col md:flex-row items-center gap-8">
@@ -1373,22 +1373,22 @@ export const ContasPagarPage: React.FC<{
                       <div className="min-w-0 flex items-center gap-3">
                         <span className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
                         <div className="min-w-0">
-                          <div className="text-slate-200 font-bold text-sm truncate">{cat.name}</div>
-                          <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{percent.toFixed(0)}%</div>
+                          <div className="text-secondary font-bold text-sm truncate">{cat.name}</div>
+                          <div className="text-[10px] text-muted font-black uppercase tracking-widest">{percent.toFixed(0)}%</div>
                         </div>
                       </div>
-                      <div className="text-white font-black text-sm">{formatCurrency(cat.value)}</div>
+                      <div className="text-primary font-black text-sm">{formatCurrency(cat.value)}</div>
                     </div>
                   );
                 })}
-                {categoryData.length === 0 && <div className="text-sm text-slate-500 font-bold">Nenhuma categoria no período.</div>}
+                {categoryData.length === 0 && <div className="text-sm text-muted font-bold">Nenhuma categoria no período.</div>}
               </div>
             </div>
           </Card>
 
           <Card className="p-6 flex flex-col">
-            <h3 className="text-lg font-black text-white mb-6 flex items-center gap-2">
-              <LineChartIcon size={20} className="text-cyan-400" />
+            <h3 className="text-lg font-black text-primary mb-6 flex items-center gap-2">
+              <LineChartIcon size={20} className="text-info" />
               Evolução Histórica (só pagos)
             </h3>
             <div className="h-[360px]">
@@ -1422,7 +1422,7 @@ export const ContasPagarPage: React.FC<{
     return renderWithShell(
       <div className="w-full animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
@@ -1430,7 +1430,7 @@ export const ContasPagarPage: React.FC<{
                 onClick={() => setUnidadeFiltro(u.id as any)}
                 className={cn(
                   'px-4 py-2 rounded-xl text-xs font-black transition-all',
-                  unidadeFiltro === u.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                  unidadeFiltro === u.id ? 'bg-surface-2 text-primary shadow-sm' : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                 )}
               >
                 <span className="lg:hidden">{u.mobile}</span>
@@ -1441,11 +1441,11 @@ export const ContasPagarPage: React.FC<{
 
           <div className="hidden lg:flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mês atual</div>
+              <div className="text-[10px] font-bold text-muted uppercase tracking-widest">Mês atual</div>
               <CustomSelect value={competenciaFiltro} onValueChange={setCompetenciaFiltro} className="min-w-[180px]" options={competenciaOptions} />
             </div>
             <div className="flex items-center gap-3">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Base comparativa</div>
+              <div className="text-[10px] font-bold text-muted uppercase tracking-widest">Base comparativa</div>
               <CustomSelect value={competenciaComparar} onValueChange={setCompetenciaComparar} className="min-w-[180px]" options={competenciaOptions} />
             </div>
           </div>
@@ -1483,22 +1483,22 @@ export const ContasPagarPage: React.FC<{
         {/* Insights e Notas */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card className="lg:col-span-2 overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-slate-700 flex items-start justify-between gap-4 bg-slate-800/20">
+            <div className="p-6 border-b border-strong flex items-start justify-between gap-4 bg-surface-2/20">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <Bot size={16} className="text-cyan-400" />
-                  <h3 className="text-lg font-semibold text-white">Comparativo Inteligente</h3>
+                  <Bot size={16} className="text-info" />
+                  <h3 className="text-lg font-semibold text-primary">Comparativo Inteligente</h3>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-secondary">
                   Análise automática de sazonalidade e padrões de variação.
-                  {compAiCached ? <span className="ml-2 text-slate-600">(cache)</span> : null}
+                  {compAiCached ? <span className="ml-2 text-muted">(cache)</span> : null}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => loadComparativoAi(true)}
-                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors border border-slate-700"
+                  className="px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold transition-colors border border-strong"
                   disabled={compAiLoading}
                 >
                   {compAiLoading ? 'Analisando...' : 'Atualizar'}
@@ -1506,7 +1506,7 @@ export const ContasPagarPage: React.FC<{
                 <button
                   type="button"
                   onClick={() => setCompAiOpen((v) => !v)}
-                  className="w-11 h-11 rounded-xl flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-900/30 transition-all"
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-secondary hover:text-primary hover:bg-surface/30 transition-all"
                   aria-label={compAiOpen ? 'Colapsar seção IA' : 'Expandir seção IA'}
                 >
                   <ChevronDown className={cn('transition-transform', compAiOpen && 'rotate-180')} size={22} />
@@ -1516,19 +1516,19 @@ export const ContasPagarPage: React.FC<{
 
             {compAiOpen ? <div className="p-6 flex-1">
               {compAiError ? (
-                <div className="text-sm text-rose-300 bg-rose-500/10 p-4 rounded-2xl border border-rose-500/20 flex items-center gap-3">
+                <div className="text-sm text-danger bg-danger/10 p-4 rounded-2xl border border-danger/20 flex items-center gap-3">
                   <AlertTriangle size={18} />
                   {compAiError}
                 </div>
               ) : compAiLoading && !compAiRow ? (
-                <div className="flex flex-col items-center justify-center h-48 text-slate-400 gap-4">
+                <div className="flex flex-col items-center justify-center h-48 text-secondary gap-4">
                   <div className="relative">
-                    <Loader2 className="animate-spin text-cyan-400" size={32} />
-                    <Sparkles className="absolute -top-1 -right-1 text-amber-400 animate-pulse" size={12} />
+                    <Loader2 className="animate-spin text-info" size={32} />
+                    <Sparkles className="absolute -top-1 -right-1 text-warning animate-pulse" size={12} />
                   </div>
                   <div className="text-center">
-                    <span className="text-sm font-bold text-slate-200 block">Analisando Padrões...</span>
-                    <span className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+                    <span className="text-sm font-bold text-secondary block">Analisando Padrões...</span>
+                    <span className="text-[10px] text-muted uppercase tracking-widest mt-1">
                       Cruzando variações e memória organizacional
                     </span>
                   </div>
@@ -1538,12 +1538,12 @@ export const ContasPagarPage: React.FC<{
                   {/* --- Section 1: Executive Summary --- */}
                   <section>
                     <div className="flex items-center gap-2 mb-4">
-                      <div className="w-1.5 h-4 bg-cyan-500 rounded-full"></div>
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Resumo Executivo</h4>
+                      <div className="w-1.5 h-4 bg-info rounded-full"></div>
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Resumo Executivo</h4>
                     </div>
-                    <div className="bg-slate-900/40 border border-slate-700/30 rounded-3xl p-6 relative overflow-hidden group">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-violet-500"></div>
-                      <p className="text-slate-200 leading-relaxed text-sm md:text-base font-medium italic">
+                    <div className="bg-surface/40 border border-strong/30 rounded-3xl p-6 relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-info to-accent"></div>
+                      <p className="text-secondary leading-relaxed text-sm md:text-base font-medium italic">
                         {compAiRow.summary || compAiRow.response_json?.analise_executiva}
                       </p>
                     </div>
@@ -1553,40 +1553,40 @@ export const ContasPagarPage: React.FC<{
                   {compAiRow?.response_json?.insights_detalhados?.length ? (
                     <section>
                       <div className="flex items-center gap-2 mb-4">
-                        <div className="w-1.5 h-4 bg-violet-500 rounded-full"></div>
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Ocorrências e Padrões</h4>
+                        <div className="w-1.5 h-4 bg-accent rounded-full"></div>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Ocorrências e Padrões</h4>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {compAiRow.response_json.insights_detalhados.map((ins: any, idx: number) => {
                           const cat = String(ins.categoria || 'variacao').toLowerCase();
                           const iconMap: Record<string, any> = {
-                            variacao: { icon: TrendingUp, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
-                            'novos/removidos': { icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-                            categoria: { icon: Tag, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
-                            unidade: { icon: BarChart3, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-                            recorrentes: { icon: Clock, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
-                            pagamentos: { icon: CreditCard, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-                            default: { icon: Lightbulb, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+                            variacao: { icon: TrendingUp, color: 'text-info', bg: 'bg-info/10', border: 'border-info/20' },
+                            'novos/removidos': { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/20' },
+                            categoria: { icon: Tag, color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/20' },
+                            unidade: { icon: BarChart3, color: 'text-success', bg: 'bg-success/10', border: 'border-success/20' },
+                            recorrentes: { icon: Clock, color: 'text-info', bg: 'bg-info/10', border: 'border-info/20' },
+                            pagamentos: { icon: CreditCard, color: 'text-success', bg: 'bg-success/10', border: 'border-success/20' },
+                            default: { icon: Lightbulb, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/20' },
                           };
                           const config = iconMap[cat] || iconMap.default;
                           const Icon = config.icon;
 
                           return (
-                            <div key={idx} className={`group p-5 rounded-2xl bg-slate-800/20 border ${config.border} hover:bg-slate-800/40 transition-all duration-300`}>
+                            <div key={idx} className={`group p-5 rounded-2xl bg-surface-2/20 border ${config.border} hover:bg-surface-2/40 transition-all duration-300`}>
                               <div className="flex items-start gap-4">
                                 <div className={`p-2.5 rounded-xl ${config.bg} ${config.color} shadow-inner`}>
                                   <Icon size={18} />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                                    <h5 className="text-sm font-bold text-white tracking-tight">{ins.titulo}</h5>
+                                    <h5 className="text-sm font-bold text-primary tracking-tight">{ins.titulo}</h5>
                                     {typeof ins.impacto_financeiro === 'number' ? (
-                                      <span className={`text-[10px] font-mono font-bold ${ins.impacto_financeiro > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                      <span className={`text-[10px] font-mono font-bold ${ins.impacto_financeiro > 0 ? 'text-danger' : 'text-success'}`}>
                                         {ins.impacto_financeiro > 0 ? '+' : ''}{formatCurrency(Number(ins.impacto_financeiro) || 0)}
                                       </span>
                                     ) : null}
                                   </div>
-                                  <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300">
+                                  <p className="text-xs text-secondary leading-relaxed group-hover:text-primary">
                                     {ins.descricao}
                                   </p>
                                 </div>
@@ -1602,14 +1602,14 @@ export const ContasPagarPage: React.FC<{
                   {compAiRow?.response_json?.recomendacoes?.length ? (
                     <section>
                       <div className="flex items-center gap-2 mb-4">
-                        <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Sugestões de Ajuste</h4>
+                        <div className="w-1.5 h-4 bg-warning rounded-full"></div>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Sugestões de Ajuste</h4>
                       </div>
-                      <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 space-y-3">
+                      <div className="bg-warning/5 border border-warning/10 rounded-2xl p-4 space-y-3">
                         {compAiRow.response_json.recomendacoes.map((rec: string, idx: number) => (
                           <div key={idx} className="flex items-start gap-3">
-                            <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></div>
-                            <p className="text-xs text-slate-300 leading-snug">{rec}</p>
+                            <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-warning shrink-0"></div>
+                            <p className="text-xs text-secondary leading-snug">{rec}</p>
                           </div>
                         ))}
                       </div>
@@ -1617,13 +1617,13 @@ export const ContasPagarPage: React.FC<{
                   ) : null}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-48 text-slate-500 border-2 border-dashed border-slate-800 rounded-2xl gap-4">
-                  <div className="w-12 h-12 rounded-full bg-slate-800/50 flex items-center justify-center">
-                    <Sparkles size={24} className="text-slate-700" />
+                <div className="flex flex-col items-center justify-center h-48 text-muted border-2 border-dashed border-base rounded-2xl gap-4">
+                  <div className="w-12 h-12 rounded-full bg-surface-2/50 flex items-center justify-center">
+                    <Sparkles size={24} className="text-muted" />
                   </div>
                   <div className="text-center">
                     <span className="text-sm font-medium">Insights não gerados</span>
-                    <p className="text-[10px] text-slate-600 mt-1 max-w-[200px]">
+                    <p className="text-[10px] text-muted mt-1 max-w-[200px]">
                       Clique em atualizar para processar as variações deste mês.
                     </p>
                   </div>
@@ -1633,9 +1633,9 @@ export const ContasPagarPage: React.FC<{
           </Card>
 
           {/* Notas / Sugestão da Ana (mesma semântica da Folha) */}
-          <Card className="overflow-hidden flex flex-col border-violet-500/20 shadow-violet-500/5">
-            <div className="p-6 border-b border-slate-700 bg-violet-500/5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-violet-500/10 p-0.5 border border-violet-500/20 overflow-hidden shrink-0 shadow-lg">
+          <Card className="overflow-hidden flex flex-col border-accent/20 shadow-accent/5">
+            <div className="p-6 border-b border-strong bg-accent/5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-accent/10 p-0.5 border border-accent/20 overflow-hidden shrink-0 shadow-lg">
                 <img
                   src="/Avatar_Ana.png"
                   onError={(e) => {
@@ -1646,8 +1646,8 @@ export const ContasPagarPage: React.FC<{
                 />
               </div>
               <div className="min-w-0">
-                <h3 className="text-lg font-semibold text-white">Sugestão da Ana</h3>
-                <p className="text-[10px] text-violet-400 font-bold uppercase tracking-wider">Financeiro</p>
+                <h3 className="text-lg font-semibold text-primary">Sugestão da Ana</h3>
+                <p className="text-[10px] text-accent font-bold uppercase tracking-wider">Financeiro</p>
               </div>
             </div>
 
@@ -1658,26 +1658,26 @@ export const ContasPagarPage: React.FC<{
                   onChange={(e) => setNotasComparativo(e.target.value)}
                   onBlur={saveNotas}
                   placeholder="Ana, registre aqui suas percepções sobre o fechamento do financeiro..."
-                  className="w-full h-full min-h-[160px] bg-slate-900/40 border border-slate-700/50 rounded-2xl p-4 text-sm text-slate-200 outline-none focus:ring-2 focus:ring-violet-500/40 transition-all resize-none placeholder:text-slate-600"
+                  className="w-full h-full min-h-[160px] bg-surface/40 border border-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 transition-all resize-none placeholder:text-muted"
                   spellCheck={false}
                   disabled={notasComparativoLoading}
                 />
 
                 {notasComparativoLoading && (
-                  <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-violet-400 font-bold bg-slate-900 px-2 py-1 rounded-lg">
+                  <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-accent font-bold bg-surface px-2 py-1 rounded-lg">
                     <Loader2 size={10} className="animate-spin" />
                     SALVANDO...
                   </div>
                 )}
                 {notasComparativoSaved && !notasComparativoLoading && (
-                  <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-emerald-400 font-bold bg-slate-900 px-2 py-1 rounded-lg">
+                  <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] text-success font-bold bg-surface px-2 py-1 rounded-lg">
                     <CheckCircle2 size={10} />
                     SALVO NA NUVEM
                   </div>
                 )}
               </div>
 
-              <p className="text-[10px] text-slate-500 text-center">
+              <p className="text-[10px] text-muted text-center">
                 Suas notas ajudam a treinar a IA para reconhecer padrões futuros.
               </p>
             </div>
@@ -1685,14 +1685,14 @@ export const ContasPagarPage: React.FC<{
         </div>
 
         <Card className="p-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-800/70 flex items-center justify-between bg-slate-900/20">
-            <h3 className="text-white font-black">Detalhamento das Variações</h3>
-            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ordenado por relevância</div>
+          <div className="px-6 py-4 border-b border-base/70 flex items-center justify-between bg-surface/20">
+            <h3 className="text-primary font-black">Detalhamento das Variações</h3>
+            <div className="text-[10px] font-black text-muted uppercase tracking-widest">Ordenado por relevância</div>
           </div>
 
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-950/30 border-b border-slate-800/70 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+              <thead className="bg-bg/30 border-b border-base/70 text-[10px] font-black uppercase tracking-[0.2em] text-muted">
                 <tr>
                   <th className="px-6 py-3">Item / Unidade</th>
                   <th className="px-2 py-3 text-right">{formatCompetenciaLabel(competenciaComparar)}</th>
@@ -1701,7 +1701,7 @@ export const ContasPagarPage: React.FC<{
                   <th className="px-6 py-3 text-right">Variação %</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/50">
+              <tbody className="divide-y divide-base/50">
                 {variations
                   .sort((a, b) => {
                     const aScore = a.status === 'NOVO' || a.status === 'SAIU' ? 9999 : Math.abs(a.perc);
@@ -1710,33 +1710,33 @@ export const ContasPagarPage: React.FC<{
                   })
                   .slice(0, 50)
                   .map((v) => (
-                    <tr key={v.key} className="hover:bg-slate-900/10 transition-colors">
+                    <tr key={v.key} className="hover:bg-surface/10 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="text-white font-black">{(v.categoria || '').toUpperCase()}</div>
-                        <div className="text-xs text-slate-500">{v.descricao}</div>
+                        <div className="text-primary font-black">{(v.categoria || '').toUpperCase()}</div>
+                        <div className="text-xs text-muted">{v.descricao}</div>
                         <div className="mt-1 flex items-center gap-2">
-                          <span className="text-[9px] font-black text-slate-500 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50 uppercase">
+                          <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-strong/50 uppercase">
                             {(v.unidade || 'todas').toUpperCase()}
                           </span>
                           {v.status !== 'RECORRENTE' && (
-                            <span className={cn("text-[9px] font-black px-1.5 py-0.5 rounded border uppercase", 
-                              v.status === 'NOVO' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20")}>
+                            <span className={cn("text-[9px] font-black px-1.5 py-0.5 rounded border uppercase",
+                              v.status === 'NOVO' ? "bg-success/10 text-success border-success/20" : "bg-danger/10 text-danger border-danger/20")}>
                               {v.status}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-2 py-4 text-right font-mono text-slate-400">{v.prev ? formatCurrency(v.prev) : '-'}</td>
-                      <td className="px-2 py-4 text-right font-mono text-slate-200">{v.curr ? formatCurrency(v.curr) : '-'}</td>
-                      <td className={cn('px-2 py-4 text-right font-mono', v.diff >= 0 ? 'text-rose-300' : 'text-emerald-300')}>
+                      <td className="px-2 py-4 text-right font-mono text-secondary">{v.prev ? formatCurrency(v.prev) : '-'}</td>
+                      <td className="px-2 py-4 text-right font-mono text-secondary">{v.curr ? formatCurrency(v.curr) : '-'}</td>
+                      <td className={cn('px-2 py-4 text-right font-mono', v.diff >= 0 ? 'text-danger' : 'text-success')}>
                         {v.diff > 0 ? '+' : ''}{v.diff !== 0 ? formatCurrency(v.diff) : '-'}
                       </td>
-                      <td className={cn('px-6 py-4 text-right font-black', 
-                        v.status !== 'RECORRENTE' ? 'text-white' : 
-                        Math.abs(v.perc) >= COMPARATIVO_THRESHOLD ? (v.perc > 0 ? 'text-rose-400' : 'text-emerald-400') : 'text-slate-400')}>
+                      <td className={cn('px-6 py-4 text-right font-black',
+                        v.status !== 'RECORRENTE' ? 'text-primary' :
+                        Math.abs(v.perc) >= COMPARATIVO_THRESHOLD ? (v.perc > 0 ? 'text-danger' : 'text-success') : 'text-secondary')}>
                         <div className="flex items-center justify-end gap-1">
                           {v.status === 'RECORRENTE' && Math.abs(v.perc) >= COMPARATIVO_THRESHOLD && (
-                            v.perc > 0 ? <TrendingUp size={12} className="text-rose-400" /> : <TrendingUp size={12} className="text-emerald-400 rotate-180" />
+                            v.perc > 0 ? <TrendingUp size={12} className="text-danger" /> : <TrendingUp size={12} className="text-success rotate-180" />
                           )}
                           {v.status === 'NOVO' ? '+100%' : v.status === 'SAIU' ? '-100%' : `${v.perc >= 0 ? '+' : ''}${v.perc.toFixed(1)}%`}
                         </div>
@@ -1748,7 +1748,7 @@ export const ContasPagarPage: React.FC<{
           </div>
 
           {/* Mobile Cards */}
-          <div className="lg:hidden divide-y divide-slate-800/50">
+          <div className="lg:hidden divide-y divide-base/50">
             {variations
               .sort((a, b) => {
                 const aScore = a.status === 'NOVO' || a.status === 'SAIU' ? 9999 : Math.abs(a.perc);
@@ -1757,20 +1757,20 @@ export const ContasPagarPage: React.FC<{
               })
               .slice(0, 50)
               .map((v) => (
-                <div key={v.key} className="p-4 bg-slate-900/10 hover:bg-slate-900/20 transition-colors active:scale-[0.99]">
+                <div key={v.key} className="p-4 bg-surface/10 hover:bg-surface/20 transition-colors active:scale-[0.99]">
                   {/* Header: Nome e Badges */}
                   <div className="flex justify-between items-start mb-3">
                     <div className="min-w-0">
-                      <h4 className="text-sm font-black text-white uppercase truncate">{(v.categoria || '').toUpperCase()}</h4>
-                      <p className="text-[10px] text-slate-500 font-bold truncate">{v.descricao}</p>
+                      <h4 className="text-sm font-black text-primary uppercase truncate">{(v.categoria || '').toUpperCase()}</h4>
+                      <p className="text-[10px] text-muted font-bold truncate">{v.descricao}</p>
                     </div>
                     <div className="flex gap-1 shrink-0 ml-2">
-                      <span className="text-[9px] font-black text-slate-500 bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50 uppercase">
+                      <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-strong/50 uppercase">
                         {(v.unidade || 'todas').toUpperCase()}
                       </span>
                       {v.status !== 'RECORRENTE' && (
-                        <span className={cn("text-[9px] font-black px-1.5 py-0.5 rounded border uppercase", 
-                          v.status === 'NOVO' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20")}>
+                        <span className={cn("text-[9px] font-black px-1.5 py-0.5 rounded border uppercase",
+                          v.status === 'NOVO' ? "bg-success/10 text-success border-success/20" : "bg-danger/10 text-danger border-danger/20")}>
                           {v.status}
                         </span>
                       )}
@@ -1778,30 +1778,30 @@ export const ContasPagarPage: React.FC<{
                   </div>
 
                   {/* Comparativo: De / Para */}
-                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-slate-800/40">
+                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-base/40">
                     <div>
-                      <span className="text-[9px] uppercase tracking-widest text-slate-500 block mb-1">{formatCompetenciaLabel(competenciaComparar)}</span>
-                      <span className="text-sm font-bold text-slate-400 font-mono">{v.prev ? formatCurrency(v.prev) : '-'}</span>
+                      <span className="text-[9px] uppercase tracking-widest text-muted block mb-1">{formatCompetenciaLabel(competenciaComparar)}</span>
+                      <span className="text-sm font-bold text-secondary font-mono">{v.prev ? formatCurrency(v.prev) : '-'}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[9px] uppercase tracking-widest text-slate-500 block mb-1">{formatCompetenciaLabel(competenciaFiltro)}</span>
-                      <span className="text-sm font-black text-white font-mono">{v.curr ? formatCurrency(v.curr) : '-'}</span>
+                      <span className="text-[9px] uppercase tracking-widest text-muted block mb-1">{formatCompetenciaLabel(competenciaFiltro)}</span>
+                      <span className="text-sm font-black text-primary font-mono">{v.curr ? formatCurrency(v.curr) : '-'}</span>
                     </div>
                   </div>
 
                   {/* Resultado: Variação */}
                   <div className="mt-3 flex items-center justify-between">
                     <div className="flex flex-col">
-                      <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Diferença</span>
-                      <span className={cn('text-xs font-mono font-bold', v.diff >= 0 ? 'text-rose-300' : 'text-emerald-300')}>
+                      <span className="text-[9px] text-muted font-black uppercase tracking-widest">Diferença</span>
+                      <span className={cn('text-xs font-mono font-bold', v.diff >= 0 ? 'text-danger' : 'text-success')}>
                         {v.diff > 0 ? '+' : ''}{v.diff !== 0 ? formatCurrency(v.diff) : '-'}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest block mb-0.5">Variação</span>
-                      <div className={cn('inline-flex items-center gap-1 px-2 py-1 rounded-lg font-black text-xs', 
-                        v.status !== 'RECORRENTE' ? 'bg-slate-800 text-white' : 
-                        Math.abs(v.perc) >= COMPARATIVO_THRESHOLD ? (v.perc > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400') : 'bg-slate-800/50 text-slate-400')}>
+                      <span className="text-[9px] text-muted font-black uppercase tracking-widest block mb-0.5">Variação</span>
+                      <div className={cn('inline-flex items-center gap-1 px-2 py-1 rounded-lg font-black text-xs',
+                        v.status !== 'RECORRENTE' ? 'bg-surface-2 text-primary' :
+                        Math.abs(v.perc) >= COMPARATIVO_THRESHOLD ? (v.perc > 0 ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success') : 'bg-surface-2/50 text-secondary')}>
                         {v.status === 'RECORRENTE' && Math.abs(v.perc) >= COMPARATIVO_THRESHOLD && (
                           v.perc > 0 ? <TrendingUp size={14} /> : <TrendingUp size={14} className="rotate-180" />
                         )}
@@ -1827,7 +1827,7 @@ export const ContasPagarPage: React.FC<{
               setEditingCategoria(null);
               setCategoriaModalOpen(true);
             }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-4 sm:py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black shadow-lg shadow-rose-600/20 transition-all active:scale-[0.98]"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-4 sm:py-3 rounded-2xl bg-danger hover:bg-danger/80 text-white font-black shadow-lg shadow-danger/20 transition-all active:scale-[0.98]"
           >
             <Plus size={16} />
             Nova Categoria
@@ -1839,19 +1839,19 @@ export const ContasPagarPage: React.FC<{
           {categorias.map((c) => (
             <div
               key={c.id}
-              className="group relative rounded-2xl border border-slate-800 bg-slate-900/20 p-5 flex items-center justify-between hover:border-rose-500/30 hover:bg-rose-500/5 hover:shadow-[0_0_20px_rgba(225,29,72,0.05)] transition-all"
+              className="group relative rounded-2xl border border-base bg-surface/20 p-5 flex items-center justify-between hover:border-danger/30 hover:bg-danger/5 hover:shadow-[var(--shadow-card)] transition-all"
             >
               <div className="flex items-center gap-4 min-w-0">
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-slate-800 group-hover:border-rose-500/30 transition-colors"
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-base group-hover:border-danger/30 transition-colors"
                   style={{ backgroundColor: `${c.cor}10` }}
                 >
                   <span className="text-2xl">{c.icone}</span>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-white font-black truncate">{c.nome}</div>
+                  <div className="text-primary font-black truncate">{c.nome}</div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-wider">
+                    <div className="text-[10px] text-muted font-black uppercase tracking-wider">
                       {c.tipo_custo || 'VARIÁVEL'}
                     </div>
                   </div>
@@ -1866,7 +1866,7 @@ export const ContasPagarPage: React.FC<{
                       setEditingCategoria(c);
                       setCategoriaModalOpen(true);
                     }}
-                    className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+                    className="p-2 rounded-lg hover:bg-surface-3 text-secondary hover:text-primary transition-all"
                   >
                     <Edit2 size={16} />
                   </button>
@@ -1877,7 +1877,7 @@ export const ContasPagarPage: React.FC<{
                       e.stopPropagation();
                       setConfirmDeleteCategoria({ id: c.id, nome: c.nome });
                     }}
-                    className="p-2 rounded-lg hover:bg-rose-500/20 text-slate-500 hover:text-rose-500 transition-all"
+                    className="p-2 rounded-lg hover:bg-danger/20 text-muted hover:text-danger transition-all"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -1888,7 +1888,7 @@ export const ContasPagarPage: React.FC<{
         </div>
 
         {/* Mobile Premium List */}
-        <div className="md:hidden flex flex-col bg-slate-900/10 rounded-3xl border border-slate-800/50 overflow-hidden">
+        <div className="md:hidden flex flex-col bg-surface/10 rounded-3xl border border-base/50 overflow-hidden">
           {categorias.map((c, idx) => (
             <div
               key={c.id}
@@ -1897,8 +1897,8 @@ export const ContasPagarPage: React.FC<{
                 setCategoriaModalOpen(true);
               }}
               className={cn(
-                "flex items-center justify-between p-4 active:bg-slate-800/40 transition-colors cursor-pointer",
-                idx !== categorias.length - 1 && "border-b border-slate-800/40"
+                "flex items-center justify-between p-4 active:bg-surface-2/40 transition-colors cursor-pointer",
+                idx !== categorias.length - 1 && "border-b border-base/40"
               )}
             >
               <div className="flex items-center gap-4">
@@ -1911,11 +1911,11 @@ export const ContasPagarPage: React.FC<{
                 </div>
                 
                 <div className="min-w-0">
-                  <div className="text-sm font-black text-white">{c.nome}</div>
+                  <div className="text-sm font-black text-primary">{c.nome}</div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className={cn(
                       "text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider",
-                      c.tipo_custo === 'fixo' ? "bg-blue-500/10 text-blue-400" : "bg-amber-500/10 text-amber-400"
+                      c.tipo_custo === 'fixo' ? "bg-info/10 text-info" : "bg-warning/10 text-warning"
                     )}>
                       {c.tipo_custo || 'VARIÁVEL'}
                     </span>
@@ -1923,7 +1923,7 @@ export const ContasPagarPage: React.FC<{
                 </div>
               </div>
 
-              <ChevronRight size={18} className="text-slate-600" />
+              <ChevronRight size={18} className="text-muted" />
             </div>
           ))}
         </div>
@@ -1980,16 +1980,16 @@ export const ContasPagarPage: React.FC<{
       <div className="w-full">
         {/* MOBILE: Controles Simplificados (Unidades + Visão) */}
         <div className="lg:hidden flex flex-col gap-3 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
                 onClick={() => setUnidadeFiltro(u.id as any)}
                 className={cn(
                   "px-4 py-2 rounded-xl text-xs font-black transition-all",
-                  unidadeFiltro === u.id 
-                    ? "bg-slate-800 text-white shadow-sm" 
-                    : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+                  unidadeFiltro === u.id
+                    ? "bg-surface-2 text-primary shadow-sm"
+                    : "text-muted hover:text-secondary hover:bg-surface-2/40"
                 )}
               >
                 {u.mobile}
@@ -1997,7 +1997,7 @@ export const ContasPagarPage: React.FC<{
             ))}
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
             {[
               { id: 'cards', label: 'Cards', icon: LayoutGrid },
               { id: 'lista', label: 'Lista', icon: List },
@@ -2008,7 +2008,7 @@ export const ContasPagarPage: React.FC<{
                 onClick={() => setAuditViewMode(t.id as any)}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all active:scale-95',
-                  auditViewMode === t.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                  auditViewMode === t.id ? 'bg-surface-2 text-primary shadow-sm' : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                 )}
               >
                 <t.icon size={14} />
@@ -2021,16 +2021,16 @@ export const ContasPagarPage: React.FC<{
         {/* DESKTOP: Layout Original Validado */}
         <div className="hidden lg:flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+            <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
               {unidadeTabs.map((u) => (
                 <button
                   key={u.id}
                   onClick={() => setUnidadeFiltro(u.id as any)}
                   className={cn(
                     "px-4 py-2 rounded-xl text-xs font-black transition-all",
-                    unidadeFiltro === u.id 
-                      ? "bg-slate-800 text-white shadow-sm" 
-                      : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+                    unidadeFiltro === u.id
+                      ? "bg-surface-2 text-primary shadow-sm"
+                      : "text-muted hover:text-secondary hover:bg-surface-2/40"
                   )}
                 >
                   <span className="hidden lg:inline">{u.desktop}</span>
@@ -2038,7 +2038,7 @@ export const ContasPagarPage: React.FC<{
               ))}
             </div>
 
-            <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+            <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
               {[
                 { id: 'cards', label: 'Cards', icon: LayoutGrid },
                 { id: 'lista', label: 'Lista', icon: List },
@@ -2049,7 +2049,7 @@ export const ContasPagarPage: React.FC<{
                   onClick={() => setAuditViewMode(t.id as any)}
                   className={cn(
                     'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all',
-                    auditViewMode === t.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                    auditViewMode === t.id ? 'bg-surface-2 text-primary shadow-sm' : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                   )}
                 >
                   <t.icon size={14} />
@@ -2061,7 +2061,7 @@ export const ContasPagarPage: React.FC<{
 
           <div className="flex items-center gap-4">
             <div className="hidden lg:flex items-center gap-3">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Período</div>
+              <div className="text-[10px] font-bold text-muted uppercase tracking-widest mr-1">Período</div>
               <CustomSelect
                 value={competenciaFiltro}
                 onValueChange={setCompetenciaFiltro}
@@ -2076,7 +2076,7 @@ export const ContasPagarPage: React.FC<{
                 setNovaContaDefaults(null);
                 setNovaOpen(true);
               }}
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98]"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-accent hover:bg-accent/80 text-white font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.98]"
             >
               <Plus size={16} />
               Nova Conta
@@ -2084,8 +2084,8 @@ export const ContasPagarPage: React.FC<{
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 mb-8 bg-slate-900/20 p-4 rounded-3xl border border-slate-800/60">
-          <div className="flex items-center gap-2 text-slate-500 mr-2">
+        <div className="flex flex-wrap items-center gap-4 mb-8 bg-surface/20 p-4 rounded-3xl border border-base/60">
+          <div className="flex items-center gap-2 text-muted mr-2">
             <Filter size={14} />
             <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
           </div>
@@ -2101,7 +2101,7 @@ export const ContasPagarPage: React.FC<{
             />
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-xl p-1">
+          <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-xl p-1">
             {[
               { id: 'all', label: 'Todos' },
               { id: 'fixo', label: 'Fixo' },
@@ -2112,9 +2112,9 @@ export const ContasPagarPage: React.FC<{
                 onClick={() => setComportamentoFiltro(b.id as any)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
-                  comportamentoFiltro === b.id 
-                    ? "bg-slate-800 text-white" 
-                    : "text-slate-600 hover:text-slate-400"
+                  comportamentoFiltro === b.id
+                    ? "bg-surface-2 text-primary"
+                    : "text-muted hover:text-secondary"
                 )}
               >
                 {b.label}
@@ -2122,7 +2122,7 @@ export const ContasPagarPage: React.FC<{
             ))}
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-xl p-1">
+          <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-xl p-1">
             {[
               { id: 'all', label: 'Tipos' },
               { id: 'unica', label: 'Única' },
@@ -2134,9 +2134,9 @@ export const ContasPagarPage: React.FC<{
                 onClick={() => setTipoFiltro(t.id as any)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
-                  tipoFiltro === t.id 
-                    ? "bg-slate-800 text-white" 
-                    : "text-slate-600 hover:text-slate-400"
+                  tipoFiltro === t.id
+                    ? "bg-surface-2 text-primary"
+                    : "text-muted hover:text-secondary"
                 )}
               >
                 {t.label}
@@ -2145,12 +2145,12 @@ export const ContasPagarPage: React.FC<{
           </div>
 
           <div className="relative flex-1 min-w-[240px]">
-            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por descrição ou categoria..."
-              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/40 text-[11px] font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-base bg-bg/40 text-[11px] font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
             />
           </div>
         </div>
@@ -2159,40 +2159,40 @@ export const ContasPagarPage: React.FC<{
         <div className="mb-8">
           <div className="flex items-end justify-between mb-3">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Resumo do Período</div>
-              <div className="text-xs text-slate-400 font-bold mt-1">Visão executiva baseada nos filtros aplicados</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted">Resumo do Período</div>
+              <div className="text-xs text-secondary font-bold mt-1">Visão executiva baseada nos filtros aplicados</div>
             </div>
-            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{auditCount} lançamentos</div>
+            <div className="text-[10px] text-muted font-black uppercase tracking-widest">{auditCount} lançamentos</div>
           </div>
 
           <Card className="p-0 overflow-hidden">
-            <div className="grid grid-cols-2 sm:grid-cols-3 border-t border-slate-800/60">
+            <div className="grid grid-cols-2 sm:grid-cols-3 border-t border-base/60">
               {/* Linha 1 (mobile): Total + Pago | Linha 2 (mobile): Pendente (full) */}
-              <div className="p-5 border-b border-r border-slate-800/60 sm:border-b-0 sm:border-r">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <div className="p-5 border-b border-r border-base/60 sm:border-b-0 sm:border-r">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted">
                   <TrendingUp size={12} />
                   Total do Período
                 </div>
-                <div className="mt-2 text-base md:text-2xl font-bold text-white">{formatCurrency(resumoAuditoriaFiltrado.totalGeral.total)}</div>
-                <div className="mt-1 text-[11px] text-slate-500 font-bold">Baseado nos filtros</div>
+                <div className="mt-2 text-base md:text-2xl font-bold text-primary">{formatCurrency(resumoAuditoriaFiltrado.totalGeral.total)}</div>
+                <div className="mt-1 text-[11px] text-muted font-bold">Baseado nos filtros</div>
               </div>
 
-              <div className="p-5 border-b border-slate-800/60 sm:border-b-0 sm:border-r">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  <CheckCircle2 size={12} className="text-emerald-400" />
+              <div className="p-5 border-b border-base/60 sm:border-b-0 sm:border-r">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted">
+                  <CheckCircle2 size={12} className="text-success" />
                   Total Pago
                 </div>
-                <div className="mt-2 text-base md:text-2xl font-bold text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPago.total)}</div>
-                <div className="mt-1 text-[11px] text-emerald-400 font-black">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
+                <div className="mt-2 text-base md:text-2xl font-bold text-primary">{formatCurrency(resumoAuditoriaFiltrado.totalPago.total)}</div>
+                <div className="mt-1 text-[11px] text-success font-black">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
               </div>
 
-              <div className="p-5 col-span-2 border-slate-800/60 sm:col-span-1 text-center sm:text-left flex flex-col items-center sm:items-start">
-                <div className="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  <DollarSign size={12} className="text-violet-400" />
+              <div className="p-5 col-span-2 border-base/60 sm:col-span-1 text-center sm:text-left flex flex-col items-center sm:items-start">
+                <div className="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-black uppercase tracking-widest text-muted">
+                  <DollarSign size={12} className="text-accent" />
                   Pendente no Período
                 </div>
-                <div className="mt-2 text-base md:text-2xl font-bold text-white">{formatCurrency(resumoAuditoriaFiltrado.totalPendente.total)}</div>
-                <div className="mt-1 text-[11px] text-violet-400 font-black">{resumoAuditoriaFiltrado.totalPendente.count} em aberto</div>
+                <div className="mt-2 text-base md:text-2xl font-bold text-primary">{formatCurrency(resumoAuditoriaFiltrado.totalPendente.total)}</div>
+                <div className="mt-1 text-[11px] text-accent font-black">{resumoAuditoriaFiltrado.totalPendente.count} em aberto</div>
               </div>
             </div>
           </Card>
@@ -2201,8 +2201,8 @@ export const ContasPagarPage: React.FC<{
         {/* Lançamentos do Período (itens) */}
         <div className="flex items-end justify-between mb-4">
           <div>
-            <div className="text-xl font-black text-white">Lançamentos do Período</div>
-            <div className="text-xs text-slate-500 font-bold mt-1">
+            <div className="text-xl font-black text-primary">Lançamentos do Período</div>
+            <div className="text-xs text-muted font-bold mt-1">
               Detalhamento para conferência e auditoria
             </div>
           </div>
@@ -2221,7 +2221,7 @@ export const ContasPagarPage: React.FC<{
               />
             ))}
             {auditRows.length === 0 && (
-              <div className="col-span-full py-20 text-center text-slate-500 font-bold">
+              <div className="col-span-full py-20 text-center text-muted font-bold">
                 Nenhum lançamento encontrado para os filtros aplicados.
               </div>
             )}
@@ -2249,50 +2249,50 @@ export const ContasPagarPage: React.FC<{
             <button
               type="button"
               onClick={() => setAuditAiOpen((v) => !v)}
-              className="w-full flex items-center justify-between gap-4 px-6 py-5 bg-slate-900/20 hover:bg-slate-900/30 transition-colors"
+              className="w-full flex items-center justify-between gap-4 px-6 py-5 bg-surface/20 hover:bg-surface/30 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="text-violet-300 flex items-center justify-center">
+                <div className="text-accent flex items-center justify-center">
                   <Brain size={20} />
                 </div>
                 <div className="text-left">
-                  <div className="text-white font-black">Análise Inteligente</div>
-                  <div className="text-xs text-slate-500 font-bold">
+                  <div className="text-primary font-black">Análise Inteligente</div>
+                  <div className="text-xs text-muted font-bold">
                     Insights automáticos para apoiar a auditoria (sem redundância com o Comparativo)
                   </div>
                 </div>
               </div>
-              <span className="shrink-0 -mr-2 flex items-center justify-center w-11 h-11 rounded-xl hover:bg-slate-900/30 transition-colors">
-                <ChevronDown className={cn('text-slate-300 transition-transform', auditAiOpen && 'rotate-180')} size={22} />
+              <span className="shrink-0 -mr-2 flex items-center justify-center w-11 h-11 rounded-xl hover:bg-surface/30 transition-colors">
+                <ChevronDown className={cn('text-secondary transition-transform', auditAiOpen && 'rotate-180')} size={22} />
               </span>
             </button>
 
             {auditAiOpen && (
-              <div className="p-6 border-t border-slate-800/60 space-y-6">
+              <div className="p-6 border-t border-base/60 space-y-6">
                 {/* Notas da Ana (Auditoria do mês) */}
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">Observações da Ana (Auditoria)</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Observações da Ana (Auditoria)</div>
                   <textarea
                     value={notasAuditoria}
                     onChange={(e) => setNotasAuditoria(e.target.value)}
                     onBlur={saveNotas}
                     placeholder="Contexto do mês (ex.: reajustes confirmados, contas pontuais, acordos, etc.)"
-                    className="w-full min-h-[110px] resize-none bg-slate-950/40 border border-slate-800/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                    className="w-full min-h-[110px] resize-none bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
                     spellCheck={false}
                     disabled={notasAuditoriaLoading}
                   />
                   <div className="mt-2 flex items-center justify-between">
-                    <div className="text-[10px] text-slate-500 font-bold">
+                    <div className="text-[10px] text-muted font-bold">
                       * Salva automaticamente ao sair do campo
                     </div>
                     <div className="flex items-center gap-3">
                       {notasAuditoriaLoading ? (
-                        <div className="text-[10px] text-violet-400 font-black flex items-center gap-2">
+                        <div className="text-[10px] text-accent font-black flex items-center gap-2">
                           <Loader2 size={12} className="animate-spin" />
                           SALVANDO...
                         </div>
                       ) : notasAuditoriaSaved ? (
-                        <div className="text-[10px] text-emerald-400 font-black flex items-center gap-2">
+                        <div className="text-[10px] text-success font-black flex items-center gap-2">
                           <CheckCircle2 size={12} />
                           SALVO
                         </div>
@@ -2303,15 +2303,15 @@ export const ContasPagarPage: React.FC<{
 
                 {/* Ações IA */}
                 <div className="flex items-center justify-between gap-4">
-                  <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
+                  <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted">
                     Geração de Insights
-                    {auditAiCached ? <span className="ml-2 text-slate-600">(cache)</span> : null}
+                    {auditAiCached ? <span className="ml-2 text-muted">(cache)</span> : null}
                   </div>
                   <button
                     type="button"
                     onClick={() => loadAuditAi(true)}
                     disabled={auditAiLoading}
-                    className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-60 transition-all"
+                    className="px-4 py-2 rounded-xl bg-accent hover:bg-accent/80 text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-60 transition-all"
                   >
                     {auditAiLoading ? 'Atualizando...' : 'Atualizar IA'}
                   </button>
@@ -2319,29 +2319,29 @@ export const ContasPagarPage: React.FC<{
 
                 {/* Conteúdo IA */}
                 {auditAiLoading && !auditAiRow ? (
-                  <div className="py-10 flex items-center justify-center text-slate-400 font-bold">
+                  <div className="py-10 flex items-center justify-center text-secondary font-bold">
                     <Loader2 size={16} className="animate-spin mr-2" />
                     Gerando análise...
                   </div>
                 ) : auditAiError ? (
-                  <div className="p-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-200 text-sm font-bold">
+                  <div className="p-4 rounded-2xl border border-danger/30 bg-danger/10 text-danger text-sm font-bold">
                     {auditAiError}
                   </div>
                 ) : auditAiRow ? (
                   <div className="space-y-5">
-                    <div className="p-5 rounded-2xl border border-slate-800/60 bg-slate-950/30">
-                      <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">Resumo Executivo</div>
-                      <div className="text-sm text-slate-200 font-medium leading-relaxed whitespace-pre-line">
+                    <div className="p-5 rounded-2xl border border-base/60 bg-bg/30">
+                      <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Resumo Executivo</div>
+                      <div className="text-sm text-secondary font-medium leading-relaxed whitespace-pre-line">
                         {auditAiRow.summary || auditAiRow.response_json?.resumo_executivo}
                       </div>
                     </div>
 
                     {!!auditAiRow.response_json?.pontos_de_atencao?.length && (
-                      <div className="p-5 rounded-2xl border border-slate-800/60 bg-slate-950/30">
-                        <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">Pontos de Atenção</div>
+                      <div className="p-5 rounded-2xl border border-base/60 bg-bg/30">
+                        <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Pontos de Atenção</div>
                         <ul className="space-y-2">
                           {auditAiRow.response_json.pontos_de_atencao.map((p, idx) => (
-                            <li key={idx} className="text-sm text-slate-300 font-bold">
+                            <li key={idx} className="text-sm text-secondary font-bold">
                               - {p}
                             </li>
                           ))}
@@ -2349,10 +2349,10 @@ export const ContasPagarPage: React.FC<{
                       </div>
                     )}
 
-                    <div className="p-5 rounded-2xl border border-slate-800/60 bg-slate-950/30">
+                    <div className="p-5 rounded-2xl border border-base/60 bg-bg/30">
                       <div className="flex items-center justify-between gap-4 mb-3">
-                        <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Anomalias do mês</div>
-                        <div className="text-[10px] text-slate-600 font-black">
+                        <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted">Anomalias do mês</div>
+                        <div className="text-[10px] text-muted font-black">
                           {(auditAiRow.response_json?.anomalias?.length || 0)} itens
                         </div>
                       </div>
@@ -2368,7 +2368,7 @@ export const ContasPagarPage: React.FC<{
                                   ? 'warning'
                                   : 'info';
                             return (
-                              <div key={a.key} className="p-4 rounded-2xl border border-slate-800/60 bg-slate-900/10">
+                              <div key={a.key} className="p-4 rounded-2xl border border-base/60 bg-surface/10">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
@@ -2381,17 +2381,17 @@ export const ContasPagarPage: React.FC<{
                                         <Badge variant="info">Anotado</Badge>
                                       ) : null}
                                     </div>
-                                    <div className="mt-2 text-white font-black">{a.titulo}</div>
-                                    <div className="mt-1 text-sm text-slate-300 font-medium leading-relaxed">{a.descricao}</div>
+                                    <div className="mt-2 text-primary font-black">{a.titulo}</div>
+                                    <div className="mt-1 text-sm text-secondary font-medium leading-relaxed">{a.descricao}</div>
                                     {typeof a.impacto_financeiro === 'number' ? (
-                                      <div className="mt-2 text-[11px] text-slate-400 font-black">
-                                        Impacto estimado: <span className="text-slate-200">{formatCurrency(a.impacto_financeiro)}</span>
+                                      <div className="mt-2 text-[11px] text-secondary font-black">
+                                        Impacto estimado: <span className="text-primary">{formatCurrency(a.impacto_financeiro)}</span>
                                       </div>
                                     ) : null}
 
                                     {n?.nota ? (
-                                      <div className="mt-3 text-[12px] text-slate-200 font-bold bg-slate-950/40 border border-slate-800/60 rounded-xl px-3 py-2">
-                                        <span className="text-slate-500 font-black mr-2">Nota:</span>
+                                      <div className="mt-3 text-[12px] text-secondary font-bold bg-bg/40 border border-base/60 rounded-xl px-3 py-2">
+                                        <span className="text-muted font-black mr-2">Nota:</span>
                                         {n.nota.length > 140 ? `${n.nota.slice(0, 140)}...` : n.nota}
                                       </div>
                                     ) : null}
@@ -2401,7 +2401,7 @@ export const ContasPagarPage: React.FC<{
                                       <button
                                         type="button"
                                         onClick={() => openAnotar(a)}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950/40 hover:bg-slate-900/30 text-slate-200 text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.99]"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-base bg-bg/40 hover:bg-surface/30 text-secondary text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.99]"
                                       >
                                         Anotar
                                       </button>
@@ -2411,7 +2411,7 @@ export const ContasPagarPage: React.FC<{
                                   <button
                                     type="button"
                                     onClick={() => openAnotar(a)}
-                                    className="hidden lg:inline-flex shrink-0 px-4 py-2 rounded-xl border border-slate-800 bg-slate-950/40 hover:bg-slate-900/30 text-slate-200 text-[10px] font-black uppercase tracking-widest transition-all"
+                                    className="hidden lg:inline-flex shrink-0 px-4 py-2 rounded-xl border border-base bg-bg/40 hover:bg-surface/30 text-secondary text-[10px] font-black uppercase tracking-widest transition-all"
                                   >
                                     Anotar
                                   </button>
@@ -2421,16 +2421,16 @@ export const ContasPagarPage: React.FC<{
                           })}
                         </div>
                       ) : (
-                        <div className="text-sm text-slate-500 font-bold py-6">Nenhuma anomalia relevante encontrada para os filtros atuais.</div>
+                        <div className="text-sm text-muted font-bold py-6">Nenhuma anomalia relevante encontrada para os filtros atuais.</div>
                       )}
                     </div>
 
                     {!!auditAiRow.response_json?.recomendacoes_operacionais?.length && (
-                      <div className="p-5 rounded-2xl border border-slate-800/60 bg-slate-950/30">
-                        <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">Recomendações</div>
+                      <div className="p-5 rounded-2xl border border-base/60 bg-bg/30">
+                        <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Recomendações</div>
                         <ul className="space-y-2">
                           {auditAiRow.response_json.recomendacoes_operacionais.map((r, idx) => (
-                            <li key={idx} className="text-sm text-slate-300 font-bold">
+                            <li key={idx} className="text-sm text-secondary font-bold">
                               - {r}
                             </li>
                           ))}
@@ -2439,7 +2439,7 @@ export const ContasPagarPage: React.FC<{
                     )}
                   </div>
                 ) : (
-                  <div className="text-sm text-slate-500 font-bold py-6">Abra este painel para gerar a análise do mês.</div>
+                  <div className="text-sm text-muted font-bold py-6">Abra este painel para gerar a análise do mês.</div>
                 )}
               </div>
             )}
@@ -2519,13 +2519,13 @@ export const ContasPagarPage: React.FC<{
           title="ANOTAR ANOMALIA"
           subtitle={anotarTitulo ? `Contexto e decisão para: ${anotarTitulo}` : undefined}
           className="max-w-2xl"
-          headerClassName="bg-violet-600 border-violet-500"
+          headerClassName="bg-accent border-accent/80"
           footer={
             <div className="flex items-center justify-between gap-4 w-full">
               <button
                 type="button"
                 onClick={() => setAnotarOpen(false)}
-                className="px-6 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 text-slate-300 font-black hover:bg-slate-900/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
+                className="px-6 py-3 rounded-2xl border border-base bg-surface/30 text-secondary font-black hover:bg-surface/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
               >
                 Fechar
               </button>
@@ -2533,7 +2533,7 @@ export const ContasPagarPage: React.FC<{
                 type="button"
                 onClick={saveAnomaliaNota}
                 disabled={anotarSaving}
-                className="px-10 py-4 rounded-[2rem] bg-violet-600 hover:bg-violet-500 text-white font-black shadow-xl shadow-violet-600/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
+                className="px-10 py-4 rounded-[2rem] bg-accent hover:bg-accent/80 text-white font-black shadow-xl shadow-accent/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
               >
                 {anotarSaving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                 Salvar
@@ -2543,8 +2543,8 @@ export const ContasPagarPage: React.FC<{
         >
           <div className="space-y-6">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">Status</div>
-              <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+              <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Status</div>
+              <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
                 {([
                   { id: 'pendente', label: 'Pendente' },
                   { id: 'verificado', label: 'Verificado' },
@@ -2555,7 +2555,7 @@ export const ContasPagarPage: React.FC<{
                     onClick={() => setAnotarStatus(s.id)}
                     className={cn(
                       'px-4 py-2 rounded-xl text-xs font-black transition-all',
-                      anotarStatus === s.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                      anotarStatus === s.id ? 'bg-surface-2 text-primary shadow-sm' : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                     )}
                   >
                     {s.label}
@@ -2565,17 +2565,17 @@ export const ContasPagarPage: React.FC<{
             </div>
 
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 mb-2">Nota da Ana</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Nota da Ana</div>
               <textarea
                 value={anotarTexto}
                 onChange={(e) => setAnotarTexto(e.target.value)}
                 placeholder="Ex.: confirmado reajuste com fornecedor; conta duplicada removida; valor correto é X; etc."
-                className="w-full min-h-[140px] resize-none bg-slate-950/40 border border-slate-800/60 rounded-2xl px-4 py-3 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                className="w-full min-h-[140px] resize-none bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
                 spellCheck={false}
               />
               <div className="mt-2 flex items-center justify-end">
                 {anotarSaved ? (
-                  <div className="text-[10px] text-emerald-400 font-black flex items-center gap-2">
+                  <div className="text-[10px] text-success font-black flex items-center gap-2">
                     <CheckCircle2 size={12} />
                     SALVO
                   </div>
@@ -2591,8 +2591,8 @@ export const ContasPagarPage: React.FC<{
   return renderWithShell(
     <div className="w-full">
       {/* Mobile: Command Bar (premium) */}
-      <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 pt-3 pb-3 bg-[#060814]/70 backdrop-blur-xl border-b border-white/5 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-        <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+      <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 pt-3 pb-3 bg-bg/70 backdrop-blur-xl border-b border-base/20 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+        <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
           {unidadeTabs.map((u) => (
             <button
               key={u.id}
@@ -2600,8 +2600,8 @@ export const ContasPagarPage: React.FC<{
               className={cn(
                 "px-4 py-2 rounded-xl text-xs font-black transition-all",
                 unidadeFiltro === u.id
-                  ? "bg-slate-800 text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+                  ? "bg-surface-2 text-primary shadow-sm"
+                  : "text-muted hover:text-secondary hover:bg-surface-2/40"
               )}
             >
               {u.mobile}
@@ -2609,7 +2609,7 @@ export const ContasPagarPage: React.FC<{
           ))}
         </div>
 
-        <div className="mt-3 flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+        <div className="mt-3 flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
           {[
             { id: 'lista', label: 'Lista', icon: List },
             { id: 'calendario', label: 'Calendário', icon: Calendar },
@@ -2620,7 +2620,7 @@ export const ContasPagarPage: React.FC<{
               onClick={() => setVisaoOperacionalModo(t.id as any)}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all',
-                visaoOperacionalModo === t.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                visaoOperacionalModo === t.id ? 'bg-surface-2 text-primary shadow-sm' : 'text-muted hover:text-secondary hover:bg-surface-2/40'
               )}
             >
               <t.icon size={14} />
@@ -2633,12 +2633,12 @@ export const ContasPagarPage: React.FC<{
           <button
             type="button"
             onClick={() => setContasMobileRefinarOpen(true)}
-            className="flex-none px-4 py-3 rounded-2xl bg-slate-900/50 border border-slate-800/70 text-white font-black inline-flex items-center gap-2 active:scale-[0.98]"
+            className="flex-none px-4 py-3 rounded-2xl bg-surface/50 border border-base/70 text-secondary font-black inline-flex items-center gap-2 active:scale-[0.98]"
             aria-label="Filtros"
           >
-            <Filter size={16} className="text-violet-300" />
+            <Filter size={16} className="text-accent" />
             {contasActiveFiltersCount > 0 ? (
-              <span className="text-[10px] font-black px-2 py-1 rounded-full bg-violet-500/15 text-violet-200 border border-violet-500/20">
+              <span className="text-[10px] font-black px-2 py-1 rounded-full bg-accent/15 text-accent border border-accent/20">
                 {contasActiveFiltersCount}
               </span>
             ) : null}
@@ -2653,10 +2653,10 @@ export const ContasPagarPage: React.FC<{
                 // ignore
               }
             }}
-            className="flex-none px-4 py-3 rounded-2xl bg-slate-900/50 border border-slate-800/70 text-slate-200 font-black hover:bg-slate-900/70 transition-all active:scale-[0.98]"
+            className="flex-none px-4 py-3 rounded-2xl bg-surface/50 border border-base/70 text-secondary font-black hover:bg-surface/70 transition-all active:scale-[0.98]"
             aria-label="Notificações"
           >
-            <Bell size={16} className="text-violet-300" />
+            <Bell size={16} className="text-accent" />
           </button>
 
           <button
@@ -2665,7 +2665,7 @@ export const ContasPagarPage: React.FC<{
               setNovaContaDefaults(null);
               setNovaOpen(true);
             }}
-            className="flex-1 px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-3 rounded-2xl bg-accent hover:bg-accent/80 text-white font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <Plus size={16} />
             Nova Conta
@@ -2677,7 +2677,7 @@ export const ContasPagarPage: React.FC<{
             {contasActiveFilterChips.slice(0, 4).map((c) => (
               <span
                 key={c}
-                className="max-w-full truncate px-3 py-1.5 rounded-full bg-slate-950/40 border border-slate-800/60 text-[10px] font-black text-slate-300"
+                className="max-w-full truncate px-3 py-1.5 rounded-full bg-bg/40 border border-base/60 text-[10px] font-black text-secondary"
               >
                 {c}
               </span>
@@ -2689,16 +2689,16 @@ export const ContasPagarPage: React.FC<{
       {/* Desktop: manter layout atual */}
       <div className="hidden lg:flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
                 onClick={() => setUnidadeFiltro(u.id as any)}
                 className={cn(
                   "px-4 py-2 rounded-xl text-xs font-black transition-all",
-                  unidadeFiltro === u.id 
-                    ? "bg-slate-800 text-white shadow-sm" 
-                    : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+                  unidadeFiltro === u.id
+                    ? "bg-surface-2 text-primary shadow-sm"
+                    : "text-muted hover:text-secondary hover:bg-surface-2/40"
                 )}
               >
                 <span className="hidden lg:inline">{u.desktop}</span>
@@ -2706,7 +2706,7 @@ export const ContasPagarPage: React.FC<{
             ))}
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-900/40 border border-slate-800 p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
             {[
               { id: 'lista', label: 'Lista', icon: List },
               { id: 'calendario', label: 'Calendário', icon: Calendar },
@@ -2717,7 +2717,7 @@ export const ContasPagarPage: React.FC<{
                 onClick={() => setVisaoOperacionalModo(t.id as any)}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all',
-                  visaoOperacionalModo === t.id ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                  visaoOperacionalModo === t.id ? 'bg-surface-2 text-primary shadow-sm' : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                 )}
               >
                 <t.icon size={14} />
@@ -2729,7 +2729,7 @@ export const ContasPagarPage: React.FC<{
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-1">Competência</div>
+            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mr-1">Competência</div>
             <CustomSelect
               value={competenciaFiltro}
               onValueChange={(v) => {
@@ -2746,7 +2746,7 @@ export const ContasPagarPage: React.FC<{
               setNovaContaDefaults(null);
               setNovaOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.98]"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-accent hover:bg-accent/80 text-white font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.98]"
           >
             <Plus size={16} />
             Nova Conta
@@ -2754,8 +2754,8 @@ export const ContasPagarPage: React.FC<{
         </div>
       </div>
 
-      <div className="hidden lg:flex flex-wrap items-center gap-4 mb-8 bg-slate-900/20 p-4 rounded-3xl border border-slate-800/60">
-        <div className="flex items-center gap-2 text-slate-500 mr-2">
+      <div className="hidden lg:flex flex-wrap items-center gap-4 mb-8 bg-surface/20 p-4 rounded-3xl border border-base/60">
+        <div className="flex items-center gap-2 text-muted mr-2">
           <Filter size={14} />
           <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
         </div>
@@ -2771,7 +2771,7 @@ export const ContasPagarPage: React.FC<{
           />
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-xl p-1">
           {[
             { id: 'all', label: 'Todos' },
             { id: 'fixo', label: 'Fixo' },
@@ -2782,9 +2782,9 @@ export const ContasPagarPage: React.FC<{
               onClick={() => setComportamentoFiltro(b.id as any)}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
-                comportamentoFiltro === b.id 
-                  ? "bg-slate-800 text-white" 
-                  : "text-slate-600 hover:text-slate-400"
+                comportamentoFiltro === b.id
+                  ? "bg-surface-2 text-primary"
+                  : "text-muted hover:text-secondary"
               )}
             >
               {b.label}
@@ -2792,7 +2792,7 @@ export const ContasPagarPage: React.FC<{
           ))}
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-xl p-1">
           {[
             { id: 'all', label: 'Tipos' },
             { id: 'unica', label: 'Única' },
@@ -2804,9 +2804,9 @@ export const ContasPagarPage: React.FC<{
               onClick={() => setTipoFiltro(t.id as any)}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
-                tipoFiltro === t.id 
-                  ? "bg-slate-800 text-white" 
-                  : "text-slate-600 hover:text-slate-400"
+                tipoFiltro === t.id
+                  ? "bg-surface-2 text-primary"
+                  : "text-muted hover:text-secondary"
               )}
             >
               {t.label}
@@ -2835,14 +2835,14 @@ export const ContasPagarPage: React.FC<{
             <button
               type="button"
               onClick={clearContasMobileFilters}
-              className="flex-1 px-6 py-3.5 rounded-2xl bg-slate-800/60 hover:bg-slate-800 text-slate-200 font-black transition-all active:scale-95"
+              className="flex-1 px-6 py-3.5 rounded-2xl bg-surface-2 hover:bg-surface-3 text-secondary font-black transition-all active:scale-95"
             >
               Limpar
             </button>
             <button
               type="button"
               onClick={applyContasMobileFilters}
-              className="flex-1 px-6 py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all shadow-lg shadow-violet-600/20 active:scale-95"
+              className="flex-1 px-6 py-3.5 rounded-2xl bg-accent hover:bg-accent/80 text-white font-black transition-all shadow-lg shadow-accent/20 active:scale-95"
             >
               Aplicar
             </button>
@@ -2850,8 +2850,8 @@ export const ContasPagarPage: React.FC<{
         }
       >
         <div className="space-y-5">
-          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
-            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Competência</div>
+          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+            <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-2">Competência</div>
             <CustomSelect
               value={draftCompetenciaYM || competenciaFiltro}
               onValueChange={(v) => setDraftCompetenciaYM(v)}
@@ -2859,8 +2859,8 @@ export const ContasPagarPage: React.FC<{
             />
           </div>
 
-          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
-            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Categoria</div>
+          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+            <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-2">Categoria</div>
             <CustomSelect
               value={draftCategoriaFiltro}
               onValueChange={(v) => setDraftCategoriaFiltro(v)}
@@ -2871,9 +2871,9 @@ export const ContasPagarPage: React.FC<{
             />
           </div>
 
-          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
-            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3">Custo</div>
-            <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-2xl p-1">
+          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+            <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-3">Custo</div>
+            <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-2xl p-1">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'fixo', label: 'Fixo' },
@@ -2885,7 +2885,7 @@ export const ContasPagarPage: React.FC<{
                   onClick={() => setDraftComportamentoFiltro(b.id as any)}
                   className={cn(
                     'flex-1 px-3 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all',
-                    draftComportamentoFiltro === b.id ? 'bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-400'
+                    draftComportamentoFiltro === b.id ? 'bg-surface-2 text-primary' : 'text-muted hover:text-secondary'
                   )}
                 >
                   {b.label}
@@ -2894,9 +2894,9 @@ export const ContasPagarPage: React.FC<{
             </div>
           </div>
 
-          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
-            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3">Tipos</div>
-            <div className="flex items-center gap-1 bg-slate-950/40 border border-slate-800 rounded-2xl p-1">
+          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+            <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-3">Tipos</div>
+            <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-2xl p-1">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'unica', label: 'Única' },
@@ -2909,7 +2909,7 @@ export const ContasPagarPage: React.FC<{
                   onClick={() => setDraftTipoFiltro(t.id as any)}
                   className={cn(
                     'flex-1 px-3 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all',
-                    draftTipoFiltro === t.id ? 'bg-slate-800 text-white' : 'text-slate-600 hover:text-slate-400'
+                    draftTipoFiltro === t.id ? 'bg-surface-2 text-primary' : 'text-muted hover:text-secondary'
                   )}
                 >
                   {t.label}
@@ -2918,15 +2918,15 @@ export const ContasPagarPage: React.FC<{
             </div>
           </div>
 
-          <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-4">
-            <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">Busca</div>
+          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+            <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-2">Busca</div>
             <div className="relative">
-              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 value={draftBusca}
                 onChange={(e) => setDraftBusca(e.target.value)}
                 placeholder="Buscar por descrição ou categoria…"
-                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-800 bg-slate-950/40 text-sm font-bold text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-all"
+                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-base bg-bg/40 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
               />
             </div>
           </div>
@@ -2942,7 +2942,7 @@ export const ContasPagarPage: React.FC<{
         className="max-w-none"
       >
         <div className="space-y-3">
-          <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.22em] px-1">Criação</div>
+          <div className="text-[10px] text-muted font-black uppercase tracking-[0.22em] px-1">Criação</div>
           <button
             type="button"
             onClick={() => {
@@ -2950,7 +2950,7 @@ export const ContasPagarPage: React.FC<{
               setNovaContaDefaults(null);
               setNovaOpen(true);
             }}
-            className="w-full inline-flex items-center justify-between px-5 py-4 rounded-3xl bg-violet-600 hover:bg-violet-500 text-white font-black shadow-lg shadow-violet-600/20 transition-all active:scale-[0.99]"
+            className="w-full inline-flex items-center justify-between px-5 py-4 rounded-3xl bg-accent hover:bg-accent/80 text-white font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.99]"
           >
             <span className="inline-flex items-center gap-3">
               <Plus size={16} />
@@ -2959,7 +2959,7 @@ export const ContasPagarPage: React.FC<{
             <ChevronDown size={16} className="opacity-0" />
           </button>
 
-          <div className="mt-4 text-[10px] text-slate-500 font-black uppercase tracking-[0.22em] px-1">Configurações</div>
+          <div className="mt-4 text-[10px] text-muted font-black uppercase tracking-[0.22em] px-1">Configurações</div>
           <button
             type="button"
             onClick={() => {
@@ -2970,10 +2970,10 @@ export const ContasPagarPage: React.FC<{
                 // ignore
               }
             }}
-            className="w-full inline-flex items-center justify-between px-5 py-4 rounded-3xl bg-slate-900/50 border border-slate-800/70 text-slate-200 font-black hover:bg-slate-900/70 transition-all active:scale-[0.99]"
+            className="w-full inline-flex items-center justify-between px-5 py-4 rounded-3xl bg-surface/50 border border-base/70 text-secondary font-black hover:bg-surface/70 transition-all active:scale-[0.99]"
           >
             <span className="inline-flex items-center gap-3">
-              <Bell size={16} className="text-violet-300" />
+              <Bell size={16} className="text-accent" />
               Notificações
             </span>
             <ChevronDown size={16} className="opacity-0" />
@@ -2985,13 +2985,13 @@ export const ContasPagarPage: React.FC<{
         <div className="mt-6">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="hidden lg:block text-white font-black">Calendário do mês</div>
+              <div className="hidden lg:block text-primary font-black">Calendário do mês</div>
               {calendarioDiaSelecionado ? (
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted">
                   Selecionado: {calendarioDiaSelecionado.split('-').reverse().join('/')}
                 </div>
               ) : (
-                <div className="hidden lg:block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                <div className="hidden lg:block text-[10px] font-black uppercase tracking-widest text-muted">
                   Clique em um dia para filtrar a lista
                 </div>
               )}
@@ -3127,7 +3127,7 @@ export const ContasPagarPage: React.FC<{
                           { success: 'Parcela excluída.', error: 'Não foi possível excluir a parcela.' }
                         );
                       }}
-                      className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-slate-600 hover:bg-slate-500 transition-all active:scale-95"
+                      className="w-full px-6 py-3.5 rounded-2xl font-bold text-primary bg-surface-2 hover:bg-surface-3 transition-all active:scale-95"
                     >
                       Excluir somente esta parcela
                     </button>
@@ -3271,7 +3271,7 @@ export const ContasPagarPage: React.FC<{
                           { success: 'Parcela excluída.', error: 'Não foi possível excluir a parcela.' }
                         );
                       }}
-                      className="w-full px-6 py-3.5 rounded-2xl font-bold text-white bg-slate-600 hover:bg-slate-500 transition-all active:scale-95"
+                      className="w-full px-6 py-3.5 rounded-2xl font-bold text-primary bg-surface-2 hover:bg-surface-3 transition-all active:scale-95"
                     >
                       Excluir somente esta parcela
                     </button>
@@ -3309,20 +3309,20 @@ export const ContasPagarPage: React.FC<{
 
       {/* Barra flutuante de seleção em lote */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[12000] flex items-center gap-3 px-5 py-3 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl shadow-black/40 animate-in slide-in-from-bottom-4 fade-in duration-300">
-          <CheckSquare size={18} className="text-violet-400 shrink-0" />
-          <span className="text-white font-bold text-sm whitespace-nowrap">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[12000] flex items-center gap-3 px-5 py-3 rounded-2xl bg-surface border border-strong shadow-[var(--shadow-card)] animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <CheckSquare size={18} className="text-accent shrink-0" />
+          <span className="text-primary font-bold text-sm whitespace-nowrap">
             {selectedIds.size} {selectedIds.size === 1 ? 'selecionada' : 'selecionadas'}
           </span>
           <button
             onClick={clearSelection}
-            className="ml-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-all"
+            className="ml-1 px-3 py-1.5 rounded-xl text-xs font-bold text-secondary bg-surface-2 hover:bg-surface-3 transition-all"
           >
             Limpar
           </button>
           <button
             onClick={() => setBatchDeleteOpen(true)}
-            className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 transition-all shadow-lg shadow-rose-600/20"
+            className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-danger hover:bg-danger/80 transition-all shadow-lg shadow-danger/20"
           >
             <span className="flex items-center gap-1.5"><Trash2 size={13} /> Excluir</span>
           </button>

@@ -30,7 +30,7 @@ export const ParcelasTimeline: React.FC<{
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/20 p-5 flex items-center justify-center gap-2 text-slate-500 text-sm">
+      <div className="rounded-2xl border border-base bg-surface/20 p-5 flex items-center justify-center gap-2 text-muted text-sm">
         <Loader2 size={16} className="animate-spin" />
         Carregando parcelas...
       </div>
@@ -44,23 +44,23 @@ export const ParcelasTimeline: React.FC<{
   const restante = pendentes.reduce((s, p) => s + (Number(p.valor) || 0), 0);
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/20 p-5">
+    <div className="rounded-2xl border border-base bg-surface/20 p-5">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
           Parcelamento
         </div>
         <div className="flex items-center gap-3 text-[11px] font-bold">
-          <span className="text-emerald-400">{pagas.length}/{parcelas.length} pagas</span>
+          <span className="text-success">{pagas.length}/{parcelas.length} pagas</span>
           {restante > 0 && (
-            <span className="text-slate-400">Restante: <span className="text-white">{formatCurrency(restante)}</span></span>
+            <span className="text-secondary">Restante: <span className="text-primary">{formatCurrency(restante)}</span></span>
           )}
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 rounded-full bg-slate-800 mb-4 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-surface-2 mb-4 overflow-hidden">
         <div
-          className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+          className="h-full rounded-full bg-success transition-all duration-500"
           style={{ width: `${(pagas.length / parcelas.length) * 100}%` }}
         />
       </div>
@@ -80,27 +80,27 @@ export const ParcelasTimeline: React.FC<{
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-xl text-xs transition-colors",
                 isCurrent
-                  ? "bg-violet-500/10 border border-violet-500/30"
-                  : "hover:bg-slate-800/30"
+                  ? "bg-accent/10 border border-accent/30"
+                  : "hover:bg-surface-2/30"
               )}
             >
               {/* Status icon */}
               <div className="shrink-0">
                 {isPago ? (
-                  <CheckCircle2 size={14} className="text-emerald-400" />
+                  <CheckCircle2 size={14} className="text-success" />
                 ) : isFinalizado ? (
-                  <CheckCircle2 size={14} className="text-slate-500" />
+                  <CheckCircle2 size={14} className="text-muted" />
                 ) : isVencida ? (
-                  <AlertTriangle size={14} className="text-rose-400" />
+                  <AlertTriangle size={14} className="text-danger" />
                 ) : (
-                  <Clock size={14} className="text-slate-500" />
+                  <Clock size={14} className="text-muted" />
                 )}
               </div>
 
               {/* Parcela number */}
               <span className={cn(
                 "font-black w-8 shrink-0",
-                isCurrent ? "text-violet-400" : "text-slate-500"
+                isCurrent ? "text-accent" : "text-muted"
               )}>
                 #{p.parcela_atual}
               </span>
@@ -108,7 +108,7 @@ export const ParcelasTimeline: React.FC<{
               {/* Date */}
               <span className={cn(
                 "font-bold w-16 shrink-0",
-                isPago ? "text-slate-500" : isVencida ? "text-rose-400" : "text-slate-400"
+                isPago ? "text-muted" : isVencida ? "text-danger" : "text-secondary"
               )}>
                 {formatDateShort(p.data_vencimento)}
               </span>
@@ -116,7 +116,7 @@ export const ParcelasTimeline: React.FC<{
               {/* Value */}
               <span className={cn(
                 "font-bold flex-1 text-right",
-                isPago ? "text-slate-500 line-through" : "text-white"
+                isPago ? "text-muted line-through" : "text-primary"
               )}>
                 {formatCurrency(Number(p.valor) || 0)}
               </span>
@@ -125,12 +125,12 @@ export const ParcelasTimeline: React.FC<{
               <span className={cn(
                 "text-[9px] font-black uppercase px-2 py-0.5 rounded-md shrink-0",
                 isPago
-                  ? "bg-emerald-500/10 text-emerald-400"
+                  ? "bg-success/10 text-success"
                   : isFinalizado
-                  ? "bg-slate-700 text-slate-400"
+                  ? "bg-surface-3 text-secondary"
                   : isVencida
-                  ? "bg-rose-500/10 text-rose-400"
-                  : "bg-slate-800 text-slate-400"
+                  ? "bg-danger/10 text-danger"
+                  : "bg-surface-2 text-secondary"
               )}>
                 {isPago ? 'Pago' : isFinalizado ? 'Finalizado' : isVencida ? 'Vencida' : 'Pendente'}
               </span>
@@ -140,7 +140,7 @@ export const ParcelasTimeline: React.FC<{
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onPagar(p); }}
-                  className="shrink-0 text-[9px] font-black text-violet-400 hover:text-violet-300 px-2 py-0.5 rounded-md hover:bg-violet-500/10 transition-colors"
+                  className="shrink-0 text-[9px] font-black text-accent hover:text-accent/80 px-2 py-0.5 rounded-md hover:bg-accent/10 transition-colors"
                 >
                   Pagar
                 </button>

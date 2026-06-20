@@ -47,17 +47,17 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
   };
 
   const getStatusColor = () => {
-    if (conta.status === 'pago') return 'text-emerald-400';
-    if (statusVisual === 'vencida') return 'text-rose-400';
-    if (statusVisual === 'urgente' || statusVisual === 'hoje') return 'text-amber-400';
-    return 'text-slate-400';
+    if (conta.status === 'pago') return 'text-success';
+    if (statusVisual === 'vencida') return 'text-danger';
+    if (statusVisual === 'urgente' || statusVisual === 'hoje') return 'text-warning';
+    return 'text-secondary';
   };
 
   return (
     <Card className={cn(
-      "group relative flex flex-col p-5 h-full transition-all hover:shadow-xl hover:shadow-black/20 hover:border-slate-700",
-      conta.status === 'pago' ? "border-emerald-500/10 bg-emerald-500/[0.02]" : "border-slate-800 bg-slate-900/40",
-      selected && "border-violet-500/40 bg-violet-500/[0.04]"
+      "group relative flex flex-col p-5 h-full transition-all hover:shadow-[var(--shadow-card)] hover:border-strong",
+      conta.status === 'pago' ? "border-success/10 bg-success/[0.02]" : "border-base bg-surface/40",
+      selected && "border-accent/40 bg-accent/[0.04]"
     )}>
       {/* Checkbox de seleção */}
       {onToggleSelect && (
@@ -67,8 +67,8 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
           className={cn(
             "absolute top-3 left-3 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all z-10",
             selected
-              ? "bg-violet-600 border-violet-500 text-white"
-              : "border-slate-600 opacity-0 group-hover:opacity-100 hover:border-violet-400"
+              ? "bg-accent border-accent text-white"
+              : "border-strong opacity-0 group-hover:opacity-100 hover:border-accent"
           )}
           aria-label="Selecionar"
         >
@@ -81,12 +81,12 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
       {/* Header: Title and Type */}
       <div className="flex items-start justify-between mb-4">
         <div className="min-w-0 flex-1">
-          <h3 className="text-white font-black truncate text-sm uppercase tracking-tight group-hover:text-violet-400 transition-colors">
+          <h3 className="text-primary font-black truncate text-sm uppercase tracking-tight group-hover:text-accent transition-colors">
             {conta.descricao}
           </h3>
           <div className="flex items-center gap-1.5 mt-1.5">
             {conta.tipo_lancamento === 'recorrente' && (
-              <Badge variant="info" className="text-[9px] h-4 px-1.5 flex items-center gap-1 border-violet-500/20 bg-violet-500/10 text-violet-300">
+              <Badge variant="info" className="text-[9px] h-4 px-1.5 flex items-center gap-1 border-accent/20 bg-accent/10 text-accent">
                 <Repeat size={10} />
                 Recorrente
               </Badge>
@@ -98,7 +98,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
               </Badge>
             )}
             {/* Unidade como mini-chip (mais premium que texto solto) */}
-            <div className="text-[9px] h-4 px-1.5 rounded-md bg-slate-800/40 border border-slate-700/50 text-slate-400 font-black uppercase tracking-widest flex items-center">
+            <div className="text-[9px] h-4 px-1.5 rounded-md bg-surface-2/40 border border-strong/50 text-secondary font-black uppercase tracking-widest flex items-center">
               {(conta.unidade || 'todas').toUpperCase()}
             </div>
           </div>
@@ -108,7 +108,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
           <Tooltip content="Editar lançamento">
             <button 
               onClick={() => onEditar(conta)}
-              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-white transition-all"
+              className="p-1.5 rounded-lg hover:bg-surface-2 text-muted hover:text-primary transition-all"
             >
               <MoreVertical size={16} />
             </button>
@@ -118,7 +118,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
 
       {/* Value */}
       <div className="mt-auto">
-        <div className="text-base font-bold text-white tracking-tighter">
+        <div className="text-base font-bold text-primary tracking-tighter">
           {formatCurrency(Number(conta.valor) || 0)}
         </div>
         
@@ -140,7 +140,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
       </div>
 
       {/* Footer: Badges and Action */}
-      <div className="mt-4 pt-3 border-t border-slate-800/50 flex items-center justify-between gap-2">
+      <div className="mt-4 pt-3 border-t border-base/50 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 overflow-hidden">
           <Badge 
             variant={conta.status === 'pago' ? 'success' : (statusVisual === 'vencida' ? 'danger' : (statusVisual === 'urgente' || statusVisual === 'hoje' ? 'warning' : 'info'))}
@@ -150,7 +150,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
           </Badge>
           
           {conta.categoria && (
-            <div className="h-6 flex items-center gap-1.5 px-2.5 rounded-md bg-slate-800/50 border border-slate-700/50 text-slate-400 text-[10px] font-black truncate">
+            <div className="h-6 flex items-center gap-1.5 px-2.5 rounded-md bg-surface-2/50 border border-strong/50 text-secondary text-[10px] font-black truncate">
               <span className="shrink-0">{conta.categoria.icone}</span>
               <span className="truncate">{conta.categoria.nome}</span>
             </div>
@@ -161,7 +161,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
           <Tooltip content="Pagar agora" side="top">
             <button
               onClick={() => onPagar(conta)}
-              className="shrink-0 w-8 h-8 rounded-lg bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center shadow-lg shadow-violet-600/20 transition-all active:scale-95"
+              className="shrink-0 w-8 h-8 rounded-lg bg-accent hover:bg-accent/80 text-white flex items-center justify-center shadow-lg shadow-accent/20 transition-all active:scale-95"
               aria-label="Pagar agora"
             >
               <CheckCircle2 size={16} />
