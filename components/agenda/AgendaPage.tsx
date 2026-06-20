@@ -739,7 +739,7 @@ export const AgendaPage: React.FC = () => {
 
             <div
               className={cn(
-                'absolute top-0 left-0 h-full w-[86%] max-w-[320px] bg-slate-950/95 border-r border-slate-800/70 shadow-2xl transition-transform duration-300',
+                'absolute top-0 left-0 h-full w-[86%] max-w-[320px] bg-bg/95 border-r border-base/70 shadow-2xl transition-transform duration-300',
                 isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
               )}
               onTouchStart={(e) => {
@@ -828,7 +828,7 @@ export const AgendaPage: React.FC = () => {
         </div>
 
         {selectedTarefa ? (
-          <div className={cn('hidden xl:flex border-l border-slate-800 min-w-0')}>
+          <div className={cn('hidden xl:flex border-l border-base min-w-0')}>
             <TarefaDetailPanel
               tarefa={selectedTarefa}
               listas={listas}
@@ -862,7 +862,7 @@ export const AgendaPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setNovaListaOpen(false)}
-                className="px-5 py-3 rounded-2xl bg-slate-900/40 border border-slate-800 text-slate-200 font-black hover:bg-slate-900/60 transition-all"
+                className="px-5 py-3 rounded-2xl bg-surface/40 border border-base text-secondary font-black hover:bg-surface/60 transition-all"
               >
                 Cancelar
               </button>
@@ -872,7 +872,7 @@ export const AgendaPage: React.FC = () => {
                 disabled={novaListaSaving}
                 className={cn(
                   'px-6 py-3 rounded-2xl font-black text-white transition-all shadow-lg active:scale-95',
-                  novaListaSaving ? 'bg-slate-800 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/20'
+                  novaListaSaving ? 'bg-surface-2 cursor-not-allowed' : 'bg-accent hover:bg-accent-hover shadow-accent/20'
                 )}
               >
                 {novaListaSaving ? (listaEditando ? 'Salvando…' : 'Criando…') : (listaEditando ? 'Salvar' : 'Criar Lista')}
@@ -883,26 +883,26 @@ export const AgendaPage: React.FC = () => {
       >
         <div className="space-y-5">
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Nome</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Nome</div>
             <input
               value={novaListaNome}
               onChange={(e) => setNovaListaNome(e.target.value)}
               placeholder="Ex.: Comercial, Contratos, Escola, Família…"
-              className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
+              className="w-full bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
             />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Ícone</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Ícone</div>
               <div className="flex items-center gap-3">
                 <input
                   value={novaListaIcone}
                   onChange={(e) => setNovaListaIcone(e.target.value)}
-                  className="w-24 bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-black outline-none focus:ring-2 focus:ring-violet-500/50 text-center"
+                  className="w-24 bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-black outline-none focus:ring-2 focus:ring-accent/50 text-center"
                   aria-label="Ícone (emoji)"
                 />
-                <div className="text-xs text-slate-500 font-bold">
+                <div className="text-xs text-muted font-bold">
                   Dica: cole qualquer emoji aqui, ou escolha abaixo.
                 </div>
               </div>
@@ -916,8 +916,8 @@ export const AgendaPage: React.FC = () => {
                       className={cn(
                         'w-10 h-10 rounded-2xl border flex items-center justify-center transition-all',
                         novaListaIcone === ic
-                          ? 'bg-violet-500/15 border-violet-500/25 text-white'
-                          : 'bg-slate-900/30 border-slate-800 text-slate-300 hover:text-white hover:border-violet-500/20'
+                          ? 'bg-accent/15 border-accent/25 text-primary'
+                          : 'bg-surface/30 border-base text-secondary hover:text-primary hover:border-accent/20'
                       )}
                       aria-label={`Usar ${ic}`}
                     >
@@ -929,11 +929,11 @@ export const AgendaPage: React.FC = () => {
             </div>
 
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Cor</div>
-              <div className="rounded-2xl border border-slate-800/60 bg-slate-950/20 p-4">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Cor</div>
+              <div className="rounded-2xl border border-base/60 bg-bg/20 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs text-slate-400 font-black">Cores rápidas</div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Escolha 1</div>
+                  <div className="text-xs text-secondary font-black">Cores rápidas</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Escolha 1</div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -945,40 +945,40 @@ export const AgendaPage: React.FC = () => {
                         className={cn(
                           'w-9 h-9 rounded-full border transition-all',
                           novaListaCor?.toLowerCase?.() === c.toLowerCase()
-                            ? 'border-white ring-2 ring-white/20'
-                            : 'border-slate-800 hover:border-violet-500/25'
+                            ? 'border-primary ring-2 ring-primary/20'
+                            : 'border-base hover:border-accent/25'
                         )}
                         style={{ backgroundColor: c }}
                         aria-label={`Selecionar cor ${c}`}
                       />
                     </Tooltip>
                   ))}
-                  <div className="w-px h-9 bg-slate-800 mx-1" />
+                  <div className="w-px h-9 bg-base mx-1" />
                   <div className="flex items-center gap-2">
                     <Tooltip content="Cor personalizada" side="top">
                       <input
                         type="color"
                         value={novaListaCor}
                         onChange={(e) => setNovaListaCor(e.target.value)}
-                        className="w-10 h-10 rounded-2xl border border-slate-700/60 bg-transparent"
+                        className="w-10 h-10 rounded-2xl border border-strong/60 bg-transparent"
                         aria-label="Cor personalizada"
                       />
                     </Tooltip>
-                    <div className="text-xs text-slate-500 font-bold">Personalizada</div>
+                    <div className="text-xs text-muted font-bold">Personalizada</div>
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/10 px-4 py-3">
-                  <div className="text-xs text-slate-500 font-black uppercase tracking-widest">Preview</div>
+                <div className="mt-4 rounded-2xl border border-base bg-bg/10 px-4 py-3">
+                  <div className="text-xs text-muted font-black uppercase tracking-widest">Preview</div>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="text-lg">{novaListaIcone || '📌'}</span>
-                    <span className="text-white font-black" style={{ color: novaListaCor || '#8b5cf6' }}>
+                    <span className="text-primary font-black" style={{ color: novaListaCor || '#8b5cf6' }}>
                       {novaListaNome.trim() || 'Minha Lista'}
                     </span>
                   </div>
                 </div>
 
-                <div className="text-xs text-slate-500 font-bold mt-2">
+                <div className="text-xs text-muted font-bold mt-2">
                   Essa cor aparece como destaque no sistema.
                 </div>
               </div>

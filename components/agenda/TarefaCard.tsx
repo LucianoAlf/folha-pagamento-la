@@ -70,8 +70,8 @@ export const TarefaCard: React.FC<{
       }}
       className={cn(
         'group p-3 md:p-4 rounded-2xl border transition-all cursor-pointer select-none mb-2 md:mb-0',
-        'bg-slate-950/95 md:bg-slate-950/95 hover:bg-slate-900/95 hover:border-slate-700/60',
-        isSelected ? 'bg-violet-500/10 border-violet-500/25 shadow-lg shadow-violet-500/5' : 'border-slate-800/50',
+        'bg-bg/95 md:bg-bg/95 hover:bg-surface/95 hover:border-strong/60',
+        isSelected ? 'bg-accent/10 border-accent/25 shadow-lg shadow-accent/5' : 'border-base/50',
         tarefa.status === 'concluida' ? 'opacity-70' : '',
         'active:scale-[0.98] active:brightness-90 touch-none'
       )}
@@ -86,8 +86,8 @@ export const TarefaCard: React.FC<{
           className={cn(
             'w-6 h-6 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center mt-0.5 shrink-0 transition-all',
             tarefa.status === 'concluida'
-              ? 'bg-emerald-500 border-emerald-500'
-              : 'border-slate-600 hover:border-violet-400'
+              ? 'bg-success border-success'
+              : 'border-strong hover:border-accent'
           )}
           aria-label={tarefa.status === 'concluida' ? 'Reabrir tarefa' : 'Concluir tarefa'}
         >
@@ -99,8 +99,8 @@ export const TarefaCard: React.FC<{
             <div className="min-w-0 flex-1">
               <h3
                 className={cn(
-                  'text-sm md:text-base text-white font-black leading-snug truncate md:max-w-none',
-                  tarefa.status === 'concluida' ? 'line-through text-slate-400' : ''
+                  'text-sm md:text-base text-primary font-black leading-snug truncate md:max-w-none',
+                  tarefa.status === 'concluida' ? 'line-through text-muted' : ''
                 )}
               >
                 {tarefa.titulo}
@@ -108,20 +108,20 @@ export const TarefaCard: React.FC<{
               
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[10px] md:text-xs font-bold">
                 {tarefa.vencimento_em ? (
-                  <span className="text-slate-500 flex items-center gap-1">
+                  <span className="text-muted flex items-center gap-1">
                     <Calendar className="w-3 h-3 shrink-0" />
                     {formatWhen(tarefa.vencimento_em)}
                   </span>
                 ) : null}
-                
+
                 {showOriginList && (
-                  <span className="text-slate-500">
+                  <span className="text-muted">
                     <span className="opacity-60">Lista:</span> {originList?.nome || 'Sem lista'}
                   </span>
                 )}
 
                 {progress.total > 0 && (
-                  <span className="text-violet-400/80 flex items-center gap-1">
+                  <span className="text-accent/80 flex items-center gap-1">
                     <ChevronRight className="w-3 h-3 shrink-0" />
                     {progress.done}/{progress.total}
                   </span>
@@ -131,17 +131,17 @@ export const TarefaCard: React.FC<{
 
             <div className="flex items-center gap-1 shrink-0 -mt-1 -mr-1">
               {isImportant && (
-                <div className="p-2 text-amber-400">
+                <div className="p-2 text-warning">
                   <Star size={16} fill="currentColor" />
                 </div>
               )}
-              
+
               <Popover.Root>
                 <Popover.Trigger asChild>
                   <button
                     type="button"
                     onClick={(e) => e.stopPropagation()}
-                    className="w-9 h-9 rounded-2xl border border-transparent hover:border-slate-700 hover:bg-slate-900/40 flex items-center justify-center text-slate-500 hover:text-white transition-all"
+                    className="w-9 h-9 rounded-2xl border border-transparent hover:border-strong hover:bg-surface/40 flex items-center justify-center text-muted hover:text-primary transition-all"
                     aria-label="Ações"
                   >
                     <MoreVertical className="w-4 h-4" />
@@ -152,7 +152,7 @@ export const TarefaCard: React.FC<{
                     sideOffset={8}
                     align="end"
                     // Precisa ficar acima do Modal (z ~12000/13000)
-                    className="z-[20000] w-56 rounded-2xl border border-slate-800 bg-slate-950/95 shadow-2xl overflow-hidden"
+                    className="z-[20000] w-56 rounded-2xl border border-base bg-bg/95 shadow-2xl overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {tarefa.vinculo_tipo && tarefa.vinculo_id ? (
@@ -160,7 +160,7 @@ export const TarefaCard: React.FC<{
                         {tarefa.vinculo_tipo === 'conta_pagar' ? (
                           <button
                             type="button"
-                            className="w-full px-4 py-3 text-left text-sm font-bold text-emerald-200 hover:bg-emerald-500/10 flex items-center gap-2"
+                            className="w-full px-4 py-3 text-left text-sm font-bold text-success-subtle hover:bg-success/10 flex items-center gap-2"
                             onClick={() => {
                               // Se estiver dentro do modal "Tarefas do dia", fecha antes de abrir o fluxo
                               window.dispatchEvent(new CustomEvent('agenda:close-daymodal'));
@@ -171,30 +171,30 @@ export const TarefaCard: React.FC<{
                               );
                             }}
                           >
-                            <CreditCard className="w-4 h-4 text-emerald-300" />
+                            <CreditCard className="w-4 h-4 text-success-subtle" />
                             Registrar pagamento
                           </button>
                         ) : null}
 
                         <button
                           type="button"
-                          className="w-full px-4 py-3 text-left text-sm font-bold text-slate-200 hover:bg-slate-900/60 flex items-center gap-2"
+                          className="w-full px-4 py-3 text-left text-sm font-bold text-secondary hover:bg-surface/60 flex items-center gap-2"
                           onClick={() => {
                             window.dispatchEvent(new CustomEvent('agenda:close-daymodal'));
                             if (tarefa.vinculo_tipo === 'conta_pagar') navigateTo('contas', 'visao-geral');
                             if (tarefa.vinculo_tipo === 'folha_pagamento') navigateTo('folha', 'dashboard');
                           }}
                         >
-                          <ExternalLink className="w-4 h-4 text-slate-400" />
+                          <ExternalLink className="w-4 h-4 text-muted" />
                           Ir para origem
                         </button>
-                        <div className="h-px bg-slate-800/70" />
+                        <div className="h-px bg-base/70" />
                       </>
                     ) : tarefa.categoria === 'financeiro' ? (
                       <>
                         <button
                           type="button"
-                          className="w-full px-4 py-3 text-left text-sm font-bold text-violet-200 hover:bg-violet-500/10 flex items-center gap-2"
+                          className="w-full px-4 py-3 text-left text-sm font-bold text-accent-subtle hover:bg-accent/10 flex items-center gap-2"
                           onClick={() => {
                             // Fecha o modal do dia para não ficar "atrás"
                             window.dispatchEvent(new CustomEvent('agenda:close-daymodal'));
@@ -203,28 +203,28 @@ export const TarefaCard: React.FC<{
                             );
                           }}
                         >
-                          <ExternalLink className="w-4 h-4 text-violet-300" />
+                          <ExternalLink className="w-4 h-4 text-accent-subtle" />
                           Vincular a uma conta
                         </button>
-                        <div className="h-px bg-slate-800/70" />
+                        <div className="h-px bg-base/70" />
                       </>
                     ) : null}
                     <button
                       type="button"
-                      className="w-full px-4 py-3 text-left text-sm font-bold text-slate-200 hover:bg-slate-900/60 flex items-center gap-2"
+                      className="w-full px-4 py-3 text-left text-sm font-bold text-secondary hover:bg-surface/60 flex items-center gap-2"
                       onClick={onSelect}
                     >
-                      <Pencil className="w-4 h-4 text-slate-400" />
+                      <Pencil className="w-4 h-4 text-muted" />
                       Editar detalhes
                     </button>
                     <button
                       type="button"
-                      className="w-full px-4 py-3 text-left text-sm font-bold text-rose-200 hover:bg-rose-500/10 flex items-center gap-2"
+                      className="w-full px-4 py-3 text-left text-sm font-bold text-danger-subtle hover:bg-danger/10 flex items-center gap-2"
                       onClick={() => {
                         onDelete();
                       }}
                     >
-                      <Trash2 className="w-4 h-4 text-rose-300" />
+                      <Trash2 className="w-4 h-4 text-danger-subtle" />
                       Excluir
                     </button>
                   </Popover.Content>

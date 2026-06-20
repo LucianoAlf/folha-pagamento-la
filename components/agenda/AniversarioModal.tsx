@@ -73,7 +73,7 @@ export const AniversarioModal: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-2xl text-sm font-black text-slate-300 hover:text-white hover:bg-slate-800 transition-all"
+            className="px-5 py-2.5 rounded-2xl text-sm font-black text-secondary hover:text-primary hover:bg-surface-2 transition-all"
           >
             Cancelar
           </button>
@@ -84,8 +84,8 @@ export const AniversarioModal: React.FC<{
             className={cn(
               'px-6 py-2.5 rounded-2xl text-sm font-black transition-all',
               saving || !nome.trim() || !dataNascimento
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                : 'bg-pink-600 hover:bg-pink-500 text-white shadow-lg shadow-pink-600/20'
+                ? 'bg-surface-2 text-muted cursor-not-allowed'
+                : 'bg-danger hover:bg-danger-hover text-white shadow-lg shadow-danger/20'
             )}
           >
             {saving ? 'Salvando…' : isEdit ? 'Salvar' : 'Adicionar'}
@@ -95,14 +95,14 @@ export const AniversarioModal: React.FC<{
     >
       <div className="space-y-6">
         {error && (
-          <div className="rounded-2xl bg-rose-500/10 border border-rose-500/20 px-4 py-3 text-sm text-rose-200 font-bold">
+          <div className="rounded-2xl bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger-subtle font-bold">
             {error}
           </div>
         )}
 
         {/* Nome */}
         <div>
-          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Nome</label>
+          <label className="block text-xs font-black text-muted uppercase tracking-widest mb-2">Nome</label>
           <input
             type="text"
             value={nome}
@@ -110,19 +110,19 @@ export const AniversarioModal: React.FC<{
             disabled={isColaborador}
             placeholder="Ex: João Silva"
             className={cn(
-              'w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white text-sm font-bold placeholder:text-slate-600',
-              'focus:ring-2 focus:ring-pink-500/40 focus:border-pink-500/40 outline-none transition-all',
+              'w-full px-4 py-3 rounded-xl bg-surface/50 border border-strong text-primary text-sm font-bold placeholder:text-muted',
+              'focus:ring-2 focus:ring-danger/40 focus:border-danger/40 outline-none transition-all',
               isColaborador && 'opacity-60 cursor-not-allowed'
             )}
           />
           {isColaborador && (
-            <p className="mt-1 text-[10px] text-slate-500 font-bold">Importado do cadastro de colaboradores</p>
+            <p className="mt-1 text-[10px] text-muted font-bold">Importado do cadastro de colaboradores</p>
           )}
         </div>
 
         {/* Data de Nascimento */}
         <div>
-          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Data de Nascimento</label>
+          <label className="block text-xs font-black text-muted uppercase tracking-widest mb-2">Data de Nascimento</label>
           <DatePicker
             value={dataNascimento}
             onChange={(v) => setDataNascimento(v)}
@@ -135,7 +135,7 @@ export const AniversarioModal: React.FC<{
 
         {/* Tipo de Lembrete */}
         <div>
-          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Tipo de Lembrete</label>
+          <label className="block text-xs font-black text-muted uppercase tracking-widest mb-2">Tipo de Lembrete</label>
           <CustomSelect
             value={lembreteTipo}
             onValueChange={(v) => setLembreteTipo(v as LembreteTipo)}
@@ -147,8 +147,8 @@ export const AniversarioModal: React.FC<{
         {/* Lembrete Ativo */}
         <div className="flex items-center justify-between py-2">
           <div>
-            <div className="text-sm font-black text-white">Lembrete ativo</div>
-            <div className="text-xs text-slate-500 font-bold mt-0.5">Receber notificações sobre este aniversário</div>
+            <div className="text-sm font-black text-primary">Lembrete ativo</div>
+            <div className="text-xs text-muted font-bold mt-0.5">Receber notificações sobre este aniversário</div>
           </div>
           <ToggleSwitch
             checked={lembreteAtivo}
@@ -159,15 +159,15 @@ export const AniversarioModal: React.FC<{
 
         {/* Notas */}
         <div>
-          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Notas (opcional)</label>
+          <label className="block text-xs font-black text-muted uppercase tracking-widest mb-2">Notas (opcional)</label>
           <textarea
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
             placeholder="Ex: Gosta de chocolate, presente já comprado..."
             rows={3}
             className={cn(
-              'w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-700 text-white text-sm font-bold placeholder:text-slate-600',
-              'focus:ring-2 focus:ring-pink-500/40 focus:border-pink-500/40 outline-none transition-all resize-none'
+              'w-full px-4 py-3 rounded-xl bg-surface/50 border border-strong text-primary text-sm font-bold placeholder:text-muted',
+              'focus:ring-2 focus:ring-danger/40 focus:border-danger/40 outline-none transition-all resize-none'
             )}
           />
         </div>

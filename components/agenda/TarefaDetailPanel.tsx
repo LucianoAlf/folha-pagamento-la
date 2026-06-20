@@ -201,15 +201,15 @@ export const TarefaDetailPanel: React.FC<{
 
   const containerClass = cn(
     compact ? 'w-full' : 'w-[400px]',
-    'shrink-0 border-l border-slate-800/70 bg-slate-950/95 h-full'
+    'shrink-0 border-l border-base/70 bg-bg/95 h-full'
   );
 
   return (
     <aside className={containerClass}>
       <div className="h-full flex flex-col">
-        <div className="px-5 py-4 border-b border-slate-800/70 bg-slate-950/30 flex items-center justify-between gap-3">
+        <div className="px-5 py-4 border-b border-base/70 bg-bg/30 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-white font-black truncate">Detalhes</div>
+            <div className="text-primary font-black truncate">Detalhes</div>
             <div className="flex items-center gap-2 mt-1">
               {saving ? <Badge variant="info">Salvando…</Badge> : null}
               {saved ? <Badge variant="success">Salvo</Badge> : null}
@@ -220,7 +220,7 @@ export const TarefaDetailPanel: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="w-11 h-11 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-300 hover:text-white hover:bg-slate-900/40 flex items-center justify-center transition-all"
+              className="w-11 h-11 rounded-2xl border border-base bg-surface/20 text-secondary hover:text-primary hover:bg-surface/40 flex items-center justify-center transition-all"
               aria-label="Fechar"
             >
               <X className="w-5 h-5" />
@@ -250,7 +250,7 @@ export const TarefaDetailPanel: React.FC<{
                 }}
                 className={cn(
                   'w-6 h-6 rounded-full border-2 flex items-center justify-center mt-1 shrink-0',
-                  draft.status === 'concluida' ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600 hover:border-violet-400'
+                  draft.status === 'concluida' ? 'bg-success border-success' : 'border-strong hover:border-accent'
                 )}
                 aria-label={draft.status === 'concluida' ? 'Reabrir tarefa' : 'Concluir tarefa'}
               >
@@ -260,8 +260,8 @@ export const TarefaDetailPanel: React.FC<{
                 value={draft.titulo}
                 onChange={(e) => scheduleSave({ titulo: e.target.value })}
                 className={cn(
-                  'w-full bg-transparent border border-slate-800/60 rounded-2xl px-4 py-3 text-white font-black outline-none focus:ring-2 focus:ring-violet-500/50',
-                  draft.status === 'concluida' ? 'line-through text-slate-400' : ''
+                  'w-full bg-transparent border border-base/60 rounded-2xl px-4 py-3 text-primary font-black outline-none focus:ring-2 focus:ring-accent/50',
+                  draft.status === 'concluida' ? 'line-through text-muted' : ''
                 )}
               />
             </div>
@@ -269,8 +269,8 @@ export const TarefaDetailPanel: React.FC<{
 
           {/* Linked actions (premium) */}
           {draft.vinculo_tipo && draft.vinculo_id ? (
-            <div className="rounded-2xl border border-slate-800/60 bg-slate-950/60 p-4">
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">
+            <div className="rounded-2xl border border-base/60 bg-bg/60 p-4">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-3">
                 Ações rápidas
               </div>
 
@@ -285,7 +285,7 @@ export const TarefaDetailPanel: React.FC<{
                         })
                       );
                     }}
-                    className="w-full px-4 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/10"
+                    className="w-full px-4 py-3 rounded-2xl bg-success hover:bg-success-hover text-white font-black flex items-center justify-center gap-2 shadow-lg shadow-success/10"
                   >
                     <CreditCard className="w-4 h-4" />
                     Registrar pagamento
@@ -294,9 +294,9 @@ export const TarefaDetailPanel: React.FC<{
                   <button
                     type="button"
                     onClick={() => navigateTo('contas', 'visao-geral')}
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 text-slate-200 font-black flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 rounded-2xl border border-base bg-surface/30 hover:bg-surface/50 text-secondary font-black flex items-center justify-center gap-2"
                   >
-                    <ExternalLink className="w-4 h-4 text-slate-400" />
+                    <ExternalLink className="w-4 h-4 text-muted" />
                     Ir para Contas a Pagar
                   </button>
                 </div>
@@ -305,9 +305,9 @@ export const TarefaDetailPanel: React.FC<{
                   <button
                     type="button"
                     onClick={() => navigateTo('folha', 'dashboard')}
-                    className="w-full px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/30 hover:bg-slate-900/50 text-slate-200 font-black flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 rounded-2xl border border-base bg-surface/30 hover:bg-surface/50 text-secondary font-black flex items-center justify-center gap-2"
                   >
-                    <ExternalLink className="w-4 h-4 text-slate-400" />
+                    <ExternalLink className="w-4 h-4 text-muted" />
                     Ir para Folha de Pagamento
                   </button>
                 </div>
@@ -316,12 +316,12 @@ export const TarefaDetailPanel: React.FC<{
           ) : (
             // Cinematográfico: se a tarefa é Financeiro mas não está vinculada, oferecer vínculo (pra liberar pagamento 1-clique)
             draft.categoria === 'financeiro' ? (
-              <div className="rounded-2xl border border-dashed border-slate-800/70 bg-slate-950/40 p-4">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+              <div className="rounded-2xl border border-dashed border-base/70 bg-bg/40 p-4">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">
                   Integração Financeiro
                 </div>
-                <div className="text-xs text-slate-500 font-bold mb-3">
-                  Essa tarefa ainda não está conectada a uma conta do “Contas a Pagar”. Vincule para liberar “Registrar pagamento”.
+                <div className="text-xs text-muted font-bold mb-3">
+                  Essa tarefa ainda não está conectada a uma conta do "Contas a Pagar". Vincule para liberar "Registrar pagamento".
                 </div>
                 <button
                   type="button"
@@ -348,7 +348,7 @@ export const TarefaDetailPanel: React.FC<{
                       setLinkLoading(false);
                     }
                   }}
-                  className="w-full px-4 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black"
+                  className="w-full px-4 py-3 rounded-2xl bg-accent hover:bg-accent-hover text-white font-black"
                 >
                   Vincular a uma conta
                 </button>
@@ -358,19 +358,19 @@ export const TarefaDetailPanel: React.FC<{
 
           {/* Due */}
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">
               <Clock className="w-3.5 h-3.5" />
               Vencimento
             </div>
             <div className="grid grid-cols-1 gap-2">
               <DatePicker value={datePart} onChange={(d) => setDue(d, timePart, draft.dia_inteiro)} placeholder="Sem data" />
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                <label className="flex items-center gap-2 text-xs font-bold text-muted">
                   <input
                     type="checkbox"
                     checked={draft.dia_inteiro}
                     onChange={(e) => setDue(datePart, timePart, e.target.checked)}
-                    className="accent-violet-500"
+                    className="accent-accent"
                   />
                   Dia inteiro
                 </label>
@@ -379,7 +379,7 @@ export const TarefaDetailPanel: React.FC<{
                     type="time"
                     value={timePart}
                     onChange={(e) => setDue(datePart, e.target.value, draft.dia_inteiro)}
-                    className="flex-1 bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
+                    className="flex-1 bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
                   />
                 ) : null}
               </div>
@@ -389,7 +389,7 @@ export const TarefaDetailPanel: React.FC<{
           {/* Priority + Category */}
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Prioridade</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Prioridade</div>
               <CustomSelect
                 value={draft.prioridade}
                 onValueChange={(v) => scheduleSave({ prioridade: v as any })}
@@ -397,7 +397,7 @@ export const TarefaDetailPanel: React.FC<{
               />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Categoria</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Categoria</div>
               <CustomSelect
                 value={draft.categoria}
                 onValueChange={(v) => scheduleSave({ categoria: v as any })}
@@ -409,7 +409,7 @@ export const TarefaDetailPanel: React.FC<{
           {/* Unit + List */}
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Unidade</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Unidade</div>
               <CustomSelect
                 value={draft.unidade || ''}
                 onValueChange={(v) => scheduleSave({ unidade: (v || null) as any })}
@@ -417,7 +417,7 @@ export const TarefaDetailPanel: React.FC<{
               />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Lista</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Lista</div>
               <CustomSelect
                 value={draft.lista_id || ''}
                 onValueChange={(v) => scheduleSave({ lista_id: (v || null) as any })}
@@ -429,7 +429,7 @@ export const TarefaDetailPanel: React.FC<{
           {/* Subtasks */}
           <div>
             <div className="flex items-center justify-between gap-3 mb-2">
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Subtarefas</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Subtarefas</div>
             </div>
 
             <div className="flex items-center gap-2 mb-3">
@@ -454,7 +454,7 @@ export const TarefaDetailPanel: React.FC<{
                   );
                 }}
                 placeholder="Adicionar subtarefa…"
-                className="flex-1 bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
+                className="flex-1 bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
               />
               <button
                 type="button"
@@ -473,7 +473,7 @@ export const TarefaDetailPanel: React.FC<{
                     { error: 'Não foi possível adicionar a subtarefa.' }
                   );
                 }}
-                className="w-11 h-11 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center shrink-0"
+                className="w-11 h-11 rounded-2xl bg-accent hover:bg-accent-hover text-white flex items-center justify-center shrink-0"
                 aria-label="Adicionar subtarefa"
               >
                 <Plus className="w-5 h-5" />
@@ -482,7 +482,7 @@ export const TarefaDetailPanel: React.FC<{
 
             <div className="space-y-2">
               {(draft.subtarefas || []).length === 0 ? (
-                <div className="text-sm text-slate-500 font-bold">Sem checklist.</div>
+                <div className="text-sm text-muted font-bold">Sem checklist.</div>
               ) : (
                 (draft.subtarefas || [])
                   .slice()
@@ -550,19 +550,19 @@ export const TarefaDetailPanel: React.FC<{
 
           {/* Description */}
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Descrição</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Descrição</div>
             <textarea
               value={draft.descricao || ''}
               onChange={(e) => scheduleSave({ descricao: e.target.value })}
               spellCheck={false}
-              className="w-full min-h-[110px] bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
+              className="w-full min-h-[110px] bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50 resize-none"
               placeholder="Detalhes, contexto, links, passos…"
             />
           </div>
 
           {/* Reminders */}
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Lembrete</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Lembrete</div>
             <CustomSelect
               value={String((draft.lembrete_minutos || [30])[0] ?? 30)}
               onValueChange={(v) => scheduleSave({ lembrete_minutos: [Number(v) || 30] } as any)}
@@ -575,14 +575,14 @@ export const TarefaDetailPanel: React.FC<{
                 { value: '1440', label: '1 dia antes' },
               ]}
             />
-            <div className="text-xs text-slate-500 font-bold mt-2 flex items-center gap-2">
+            <div className="text-xs text-muted font-bold mt-2 flex items-center gap-2">
               <ChevronRight className="w-3.5 h-3.5" />
               Envio via WhatsApp será implementado na próxima fase (cron + Edge Function).
             </div>
           </div>
 
           {/* Danger */}
-          <div className="pt-2 border-t border-slate-800/70">
+          <div className="pt-2 border-t border-base/70">
             <button
               type="button"
               onClick={() => {
@@ -598,7 +598,7 @@ export const TarefaDetailPanel: React.FC<{
                   }
                 );
               }}
-              className="w-full px-4 py-3 rounded-2xl border border-rose-500/25 bg-rose-500/10 hover:bg-rose-500/15 text-rose-200 font-black flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 rounded-2xl border border-danger/25 bg-danger/10 hover:bg-danger/15 text-danger-subtle font-black flex items-center justify-center gap-2"
             >
               <Trash2 className="w-4 h-4" />
               Excluir tarefa
@@ -606,17 +606,17 @@ export const TarefaDetailPanel: React.FC<{
           </div>
 
           {/* Meta */}
-          <div className="text-[10px] text-slate-600 font-bold">
+          <div className="text-[10px] text-muted font-bold">
             Criada em {new Date(draft.created_at).toLocaleString('pt-BR')}
           </div>
         </div>
 
-        <div className="px-5 py-4 border-t border-slate-800/70 bg-slate-950/30 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
+        <div className="px-5 py-4 border-t border-base/70 bg-bg/30 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-muted text-xs font-bold">
             <Save className="w-4 h-4" />
             Auto-save (500ms)
           </div>
-          {error ? <div className="text-xs font-bold text-rose-300">{error}</div> : null}
+          {error ? <div className="text-xs font-bold text-danger-subtle">{error}</div> : null}
         </div>
       </div>
 
@@ -633,14 +633,14 @@ export const TarefaDetailPanel: React.FC<{
         className="max-w-3xl"
         footer={
           <div className="flex items-center justify-between gap-4 w-full">
-            <div className="text-xs text-slate-500 font-bold">
-              {linkError ? <span className="text-rose-300">{linkError}</span> : null}
+            <div className="text-xs text-muted font-bold">
+              {linkError ? <span className="text-danger-subtle">{linkError}</span> : null}
             </div>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setLinkModalOpen(false)}
-                className="px-5 py-3 rounded-2xl bg-slate-900/40 border border-slate-800 text-slate-200 font-black hover:bg-slate-900/60"
+                className="px-5 py-3 rounded-2xl bg-surface/40 border border-base text-secondary font-black hover:bg-surface/60"
               >
                 Cancelar
               </button>
@@ -662,7 +662,7 @@ export const TarefaDetailPanel: React.FC<{
                     setLinkLoading(false);
                   }
                 }}
-                className="px-6 py-3 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-black disabled:opacity-50"
+                className="px-6 py-3 rounded-2xl bg-accent hover:bg-accent-hover text-white font-black disabled:opacity-50"
               >
                 Vincular
               </button>
@@ -671,21 +671,21 @@ export const TarefaDetailPanel: React.FC<{
         }
       >
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-800/70 bg-slate-950/60 p-4">
-            <div className="text-xs text-slate-400 font-bold">
-              Tarefa: <span className="text-white">{draft.titulo}</span>
+          <div className="rounded-2xl border border-base/70 bg-bg/60 p-4">
+            <div className="text-xs text-muted font-bold">
+              Tarefa: <span className="text-primary">{draft.titulo}</span>
             </div>
           </div>
 
           {linkLoading ? (
-            <div className="text-sm text-slate-400 font-bold">Carregando contas pendentes…</div>
+            <div className="text-sm text-muted font-bold">Carregando contas pendentes…</div>
           ) : linkContas.length === 0 ? (
-            <div className="text-sm text-slate-400 font-bold">
+            <div className="text-sm text-muted font-bold">
               Nenhuma conta pendente encontrada na janela (últimos 90 dias e próximos 45 dias).
             </div>
           ) : (
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">
                 Selecione a conta
               </div>
               <CustomSelect
@@ -697,8 +697,8 @@ export const TarefaDetailPanel: React.FC<{
                   label: `${c.descricao} • ${c.data_vencimento} • ${formatCurrencyBR(Number(c.valor) || 0)}`,
                 }))}
               />
-              <div className="text-[11px] text-slate-500 font-bold mt-2">
-                Dica: após vincular, o menu ⋮ e o painel vão mostrar “Registrar pagamento”.
+              <div className="text-[11px] text-muted font-bold mt-2">
+                Dica: após vincular, o menu ⋮ e o painel vão mostrar "Registrar pagamento".
               </div>
             </div>
           )}

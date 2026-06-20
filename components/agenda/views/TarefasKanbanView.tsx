@@ -91,8 +91,8 @@ export const TarefasKanbanView: React.FC<{
               <div
                 key={col.status}
                 className={cn(
-                  "min-w-0 rounded-3xl border bg-slate-950/95 overflow-hidden flex flex-col transition-colors",
-                  dragOverStatus === col.status ? "border-violet-500/35 ring-1 ring-violet-500/15" : "border-slate-800/60"
+                  "min-w-0 rounded-3xl border bg-bg/95 overflow-hidden flex flex-col transition-colors",
+                  dragOverStatus === col.status ? "border-accent/35 ring-1 ring-accent/15" : "border-base/60"
                 )}
                 onDragOver={(e) => {
                   // Necessário para permitir drop
@@ -116,26 +116,26 @@ export const TarefasKanbanView: React.FC<{
                   onMoveStatus(t, col.status);
                 }}
               >
-                <div className="px-4 py-3 border-b border-slate-800/60 bg-slate-950/30 flex items-center justify-between gap-3">
+                <div className="px-4 py-3 border-b border-base/60 bg-bg/30 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn('w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0', meta.bg, meta.text, 'border-slate-800')}>
+                    <div className={cn('w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0', meta.bg, meta.text, 'border-base')}>
                       {col.icon}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-white font-black truncate">{col.label || meta.label}</div>
-                      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">
+                      <div className="text-primary font-black truncate">{col.label || meta.label}</div>
+                      <div className="text-[10px] text-muted font-bold uppercase tracking-[0.2em]">
                         {list.length} item{list.length === 1 ? '' : 's'}
                       </div>
                     </div>
                   </div>
-                  <span className={cn('px-2 py-1 rounded-full text-[10px] font-black border', meta.bg, meta.text, 'border-slate-800')}>
+                  <span className={cn('px-2 py-1 rounded-full text-[10px] font-black border', meta.bg, meta.text, 'border-base')}>
                     {list.length}
                   </span>
                 </div>
 
                 <div className="p-3 space-y-2 overflow-y-auto flex-1 min-h-0">
                   {list.length === 0 ? (
-                    <div className="px-3 py-10 text-center text-slate-600 font-bold text-sm">
+                    <div className="px-3 py-10 text-center text-muted font-bold text-sm">
                       Nenhuma tarefa
                     </div>
                   ) : (
@@ -165,8 +165,8 @@ export const TarefasKanbanView: React.FC<{
                             onDragEnd={() => setDragOverStatus(null)}
                             className={cn(
                               'group rounded-2xl border p-3 transition-all cursor-pointer select-none',
-                              'bg-slate-900/20 hover:bg-slate-800/95 hover:border-slate-700/60',
-                              selected ? 'border-violet-500/35 ring-1 ring-violet-500/20' : 'border-slate-800/60',
+                              'bg-surface/20 hover:bg-surface-2/95 hover:border-strong/60',
+                              selected ? 'border-accent/35 ring-1 ring-accent/20' : 'border-base/60',
                               t.status === 'concluida' ? 'opacity-70' : '',
                               'cursor-grab active:cursor-grabbing'
                             )}
@@ -175,20 +175,20 @@ export const TarefasKanbanView: React.FC<{
                               <div className="min-w-0">
                                 <div
                                   className={cn(
-                                    'text-white font-black leading-snug line-clamp-2',
-                                    t.status === 'concluida' ? 'line-through text-slate-400' : ''
+                                    'text-primary font-black leading-snug line-clamp-2',
+                                    t.status === 'concluida' ? 'line-through text-muted' : ''
                                   )}
                                 >
                                   {t.titulo}
                                 </div>
                                 <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-wider">
-                                  <span className={cn('px-2 py-0.5 rounded-full border normal-case tracking-normal', prioridade.bg, prioridade.text, 'border-slate-800')}>
+                                  <span className={cn('px-2 py-0.5 rounded-full border normal-case tracking-normal', prioridade.bg, prioridade.text, 'border-base')}>
                                     <span className="inline-flex items-center gap-1.5">
                                       <PrioridadeIcon className="w-3.5 h-3.5" />
                                       {prioridade.label}
                                     </span>
                                   </span>
-                                  <span className={cn('px-2 py-0.5 rounded-full border normal-case tracking-normal', categoria.bg, categoria.text, 'border-slate-800')}>
+                                  <span className={cn('px-2 py-0.5 rounded-full border normal-case tracking-normal', categoria.bg, categoria.text, 'border-base')}>
                                     <span className="inline-flex items-center gap-1.5">
                                       <CategoriaIcon className="w-3.5 h-3.5" />
                                       {categoria.label}
@@ -196,7 +196,7 @@ export const TarefasKanbanView: React.FC<{
                                   </span>
                                 </div>
                                 {t.vencimento_em ? (
-                                  <div className="mt-2 text-[11px] font-bold text-slate-400">
+                                  <div className="mt-2 text-[11px] font-bold text-muted">
                                     <span className="inline-flex items-center gap-1.5">
                                       <Calendar className="w-3.5 h-3.5" />
                                       {formatWhenShort(t.vencimento_em)}
@@ -211,7 +211,7 @@ export const TarefasKanbanView: React.FC<{
                                   <button
                                     type="button"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="w-9 h-9 rounded-2xl border border-transparent hover:border-slate-700 hover:bg-slate-900/40 flex items-center justify-center text-slate-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                                    className="w-9 h-9 rounded-2xl border border-transparent hover:border-strong hover:bg-surface/40 flex items-center justify-center text-muted hover:text-primary transition-all opacity-0 group-hover:opacity-100"
                                     aria-label="Ações"
                                   >
                                     <MoreVertical className="w-4 h-4" />
@@ -222,12 +222,12 @@ export const TarefasKanbanView: React.FC<{
                                     sideOffset={8}
                                     align="end"
                                     // Precisa ficar acima do Modal (z ~12000/13000)
-                                    className="z-[20000] w-56 rounded-2xl border border-slate-800 bg-slate-950/95 shadow-2xl overflow-hidden"
+                                    className="z-[20000] w-56 rounded-2xl border border-base bg-bg/95 shadow-2xl overflow-hidden"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <button
                                       type="button"
-                                      className="w-full px-4 py-3 text-left text-sm font-bold text-slate-200 hover:bg-slate-900/60 flex items-center gap-2"
+                                      className="w-full px-4 py-3 text-left text-sm font-bold text-secondary hover:bg-surface/60 flex items-center gap-2"
                                       onClick={() => onSelect(t)}
                                     >
                                       Editar detalhes
@@ -235,16 +235,16 @@ export const TarefasKanbanView: React.FC<{
                                     {t.status !== 'concluida' ? (
                                       <button
                                         type="button"
-                                        className="w-full px-4 py-3 text-left text-sm font-bold text-emerald-200 hover:bg-emerald-500/10 flex items-center gap-2"
+                                        className="w-full px-4 py-3 text-left text-sm font-bold text-success-subtle hover:bg-success/10 flex items-center gap-2"
                                         onClick={() => onMoveStatus(t, 'concluida')}
                                       >
-                                        <Check className="w-4 h-4 text-emerald-300" />
+                                        <Check className="w-4 h-4 text-success-subtle" />
                                         Concluir
                                       </button>
                                     ) : null}
                                     <button
                                       type="button"
-                                      className="w-full px-4 py-3 text-left text-sm font-bold text-rose-200 hover:bg-rose-500/10 flex items-center gap-2"
+                                      className="w-full px-4 py-3 text-left text-sm font-bold text-danger-subtle hover:bg-danger/10 flex items-center gap-2"
                                       onClick={() => onDelete(t)}
                                     >
                                       Excluir
@@ -271,9 +271,9 @@ export const TarefasKanbanView: React.FC<{
                       const ordered = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 
                       return ordered.map((g) => (
-                        <div key={g.key} className="rounded-2xl border border-slate-800/60 bg-slate-950/10 overflow-hidden">
+                        <div key={g.key} className="rounded-2xl border border-base/60 bg-bg/10 overflow-hidden">
                           <div
-                            className="px-3 py-2 border-b border-slate-800/60 flex items-center justify-between gap-2"
+                            className="px-3 py-2 border-b border-base/60 flex items-center justify-between gap-2"
                             style={(() => {
                               const first: any = g.items[0] as any;
                               const color: string | undefined = first?.lista?.cor || undefined;
@@ -284,8 +284,8 @@ export const TarefasKanbanView: React.FC<{
                               } as any;
                             })()}
                           >
-                            <div className="text-[11px] font-black text-slate-100 truncate">{g.name}</div>
-                            <div className="text-[10px] font-black text-slate-500">{g.items.length}</div>
+                            <div className="text-[11px] font-black text-primary truncate">{g.name}</div>
+                            <div className="text-[10px] font-black text-muted">{g.items.length}</div>
                           </div>
                           <div className="p-2 space-y-2">{g.items.map(renderCard)}</div>
                         </div>

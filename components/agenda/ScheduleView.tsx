@@ -29,10 +29,10 @@ const WEEKDAY_ABBR: Record<number, string> = {
 };
 
 const PRIORITY_DOTS: Array<{ key: Tarefa['prioridade']; cls: string }> = [
-  { key: 'urgente', cls: 'bg-rose-500' },
-  { key: 'alta', cls: 'bg-amber-400' },
-  { key: 'media', cls: 'bg-blue-400' },
-  { key: 'baixa', cls: 'bg-slate-400' },
+  { key: 'urgente', cls: 'bg-danger' },
+  { key: 'alta', cls: 'bg-warning' },
+  { key: 'media', cls: 'bg-info' },
+  { key: 'baixa', cls: 'bg-surface-3' },
 ];
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({
@@ -141,14 +141,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   return (
     <div 
-      className="flex flex-col h-full bg-slate-950/40 rounded-3xl border border-slate-800/60 overflow-hidden backdrop-blur-md"
+      className="flex flex-col h-full bg-bg/40 rounded-3xl border border-base/60 overflow-hidden backdrop-blur-md"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* Date Strip / Header */}
-      <div className="flex border-b border-slate-800/60 bg-slate-900/40 sticky top-0 z-20">
+      <div className="flex border-b border-base/60 bg-surface/40 sticky top-0 z-20">
         {/* Espaço para a coluna de horas */}
-        <div className="w-12 md:w-20 shrink-0 border-r border-slate-800/60 flex flex-col items-center justify-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
+        <div className="w-12 md:w-20 shrink-0 border-r border-base/60 flex flex-col items-center justify-center text-[10px] font-black text-muted uppercase tracking-widest">
           {isMobile ? '' : 'GMT-3'}
         </div>
         
@@ -173,13 +173,13 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             <div 
               key={day.toISOString()} 
               className={cn(
-                "flex-1 min-w-0 py-4 flex flex-col items-center justify-center gap-1 border-r border-slate-800/60 last:border-r-0 transition-colors md:min-w-[100px]",
-                isToday(day) && "bg-violet-500/5"
+                "flex-1 min-w-0 py-4 flex flex-col items-center justify-center gap-1 border-r border-base/60 last:border-r-0 transition-colors md:min-w-[100px]",
+                isToday(day) && "bg-accent/5"
               )}
             >
               <span className={cn(
                 "text-[10px] font-bold uppercase tracking-widest",
-                isToday(day) ? "text-violet-400" : "text-slate-500"
+                isToday(day) ? "text-accent" : "text-muted"
               )}>
                 {WEEKDAY_ABBR[day.getDay()]}
               </span>
@@ -187,21 +187,21 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                 onClick={() => onSelectDate(day)}
                 className={cn(
                   "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all",
-                  isToday(day) && !isSameDay(day, selectedDate) && "text-violet-400 border border-violet-500/30",
-                  isSameDay(day, selectedDate) 
-                    ? "bg-violet-600 text-white shadow-lg shadow-violet-600/40 scale-105" 
-                    : "text-slate-200 hover:bg-slate-800"
+                  isToday(day) && !isSameDay(day, selectedDate) && "text-accent border border-accent/30",
+                  isSameDay(day, selectedDate)
+                    ? "bg-accent text-white shadow-lg shadow-accent/40 scale-105"
+                    : "text-secondary hover:bg-surface-2"
                 )}
               >
                 {format(day, 'd')}
               </button>
-              
+
               {/* Pontinhos indicativos embaixo (estilo Google) */}
               <div className="mt-2 h-2 flex items-center justify-center gap-1">
                 {dotClasses.slice(0, 3).map((c, i) => (
                   <div key={`${day.toISOString()}:dot:${i}`} className={cn('w-1.5 h-1.5 rounded-full', c)} />
                 ))}
-                {dotClasses.length > 3 ? <div className="w-1.5 h-1.5 rounded-full bg-slate-300/70" /> : null}
+                {dotClasses.length > 3 ? <div className="w-1.5 h-1.5 rounded-full bg-secondary/70" /> : null}
               </div>
             </div>
               );
@@ -212,15 +212,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
       {/* All-day tasks strip */}
       {allDayTasks.length > 0 && (
-        <div className="flex border-b border-slate-800/60 bg-slate-900/20">
-          <div className="w-12 md:w-20 shrink-0 border-r border-slate-800/60 flex items-center justify-center text-[9px] font-black text-slate-500 uppercase tracking-widest">
+        <div className="flex border-b border-base/60 bg-surface/20">
+          <div className="w-12 md:w-20 shrink-0 border-r border-base/60 flex items-center justify-center text-[9px] font-black text-muted uppercase tracking-widest">
             DIA
           </div>
           <div className="flex-1 flex overflow-x-auto md:overflow-x-hidden scrollbar-hide">
             {days.map((day) => {
               const dayAllDay = allDayTasks.filter((t) => isSameDay(parseISO(t.vencimento_em!), day));
               return (
-                <div key={`allday-${day.toISOString()}`} className="flex-1 min-w-0 border-r border-slate-800/40 last:border-r-0 p-1 md:min-w-[100px]">
+                <div key={`allday-${day.toISOString()}`} className="flex-1 min-w-0 border-r border-base/40 last:border-r-0 p-1 md:min-w-[100px]">
                   {dayAllDay.length === 0 ? (
                     <div className="h-6" />
                   ) : (
@@ -243,7 +243,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                           <Tooltip key={t.id} content={
                             <div>
                               <div className="font-bold text-xs">{t.titulo}</div>
-                              {isConta && <div className="text-[10px] text-emerald-300 mt-0.5">Clique para pagar</div>}
+                              {isConta && <div className="text-[10px] text-success-subtle mt-0.5">Clique para pagar</div>}
                             </div>
                           } side="bottom">
                             <button
@@ -252,12 +252,12 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                               className={cn(
                                 'w-full text-left px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold leading-tight truncate border-l-2 transition-all hover:brightness-110',
                                 t.status === 'concluida'
-                                  ? 'bg-emerald-900/30 text-emerald-300 border-emerald-500'
+                                  ? 'bg-success/30 text-success-subtle border-success'
                                   : isConta
-                                    ? 'bg-emerald-900/40 text-emerald-200 border-emerald-500'
+                                    ? 'bg-success/40 text-success-subtle border-success'
                                     : isFinanceiro
-                                      ? 'bg-violet-900/30 text-violet-200 border-violet-500'
-                                      : 'bg-slate-800/60 text-slate-200 border-slate-500'
+                                      ? 'bg-accent/30 text-accent-subtle border-accent'
+                                      : 'bg-surface-2/60 text-secondary border-surface-3'
                               )}
                             >
                               {(isConta || isFinanceiro) && <DollarSign size={10} className="inline mr-0.5 -mt-0.5" />}
@@ -267,7 +267,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                         );
                       })}
                       {dayAllDay.length > 3 && (
-                        <div className="text-[8px] font-black text-slate-500 px-1">+{dayAllDay.length - 3}</div>
+                        <div className="text-[8px] font-black text-muted px-1">+{dayAllDay.length - 3}</div>
                       )}
                     </div>
                   )}
@@ -281,15 +281,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       {/* Grid de Horários */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent"
+        className="flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-surface-2 scrollbar-track-transparent"
       >
         <div className="flex min-h-full" style={{ height: HOURS.length * 80 }}>
           {/* Coluna de Horas */}
-          <div className="w-12 md:w-20 shrink-0 border-r border-slate-800/60 bg-slate-900/20">
+          <div className="w-12 md:w-20 shrink-0 border-r border-base/60 bg-surface/20">
             {HOURS.map(hour => (
-              <div 
-                key={hour} 
-                className="h-20 border-b border-slate-800/40 flex items-start justify-center pt-2 text-[10px] md:text-[11px] font-black text-slate-500"
+              <div
+                key={hour}
+                className="h-20 border-b border-base/40 flex items-start justify-center pt-2 text-[10px] md:text-[11px] font-black text-muted"
               >
                 {String(hour).padStart(2, '0')}:00
               </div>
@@ -299,14 +299,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           {/* Colunas de Dias */}
           <div className="flex-1 flex relative">
             {days.map((day) => (
-              <div 
-                key={day.toISOString()} 
-                className="flex-1 min-w-0 border-r border-slate-800/40 last:border-r-0 relative md:min-w-[100px]"
+              <div
+                key={day.toISOString()}
+                className="flex-1 min-w-0 border-r border-base/40 last:border-r-0 relative md:min-w-[100px]"
               >
                 {HOURS.map(hour => (
-                  <div 
-                    key={hour} 
-                    className="h-20 border-b border-slate-800/40 transition-colors hover:bg-violet-500/5"
+                  <div
+                    key={hour}
+                    className="h-20 border-b border-base/40 transition-colors hover:bg-accent/5"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, day, hour)}
                   />
@@ -384,8 +384,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                               {format(date, 'HH:mm')}
                             </div>
                             <div className="font-bold text-xs">{t.titulo}</div>
-                            {isConta && <div className="text-[10px] text-emerald-300 mt-0.5">Clique para pagar</div>}
-                            {!isConta && t.descricao && <div className="text-[10px] text-slate-400 mt-1 line-clamp-2">{t.descricao}</div>}
+                            {isConta && <div className="text-[10px] text-success-subtle mt-0.5">Clique para pagar</div>}
+                            {!isConta && t.descricao && <div className="text-[10px] text-muted mt-1 line-clamp-2">{t.descricao}</div>}
                           </div>
                         }
                         side="top"
@@ -394,8 +394,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                           onClick={handleScheduledClick}
                           className={cn(
                             "absolute rounded-lg p-1.5 border-l-2 shadow-xl cursor-pointer transition-all hover:scale-[1.02] hover:z-10 group overflow-hidden md:rounded-xl md:p-2 md:border-l-4",
-                            CATEGORIAS[t.categoria]?.bg || "bg-slate-800/80",
-                            CATEGORIAS[t.categoria]?.text || "text-slate-200"
+                            CATEGORIAS[t.categoria]?.bg || "bg-surface-2/80",
+                            CATEGORIAS[t.categoria]?.text || "text-secondary"
                           )}
                           style={{ 
                             top: `${top}px`, 
@@ -413,9 +413,9 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                             <div className="flex items-center justify-between gap-1 mb-0.5">
                               <span className="text-[8px] font-black opacity-60 flex items-center gap-1 md:text-[10px]">
                                 {format(date, 'HH:mm')}
-                                {t.status === 'concluida' && <span className="text-emerald-400">✓</span>}
+                                {t.status === 'concluida' && <span className="text-success">✓</span>}
                               </span>
-                              {isFinanceiro && <DollarSign size={10} className="text-emerald-400 shrink-0" />}
+                              {isFinanceiro && <DollarSign size={10} className="text-success shrink-0" />}
                             </div>
                             <span className="text-[9px] font-black leading-tight mt-0.5 line-clamp-2 md:text-[11px]">
                               {t.titulo}
@@ -467,8 +467,8 @@ const TimeIndicator: React.FC = () => {
       className="absolute left-0 right-0 z-30 pointer-events-none flex items-center"
       style={{ top: `${top}px` }}
     >
-      <div className="w-2 h-2 rounded-full bg-rose-500 -ml-1 shadow-[0_0_10px_rgba(244,63,94,0.8)]" />
-      <div className="flex-1 h-0.5 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+      <div className="w-2 h-2 rounded-full bg-danger -ml-1 shadow-[0_0_10px_rgba(244,63,94,0.8)]" />
+      <div className="flex-1 h-0.5 bg-danger shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
     </div>
   );
 };

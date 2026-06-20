@@ -15,12 +15,12 @@ const getInitials = (nome: string) => {
 };
 
 const AVATAR_COLORS = [
-  'bg-pink-500/20 text-pink-300 border-pink-500/30',
-  'bg-violet-500/20 text-violet-300 border-violet-500/30',
-  'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-  'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  'bg-rose-500/20 text-rose-300 border-rose-500/30',
+  'bg-danger/20 text-danger-subtle border-danger/30',
+  'bg-accent/20 text-accent-subtle border-accent/30',
+  'bg-info/20 text-info-subtle border-info/30',
+  'bg-warning/20 text-warning-subtle border-warning/30',
+  'bg-success/20 text-success-subtle border-success/30',
+  'bg-danger/20 text-danger-subtle border-danger/30',
 ];
 
 const getAvatarColor = (nome: string) => {
@@ -57,12 +57,12 @@ export const AniversarioCard: React.FC<{
       onClick={selectable ? onToggleSelect : undefined}
       className={cn(
         'group relative flex items-center gap-4 px-4 py-3 rounded-2xl transition-all border',
-        'hover:bg-slate-800/40',
+        'hover:bg-surface-2/40',
         selectable && 'cursor-pointer',
         selected
-          ? 'bg-violet-500/10 border-violet-500/20'
+          ? 'bg-accent/10 border-accent/20'
           : isHoje
-            ? 'bg-pink-500/10 border-pink-500/20 shadow-[0_0_20px_rgba(236,72,153,0.08)]'
+            ? 'bg-danger/10 border-danger/20 shadow-[0_0_20px_rgba(236,72,153,0.08)]'
             : 'border-transparent'
       )}
     >
@@ -72,8 +72,8 @@ export const AniversarioCard: React.FC<{
           className={cn(
             'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
             selected
-              ? 'bg-violet-500 border-violet-500 text-white'
-              : 'border-slate-600 bg-transparent'
+              ? 'bg-accent border-accent text-white'
+              : 'border-strong bg-transparent'
           )}
         >
           {selected && (
@@ -97,17 +97,17 @@ export const AniversarioCard: React.FC<{
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-black text-white truncate">{aniversario.nome}</span>
+          <span className="text-sm font-black text-primary truncate">{aniversario.nome}</span>
           {aniversario.tipo === 'colaborador' && (
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 bg-slate-800/60 px-1.5 py-0.5 rounded-md">
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted bg-surface-2/60 px-1.5 py-0.5 rounded-md">
               RH
             </span>
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-slate-400 font-bold">{dataFormatada}</span>
-          <span className="text-[10px] text-slate-600">•</span>
-          <span className="text-xs text-slate-500 font-bold">
+          <span className="text-xs text-muted font-bold">{dataFormatada}</span>
+          <span className="text-[10px] text-muted">•</span>
+          <span className="text-xs text-muted font-bold">
             Faz {idade + (isHoje ? 0 : 1)} anos
           </span>
         </div>
@@ -119,8 +119,8 @@ export const AniversarioCard: React.FC<{
           <span className={cn(
             'text-[10px] font-black px-2 py-0.5 rounded-full border',
             aniversario.lembrete_ativo
-              ? 'bg-violet-500/10 border-violet-500/20 text-violet-300'
-              : 'bg-slate-800/40 border-slate-700/40 text-slate-500'
+              ? 'bg-accent/10 border-accent/20 text-accent-subtle'
+              : 'bg-surface-2/40 border-strong/40 text-muted'
           )}>
             {aniversario.lembrete_ativo ? lembrete.icone : '🔕'} {lembrete.label}
           </span>
@@ -138,7 +138,7 @@ export const AniversarioCard: React.FC<{
               onClick={(e) => e.stopPropagation()}
               className={cn(
                 'w-8 h-8 rounded-xl border flex items-center justify-center transition-all shrink-0',
-                'border-transparent bg-transparent text-slate-500 hover:text-white hover:bg-slate-900/40 hover:border-slate-700/60',
+                'border-transparent bg-transparent text-muted hover:text-primary hover:bg-surface/40 hover:border-strong/60',
                 'opacity-0 group-hover:opacity-100'
               )}
               aria-label="Ações"
@@ -150,19 +150,19 @@ export const AniversarioCard: React.FC<{
             <Popover.Content
               sideOffset={8}
               align="end"
-              className="z-[20000] w-48 rounded-2xl border border-slate-800 bg-slate-950/95 shadow-2xl overflow-hidden"
+              className="z-[20000] w-48 rounded-2xl border border-base bg-bg/95 shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 type="button"
-                className="w-full px-4 py-3 text-left text-sm font-bold text-slate-200 hover:bg-slate-900/60 flex items-center gap-2"
+                className="w-full px-4 py-3 text-left text-sm font-bold text-secondary hover:bg-surface/60 flex items-center gap-2"
                 onClick={onEdit}
               >
                 <Pencil className="w-4 h-4" /> Editar
               </button>
               <button
                 type="button"
-                className="w-full px-4 py-3 text-left text-sm font-bold text-rose-200 hover:bg-rose-500/10 flex items-center gap-2"
+                className="w-full px-4 py-3 text-left text-sm font-bold text-danger-subtle hover:bg-danger/10 flex items-center gap-2"
                 onClick={onDelete}
               >
                 <Trash2 className="w-4 h-4" /> Excluir

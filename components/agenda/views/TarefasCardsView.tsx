@@ -46,10 +46,10 @@ export const TarefasCardsView: React.FC<{
 
   if (!rows.length) {
     return (
-      <div className="h-full flex items-center justify-center text-slate-500">
+      <div className="h-full flex items-center justify-center text-muted">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-2xl bg-slate-900/40 border border-slate-800 flex items-center justify-center mx-auto mb-3">
-            <Layers className="w-6 h-6 text-slate-600" />
+          <div className="w-12 h-12 rounded-2xl bg-surface/40 border border-base flex items-center justify-center mx-auto mb-3">
+            <Layers className="w-6 h-6 text-muted" />
           </div>
           <div className="text-sm font-bold">Nenhuma tarefa para exibir</div>
         </div>
@@ -66,8 +66,8 @@ export const TarefasCardsView: React.FC<{
               <div key={g.key} className="space-y-3">
                 <div className="flex items-end justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-white font-black truncate">{g.name}</div>
-                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">
+                    <div className="text-primary font-black truncate">{g.name}</div>
+                    <div className="text-[10px] text-muted font-bold uppercase tracking-[0.2em]">
                       {g.items.length} item{g.items.length === 1 ? '' : 's'}
                     </div>
                   </div>
@@ -95,10 +95,10 @@ export const TarefasCardsView: React.FC<{
                         }}
                         className={cn(
                           'group relative rounded-2xl border transition-all cursor-pointer select-none overflow-hidden',
-                          'bg-slate-950/95 hover:bg-slate-900/95 hover:border-slate-700/60',
+                          'bg-bg/95 hover:bg-surface/95 hover:border-strong/60',
                           selected
-                            ? 'border-violet-500/35 shadow-lg shadow-violet-500/5 ring-1 ring-violet-500/20'
-                            : 'border-slate-800/60',
+                            ? 'border-accent/35 shadow-lg shadow-accent/5 ring-1 ring-accent/20'
+                            : 'border-base/60',
                           t.status === 'concluida' ? 'opacity-70' : ''
                         )}
                       >
@@ -109,13 +109,13 @@ export const TarefasCardsView: React.FC<{
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                                <span className={cn('px-2 py-0.5 rounded-full border', prioridade.bg, prioridade.text, 'border-slate-800')}>
+                                <span className={cn('px-2 py-0.5 rounded-full border', prioridade.bg, prioridade.text, 'border-base')}>
                                   <span className="inline-flex items-center gap-1.5">
                                     <PrioridadeIcon className="w-3.5 h-3.5" />
                                     {prioridade.label}
                                   </span>
                                 </span>
-                                <span className={cn('px-2 py-0.5 rounded-full border', categoria.bg, categoria.text, 'border-slate-800')}>
+                                <span className={cn('px-2 py-0.5 rounded-full border', categoria.bg, categoria.text, 'border-base')}>
                                   <span className="inline-flex items-center gap-1.5">
                                     <CategoriaIcon className="w-3.5 h-3.5" />
                                     {categoria.label}
@@ -124,7 +124,7 @@ export const TarefasCardsView: React.FC<{
                                 {t.status === 'concluida' ? (
                                   <span
                                     className={cn(
-                                      'px-2 py-0.5 rounded-full border border-slate-800',
+                                      'px-2 py-0.5 rounded-full border border-base',
                                       STATUS_TAREFA.concluida.bg,
                                       STATUS_TAREFA.concluida.text
                                     )}
@@ -139,14 +139,14 @@ export const TarefasCardsView: React.FC<{
 
                               <div
                                 className={cn(
-                                  'mt-2 text-white font-black leading-snug line-clamp-2',
-                                  t.status === 'concluida' ? 'line-through text-slate-400' : ''
+                                  'mt-2 text-primary font-black leading-snug line-clamp-2',
+                                  t.status === 'concluida' ? 'line-through text-muted' : ''
                                 )}
                               >
                                 {t.titulo}
                               </div>
 
-                              {t.descricao ? <div className="mt-1 text-xs text-slate-500 font-bold line-clamp-2">{t.descricao}</div> : null}
+                              {t.descricao ? <div className="mt-1 text-xs text-muted font-bold line-clamp-2">{t.descricao}</div> : null}
                             </div>
 
                             <Tooltip content={t.status === 'concluida' ? 'Reabrir' : 'Concluir'} side="left">
@@ -159,8 +159,8 @@ export const TarefasCardsView: React.FC<{
                                 className={cn(
                                   'w-9 h-9 rounded-2xl border flex items-center justify-center transition-all shrink-0',
                                   t.status === 'concluida'
-                                    ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-300'
-                                    : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900/50 hover:border-violet-500/25'
+                                    ? 'bg-success/15 border-success/25 text-success-subtle'
+                                    : 'bg-surface/30 border-base text-muted hover:text-primary hover:bg-surface/50 hover:border-accent/25'
                                 )}
                                 aria-label={t.status === 'concluida' ? 'Reabrir tarefa' : 'Concluir tarefa'}
                               >
@@ -169,9 +169,9 @@ export const TarefasCardsView: React.FC<{
                             </Tooltip>
                           </div>
 
-                          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-400">
+                          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold text-muted">
                             {t.unidade ? (
-                              <span className="px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900/40 text-slate-300">
+                              <span className="px-2 py-0.5 rounded-full border border-base bg-surface/40 text-secondary">
                                 <span className="inline-flex items-center gap-1.5">
                                   <Building2 className="w-3.5 h-3.5" />
                                   {t.unidade.toUpperCase()}
@@ -179,27 +179,27 @@ export const TarefasCardsView: React.FC<{
                               </span>
                             ) : null}
                             {t.vencimento_em ? (
-                              <span className="px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900/40 text-slate-300">
+                              <span className="px-2 py-0.5 rounded-full border border-base bg-surface/40 text-secondary">
                                 <span className="inline-flex items-center gap-1.5">
                                   <Calendar className="w-3.5 h-3.5" />
                                   {formatWhen(t.vencimento_em)}
                                 </span>
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900/20 text-slate-500">Sem data</span>
+                              <span className="px-2 py-0.5 rounded-full border border-base bg-surface/20 text-muted">Sem data</span>
                             )}
                           </div>
 
                           {progressTotal > 0 ? (
                             <div className="mt-3">
-                              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
+                              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-muted">
                                 <span>Subtarefas</span>
                                 <span>
                                   {progressDone}/{progressTotal}
                                 </span>
                               </div>
-                              <div className="mt-2 h-2 rounded-full bg-slate-900/60 overflow-hidden border border-slate-800/60">
-                                <div className="h-full rounded-full bg-violet-500/70" style={{ width: `${progressPct}%` }} />
+                              <div className="mt-2 h-2 rounded-full bg-surface/60 overflow-hidden border border-base/60">
+                                <div className="h-full rounded-full bg-accent/70" style={{ width: `${progressPct}%` }} />
                               </div>
                             </div>
                           ) : null}
@@ -235,8 +235,8 @@ export const TarefasCardsView: React.FC<{
                 }}
                 className={cn(
                   'group relative rounded-2xl border transition-all cursor-pointer select-none overflow-hidden',
-                  'bg-slate-950/95 hover:bg-slate-900/95 hover:border-slate-700/60',
-                  selected ? 'border-violet-500/35 shadow-lg shadow-violet-500/5 ring-1 ring-violet-500/20' : 'border-slate-800/60',
+                  'bg-bg/95 hover:bg-surface/95 hover:border-strong/60',
+                  selected ? 'border-accent/35 shadow-lg shadow-accent/5 ring-1 ring-accent/20' : 'border-base/60',
                   t.status === 'concluida' ? 'opacity-70' : ''
                 )}
               >
@@ -247,20 +247,20 @@ export const TarefasCardsView: React.FC<{
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                        <span className={cn('px-2 py-0.5 rounded-full border', prioridade.bg, prioridade.text, 'border-slate-800')}>
+                        <span className={cn('px-2 py-0.5 rounded-full border', prioridade.bg, prioridade.text, 'border-base')}>
                           <span className="inline-flex items-center gap-1.5">
                             <PrioridadeIcon className="w-3.5 h-3.5" />
                             {prioridade.label}
                           </span>
                         </span>
-                        <span className={cn('px-2 py-0.5 rounded-full border', categoria.bg, categoria.text, 'border-slate-800')}>
+                        <span className={cn('px-2 py-0.5 rounded-full border', categoria.bg, categoria.text, 'border-base')}>
                           <span className="inline-flex items-center gap-1.5">
                             <CategoriaIcon className="w-3.5 h-3.5" />
                             {categoria.label}
                           </span>
                         </span>
                         {t.status === 'concluida' ? (
-                          <span className={cn('px-2 py-0.5 rounded-full border border-slate-800', STATUS_TAREFA.concluida.bg, STATUS_TAREFA.concluida.text)}>
+                          <span className={cn('px-2 py-0.5 rounded-full border border-base', STATUS_TAREFA.concluida.bg, STATUS_TAREFA.concluida.text)}>
                             <span className="inline-flex items-center gap-1.5">
                               <Check className="w-3.5 h-3.5" />
                               {STATUS_TAREFA.concluida.label}
@@ -269,12 +269,12 @@ export const TarefasCardsView: React.FC<{
                         ) : null}
                       </div>
 
-                      <div className={cn('mt-2 text-white font-black leading-snug line-clamp-2', t.status === 'concluida' ? 'line-through text-slate-400' : '')}>
+                      <div className={cn('mt-2 text-primary font-black leading-snug line-clamp-2', t.status === 'concluida' ? 'line-through text-muted' : '')}>
                         {t.titulo}
                       </div>
 
                       {t.descricao ? (
-                        <div className="mt-1 text-xs text-slate-500 font-bold line-clamp-2">{t.descricao}</div>
+                        <div className="mt-1 text-xs text-muted font-bold line-clamp-2">{t.descricao}</div>
                       ) : null}
                     </div>
 
@@ -288,8 +288,8 @@ export const TarefasCardsView: React.FC<{
                         className={cn(
                           'w-9 h-9 rounded-2xl border flex items-center justify-center transition-all shrink-0',
                           t.status === 'concluida'
-                            ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-300'
-                            : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900/50 hover:border-violet-500/25'
+                            ? 'bg-success/15 border-success/25 text-success-subtle'
+                            : 'bg-surface/30 border-base text-muted hover:text-primary hover:bg-surface/50 hover:border-accent/25'
                         )}
                         aria-label={t.status === 'concluida' ? 'Reabrir tarefa' : 'Concluir tarefa'}
                       >
@@ -298,9 +298,9 @@ export const TarefasCardsView: React.FC<{
                     </Tooltip>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-400">
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold text-muted">
                     {t.unidade ? (
-                      <span className="px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900/40 text-slate-300">
+                      <span className="px-2 py-0.5 rounded-full border border-base bg-surface/40 text-secondary">
                         <span className="inline-flex items-center gap-1.5">
                           <Building2 className="w-3.5 h-3.5" />
                           {t.unidade.toUpperCase()}
@@ -308,14 +308,14 @@ export const TarefasCardsView: React.FC<{
                       </span>
                     ) : null}
                     {t.vencimento_em ? (
-                      <span className="px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900/40 text-slate-300">
+                      <span className="px-2 py-0.5 rounded-full border border-base bg-surface/40 text-secondary">
                         <span className="inline-flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5" />
                           {formatWhen(t.vencimento_em)}
                         </span>
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900/20 text-slate-500">
+                      <span className="px-2 py-0.5 rounded-full border border-base bg-surface/20 text-muted">
                         Sem data
                       </span>
                     )}
@@ -323,15 +323,15 @@ export const TarefasCardsView: React.FC<{
 
                   {progressTotal > 0 ? (
                     <div className="mt-3">
-                      <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
+                      <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-muted">
                         <span>Subtarefas</span>
                         <span>
                           {progressDone}/{progressTotal}
                         </span>
                       </div>
-                      <div className="mt-2 h-2 rounded-full bg-slate-900/60 overflow-hidden border border-slate-800/60">
+                      <div className="mt-2 h-2 rounded-full bg-surface/60 overflow-hidden border border-base/60">
                         <div
-                          className="h-full rounded-full bg-violet-500/70"
+                          className="h-full rounded-full bg-accent/70"
                           style={{ width: `${progressPct}%` }}
                         />
                       </div>

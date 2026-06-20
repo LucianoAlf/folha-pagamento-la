@@ -119,18 +119,18 @@ export const TarefaQuickAdd: React.FC<{
     <>
       <div
         className={cn(
-          'rounded-2xl border border-slate-800/60 bg-slate-950/95 overflow-hidden',
-          open ? 'shadow-xl shadow-black/30' : ''
+          'rounded-2xl border border-base/60 bg-bg/95 overflow-hidden',
+          open ? 'shadow-xl shadow-[var(--shadow-card)]' : ''
         )}
       >
         {!open ? (
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="w-full flex items-center justify-between px-5 py-4 text-slate-400 hover:text-white hover:bg-slate-900/30 transition-colors"
+            className="w-full flex items-center justify-between px-5 py-4 text-muted hover:text-primary hover:bg-surface/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full border-2 border-slate-700" />
+              <div className="w-5 h-5 rounded-full border-2 border-strong" />
               <span className="text-sm font-bold">Adicionar uma tarefa…</span>
             </div>
             <Plus className="w-5 h-5" />
@@ -153,7 +153,7 @@ export const TarefaQuickAdd: React.FC<{
                   }
                 }}
                 placeholder="Título da tarefa…"
-                className="flex-1 bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
+                className="flex-1 bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
               />
               <Tooltip content="Fechar" side="left">
                 <button
@@ -162,7 +162,7 @@ export const TarefaQuickAdd: React.FC<{
                     setOpen(false);
                     reset();
                   }}
-                  className="w-11 h-11 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-400 hover:text-white hover:bg-slate-900/40 flex items-center justify-center"
+                  className="w-11 h-11 rounded-2xl border border-base bg-surface/20 text-muted hover:text-primary hover:bg-surface/40 flex items-center justify-center"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -170,22 +170,22 @@ export const TarefaQuickAdd: React.FC<{
             </div>
 
             {saveError ? (
-              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3">
-                <div className="text-rose-200 text-sm font-black">Não foi possível criar a tarefa</div>
-                <div className="text-rose-200/80 text-xs font-bold mt-1 break-words">{saveError}</div>
+              <div className="rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3">
+                <div className="text-danger-subtle text-sm font-black">Não foi possível criar a tarefa</div>
+                <div className="text-danger-subtle/80 text-xs font-bold mt-1 break-words">{saveError}</div>
               </div>
             ) : null}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Data</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Data</div>
                 <DatePicker value={date} onChange={setDate} placeholder="Sem data" className="w-full" />
-                <label className="flex items-center gap-2 mt-2 text-xs font-bold text-slate-400">
+                <label className="flex items-center gap-2 mt-2 text-xs font-bold text-muted">
                   <input
                     type="checkbox"
                     checked={diaInteiro}
                     onChange={(e) => setDiaInteiro(e.target.checked)}
-                    className="accent-violet-500"
+                    className="accent-accent"
                   />
                   Dia inteiro
                 </label>
@@ -194,13 +194,13 @@ export const TarefaQuickAdd: React.FC<{
                     type="time"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
-                    className="mt-2 w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
+                    className="mt-2 w-full bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
                   />
                 ) : null}
               </div>
 
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Prioridade</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Prioridade</div>
                 <CustomSelect
                   value={prioridade}
                   onValueChange={(v) => setPrioridade(v as Prioridade)}
@@ -209,7 +209,7 @@ export const TarefaQuickAdd: React.FC<{
               </div>
 
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Categoria</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Categoria</div>
                 <CustomSelect
                   value={categoria}
                   onValueChange={(v) => setCategoria(v as Categoria)}
@@ -222,9 +222,9 @@ export const TarefaQuickAdd: React.FC<{
               <button
                 type="button"
                 onClick={() => setTemplatesOpen(true)}
-                className="px-4 py-3 rounded-2xl border border-slate-800 bg-slate-900/20 hover:bg-slate-900/40 text-slate-200 font-black flex items-center gap-2"
+                className="px-4 py-3 rounded-2xl border border-base bg-surface/20 hover:bg-surface/40 text-secondary font-black flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4 text-violet-300" />
+                <Sparkles className="w-4 h-4 text-accent-subtle" />
                 Usar template
               </button>
 
@@ -235,7 +235,7 @@ export const TarefaQuickAdd: React.FC<{
                     setOpen(false);
                     reset();
                   }}
-                  className="px-4 py-3 rounded-2xl bg-slate-900/40 hover:bg-slate-900/60 border border-slate-800 text-slate-200 font-black"
+                  className="px-4 py-3 rounded-2xl bg-surface/40 hover:bg-surface/60 border border-base text-secondary font-black"
                 >
                   Cancelar
                 </button>
@@ -245,7 +245,7 @@ export const TarefaQuickAdd: React.FC<{
                   onClick={handleSave}
                   className={cn(
                     'px-5 py-3 rounded-2xl font-black text-white transition-all',
-                    canSave ? 'bg-violet-600 hover:bg-violet-500' : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    canSave ? 'bg-accent hover:bg-accent-hover' : 'bg-surface-2 text-muted cursor-not-allowed'
                   )}
                 >
                   {saving ? 'Salvando…' : 'Criar'}

@@ -191,11 +191,11 @@ export const AgendaContent: React.FC<{
   }, []);
 
   return (
-    <section className="flex-1 min-w-0 bg-slate-950/85 relative">
+    <section className="flex-1 min-w-0 bg-bg/85 relative">
       <div className="h-full flex flex-col">
         {listKey !== 'smart:aniversarios' && (
           <div className={cn(
-            "p-4 md:p-6 border-b border-slate-800/60 bg-slate-950/60",
+            "p-4 md:p-6 border-b border-base/60 bg-bg/60",
             isMobile && "sticky top-0 z-20 backdrop-blur-md"
           )}>
             <AgendaHeader
@@ -217,15 +217,15 @@ export const AgendaContent: React.FC<{
               onOpenMobileSidebar={onOpenMobileSidebar}
             />
             {actionError ? (
-              <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 flex items-start justify-between gap-3">
+              <div className="mt-4 rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-rose-200 text-sm font-black">Ação não concluída</div>
-                  <div className="text-rose-200/80 text-xs font-bold mt-1">{actionError}</div>
+                  <div className="text-danger-subtle text-sm font-black">Ação não concluída</div>
+                  <div className="text-danger-subtle/80 text-xs font-bold mt-1">{actionError}</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActionError(null)}
-                  className="px-3 py-2 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-200 text-xs font-black"
+                  className="px-3 py-2 rounded-xl bg-surface/40 border border-base text-secondary text-xs font-black"
                 >
                   OK
                 </button>
@@ -236,21 +236,21 @@ export const AgendaContent: React.FC<{
 
         <div className="flex-1 overflow-hidden">
           {loading ? (
-            <div className="p-8 text-slate-400 font-bold">Carregando…</div>
+            <div className="p-8 text-muted font-bold">Carregando…</div>
           ) : error ? (
             <div className="p-8">
               <Card className="p-6">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                  <div className="w-10 h-10 rounded-2xl bg-danger/10 border border-danger/20 flex items-center justify-center text-danger">
                     <AlertTriangle className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-white font-black">Erro ao carregar Agenda</div>
-                    <div className="text-sm text-slate-400 font-bold mt-1">{error}</div>
+                    <div className="text-primary font-black">Erro ao carregar Agenda</div>
+                    <div className="text-sm text-muted font-bold mt-1">{error}</div>
                     <button
                       type="button"
                       onClick={onRefresh}
-                      className="mt-4 px-4 py-2 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-black"
+                      className="mt-4 px-4 py-2 rounded-2xl bg-accent hover:bg-accent-hover text-white text-sm font-black"
                     >
                       Tentar novamente
                     </button>
@@ -305,27 +305,27 @@ export const AgendaContent: React.FC<{
               {showMeuDia ? (
                 <div className="space-y-4 md:space-y-6">
                   {/* Atrasadas */}
-                  <div className="rounded-2xl border border-slate-800/60 bg-slate-950/95 overflow-hidden shadow-sm">
+                  <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden shadow-sm">
                     <button
                       type="button"
                       onClick={() => setCollapsed((p) => ({ ...p, atrasadas: !p.atrasadas }))}
-                      className="w-full flex items-center justify-between px-4 md:px-5 py-3 md:py-4 hover:bg-slate-900/30 transition-colors"
+                      className="w-full flex items-center justify-between px-4 md:px-5 py-3 md:py-4 hover:bg-surface/30 transition-colors"
                     >
                       <div className="flex items-center gap-2 md:gap-3">
                         {collapsed.atrasadas ? (
-                          <ChevronRight className="w-4 h-4 text-slate-500" />
+                          <ChevronRight className="w-4 h-4 text-muted" />
                         ) : (
-                          <ChevronDown className="w-4 h-4 text-slate-500" />
+                          <ChevronDown className="w-4 h-4 text-muted" />
                         )}
-                        <div className="text-sm font-black text-rose-400 uppercase tracking-tight md:normal-case">Atrasadas</div>
+                        <div className="text-sm font-black text-danger uppercase tracking-tight md:normal-case">Atrasadas</div>
                         <Badge variant="danger">{tarefasAtrasadas.length}</Badge>
                       </div>
-                      <div className="hidden md:block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Prioridade máxima</div>
+                      <div className="hidden md:block text-[10px] font-black uppercase tracking-[0.2em] text-muted">Prioridade máxima</div>
                     </button>
                     {!collapsed.atrasadas ? (
                       <div className="p-1 md:p-2">
                         {tarefasAtrasadas.length === 0 ? (
-                          <div className="px-4 py-6 text-sm text-slate-500 font-bold">Nenhuma tarefa atrasada.</div>
+                          <div className="px-4 py-6 text-sm text-muted font-bold">Nenhuma tarefa atrasada.</div>
                         ) : (
                           tarefasAtrasadas.map((t) => (
                             <TarefaCard
@@ -344,27 +344,27 @@ export const AgendaContent: React.FC<{
                   </div>
 
                   {/* Hoje */}
-                  <div className="rounded-2xl border border-slate-800/60 bg-slate-950/95 overflow-hidden shadow-sm">
+                  <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden shadow-sm">
                     <button
                       type="button"
                       onClick={() => setCollapsed((p) => ({ ...p, hoje: !p.hoje }))}
-                      className="w-full flex items-center justify-between px-4 md:px-5 py-3 md:py-4 hover:bg-slate-900/30 transition-colors"
+                      className="w-full flex items-center justify-between px-4 md:px-5 py-3 md:py-4 hover:bg-surface/30 transition-colors"
                     >
                       <div className="flex items-center gap-2 md:gap-3">
                         {collapsed.hoje ? (
-                          <ChevronRight className="w-4 h-4 text-slate-500" />
+                          <ChevronRight className="w-4 h-4 text-muted" />
                         ) : (
-                          <ChevronDown className="w-4 h-4 text-slate-500" />
+                          <ChevronDown className="w-4 h-4 text-muted" />
                         )}
-                        <div className="text-sm font-black text-white uppercase tracking-tight md:normal-case">Hoje</div>
+                        <div className="text-sm font-black text-primary uppercase tracking-tight md:normal-case">Hoje</div>
                         <Badge variant="info">{tarefasHoje.length}</Badge>
                       </div>
-                      <div className="hidden md:block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Foco do dia</div>
+                      <div className="hidden md:block text-[10px] font-black uppercase tracking-[0.2em] text-muted">Foco do dia</div>
                     </button>
                     {!collapsed.hoje ? (
                       <div className="p-1 md:p-2">
                         {tarefasHoje.length === 0 ? (
-                          <div className="px-4 py-6 text-sm text-slate-500 font-bold">Nenhuma tarefa para hoje.</div>
+                          <div className="px-4 py-6 text-sm text-muted font-bold">Nenhuma tarefa para hoje.</div>
                         ) : (
                           tarefasHoje.map((t) => (
                             <TarefaCard
@@ -387,10 +387,10 @@ export const AgendaContent: React.FC<{
                   {(() => {
                     if (!isSmartView) {
                       return (
-                        <div className="rounded-2xl border border-slate-800/60 bg-slate-950/95 overflow-hidden">
+                        <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden">
                           <div className="p-1 md:p-2">
                             {tarefas.length === 0 ? (
-                              <div className="px-4 py-6 text-sm text-slate-500 font-bold text-center">Nenhuma tarefa nesta lista.</div>
+                              <div className="px-4 py-6 text-sm text-muted font-bold text-center">Nenhuma tarefa nesta lista.</div>
                             ) : (
                               tarefas.map((t) => (
                                 <TarefaCard
@@ -420,20 +420,20 @@ export const AgendaContent: React.FC<{
                     const ordered = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
 
                     return ordered.length === 0 ? (
-                      <div className="rounded-2xl border border-slate-800/60 bg-slate-950/95 overflow-hidden">
-                        <div className="px-4 py-6 text-sm text-slate-500 font-bold text-center">Nenhuma tarefa nesta visualização.</div>
+                      <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden">
+                        <div className="px-4 py-6 text-sm text-muted font-bold text-center">Nenhuma tarefa nesta visualização.</div>
                       </div>
                     ) : (
                       ordered.map((g) => (
-                        <div key={g.key} className="rounded-2xl border border-slate-800/60 bg-slate-950/95 overflow-hidden mb-4">
-                          <div className="px-4 md:px-5 py-3 md:py-4 border-b border-slate-800/60 bg-slate-950/95 flex items-center justify-between gap-3">
+                        <div key={g.key} className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden mb-4">
+                          <div className="px-4 md:px-5 py-3 md:py-4 border-b border-base/60 bg-bg/95 flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="text-white font-black truncate">{g.name}</div>
-                              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">
+                              <div className="text-primary font-black truncate">{g.name}</div>
+                              <div className="text-[10px] text-muted font-bold uppercase tracking-[0.2em]">
                                 {g.items.length} item{g.items.length === 1 ? '' : 's'}
                               </div>
                             </div>
-                            <span className="px-2 py-1 rounded-full text-[10px] font-black border border-slate-800 bg-slate-900/40 text-slate-200">
+                            <span className="px-2 py-1 rounded-full text-[10px] font-black border border-base bg-surface/40 text-secondary">
                               {g.items.length}
                             </span>
                           </div>
@@ -498,7 +498,7 @@ export const AgendaContent: React.FC<{
         <button
           type="button"
           onClick={() => setMobileQuickAddOpen(true)}
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-violet-600 text-white shadow-2xl shadow-violet-600/40 flex items-center justify-center z-[11000] transition-all active:scale-90 hover:bg-violet-500"
+          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-accent text-white shadow-2xl shadow-accent/40 flex items-center justify-center z-[11000] transition-all active:scale-90 hover:bg-accent-hover"
           aria-label="Adicionar tarefa"
         >
           <Plus size={28} />
@@ -546,14 +546,14 @@ export const AgendaContent: React.FC<{
             startOpen
           />
 
-          <div className="rounded-2xl border border-slate-800/60 bg-slate-950/95 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-800/60 bg-slate-950/95">
-              <div className="text-white font-black">Lançamentos do dia</div>
-              <div className="text-xs text-slate-500 font-bold mt-1">Clique em uma tarefa para abrir os detalhes</div>
+          <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden">
+            <div className="px-5 py-4 border-b border-base/60 bg-bg/95">
+              <div className="text-primary font-black">Lançamentos do dia</div>
+              <div className="text-xs text-muted font-bold mt-1">Clique em uma tarefa para abrir os detalhes</div>
             </div>
             <div className="p-2">
               {tarefasDoDia.length === 0 ? (
-                <div className="px-4 py-6 text-sm text-slate-500 font-bold">Nenhuma tarefa nesse dia.</div>
+                <div className="px-4 py-6 text-sm text-muted font-bold">Nenhuma tarefa nesse dia.</div>
               ) : (
                 tarefasDoDia.map((t) => (
                   <TarefaCard

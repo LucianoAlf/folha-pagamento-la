@@ -74,7 +74,7 @@ export const ConfiguracoesAgenda: React.FC<{
 
   // Visual "padrão Agenda" (painel escuro), sem interferir no Card global do app
   // Importante: sem opacidade (o user pediu "normal", sem transparência)
-  const agendaCardClass = 'bg-slate-950/85 border-slate-800/70 backdrop-blur-none';
+  const agendaCardClass = 'bg-bg/85 border-base/70 backdrop-blur-none';
 
   // WhatsApp: envio de teste
   const [waTesting, setWaTesting] = useState(false);
@@ -442,29 +442,29 @@ export const ConfiguracoesAgenda: React.FC<{
     }
   };
 
-  if (loading) return <div className="text-slate-400 font-bold">Carregando…</div>;
+  if (loading) return <div className="text-muted font-bold">Carregando…</div>;
 
   return (
     <div className="space-y-6">
       {error ? (
-        <Card className="p-5 border border-rose-500/20 bg-rose-500/10">
-          <div className="text-rose-200 font-black">Erro</div>
-          <div className="text-sm text-rose-200/80 font-bold mt-1">{error}</div>
+        <Card className="p-5 border border-danger/20 bg-danger/10">
+          <div className="text-danger-subtle font-black">Erro</div>
+          <div className="text-sm text-danger-subtle/80 font-bold mt-1">{error}</div>
         </Card>
       ) : null}
 
       {/* Aparência */}
       <Card className={cn('p-0 overflow-hidden', agendaCardClass)}>
-        <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/30 flex items-center justify-between gap-4">
+        <div className="px-6 py-5 border-b border-strong/50 bg-surface/30 flex items-center justify-between gap-4">
           <div>
-            <div className="text-white font-black">Aparência</div>
-            <div className="text-xs text-slate-500 font-bold mt-1">Galeria pessoal + geração de imagens via IA para a Ana Paula</div>
+            <div className="text-primary font-black">Aparência</div>
+            <div className="text-xs text-muted font-bold mt-1">Galeria pessoal + geração de imagens via IA para a Ana Paula</div>
           </div>
-          
+
           <button
             type="button"
             onClick={onSaved}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 flex items-center gap-2"
+            className="px-4 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-black transition-all active:scale-95 flex items-center gap-2"
           >
             <X className="w-4 h-4" />
             Sair
@@ -472,7 +472,7 @@ export const ConfiguracoesAgenda: React.FC<{
         </div>
         <div className="p-6 space-y-4">
           {/* GALERIA PESSOAL - MinhasImagens Favoritas (accordion) */}
-          <div className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4">
+          <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4">
             <button
               type="button"
               onClick={() => setFavoriteImagesOpen((v) => !v)}
@@ -480,17 +480,17 @@ export const ConfiguracoesAgenda: React.FC<{
               aria-expanded={favoriteImagesOpen}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Images className="w-5 h-5 text-violet-400 shrink-0" />
-                <div className="text-sm font-black text-violet-200">My image</div>
+                <Images className="w-5 h-5 text-accent-subtle shrink-0" />
+                <div className="text-sm font-black text-accent-subtle">My image</div>
                 {galleryImages.length > 0 && <Badge variant="info">{galleryImages.length}</Badge>}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {appearanceSaving ? <Badge variant="info">Salvando…</Badge> : null}
                 {appearanceSaved ? <Badge variant="success">Salvo</Badge> : null}
-                {galleryLoading && <Loader2 className="w-4 h-4 animate-spin text-violet-400" />}
+                {galleryLoading && <Loader2 className="w-4 h-4 animate-spin text-accent-subtle" />}
                 <div
                   className={cn(
-                    "w-9 h-9 rounded-xl border border-slate-800/60 bg-slate-950/40 text-slate-300 flex items-center justify-center transition-transform",
+                    "w-9 h-9 rounded-xl border border-base/60 bg-bg/40 text-secondary flex items-center justify-center transition-transform",
                     favoriteImagesOpen ? "rotate-180" : ""
                   )}
                 >
@@ -511,7 +511,7 @@ export const ConfiguracoesAgenda: React.FC<{
                           <div
                             className={cn(
                               'relative group rounded-2xl border overflow-hidden transition-all cursor-pointer',
-                              isActive ? 'border-violet-500/50 ring-2 ring-violet-500/20' : 'border-slate-800/60 hover:border-violet-500/30'
+                              isActive ? 'border-accent/50 ring-2 ring-accent/20' : 'border-base/60 hover:border-accent/30'
                             )}
                             onClick={() => applyGalleryImage(img.url)}
                           >
@@ -532,9 +532,9 @@ export const ConfiguracoesAgenda: React.FC<{
                                 }}
                                 disabled={isDeleting}
                                 className={cn(
-                                  'absolute top-2 right-2 w-7 h-7 rounded-xl border border-slate-800/60 bg-slate-950/70 text-slate-300',
+                                  'absolute top-2 right-2 w-7 h-7 rounded-xl border border-base/60 bg-bg/70 text-secondary',
                                   'opacity-0 group-hover:opacity-100 transition-all',
-                                  'hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-200',
+                                  'hover:bg-danger/15 hover:border-danger/30 hover:text-danger-subtle',
                                   isDeleting ? 'cursor-not-allowed opacity-100' : ''
                                 )}
                                 aria-label="Excluir da galeria"
@@ -544,7 +544,7 @@ export const ConfiguracoesAgenda: React.FC<{
                             </Tooltip>
                             {/* Badge de ativo */}
                             {isActive && (
-                              <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                              <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
                                 <Eye className="w-3 h-3 text-white" />
                               </div>
                             )}
@@ -555,32 +555,32 @@ export const ConfiguracoesAgenda: React.FC<{
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                    <div className="text-slate-500 font-bold text-sm">Nenhuma imagem gerada ainda</div>
-                    <div className="text-slate-600 text-xs mt-1">Use o gerador abaixo para criar fundos personalizados</div>
+                    <div className="text-muted font-bold text-sm">Nenhuma imagem gerada ainda</div>
+                    <div className="text-muted text-xs mt-1">Use o gerador abaixo para criar fundos personalizados</div>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-800/60 bg-slate-950/85 overflow-hidden p-5">
+          <div className="rounded-2xl border border-base/60 bg-bg/85 overflow-hidden p-5">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
-                <div className="flex items-center gap-2 text-white font-black">
-                  <Bot className="w-4 h-4 text-violet-300" />
+                <div className="flex items-center gap-2 text-primary font-black">
+                  <Bot className="w-4 h-4 text-accent-subtle" />
                   Gerador de Imagens
                 </div>
-                <div className="text-xs text-slate-500 font-bold mt-1 mb-5">
+                <div className="text-xs text-muted font-bold mt-1 mb-5">
                   Crie fundos personalizados e exclusivos usando inteligência artificial.
                 </div>
 
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Prompt</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Prompt</div>
                 <textarea
                   value={bgPrompt}
                   onChange={(e) => setBgPrompt(e.target.value)}
                   placeholder="Ex.: Rua em Nova York à noite, neon roxo e azul, chuva leve, cinematográfico, sem pessoas, sem texto"
                   spellCheck={false}
-                  className="w-full min-h-[100px] bg-slate-900/40 border border-slate-700/60 rounded-[1.5rem] px-5 py-4 text-slate-100 text-xs font-bold outline-none focus:ring-2 focus:ring-violet-500/50 resize-none placeholder:text-slate-500 placeholder:font-medium"
+                  className="w-full min-h-[100px] bg-surface/40 border border-strong/60 rounded-[1.5rem] px-5 py-4 text-primary text-xs font-bold outline-none focus:ring-2 focus:ring-accent/50 resize-none placeholder:text-muted placeholder:font-medium"
                 />
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {[
@@ -603,7 +603,7 @@ export const ConfiguracoesAgenda: React.FC<{
                       <button
                         type="button"
                         onClick={() => setBgPrompt(s.prompt)}
-                        className="w-full h-11 px-3 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-300 font-black hover:bg-slate-900/40 hover:border-violet-500/20 transition-all text-xs flex items-center justify-start gap-2"
+                        className="w-full h-11 px-3 rounded-2xl border border-base bg-surface/20 text-secondary font-black hover:bg-surface/40 hover:border-accent/20 transition-all text-xs flex items-center justify-start gap-2"
                         aria-label={`Aplicar prompt ${s.label}`}
                       >
                         <span className="shrink-0 w-6 text-center">{s.label.split(' ')[0]}</span>
@@ -613,7 +613,7 @@ export const ConfiguracoesAgenda: React.FC<{
                   ))}
                 </div>
                 {bgGenError ? (
-                  <div className="mt-4 text-sm text-rose-200 font-bold">{bgGenError}</div>
+                  <div className="mt-4 text-sm text-danger-subtle font-bold">{bgGenError}</div>
                 ) : null}
                 <div className="mt-5 flex items-center gap-3">
                   <button
@@ -622,7 +622,7 @@ export const ConfiguracoesAgenda: React.FC<{
                     disabled={bgGenerating}
                     className={cn(
                       'px-5 py-3 rounded-2xl font-black text-white transition-all shadow-lg active:scale-95 flex items-center gap-2',
-                      bgGenerating ? 'bg-slate-800 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/20'
+                      bgGenerating ? 'bg-surface-2 cursor-not-allowed' : 'bg-accent hover:bg-accent-hover shadow-accent/20'
                     )}
                   >
                     <ImageIcon className={cn('w-4 h-4', bgGenerating ? 'animate-pulse' : '')} />
@@ -633,14 +633,14 @@ export const ConfiguracoesAgenda: React.FC<{
 
               <div className="flex flex-col">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Preview</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Preview</div>
                   {config.agenda_bg_url ? (
                       <Tooltip content="Remover imagem gerada" side="top">
                         <button
                           type="button"
                           onClick={() => saveAppearance({ agenda_bg_url: null })}
                           disabled={appearanceSaving}
-                          className="w-7 h-7 rounded-lg border border-slate-800/60 bg-slate-900/30 text-slate-500 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/10 transition-all flex items-center justify-center"
+                          className="w-7 h-7 rounded-lg border border-base/60 bg-surface/30 text-muted hover:text-danger hover:border-danger/30 hover:bg-danger/10 transition-all flex items-center justify-center"
                           aria-label="Remover imagem gerada"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -648,7 +648,7 @@ export const ConfiguracoesAgenda: React.FC<{
                       </Tooltip>
                   ) : null}
                 </div>
-                <div className="rounded-3xl border border-slate-800/60 bg-slate-950/40 overflow-hidden flex-1 flex flex-col shadow-2xl relative">
+                <div className="rounded-3xl border border-base/60 bg-bg/40 overflow-hidden flex-1 flex flex-col shadow-2xl relative">
                   <div
                     className="flex-1 min-h-[280px] w-full"
                     style={{
@@ -662,22 +662,22 @@ export const ConfiguracoesAgenda: React.FC<{
                   
                   {/* Botão de Escolha (Aparece apenas quando gera algo novo) */}
                   {tempGeneratedUrl && (
-                    <div className="absolute bottom-4 left-4 right-4 bg-slate-900/95 border border-slate-700/50 p-4 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4 transition-all">
+                    <div className="absolute bottom-4 left-4 right-4 bg-surface/95 border border-strong/50 p-4 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4 transition-all">
                       <div className="flex items-center gap-3 text-left">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-success/20 border border-success/30 flex items-center justify-center text-success-subtle shrink-0">
                           <Sparkles className="w-5 h-5" />
                         </div>
                         <div>
-                          <div className="text-white font-black text-sm">Imagem Gerada!</div>
-                          <div className="text-slate-400 text-[11px] font-bold leading-tight">Salvar na galeria da Ana Paula?</div>
+                          <div className="text-primary font-black text-sm">Imagem Gerada!</div>
+                          <div className="text-muted text-[11px] font-bold leading-tight">Salvar na galeria da Ana Paula?</div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2 w-full sm:w-auto">
                         <button
                           type="button"
                           onClick={handleDiscardBackground}
-                          className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all"
+                          className="flex-1 sm:flex-none px-4 py-2.5 bg-surface-2 hover:bg-surface-3 text-secondary font-bold text-xs rounded-xl transition-all"
                         >
                           Descartar
                         </button>
@@ -685,7 +685,7 @@ export const ConfiguracoesAgenda: React.FC<{
                           type="button"
                           onClick={handleConfirmBackground}
                           disabled={appearanceSaving}
-                          className="flex-1 sm:flex-none px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
+                          className="flex-1 sm:flex-none px-5 py-2.5 bg-success hover:bg-success-hover text-white font-black text-xs rounded-xl shadow-lg shadow-success/20 transition-all flex items-center justify-center gap-2"
                         >
                           {appearanceSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                           Gostei, Salvar!
@@ -694,9 +694,9 @@ export const ConfiguracoesAgenda: React.FC<{
                     </div>
                   )}
 
-                  <div className="px-5 py-3 border-t border-slate-800/40 bg-slate-950/60">
-                    <div className="text-white font-black text-sm">Agenda da Ana</div>
-                    <div className="text-[11px] text-slate-500 font-bold mt-0.5">
+                  <div className="px-5 py-3 border-t border-base/40 bg-bg/60">
+                    <div className="text-primary font-black text-sm">Agenda da Ana</div>
+                    <div className="text-[11px] text-muted font-bold mt-0.5">
                       {tempGeneratedUrl ? 'Visualizando nova geração…' : 'O fundo escolhido aparece aqui.'}
                     </div>
                   </div>
@@ -709,15 +709,15 @@ export const ConfiguracoesAgenda: React.FC<{
 
       {/* Kanban (desktop only) */}
       <Card className={cn('p-0 overflow-hidden hidden lg:block', agendaCardClass)}>
-        <div className="px-6 py-5 border-b border-slate-700/50 bg-slate-900/30 flex items-center justify-between gap-4">
+        <div className="px-6 py-5 border-b border-strong/50 bg-surface/30 flex items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-300">
+              <div className="w-11 h-11 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent-subtle">
                 <Columns3 className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-white font-black">Kanban</div>
-                <div className="text-xs text-slate-500 font-bold">Personalize nomes, ordem e visibilidade das colunas</div>
+                <div className="text-primary font-black">Kanban</div>
+                <div className="text-xs text-muted font-bold">Personalize nomes, ordem e visibilidade das colunas</div>
               </div>
             </div>
           </div>
@@ -729,8 +729,8 @@ export const ConfiguracoesAgenda: React.FC<{
             className={cn(
               'px-4 py-3 rounded-2xl font-black flex items-center gap-2 transition-all',
               kanbanSaving || kanbanLoading
-                ? 'bg-slate-900/40 border border-slate-800 text-slate-500 cursor-not-allowed'
-                : 'bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/20'
+                ? 'bg-surface/40 border border-base text-muted cursor-not-allowed'
+                : 'bg-accent hover:bg-accent-hover text-white shadow-lg shadow-accent/20'
             )}
           >
             <Save className={cn('w-4 h-4', kanbanSaving ? 'animate-spin' : '')} />
@@ -740,21 +740,21 @@ export const ConfiguracoesAgenda: React.FC<{
 
         <div className="p-6 space-y-4">
           {kanbanError ? (
-            <Card className="p-5 border border-rose-500/20 bg-rose-500/10">
-              <div className="text-rose-200 font-black">Erro</div>
-              <div className="text-sm text-rose-200/80 font-bold mt-1">{kanbanError}</div>
+            <Card className="p-5 border border-danger/20 bg-danger/10">
+              <div className="text-danger-subtle font-black">Erro</div>
+              <div className="text-sm text-danger-subtle/80 font-bold mt-1">{kanbanError}</div>
             </Card>
           ) : null}
 
           {kanbanLoading ? (
-            <div className="text-slate-400 font-bold">Carregando Kanban…</div>
+            <div className="text-muted font-bold">Carregando Kanban…</div>
           ) : (
             <div className="space-y-3">
               {kanbanColumns
                 .slice()
                 .sort((a, b) => a.order - b.order)
                 .map((col) => (
-                  <div key={col.key} className="rounded-2xl border border-slate-800/60 bg-slate-950/85 p-4">
+                  <div key={col.key} className="rounded-2xl border border-base/60 bg-bg/85 p-4">
                     <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <Tooltip content={col.visible ? 'Ocultar coluna' : 'Mostrar coluna'} side="top">
@@ -768,8 +768,8 @@ export const ConfiguracoesAgenda: React.FC<{
                             className={cn(
                               'w-10 h-10 rounded-2xl border flex items-center justify-center transition-all shrink-0',
                               col.visible
-                                ? 'bg-slate-900/30 border-slate-800 text-slate-300 hover:text-white'
-                                : 'bg-slate-900/10 border-slate-900/30 text-slate-600 hover:text-slate-300'
+                                ? 'bg-surface/30 border-base text-secondary hover:text-primary'
+                                : 'bg-surface/10 border-surface/30 text-muted hover:text-secondary'
                             )}
                             aria-label={col.visible ? 'Ocultar coluna' : 'Mostrar coluna'}
                           >
@@ -778,8 +778,8 @@ export const ConfiguracoesAgenda: React.FC<{
                         </Tooltip>
 
                         <div className="min-w-0 flex-1">
-                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Status</div>
-                          <div className="text-white font-black mt-0.5">{col.key.replace('_', ' ').toUpperCase()}</div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Status</div>
+                          <div className="text-primary font-black mt-0.5">{col.key.replace('_', ' ').toUpperCase()}</div>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
@@ -799,7 +799,7 @@ export const ConfiguracoesAgenda: React.FC<{
                                   });
                                 })
                               }
-                              className="w-10 h-10 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-400 hover:text-white hover:bg-slate-900/40 transition-all"
+                              className="w-10 h-10 rounded-2xl border border-base bg-surface/20 text-muted hover:text-primary hover:bg-surface/40 transition-all"
                               aria-label="Subir"
                             >
                               <ChevronUp className="w-4 h-4 mx-auto" />
@@ -821,7 +821,7 @@ export const ConfiguracoesAgenda: React.FC<{
                                   });
                                 })
                               }
-                              className="w-10 h-10 rounded-2xl border border-slate-800 bg-slate-900/20 text-slate-400 hover:text-white hover:bg-slate-900/40 transition-all"
+                              className="w-10 h-10 rounded-2xl border border-base bg-surface/20 text-muted hover:text-primary hover:bg-surface/40 transition-all"
                               aria-label="Descer"
                             >
                               <ChevronDown className="w-4 h-4 mx-auto" />
@@ -831,7 +831,7 @@ export const ConfiguracoesAgenda: React.FC<{
                       </div>
 
                       <div className="w-full md:w-[340px]">
-                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">Nome da coluna</div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Nome da coluna</div>
                         <input
                           value={col.label}
                           onChange={(e) =>
@@ -839,7 +839,7 @@ export const ConfiguracoesAgenda: React.FC<{
                               prev.map((c) => (c.key === col.key ? { ...c, label: e.target.value } : c))
                             )
                           }
-                          className="w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50"
+                          className="w-full bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
                           placeholder="Ex.: A Fazer"
                         />
                       </div>
@@ -849,9 +849,9 @@ export const ConfiguracoesAgenda: React.FC<{
             </div>
           )}
 
-          <div className="text-xs text-slate-500 font-bold">
-            Observação: por enquanto você pode personalizar nomes/ordem/visibilidade. Para “criar novas colunas ilimitadas”, eu adiciono uma fase 2 com
-            <span className="text-slate-300"> kanban_stage </span>
+          <div className="text-xs text-muted font-bold">
+            Observação: por enquanto você pode personalizar nomes/ordem/visibilidade. Para "criar novas colunas ilimitadas", eu adiciono uma fase 2 com
+            <span className="text-secondary"> kanban_stage </span>
             (sem mexer no status de conclusão).
           </div>
         </div>
