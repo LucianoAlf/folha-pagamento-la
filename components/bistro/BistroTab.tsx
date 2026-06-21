@@ -588,7 +588,7 @@ export const BistroTab: React.FC<{
   }, [colaboradores]);
 
   const inputBase =
-    'w-full bg-slate-900/40 border border-slate-700/60 rounded-2xl px-4 py-3 text-slate-100 font-bold outline-none focus:ring-2 focus:ring-violet-500/50 placeholder:text-slate-600';
+    'w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-secondary font-bold outline-none focus:ring-2 focus:ring-accent/50 placeholder:text-muted';
 
   const colaboradoresOptions = useMemo(() => {
     return colaboradores
@@ -968,7 +968,7 @@ export const BistroTab: React.FC<{
   if (loading) {
     return (
       <Card className="p-8">
-        <div className="flex items-center gap-3 text-slate-300 font-bold">
+        <div className="flex items-center gap-3 text-secondary font-bold">
           <Loader2 className="w-5 h-5 animate-spin" /> Carregando Bistrô…
         </div>
       </Card>
@@ -978,12 +978,12 @@ export const BistroTab: React.FC<{
   if (error) {
     return (
       <Card className="p-8">
-        <div className="text-rose-300 font-black">Erro no Bistrô</div>
-        <div className="text-slate-400 font-bold mt-2">{error}</div>
+        <div className="text-danger font-black">Erro no Bistrô</div>
+        <div className="text-secondary font-bold mt-2">{error}</div>
         <button
           type="button"
           onClick={() => void loadAll()}
-          className="mt-4 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-primary font-black"
+          className="mt-4 px-4 py-2 rounded-xl bg-accent hover:bg-accent text-primary font-black"
         >
           Tentar novamente
         </button>
@@ -997,9 +997,9 @@ export const BistroTab: React.FC<{
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="text-primary font-black text-lg">Bistrô (Campo Grande)</div>
-            <div className="text-xs text-slate-400 font-bold mt-1">
-              Folha: <span className="text-slate-200">{monthLabelPt(ymFolha)}</span> • Referência (consumo):{' '}
-              <span className="text-slate-200">{monthLabelPt(ymRef)}</span>
+            <div className="text-xs text-secondary font-bold mt-1">
+              Folha: <span className="text-secondary">{monthLabelPt(ymFolha)}</span> • Referência (consumo):{' '}
+              <span className="text-secondary">{monthLabelPt(ymRef)}</span>
             </div>
           </div>
 
@@ -1011,8 +1011,8 @@ export const BistroTab: React.FC<{
               className={cn(
                 'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
                 canEdit
-                  ? 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30'
-                  : 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
+                  ? 'bg-accent hover:bg-accent text-primary border-accent/30'
+                  : 'bg-surface/30 text-muted border-line/50 cursor-not-allowed'
               )}
             >
               <Plus className="w-4 h-4" /> Lançar Consumos
@@ -1020,7 +1020,7 @@ export const BistroTab: React.FC<{
             <button
               type="button"
               onClick={() => setReportOpen(true)}
-              className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-primary text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-info hover:bg-info text-primary text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
               <Copy className="w-4 h-4" /> Gerar Relatório (Copiar)
             </button>
@@ -1032,8 +1032,8 @@ export const BistroTab: React.FC<{
                 className={cn(
                   'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
                   !canEdit
-                    ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-primary border-emerald-500/30',
+                    ? 'bg-surface/30 text-muted border-line/50 cursor-not-allowed'
+                    : 'bg-success hover:bg-success text-primary border-success/30',
                   applyLoading && 'opacity-70'
                 )}
               >
@@ -1049,8 +1049,8 @@ export const BistroTab: React.FC<{
                 className={cn(
                   'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
                   !canEdit
-                    ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                    : 'bg-rose-600 hover:bg-rose-500 text-primary border-rose-500/30',
+                    ? 'bg-surface/30 text-muted border-line/50 cursor-not-allowed'
+                    : 'bg-danger hover:bg-danger text-primary border-danger/30',
                   revertLoading && 'opacity-70'
                 )}
               >
@@ -1059,7 +1059,7 @@ export const BistroTab: React.FC<{
               </button>
             </Tooltip>
             {revertOk ? (
-              <div className="text-[10px] text-emerald-300 font-black flex items-center gap-2">
+              <div className="text-[10px] text-success font-black flex items-center gap-2">
                 <CheckCircle2 size={14} /> Desfeito
               </div>
             ) : null}
@@ -1096,7 +1096,7 @@ export const BistroTab: React.FC<{
                 setConsumoEditOpen(false);
                 setConsumoEditDraft(null);
               }}
-              className="px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 font-black"
+              className="px-4 py-2 rounded-xl bg-surface/50 border border-line text-secondary font-black"
             >
               Cancelar
             </button>
@@ -1107,8 +1107,8 @@ export const BistroTab: React.FC<{
               className={cn(
                 'px-4 py-2 rounded-xl font-black border transition-all disabled:opacity-60 flex items-center gap-2',
                 !canEdit
-                  ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                  : 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30'
+                  ? 'bg-surface/30 text-muted border-line/50 cursor-not-allowed'
+                  : 'bg-accent hover:bg-accent text-primary border-accent/30'
               )}
             >
               {consumoEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -1120,13 +1120,13 @@ export const BistroTab: React.FC<{
         {consumoEditDraft ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Colaborador</div>
-              <div className="px-4 py-3 rounded-2xl border border-slate-800/60 bg-slate-950/30 text-slate-100 font-black">
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Colaborador</div>
+              <div className="px-4 py-3 rounded-2xl border border-line/60 bg-bg/30 text-secondary font-black">
                 {consumoEditDraft.nome}
               </div>
             </div>
             <div className="md:col-span-2">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Valor (mês)</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Valor (mês)</div>
               <input
                 value={consumoEditDraft.valor}
                 onChange={(e) => setConsumoEditDraft((p) => (p ? ({ ...p, valor: e.target.value } as any) : p))}
@@ -1158,15 +1158,15 @@ export const BistroTab: React.FC<{
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-primary font-black">Consumo por colaborador</div>
-              <div className="text-xs text-slate-500 font-bold mt-1">1 valor por pessoa (mês)</div>
+              <div className="text-xs text-muted font-bold mt-1">1 valor por pessoa (mês)</div>
             </div>
             <Badge variant="info">{formatMoneyBR(consumoTotal)}</Badge>
           </div>
 
-          <div className="mt-4 overflow-auto rounded-xl border border-slate-800">
+          <div className="mt-4 overflow-auto rounded-xl border border-line">
             <table className="w-full text-left">
-              <thead className="bg-slate-950/40">
-                <tr className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <thead className="bg-bg/40">
+                <tr className="text-[10px] font-black uppercase tracking-widest text-muted">
                   <th className="px-4 py-3">Colaborador</th>
                   <th className="px-4 py-3 text-right">Valor</th>
                   <th className="px-4 py-3 text-right">Ações</th>
@@ -1183,15 +1183,15 @@ export const BistroTab: React.FC<{
                   .map((c) => {
                     const col = colaboradores.find((x) => x.id === c.colaborador_id);
                     return (
-                      <tr key={c.colaborador_id} className="border-t border-slate-800/60">
-                        <td className="px-4 py-3 text-slate-200 font-bold">{col?.nome || `#${c.colaborador_id}`}</td>
-                        <td className="px-4 py-3 text-right text-slate-200 font-mono font-bold">{formatMoneyBR(c.valor)}</td>
+                      <tr key={c.colaborador_id} className="border-t border-line/60">
+                        <td className="px-4 py-3 text-secondary font-bold">{col?.nome || `#${c.colaborador_id}`}</td>
+                        <td className="px-4 py-3 text-right text-secondary font-mono font-bold">{formatMoneyBR(c.valor)}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => openEditConsumo(c.colaborador_id)}
-                              className="px-2.5 py-2 rounded-xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900/70 text-slate-200 transition-all"
+                              className="px-2.5 py-2 rounded-xl border border-line bg-surface/40 hover:bg-surface/70 text-secondary transition-all"
                               title="Editar"
                             >
                               <Pencil className="w-4 h-4" />
@@ -1203,7 +1203,7 @@ export const BistroTab: React.FC<{
                                 setConsumoToDelete({ colaborador_id: c.colaborador_id, nome, valor: Number(c.valor) || 0 });
                                 setConsumoDeleteOpen(true);
                               }}
-                              className="px-2.5 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15 text-rose-200 transition-all"
+                              className="px-2.5 py-2 rounded-xl border border-danger/30 bg-danger/10 hover:bg-danger/15 text-danger transition-all"
                               title="Excluir"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1215,7 +1215,7 @@ export const BistroTab: React.FC<{
                   })}
                 {consumos.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-4 py-6 text-center text-slate-500 font-bold">
+                    <td colSpan={3} className="px-4 py-6 text-center text-muted font-bold">
                       Nenhum consumo lançado ainda.
                     </td>
                   </tr>
@@ -1228,20 +1228,20 @@ export const BistroTab: React.FC<{
         <div className="space-y-6">
           <Card className="p-5">
             <div className="text-primary font-black">Pagamento da Lúcia (Folha)</div>
-            <div className="text-xs text-slate-500 font-bold mt-1">Resolve o Bistrô inteiro aqui: calcula e já preenche na Folha</div>
+            <div className="text-xs text-muted font-bold mt-1">Resolve o Bistrô inteiro aqui: calcula e já preenche na Folha</div>
 
             <div className="mt-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Colaboradora</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted">Colaboradora</div>
                 <button
                   type="button"
                   onClick={() => setLuciaPickerOpen((v) => !v)}
-                  className="text-[10px] font-black uppercase tracking-widest text-violet-300 hover:text-violet-200 transition-colors"
+                  className="text-[10px] font-black uppercase tracking-widest text-accent hover:text-accent transition-colors"
                 >
                   Alterar
                 </button>
               </div>
-              <div className="mt-2 px-4 py-3 rounded-2xl border border-slate-800/60 bg-slate-950/30 text-slate-100 font-black">
+              <div className="mt-2 px-4 py-3 rounded-2xl border border-line/60 bg-bg/30 text-secondary font-black">
                 {params?.lucia_colaborador_id
                   ? colaboradores.find((c) => c.id === params.lucia_colaborador_id)?.nome || `#${params.lucia_colaborador_id}`
                   : 'Não configurado'}
@@ -1261,7 +1261,7 @@ export const BistroTab: React.FC<{
                     options={[{ value: '', label: 'Selecione...' }, ...colaboradoresOptions]}
                     className="w-full"
                   />
-                  <div className="mt-1 text-[10px] text-slate-500 font-bold">
+                  <div className="mt-1 text-[10px] text-muted font-bold">
                     * Você só precisa mexer nisso se um dia a Lúcia mudar de cadastro
                   </div>
                 </div>
@@ -1270,7 +1270,7 @@ export const BistroTab: React.FC<{
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Salário (Folha)</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Salário (Folha)</div>
                 <input
                   value={luciaSalarioDraft}
                   onChange={(e) => setLuciaSalarioDraft(e.target.value)}
@@ -1281,7 +1281,7 @@ export const BistroTab: React.FC<{
                 />
               </div>
               <div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">VT (Passagem)</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">VT (Passagem)</div>
                 <input
                   value={luciaVtDraft}
                   onChange={(e) => setLuciaVtDraft(e.target.value)}
@@ -1293,42 +1293,42 @@ export const BistroTab: React.FC<{
               </div>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Pagamento (calculado)</div>
+            <div className="mt-4 rounded-2xl border border-line bg-bg/40 p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted">Pagamento (calculado)</div>
               {lucia ? (
                 <div className="mt-2 space-y-2 text-sm">
-                  <div className="flex items-center justify-between text-slate-300 font-bold">
+                  <div className="flex items-center justify-between text-secondary font-bold">
                     <span>Total líquido</span>
-                    <span className="text-emerald-300 font-black">{formatMoneyBR(lucia.totalLiquidoLucia)}</span>
+                    <span className="text-success font-black">{formatMoneyBR(lucia.totalLiquidoLucia)}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-500">
+                  <div className="grid grid-cols-2 gap-2 text-xs font-bold text-muted">
                     <div className="flex items-center justify-between">
                       <span>Comissão</span>
-                      <span className="text-slate-200 font-mono">{formatMoneyBR(lucia.comissao)}</span>
+                      <span className="text-secondary font-mono">{formatMoneyBR(lucia.comissao)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Bônus</span>
-                      <span className="text-slate-200 font-mono">{formatMoneyBR(lucia.bonus)}</span>
+                      <span className="text-secondary font-mono">{formatMoneyBR(lucia.bonus)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Consumo (mês)</span>
-                      <span className="text-slate-200 font-mono">- {formatMoneyBR(lucia.consumo)}</span>
+                      <span className="text-secondary font-mono">- {formatMoneyBR(lucia.consumo)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Lucro líquido</span>
-                      <span className="text-slate-200 font-mono">{formatMoneyBR(lucia.lucroLiquido)}</span>
+                      <span className="text-secondary font-mono">{formatMoneyBR(lucia.lucroLiquido)}</span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="mt-2 text-slate-500 font-bold text-sm">
+                <div className="mt-2 text-muted font-bold text-sm">
                   Selecione a Lúcia para ver o cálculo.
                 </div>
               )}
             </div>
 
             {!luciaLancEffective ? (
-              <div className="mt-3 text-[10px] font-bold text-amber-300">
+              <div className="mt-3 text-[10px] font-bold text-warning">
                 {luciaLancRemoteLoading
                   ? 'Verificando a linha da Lúcia na folha atual…'
                   : `Não encontrei a linha da Lúcia na folha atual (${monthLabelPt(ymFolha)}). Esse mês ainda não tem lançamentos (provavelmente não foi duplicado). Você pode criar só a linha da Lúcia aqui, ou duplicar o mês anterior em Folha → Lançamentos.`}
@@ -1339,7 +1339,7 @@ export const BistroTab: React.FC<{
                     disabled={!canEdit || luciaCreateLoading}
                     className={cn(
                       'px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2',
-                      !canEdit ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed' : 'bg-amber-500/20 text-amber-200 border-amber-500/30 hover:bg-amber-500/25'
+                      !canEdit ? 'bg-surface/30 text-muted border-line/50 cursor-not-allowed' : 'bg-warning/20 text-warning border-warning/30 hover:bg-warning/25'
                     )}
                   >
                     {luciaCreateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -1348,7 +1348,7 @@ export const BistroTab: React.FC<{
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'folha', page: 'lancamentos' } }))}
-                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-700 bg-slate-800/50 text-primary hover:bg-slate-700 transition-all flex items-center gap-2"
+                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-line-strong bg-surface-2/50 text-primary hover:bg-surface-3 transition-all flex items-center gap-2"
                   >
                     Ir para Lançamentos (Folha)
                   </button>
@@ -1358,7 +1358,7 @@ export const BistroTab: React.FC<{
 
             <div className="mt-4 flex items-center justify-end gap-3">
               {luciaApplyOk ? (
-                <div className="text-[10px] text-emerald-300 font-black flex items-center gap-2">
+                <div className="text-[10px] text-success font-black flex items-center gap-2">
                   <CheckCircle2 size={14} /> Aplicado na Folha
                 </div>
               ) : null}
@@ -1370,8 +1370,8 @@ export const BistroTab: React.FC<{
                 className={cn(
                   'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2',
                   !canEdit || !luciaLanc || !lucia
-                    ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                    : 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30 shadow-lg shadow-violet-600/10 active:scale-95',
+                    ? 'bg-surface/30 text-muted border-line/50 cursor-not-allowed'
+                    : 'bg-accent hover:bg-accent text-primary border-accent/30 shadow-lg shadow-accent/10 active:scale-95',
                   luciaApplyLoading && 'opacity-70'
                 )}
               >
@@ -1384,11 +1384,11 @@ export const BistroTab: React.FC<{
 
           <Card className="p-5">
             <div className="text-primary font-black">EMLA (saldo acumulado)</div>
-            <div className="text-xs text-slate-500 font-bold mt-1">Dívida/adiantamentos do Bistrô com a LA (EMLA)</div>
+            <div className="text-xs text-muted font-bold mt-1">Dívida/adiantamentos do Bistrô com a LA (EMLA)</div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Saldo inicial (mês)</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Saldo inicial (mês)</div>
                 <input
                   defaultValue={String(saldoInicialEmla ?? '')}
                   onBlur={(e) => void saveSaldoInicialEmla(e.target.value)}
@@ -1396,12 +1396,12 @@ export const BistroTab: React.FC<{
                   className={inputBase}
                   inputMode="decimal"
                 />
-                <div className="mt-1 text-[10px] text-slate-500 font-bold">* Salva automaticamente ao sair do campo</div>
+                <div className="mt-1 text-[10px] text-muted font-bold">* Salva automaticamente ao sair do campo</div>
               </div>
-              <div className="rounded-2xl border border-slate-800/60 bg-slate-950/30 p-4">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Saldo final (mês)</div>
+              <div className="rounded-2xl border border-line/60 bg-bg/30 p-4">
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted">Saldo final (mês)</div>
                 <div className="mt-1 text-lg font-black text-primary font-mono">{formatMoneyBR(saldoFinalEmla)}</div>
-                <div className="mt-1 text-xs text-slate-500 font-bold">Saldo inicial + aportes − abatimentos</div>
+                <div className="mt-1 text-xs text-muted font-bold">Saldo inicial + aportes − abatimentos</div>
               </div>
             </div>
           </Card>
@@ -1411,12 +1411,12 @@ export const BistroTab: React.FC<{
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Card className="p-5">
           <div className="text-primary font-black">Vendas do mês (bruto)</div>
-          <div className="text-xs text-slate-500 font-bold mt-1">Usado para taxas, lucro e bônus</div>
+          <div className="text-xs text-muted font-bold mt-1">Usado para taxas, lucro e bônus</div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             {(['pix_bruto', 'debito_bruto', 'credito_bruto', 'dinheiro_bruto'] as const).map((k) => (
               <div key={k}>
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{k.replace('_bruto', '').toUpperCase()}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">{k.replace('_bruto', '').toUpperCase()}</div>
                 <input
                   value={String((vendas as any)?.[k] ?? '')}
                   onChange={(e) => setVendas((p) => ({ ...(p || ({} as any)), [k]: e.target.value } as any))}
@@ -1435,7 +1435,7 @@ export const BistroTab: React.FC<{
               { k: 'credito_taxa_pct', label: 'Taxa Crédito (%)' },
             ] as const).map(({ k, label }) => (
               <div key={k}>
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{label}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">{label}</div>
                 <input
                   value={pctInputValue(k)}
                   onChange={(e) => {
@@ -1456,16 +1456,16 @@ export const BistroTab: React.FC<{
           </div>
 
           <div className="mt-4 flex items-center justify-between gap-3">
-            <div className="text-slate-300 font-bold">Total bruto</div>
+            <div className="text-secondary font-bold">Total bruto</div>
             <div className="text-primary font-black">{formatMoneyBR(vendasCalc.totalBruto)}</div>
           </div>
           <div className="mt-1 flex items-center justify-between gap-3">
-            <div className="text-slate-500 font-bold text-sm">Taxas</div>
-            <div className="text-rose-300 font-black">{formatMoneyBR(vendasCalc.totalTaxas)}</div>
+            <div className="text-muted font-bold text-sm">Taxas</div>
+            <div className="text-danger font-black">{formatMoneyBR(vendasCalc.totalTaxas)}</div>
           </div>
           <div className="mt-1 flex items-center justify-between gap-3">
-            <div className="text-slate-500 font-bold text-sm">Recebimento sem taxas</div>
-            <div className="text-emerald-300 font-black">{formatMoneyBR(vendasCalc.recebLiquido)}</div>
+            <div className="text-muted font-bold text-sm">Recebimento sem taxas</div>
+            <div className="text-success font-black">{formatMoneyBR(vendasCalc.recebLiquido)}</div>
           </div>
 
           <div className="mt-4 flex justify-end">
@@ -1475,16 +1475,16 @@ export const BistroTab: React.FC<{
                 disabled={!canEdit}
                 onClick={() => void saveVendas()}
                 className={cn(
-                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-violet-600/10',
+                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-accent/10',
                   canEdit 
-                    ? 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30 active:scale-95' 
-                    : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
+                    ? 'bg-accent hover:bg-accent text-primary border-accent/30 active:scale-95' 
+                    : 'bg-surface/30 border-line/50 text-muted cursor-not-allowed'
                 )}
               >
                 <Save className="w-4 h-4" />
                 Salvar vendas do mês
               </button>
-              <div className="text-[10px] text-slate-500 font-bold text-center italic">
+              <div className="text-[10px] text-muted font-bold text-center italic">
                 * Necessário para calcular lucro e comissões
               </div>
             </div>
@@ -1495,15 +1495,15 @@ export const BistroTab: React.FC<{
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-primary font-black">Movimentações (repasses / despesas / EMLA)</div>
-              <div className="text-xs text-slate-500 font-bold mt-1">
-                Repasses/despesas entram no relatório. <span className="text-slate-400">Saldo EMLA só muda com Aporte/Abatimento.</span>
+              <div className="text-xs text-muted font-bold mt-1">
+                Repasses/despesas entram no relatório. <span className="text-secondary">Saldo EMLA só muda com Aporte/Abatimento.</span>
               </div>
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Tipo</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Tipo</div>
               <CustomSelect
                 value={movDraft.tipo}
                 onValueChange={(v) =>
@@ -1516,9 +1516,9 @@ export const BistroTab: React.FC<{
                 }
                 options={movTipoOptions}
               />
-              <div className="mt-1 text-[10px] text-slate-500 font-bold">
-                * Use <span className="text-slate-300">Aporte EMLA</span> quando a LA paga algo do Bistrô (vira dívida). Use{' '}
-                <span className="text-slate-300">Abatimento EMLA</span> quando essa dívida é abatida.
+              <div className="mt-1 text-[10px] text-muted font-bold">
+                * Use <span className="text-secondary">Aporte EMLA</span> quando a LA paga algo do Bistrô (vira dívida). Use{' '}
+                <span className="text-secondary">Abatimento EMLA</span> quando essa dívida é abatida.
               </div>
 
               {movDraft.tipo === 'repasse_bistro' ? (
@@ -1533,20 +1533,20 @@ export const BistroTab: React.FC<{
                           valor: p.valor?.trim() ? p.valor : String(consumoTotal || '').replace('.', ','),
                         }))
                       }
-                      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-cyan-500/30 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20 transition-all flex items-center gap-2"
+                      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-info/30 bg-info/10 text-info hover:bg-info/20 transition-all flex items-center gap-2"
                     >
                       <Plus className="w-3 h-3" />
                       Repasse consumo (sugestão)
                     </button>
                   </Tooltip>
-                  <div className="text-[10px] text-slate-500 font-bold self-center">
-                    Consumo do mês: <span className="text-slate-300">{formatMoneyBR(consumoTotal)}</span>
+                  <div className="text-[10px] text-muted font-bold self-center">
+                    Consumo do mês: <span className="text-secondary">{formatMoneyBR(consumoTotal)}</span>
                   </div>
                 </div>
               ) : null}
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Categoria</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Categoria</div>
               {movDraft.tipo === 'despesa' ? (
                 <CustomSelect
                   value={movDraft.categoria}
@@ -1554,13 +1554,13 @@ export const BistroTab: React.FC<{
                   options={movCategoriaOptions}
                 />
               ) : (
-                <div className="px-4 py-3 rounded-2xl border border-slate-800/60 bg-slate-950/30 text-slate-500 font-black">
+                <div className="px-4 py-3 rounded-2xl border border-line/60 bg-bg/30 text-muted font-black">
                   — (somente para Despesa)
                 </div>
               )}
             </div>
             <div className="col-span-2">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Descrição</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Descrição</div>
               <input
                 value={movDraft.descricao}
                 onChange={(e) => setMovDraft((p) => ({ ...p, descricao: e.target.value }))}
@@ -1569,7 +1569,7 @@ export const BistroTab: React.FC<{
               />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Valor</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Valor</div>
               <input
                 value={movDraft.valor}
                 onChange={(e) => setMovDraft((p) => ({ ...p, valor: e.target.value }))}
@@ -1579,12 +1579,12 @@ export const BistroTab: React.FC<{
               />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Data</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Data</div>
               <DatePicker
                 value={movDraft.data_mov}
                 onChange={(v) => setMovDraft((p) => ({ ...p, data_mov: v || '' }))}
                 placeholder="Selecione..."
-                className="bg-slate-900/40 border-slate-700/60 text-slate-100"
+                className="bg-surface/40 border-line-strong/60 text-secondary"
               />
             </div>
             <div className="col-span-2 flex justify-end mt-2">
@@ -1593,10 +1593,10 @@ export const BistroTab: React.FC<{
                 disabled={!canEdit}
                 onClick={() => void addMov()}
                 className={cn(
-                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2 shadow-lg shadow-violet-600/10',
+                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2 shadow-lg shadow-accent/10',
                   canEdit 
-                    ? 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30 active:scale-95' 
-                    : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
+                    ? 'bg-accent hover:bg-accent text-primary border-accent/30 active:scale-95' 
+                    : 'bg-surface/30 border-line/50 text-muted cursor-not-allowed'
                 )}
               >
                 <Plus className="w-4 h-4" />
@@ -1605,10 +1605,10 @@ export const BistroTab: React.FC<{
             </div>
           </div>
 
-          <div className="mt-4 overflow-auto max-h-[260px] rounded-xl border border-slate-800">
+          <div className="mt-4 overflow-auto max-h-[260px] rounded-xl border border-line">
             <table className="w-full text-left">
-              <thead className="bg-slate-950/40">
-                <tr className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <thead className="bg-bg/40">
+                <tr className="text-[10px] font-black uppercase tracking-widest text-muted">
                   <th className="px-4 py-3">Data</th>
                   <th className="px-4 py-3">Tipo</th>
                   <th className="px-4 py-3">Desc.</th>
@@ -1618,17 +1618,17 @@ export const BistroTab: React.FC<{
               </thead>
               <tbody>
                 {movs.map((m) => (
-                  <tr key={m.id} className="border-t border-slate-800/60">
-                    <td className="px-4 py-3 text-slate-400 font-bold text-sm">{m.data_mov}</td>
-                    <td className="px-4 py-3 text-slate-200 font-bold text-sm">{m.tipo}</td>
-                    <td className="px-4 py-3 text-slate-200 font-bold text-sm">{m.descricao}</td>
-                    <td className="px-4 py-3 text-right text-slate-200 font-mono font-bold">{formatMoneyBR(m.valor)}</td>
+                  <tr key={m.id} className="border-t border-line/60">
+                    <td className="px-4 py-3 text-secondary font-bold text-sm">{m.data_mov}</td>
+                    <td className="px-4 py-3 text-secondary font-bold text-sm">{m.tipo}</td>
+                    <td className="px-4 py-3 text-secondary font-bold text-sm">{m.descricao}</td>
+                    <td className="px-4 py-3 text-right text-secondary font-mono font-bold">{formatMoneyBR(m.valor)}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => openEditMov(m)}
-                          className="px-2.5 py-2 rounded-xl border border-slate-800 bg-slate-900/40 hover:bg-slate-900/70 text-slate-200 transition-all"
+                          className="px-2.5 py-2 rounded-xl border border-line bg-surface/40 hover:bg-surface/70 text-secondary transition-all"
                           title="Editar"
                         >
                           <Pencil className="w-4 h-4" />
@@ -1639,7 +1639,7 @@ export const BistroTab: React.FC<{
                             setMovToDelete(m);
                             setMovDeleteOpen(true);
                           }}
-                          className="px-2.5 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15 text-rose-200 transition-all"
+                          className="px-2.5 py-2 rounded-xl border border-danger/30 bg-danger/10 hover:bg-danger/15 text-danger transition-all"
                           title="Excluir"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1650,7 +1650,7 @@ export const BistroTab: React.FC<{
                 ))}
                 {movs.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-slate-500 font-bold">
+                    <td colSpan={5} className="px-4 py-6 text-center text-muted font-bold">
                       Nenhuma movimentação registrada.
                     </td>
                   </tr>
@@ -1679,7 +1679,7 @@ export const BistroTab: React.FC<{
                 setMovEditOpen(false);
                 setMovEditDraft(null);
               }}
-              className="px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 font-black"
+              className="px-4 py-2 rounded-xl bg-surface/50 border border-line text-secondary font-black"
             >
               Cancelar
             </button>
@@ -1689,7 +1689,7 @@ export const BistroTab: React.FC<{
               disabled={!movEditDraft || movEditSaving || !canEdit}
               className={cn(
                 'px-4 py-2 rounded-xl font-black border transition-all disabled:opacity-60 flex items-center gap-2',
-                !canEdit ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30'
+                !canEdit ? 'bg-surface/30 text-muted border-line/50 cursor-not-allowed' : 'bg-accent hover:bg-accent text-primary border-accent/30'
               )}
             >
               {movEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -1701,7 +1701,7 @@ export const BistroTab: React.FC<{
         {movEditDraft ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Tipo</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Tipo</div>
               <CustomSelect
                 value={movEditDraft.tipo}
                 onValueChange={(v) =>
@@ -1719,7 +1719,7 @@ export const BistroTab: React.FC<{
               />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Categoria</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Categoria</div>
               {movEditDraft.tipo === 'despesa' ? (
                 <CustomSelect
                   value={(movEditDraft.categoria || '') as any}
@@ -1727,13 +1727,13 @@ export const BistroTab: React.FC<{
                   options={movCategoriaOptions}
                 />
               ) : (
-                <div className="px-4 py-3 rounded-2xl border border-slate-800/60 bg-slate-950/30 text-slate-500 font-black">
+                <div className="px-4 py-3 rounded-2xl border border-line/60 bg-bg/30 text-muted font-black">
                   — (somente para Despesa)
                 </div>
               )}
             </div>
             <div className="md:col-span-2">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Descrição</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Descrição</div>
               <input
                 value={movEditDraft.descricao}
                 onChange={(e) => setMovEditDraft((p) => (p ? ({ ...p, descricao: e.target.value } as any) : p))}
@@ -1742,7 +1742,7 @@ export const BistroTab: React.FC<{
               />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Valor</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Valor</div>
               <input
                 value={movEditDraft.valor}
                 onChange={(e) => setMovEditDraft((p) => (p ? ({ ...p, valor: e.target.value } as any) : p))}
@@ -1752,12 +1752,12 @@ export const BistroTab: React.FC<{
               />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Data</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Data</div>
               <DatePicker
                 value={movEditDraft.data_mov}
                 onChange={(v) => setMovEditDraft((p) => (p ? ({ ...p, data_mov: v || '' } as any) : p))}
                 placeholder="Selecione..."
-                className="bg-slate-900/40 border-slate-700/60 text-slate-100"
+                className="bg-surface/40 border-line-strong/60 text-secondary"
               />
             </div>
           </div>
@@ -1791,14 +1791,14 @@ export const BistroTab: React.FC<{
         className="max-w-3xl"
         footer={
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-slate-500 font-bold">
+            <div className="text-xs text-muted font-bold">
               {pastePreview.length ? `${pastePreview.filter((p) => p.colaborador_id).length}/${pastePreview.length} reconhecidos` : ''}
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPasteOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 font-black"
+                className="px-4 py-2 rounded-xl bg-surface/50 border border-line text-secondary font-black"
               >
                 Cancelar
               </button>
@@ -1808,7 +1808,7 @@ export const BistroTab: React.FC<{
                 onClick={() => void confirmPaste()}
                 className={cn(
                   'px-5 py-2 rounded-xl font-black text-primary',
-                  !canEdit || !pastePreview.length ? 'bg-slate-800 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500'
+                  !canEdit || !pastePreview.length ? 'bg-surface-2 cursor-not-allowed' : 'bg-accent hover:bg-accent'
                 )}
               >
                 Salvar consumos
@@ -1824,21 +1824,21 @@ export const BistroTab: React.FC<{
               setPasteText(e.target.value);
               refreshPastePreview(e.target.value);
             }}
-            className="w-full min-h-[160px] bg-slate-900/40 border border-slate-700/60 rounded-2xl p-4 text-slate-100 font-mono text-sm"
+            className="w-full min-h-[160px] bg-surface/40 border border-line-strong/60 rounded-2xl p-4 text-secondary font-mono text-sm"
             placeholder={`Ex:\nLucia - 74,30\nJoão Silva - 25,00`}
           />
 
           {pastePreview.length ? (
-            <div className="rounded-2xl border border-slate-800/60 overflow-hidden">
-              <div className="px-4 py-3 bg-slate-950/40 text-[10px] font-black uppercase tracking-widest text-slate-500">
+            <div className="rounded-2xl border border-line/60 overflow-hidden">
+              <div className="px-4 py-3 bg-bg/40 text-[10px] font-black uppercase tracking-widest text-muted">
                 Preview (reconhecimento por nome)
               </div>
               <div className="max-h-[220px] overflow-auto">
                 {pastePreview.map((p, idx) => (
-                  <div key={idx} className="px-4 py-2 border-t border-slate-800/60 flex items-center justify-between gap-3">
+                  <div key={idx} className="px-4 py-2 border-t border-line/60 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-slate-200 font-bold truncate">{p.nome}</div>
-                      <div className="text-xs text-slate-500 font-bold truncate">
+                      <div className="text-secondary font-bold truncate">{p.nome}</div>
+                      <div className="text-xs text-muted font-bold truncate">
                         {p.colaborador_id
                           ? `→ ${colaboradores.find((c) => c.id === p.colaborador_id)?.nome || `#${p.colaborador_id}`}`
                           : p.sugestoes?.length
@@ -1858,7 +1858,7 @@ export const BistroTab: React.FC<{
                                   )
                                 );
                               }}
-                              className="px-2 py-1 rounded-xl bg-slate-900/40 border border-slate-700/60 text-slate-200 text-[10px] font-black hover:bg-slate-900/60 transition-all"
+                              className="px-2 py-1 rounded-xl bg-surface/40 border border-line-strong/60 text-secondary text-[10px] font-black hover:bg-surface/60 transition-all"
                             >
                               {s.nome}
                             </button>
@@ -1866,7 +1866,7 @@ export const BistroTab: React.FC<{
                         </div>
                       ) : null}
                     </div>
-                    <div className="text-slate-200 font-mono font-black">{formatMoneyBR(p.valor)}</div>
+                    <div className="text-secondary font-mono font-black">{formatMoneyBR(p.valor)}</div>
                   </div>
                 ))}
               </div>
@@ -1884,8 +1884,8 @@ export const BistroTab: React.FC<{
         className="max-w-4xl"
         footer={
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-slate-500 font-bold">
-              {copyOk ? <span className="text-emerald-300 font-black">Copiado ({copyOk})!</span> : 'WhatsApp: copiar e colar no grupo'}
+            <div className="text-xs text-muted font-bold">
+              {copyOk ? <span className="text-success font-black">Copiado ({copyOk})!</span> : 'WhatsApp: copiar e colar no grupo'}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -1896,7 +1896,7 @@ export const BistroTab: React.FC<{
                     setTimeout(() => setCopyOk(null), 1500);
                   });
                 }}
-                className="px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-200 font-black flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-surface/50 border border-line text-secondary font-black flex items-center gap-2"
               >
                 <Copy className="w-4 h-4" /> Copiar Financeiro
               </button>
@@ -1908,7 +1908,7 @@ export const BistroTab: React.FC<{
                     setTimeout(() => setCopyOk(null), 1500);
                   });
                 }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-primary font-black flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-success hover:bg-success text-primary font-black flex items-center gap-2"
               >
                 <Copy className="w-4 h-4" /> Copiar Repasses
               </button>
@@ -1923,8 +1923,8 @@ export const BistroTab: React.FC<{
             className={cn(
               'px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
               reportKind === 'financeiro'
-                ? 'bg-violet-600 text-primary border-violet-500/30'
-                : 'bg-slate-900/40 text-slate-300 border-slate-800 hover:bg-slate-900/60'
+                ? 'bg-accent text-primary border-accent/30'
+                : 'bg-surface/40 text-secondary border-line hover:bg-surface/60'
             )}
           >
             Financeiro (taxas)
@@ -1935,8 +1935,8 @@ export const BistroTab: React.FC<{
             className={cn(
               'px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
               reportKind === 'repasses'
-                ? 'bg-violet-600 text-primary border-violet-500/30'
-                : 'bg-slate-900/40 text-slate-300 border-slate-800 hover:bg-slate-900/60'
+                ? 'bg-accent text-primary border-accent/30'
+                : 'bg-surface/40 text-secondary border-line hover:bg-surface/60'
             )}
           >
             Repasses (Ana)
@@ -1950,7 +1950,7 @@ export const BistroTab: React.FC<{
             if (reportKind === 'financeiro') setReportDraftFinanceiro(v);
             else setReportDraftRepasses(v);
           }}
-          className="w-full min-h-[380px] bg-slate-950/40 border border-slate-800/60 rounded-2xl p-4 text-slate-100 font-mono text-sm"
+          className="w-full min-h-[380px] bg-bg/40 border border-line/60 rounded-2xl p-4 text-secondary font-mono text-sm"
         />
       </Modal>
     </div>
