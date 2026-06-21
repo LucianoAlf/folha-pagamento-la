@@ -25,6 +25,7 @@ import {
 } from './components/CollaboratorComponents';
 import { Sidebar } from './components/Sidebar';
 import { ThemeToggle } from './components/ThemeToggle';
+import { AvatarCropper } from './components/AvatarCropper';
 import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
 
 const ContasPagarPage = lazy(() =>
@@ -898,20 +899,6 @@ export default function App() {
     setProfileSaved(false);
     setIsProfileOpen(true);
     setProfilePopoverOpen(false); // Fecha o popover ao abrir o modal
-  };
-
-  const handlePickProfileAvatar = async (file: File | null) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setAlertState({ isOpen: true, title: 'Arquivo inválido', message: 'Selecione uma imagem (PNG/JPG/WebP).', variant: 'danger' });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result || '');
-      setProfileAvatar(result);
-    };
-    reader.readAsDataURL(file);
   };
 
   const saveProfile = async () => {
@@ -2539,61 +2526,35 @@ export default function App() {
               className="max-w-xl"
             >
               <div className="space-y-5">
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-3xl overflow-hidden border border-line-strong bg-surface/40 shrink-0">
-                    <img
-                      src={profileAvatar || getDefaultAvatarByEmail(userEmail) || '/logo-LA-colapsed.png'}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div>
-                      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
-                        Nome
-                      </label>
-                      <input
-                        value={profileName}
-                        onChange={(e) => setProfileName(e.target.value)}
-                        className="w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-secondary outline-none focus:ring-2 focus:ring-accent/40"
-                        placeholder="Seu nome"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
-                        Foto
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          id="profile-photo-input"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handlePickProfileAvatar(e.target.files?.[0] ?? null)}
-                          className="hidden"
-                          disabled={profileSaving}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => document.getElementById('profile-photo-input')?.click()}
-                          className="px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold transition-colors flex items-center gap-2 border border-line-strong"
-                          disabled={profileSaving}
-                        >
-                          <Plus size={14} /> Selecionar Imagem
-                        </button>
-                      </div>
-                      <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
-                        <span>Sua foto será exibida no header e nos relatórios.</span>
-                        {profileSaving ? (
-                          <span className="text-accent font-bold flex items-center gap-1">
-                            <Loader2 size={10} className="animate-spin" /> SALVANDO...
-                          </span>
-                        ) : profileSaved ? (
-                          <span className="text-success font-bold flex items-center gap-1">
-                            <CheckCircle size={10} /> SALVO
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
+                <AvatarCropper
+                  value={profileAvatar}
+                  onChange={setProfileAvatar}
+                  fallbackSrc={getDefaultAvatarByEmail(userEmail) || '/logo-LA-colapsed.png'}
+                  disabled={profileSaving}
+                  onError={(message) => setAlertState({ isOpen: true, title: 'Arquivo inválido', message, variant: 'danger' })}
+                />
+
+                <div>
+                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
+                    Nome
+                  </label>
+                  <input
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    className="w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-secondary outline-none focus:ring-2 focus:ring-accent/40"
+                    placeholder="Seu nome"
+                  />
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
+                    <span>Sua foto será exibida no header e nos relatórios.</span>
+                    {profileSaving ? (
+                      <span className="text-accent font-bold flex items-center gap-1">
+                        <Loader2 size={10} className="animate-spin" /> SALVANDO...
+                      </span>
+                    ) : profileSaved ? (
+                      <span className="text-success font-bold flex items-center gap-1">
+                        <CheckCircle size={10} /> SALVO
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
