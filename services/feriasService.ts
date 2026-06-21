@@ -18,22 +18,7 @@ import {
   FeriasCalcularPeriodosResponse,
   FeriasWhatsAppAlertasResponse,
 } from '../types';
-import { supabase } from './supabase';
-
-const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
-  (import.meta as any).env?.SUPABASE_URL;
-const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  (import.meta as any).env?.SUPABASE_ANON_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error(
-    'Missing Supabase config. Define VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY in .env.local.'
-  );
-}
+import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from './supabase';
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
