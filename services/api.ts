@@ -67,7 +67,8 @@ export const api = {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      throw new Error(`Erro ao salvar perfil do usuário. ${text}`.trim());
+      console.error('[avatar-save] FALHOU', res.status, res.statusText, '| body:', text, '| payloadKB:', Math.round(JSON.stringify(profile).length / 1024));
+      throw new Error(`Erro ${res.status} ao salvar perfil. ${text || res.statusText}`.trim());
     }
     const rows = await res.json();
     return rows[0] as UserProfile;

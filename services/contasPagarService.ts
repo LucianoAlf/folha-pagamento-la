@@ -1,5 +1,13 @@
-import { supabase } from './supabase';
-import { CategoriaDespesa, ContaPagar, StatusVisual } from '../types/contasPagar';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
+import {
+  CategoriaDespesa,
+  CodigoMesBadge,
+  ContaCredencial,
+  ContaPagar,
+  ContaPagarCodigoMes,
+  ContaPagarRelatorioDia,
+  StatusVisual,
+} from '../types/contasPagar';
 
 // Categorias
 export async function fetchCategorias(): Promise<CategoriaDespesa[]> {
@@ -531,4 +539,331 @@ export function calcularResumoAuditoria(contas: ContaPagar[]) {
       ? contas.reduce((s, c) => s + (Number(c.valor) || 0), 0) / contas.length 
       : 0
   };
+}
+
+// =============================================
+// CREDENCIAIS (Fatia C)
+// =============================================
+
+export async function fetchCredenciais(): Promise<ContaCredencial[]> {
+  const { data, error } = await supabase
+    .from('contas_credenciais')
+    .select('*')
+    .order('nome');
+  if (error) throw error;
+  return (data || []) as ContaCredencial[];
+}
+
+export async function upsertCredencial(
+  credencial: Partial<ContaCredencial> & { nome: string; portal: string }
+): Promise<ContaCredencial> {
+  const { data, error } = await supabase
+    .from('contas_credenciais')
+    .upsert([credencial])
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as ContaCredencial;
+}
+
+export async function setCredencialSenha(credencialId: string, senha: string): Promise<void> {
+  const { data: session } = await supabase.auth.getSession();
+  const token = session.session?.access_token;
+  if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/contas-credencial-vault`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ credencial_id: credencialId, senha }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Erro ${response.status} ao gravar senha`);
+  }
+
+  const body = await response.json().catch(() => ({}));
+  if (body?.ok !== true) {
+    throw new Error(body?.error || 'Não foi possível gravar a senha');
+  }
+}
+
+// =============================================
+// CÓDIGO DO MÊS
+// =============================================
+
+export async function fetchCodigosMes(competencia: string): Promise<ContaPagarCodigoMes[]> {
+  const { data, error } = await supabase
+    .from('contas_pagar_codigo_mes')
+    .select('*')
+    .eq('competencia', competencia);
+  if (error) throw error;
+  return (data || []) as ContaPagarCodigoMes[];
+}
+
+export async function upsertCodigoMes(
+  input: Partial<ContaPagarCodigoMes> & { conta_pagar_id: string; competencia: string }
+): Promise<ContaPagarCodigoMes> {
+  const { data, error } = await supabase
+    .from('contas_pagar_codigo_mes')
+    .upsert([input], { onConflict: 'conta_pagar_id,competencia' })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as ContaPagarCodigoMes;
+}
+
+export function getCodigoMesBadge(conta: ContaPagar, codigo?: ContaPagarCodigoMes | null): CodigoMesBadge {
+  if (codigo?.status_coleta === 'coletado') return 'coletado';
+  if (codigo?.status_coleta === 'indisponivel') return 'indisponivel';
+  if (conta.status === 'pendente') {
+    const sv = getStatusVisual(conta);
+    if (sv === 'vencida' || sv === 'hoje' || sv === 'urgente') return 'atualizar';
+  }
+  return 'sem_codigo';
+}
+
+// =============================================
+// RELATÓRIO DO DIA (molde WhatsApp das meninas)
+// =============================================
+
+export type RelatorioSaldos = {
+  rec?: number | null;
+  bar?: number | null;
+  kids_cg?: number | null;
+  emla_cg?: number | null;
+};
+
+type GrupoRelatorioId = 'emla_cg' | 'kids_cg' | 'bar' | 'rec';
+
+const GRUPOS_RELATORIO: { id: GrupoRelatorioId; saldoLabel: string }[] = [
+  { id: 'emla_cg', saldoLabel: 'EMLA CG' },
+  { id: 'kids_cg', saldoLabel: 'Kids CG' },
+  { id: 'bar', saldoLabel: 'Barra' },
+  { id: 'rec', saldoLabel: 'Recreio' },
+];
+
+function formatDateDDMM(isoDate: string) {
+  if (!isoDate) return '—';
+  const [, month, day] = isoDate.split('-');
+  return `${day}/${month}`;
+}
+
+function formatCompetenciaMY(competencia: string | null | undefined, fallbackVencimento?: string) {
+  const src = competencia || (fallbackVencimento ? `${fallbackVencimento.slice(0, 7)}-01` : '');
+  const [yyyy, mm] = src.split('-');
+  if (!yyyy || !mm) return '';
+  return `${mm}/${yyyy}`;
+}
+
+/** R$1.674,33 — sem espaço após R$ (padrão WhatsApp) */
+function formatMoneyWhatsApp(value: number): string {
+  const n = Math.round((Number(value) || 0) * 100) / 100;
+  const [intPart, decPart] = n.toFixed(2).split('.');
+  const intFmt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `R$${intFmt},${decPart}`;
+}
+
+function linhaSaldo(label: string, valor?: number | null): string {
+  if (valor == null || Number.isNaN(Number(valor))) return `${label}: R$ `;
+  return `${label}: ${formatMoneyWhatsApp(Number(valor))}`;
+}
+
+function limparTituloPG(descricao: string): string {
+  let d = descricao.trim();
+  d = d.replace(/^\d+\s*-\s*PG\s*/i, '');
+  d = d.replace(/\s*-\s*\([^)]+\)\s*$/i, '').trim();
+  return d;
+}
+
+function ordemContaRelatorio(conta: ContaPagar): number {
+  const d = (conta.descricao || '').toLowerCase();
+  if (d.includes('simples nacional')) return 0;
+  if (d.includes('cheirinho')) return 1;
+  return 2;
+}
+
+function compararContasRelatorio(a: ContaPagar, b: ContaPagar): number {
+  const oa = ordemContaRelatorio(a);
+  const ob = ordemContaRelatorio(b);
+  if (oa !== ob) return oa - ob;
+  return a.descricao.localeCompare(b.descricao, 'pt-BR');
+}
+
+function classificarGrupoRelatorio(conta: ContaPagar): GrupoRelatorioId {
+  const desc = (conta.descricao || '').toLowerCase();
+  const un = conta.unidade || 'cg';
+
+  if (un === 'rec' || desc.includes('recreio')) return 'rec';
+  if (un === 'bar' || desc.includes('barra')) return 'bar';
+  if (desc.includes('kids')) return 'kids_cg';
+  return 'emla_cg';
+}
+
+function contaPassaFiltroUnidade(conta: ContaPagar, unidadeFiltro: string): boolean {
+  if (unidadeFiltro === 'todas') return true;
+  if (conta.unidade === unidadeFiltro || conta.unidade === 'todas') return true;
+  const grupo = classificarGrupoRelatorio(conta);
+  if (unidadeFiltro === 'cg' && (grupo === 'emla_cg' || grupo === 'kids_cg')) return true;
+  return false;
+}
+
+function linhaCodigoPagamento(
+  conta: ContaPagar,
+  codigo?: ContaPagarCodigoMes | null
+): string | null {
+  if (codigo?.codigo_barras?.trim()) return codigo.codigo_barras.trim();
+  if (codigo?.qr_pix_payload?.trim()) return codigo.qr_pix_payload.trim();
+  if (codigo?.chave_pix?.trim()) return codigo.chave_pix.trim();
+  if (conta.pix_chave_fixa?.trim()) return conta.pix_chave_fixa.trim();
+  return null;
+}
+
+function blocoContaRelatorio(
+  conta: ContaPagar,
+  codigo?: ContaPagarCodigoMes | null
+): string {
+  const titulo = limparTituloPG(conta.descricao || 'Conta');
+  const comp = formatCompetenciaMY(conta.competencia, conta.data_vencimento);
+  const valor = formatMoneyWhatsApp(Number(conta.valor) || 0);
+  const linhas = [`*PG ${titulo} ${comp} ${valor}*`];
+  const cod = linhaCodigoPagamento(conta, codigo);
+  if (cod) linhas.push(cod);
+  return linhas.join('\n');
+}
+
+/**
+ * Monta mensagem no molde operacional das meninas (WhatsApp):
+ * - Cabeçalho *CONTAS A PAGAR HOJE DD/MM* 🧾
+ * - Blocos EMLA CG → Kids CG → Barra → Recreio separados por _________
+ * - Cada conta: *PG … MM/AAAA R$…* + linha de código (barras/PIX quando houver)
+ * - Rodapé *SALDO EM CONTAS* (Pluggy preenche na Fatia D)
+ */
+export function montarRelatorioMensagem(
+  contas: ContaPagar[],
+  dataRef: string,
+  options?: {
+    codigosPorConta?: Record<string, ContaPagarCodigoMes>;
+    saldos?: RelatorioSaldos;
+    unidadeFiltro?: string;
+  }
+): string {
+  const { codigosPorConta = {}, saldos = {}, unidadeFiltro = 'todas' } = options || {};
+
+  const porGrupo = new Map<GrupoRelatorioId, ContaPagar[]>();
+  for (const g of GRUPOS_RELATORIO) porGrupo.set(g.id, []);
+
+  for (const c of contas) {
+    if (!contaPassaFiltroUnidade(c, unidadeFiltro)) continue;
+    const grupo = classificarGrupoRelatorio(c);
+    porGrupo.get(grupo)!.push(c);
+  }
+
+  for (const g of GRUPOS_RELATORIO) {
+    porGrupo.get(g.id)!.sort(compararContasRelatorio);
+  }
+
+  const partes: string[] = [`*CONTAS A PAGAR HOJE ${formatDateDDMM(dataRef)}* 🧾`, ''];
+
+  const gruposComContas = GRUPOS_RELATORIO.filter((g) => (porGrupo.get(g.id)?.length || 0) > 0);
+
+  if (gruposComContas.length === 0) {
+    partes.push('_Nenhuma conta pendente para hoje/amanhã._');
+  } else {
+    gruposComContas.forEach((grupo, idxGrupo) => {
+      const lista = porGrupo.get(grupo.id) || [];
+      lista.forEach((c, idxConta) => {
+        partes.push(blocoContaRelatorio(c, codigosPorConta[c.id]));
+        if (idxConta < lista.length - 1) partes.push('');
+      });
+      if (idxGrupo < gruposComContas.length - 1) {
+        partes.push('_________');
+      }
+    });
+  }
+
+  partes.push('');
+  partes.push('*SALDO EM CONTAS*');
+  partes.push(linhaSaldo('Recreio', saldos.rec));
+  partes.push(linhaSaldo('Barra', saldos.bar));
+  partes.push(linhaSaldo('Kids CG', saldos.kids_cg));
+  partes.push(linhaSaldo('EMLA CG', saldos.emla_cg));
+
+  return partes.join('\n').trimEnd();
+}
+
+/** Filtra contas pendentes com vencimento na data ou no dia seguinte */
+export function filtrarContasRelatorioDia(
+  contas: ContaPagar[],
+  dataRef: string,
+  unidadeFiltro: string
+): ContaPagar[] {
+  const alvo = new Date(`${dataRef}T00:00:00`);
+  alvo.setDate(alvo.getDate() + 1);
+  const amanhaISO = alvo.toISOString().split('T')[0];
+
+  return contas.filter((c) => {
+    if (c.status !== 'pendente') return false;
+    if (!contaPassaFiltroUnidade(c, unidadeFiltro)) return false;
+    return c.data_vencimento === dataRef || c.data_vencimento === amanhaISO;
+  });
+}
+
+export async function sha256Hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+export async function fetchRelatoriosDia(dataRef: string, unidade: string): Promise<ContaPagarRelatorioDia[]> {
+  let query = supabase
+    .from('contas_pagar_relatorio_dia')
+    .select('*')
+    .eq('data_referencia', dataRef)
+    .order('created_at', { ascending: false });
+
+  if (unidade !== 'todas') {
+    query = query.eq('unidade', unidade);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []) as ContaPagarRelatorioDia[];
+}
+
+export async function salvarRelatorioDia(input: {
+  data_referencia: string;
+  unidade: string;
+  mensagem_texto: string;
+  gerado_por: string;
+  status_envio?: ContaPagarRelatorioDia['status_envio'];
+  payload_json?: Record<string, unknown> | null;
+}): Promise<ContaPagarRelatorioDia> {
+  const hash = await sha256Hex(input.mensagem_texto);
+  const { data, error } = await supabase
+    .from('contas_pagar_relatorio_dia')
+    .insert([
+      {
+        ...input,
+        hash_mensagem: hash,
+        status_envio: input.status_envio || 'rascunho',
+      },
+    ])
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as ContaPagarRelatorioDia;
+}
+
+export async function marcarRelatorioCopiado(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('contas_pagar_relatorio_dia')
+    .update({ status_envio: 'copiado' })
+    .eq('id', id);
+  if (error) throw error;
 }

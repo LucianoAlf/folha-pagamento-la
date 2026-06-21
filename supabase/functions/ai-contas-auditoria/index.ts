@@ -446,15 +446,18 @@ Deno.serve(async (req: Request) => {
 
   const { data: inserted, error: insErr } = await supabase
     .from("contas_ai_insights")
-    .insert({
-      competencia_ym: competenciaYM,
-      unidade,
-      filtros: { categoriaId, comportamento, tipo },
-      model,
-      input_hash: inputHash,
-      summary: parsed.resumo_executivo,
-      response_json: parsed,
-    })
+    .upsert(
+      {
+        competencia_ym: competenciaYM,
+        unidade,
+        filtros: { categoriaId, comportamento, tipo },
+        model,
+        input_hash: inputHash,
+        summary: parsed.resumo_executivo,
+        response_json: parsed,
+      },
+      { onConflict: "input_hash" },
+    )
     .select("*")
     .single();
 

@@ -16,7 +16,7 @@ function slateToken(prefix, shade) {
   const n = Number(shade);
   if (prefix === 'bg') return n >= 950 ? 'bg' : n >= 900 ? 'surface' : n >= 800 ? 'surface-2' : 'surface-3';
   if (prefix === 'text') return n >= 700 ? 'primary' : n >= 500 ? 'muted' : 'secondary';
-  if (prefix === 'border' || prefix === 'divide' || prefix === 'ring' || prefix === 'outline') return n >= 800 ? 'base' : n >= 600 ? 'base-strong' : 'base';
+  if (prefix === 'border' || prefix === 'divide' || prefix === 'ring' || prefix === 'outline') return n >= 800 ? 'line' : n >= 600 ? 'line-strong' : 'line';
   if (prefix === 'from' || prefix === 'to' || prefix === 'via') return n >= 950 ? 'bg' : n >= 900 ? 'surface' : n >= 800 ? 'surface-2' : 'surface-3';
   if (prefix === 'placeholder') return n >= 500 ? 'muted' : 'secondary';
   return 'surface';

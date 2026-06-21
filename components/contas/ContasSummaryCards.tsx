@@ -10,7 +10,7 @@ export const ContasSummaryCards: React.FC<{
   proximos30: { total: number; count: number };
 }> = ({ vencendoHoje, vencidas, proximos7, proximos30 }) => {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-2">
       <Card className="p-6 border border-warning/30 bg-warning/5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">

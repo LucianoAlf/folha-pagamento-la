@@ -255,8 +255,6 @@ Deno.serve(async (req: Request) => {
     if (!validateYM(competenciaYM)) return jsonResponse({ error: "competenciaYM is required (YYYY-MM)" }, 400);
     if (!validateYM(baseYM)) return jsonResponse({ error: "baseYM is required (YYYY-MM)" }, 400);
 
-    const apiKey = await getGeminiApiKey(supabase);
-
     const [cy, cm] = competenciaYM.split("-").map(Number);
     const [by, bm] = baseYM.split("-").map(Number);
 
@@ -404,6 +402,8 @@ Deno.serve(async (req: Request) => {
       if (existing?.length) return jsonResponse({ cached: true, ...existing[0] });
     }
 
+    const apiKey = await getGeminiApiKey(supabase);
+
     const prompt = `Analise comparativo de contas BASE=${baseYM} vs ATUAL=${competenciaYM}.
 Retorne APENAS JSON válido com:
 {
@@ -416,11 +416,13 @@ Dados:
 ${JSON.stringify(inputObject)}`;
 
     let parsed: any = null;
+    let modelUsed = "fallback-heuristic";
     try {
-      const { text: rawText, modelUsed: model } = await callGeminiWithFallback(prompt, apiKey, {
+      const { text: rawText, modelUsed: geminiModel } = await callGeminiWithFallback(prompt, apiKey, {
         timeoutMs: 8_000,
         generationConfig: { temperature: 0.2, maxOutputTokens: 700 },
       });
+      modelUsed = geminiModel;
       parsed = safeParseJsonFromText(rawText);
     } catch {
       parsed = null;
@@ -439,16 +441,19 @@ ${JSON.stringify(inputObject)}`;
 
     const { data: inserted, error: insErr } = await supabase
       .from("contas_comparativo_ai_insights")
-      .insert({
-        competencia_ym: competenciaYM,
-        base_ym: baseYM,
-        unidade,
-        filtros: { categoriaId, comportamento, tipo },
-        model,
-        input_hash: inputHash,
-        summary: parsed.analise_executiva || null,
-        response_json: parsed,
-      })
+      .upsert(
+        {
+          competencia_ym: competenciaYM,
+          base_ym: baseYM,
+          unidade,
+          filtros: { categoriaId, comportamento, tipo },
+          model: modelUsed,
+          input_hash: inputHash,
+          summary: parsed.analise_executiva || null,
+          response_json: parsed,
+        },
+        { onConflict: "input_hash" },
+      )
       .select("*")
       .single();
 

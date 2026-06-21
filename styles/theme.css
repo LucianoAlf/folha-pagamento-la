@@ -1,6 +1,21 @@
 /* Tokens semânticos do tema (Light Mode Pro).
    Canais RGB crus para suportar o modificador de opacidade do Tailwind
    (ex.: bg-surface/40 -> rgb(var(--surface) / 0.4)). */
+:root, .dark, .light {
+  --on-accent: 255 255 255;
+
+  /* Camadas de empilhamento (z-index) — fonte única de verdade */
+  --z-sidebar: 40;
+  --z-header: 100;
+  --z-page-sticky: 30;
+  --z-popover: 15000;
+  --z-select: 15100;
+  --z-tooltip: 15200;
+  --z-toast: 15300;
+  --z-mobile-nav: 10500;
+  --z-modal: 16000;
+}
+
 :root, .dark {
   --bg: 2 6 23;          --surface: 15 23 42;    --surface-2: 30 41 59;   --surface-3: 36 48 73;
   --text: 255 255 255;   --text-2: 148 163 184;  --text-3: 100 116 139;
@@ -9,15 +24,146 @@
   --success: 52 211 153; --warning: 251 191 36;  --danger: 251 113 133;   --info: 56 189 248;
   --shadow-card: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.30);
   --shadow-pop: 0 18px 50px rgba(0,0,0,.55);
+  --sidebar-edge: 4px 0 24px -8px rgba(0, 0, 0, 0.35);
+  --sidebar-border: 51 65 85;
   --scrollbar-track: #1e293b; --scrollbar-thumb: #475569; --scrollbar-thumb-hover: #64748b;
 }
 .light {
   --bg: 233 237 243;     --surface: 255 255 255; --surface-2: 245 248 252; --surface-3: 238 242 248;
   --text: 15 23 42;      --text-2: 71 85 105;    --text-3: 100 116 139;
   --border: 227 232 239; --border-strong: 203 213 225;
+  --sidebar-border: 186 198 213;
   --accent: 124 58 237;
   --success: 5 150 105;  --warning: 180 83 9;    --danger: 225 29 72;     --info: 2 132 199;
   --shadow-card: 0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
   --shadow-pop: 0 18px 50px rgba(15,23,42,.12);
+  --sidebar-edge: 8px 0 32px -8px rgba(15, 23, 42, 0.13);
   --scrollbar-track: #e9edf3; --scrollbar-thumb: #cbd5e1; --scrollbar-thumb-hover: #94a3b8;
 }
+
+/* Sidebar — light: painel branco + glow no topo; dark: degradês atmosféricos (pré e38c44a) */
+.app-sidebar {
+  box-shadow: var(--sidebar-edge, none);
+  border-right-color: rgb(var(--sidebar-border));
+}
+
+.light .app-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 1;
+  background:
+    radial-gradient(720px circle at 22% -8%, rgba(124, 58, 237, 0.13), transparent 58%),
+    radial-gradient(520px circle at 82% 28%, rgba(2, 132, 199, 0.07), transparent 62%);
+}
+
+.light .app-sidebar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.55), transparent 45%, rgba(233, 237, 243, 0.35));
+}
+
+.dark .app-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 1;
+  background:
+    radial-gradient(900px circle at 20% -10%, rgba(139, 92, 246, 0.20), transparent 55%),
+    radial-gradient(700px circle at 80% 30%, rgba(6, 182, 212, 0.10), transparent 60%);
+}
+
+.dark .app-sidebar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), transparent, rgba(0, 0, 0, 0.40));
+}
+
+/* Ambiente no shell autenticado — profundidade sutil (dark: roxo/ciano; light: Soft Cloud) */
+.app-shell-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.light .app-shell-ambient::before {
+  content: "";
+  position: absolute;
+  top: -18%;
+  left: 6%;
+  width: 640px;
+  height: 640px;
+  border-radius: 9999px;
+  background: rgba(124, 58, 237, 0.07);
+  filter: blur(110px);
+}
+
+.light .app-shell-ambient::after {
+  content: "";
+  position: absolute;
+  top: 32%;
+  right: -6%;
+  width: 520px;
+  height: 520px;
+  border-radius: 9999px;
+  background: rgba(2, 132, 199, 0.05);
+  filter: blur(100px);
+}
+
+.dark .app-shell-ambient::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 8%;
+  width: 720px;
+  height: 720px;
+  border-radius: 9999px;
+  background: rgba(139, 92, 246, 0.10);
+  filter: blur(120px);
+}
+
+.dark .app-shell-ambient::after {
+  content: "";
+  position: absolute;
+  top: 28%;
+  right: -8%;
+  width: 560px;
+  height: 560px;
+  border-radius: 9999px;
+  background: rgba(6, 182, 212, 0.06);
+  filter: blur(100px);
+}
+
+/* ── Radix Floating UI: z-index no WRAPPER (não só no Content) ──
+   O Popper posiciona via [data-radix-popper-content-wrapper].
+   z-index só no Content não eleva o menu acima do conteúdo da página. */
+[data-radix-popper-content-wrapper]:has([data-radix-popover-content]) {
+  z-index: var(--z-popover) !important;
+}
+
+[data-radix-popper-content-wrapper]:has([data-radix-select-content]) {
+  z-index: var(--z-select) !important;
+}
+
+[data-radix-popper-content-wrapper]:has([data-radix-tooltip-content]) {
+  z-index: var(--z-tooltip) !important;
+}
+
+/* Header global — acima de sticky bars das páginas, abaixo de floating UI */
+.app-shell-header {
+  z-index: var(--z-header);
+}
+
+.app-shell-header-actions {
+  position: relative;
+  z-index: calc(var(--z-header) + 1);
+}
+

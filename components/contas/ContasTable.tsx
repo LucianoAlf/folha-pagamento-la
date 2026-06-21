@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Search, DollarSign, Edit2, Bell, CheckCircle2, Trash2, CheckSquare } from 'lucide-react';
 import { Badge, Card, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
-import { ContaPagar } from '../../types/contasPagar';
+import { ContaPagar, ContaPagarCodigoMes } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
-import { getStatusVisual } from '../../services/contasPagarService';
+import { getCodigoMesBadge, getStatusVisual } from '../../services/contasPagarService';
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
 import { ParcelasTimeline } from './ParcelasTimeline';
 
@@ -30,7 +30,8 @@ export const ContasTable: React.FC<{
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
   onToggleSelectAll?: (ids: string[]) => void;
-}> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar, selectedIds, onToggleSelect, onToggleSelectAll }) => {
+  codigosPorConta?: Record<string, ContaPagarCodigoMes>;
+}> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar, selectedIds, onToggleSelect, onToggleSelectAll, codigosPorConta }) => {
   const hasSelection = !!selectedIds && !!onToggleSelect;
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [localBusca, setLocalBusca] = useState(busca);
@@ -78,6 +79,21 @@ export const ContasTable: React.FC<{
     if (s === 'vencida') return <Badge variant="danger">Vencida</Badge>;
     if (s === 'urgente') return <Badge variant="warning">Urgente</Badge>;
     return <Badge variant="info">Pendente</Badge>;
+  };
+
+  const codigoBadgeFor = (c: ContaPagar) => {
+    const codigo = codigosPorConta?.[c.id];
+    const badge = getCodigoMesBadge(c, codigo);
+    if (badge === 'coletado') {
+      return <span className="inline-flex px-2 py-0.5 rounded-lg bg-success/10 text-success text-[9px] font-black uppercase">Coletado</span>;
+    }
+    if (badge === 'indisponivel') {
+      return <span className="inline-flex px-2 py-0.5 rounded-lg bg-warning/10 text-warning text-[9px] font-black uppercase">Indisponível</span>;
+    }
+    if (badge === 'atualizar') {
+      return <span className="inline-flex px-2 py-0.5 rounded-lg bg-danger/10 text-danger text-[9px] font-black uppercase">Atualizar</span>;
+    }
+    return <span className="inline-flex px-2 py-0.5 rounded-lg bg-surface-2 text-muted text-[9px] font-black uppercase">Sem código</span>;
   };
 
   return (
@@ -203,6 +219,7 @@ export const ContasTable: React.FC<{
                         )}
                       </div>
                       <div className="text-xs text-muted truncate">{c.descricao}</div>
+                      {codigosPorConta && <div className="mt-1">{codigoBadgeFor(c)}</div>}
                     </div>
                     <div className="col-span-2 text-sm font-bold text-secondary">{formatDateBR(c.data_vencimento)}</div>
                     <div className="col-span-2 text-right text-primary font-bold">{formatCurrency(Number(c.valor) || 0)}</div>

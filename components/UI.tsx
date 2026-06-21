@@ -30,7 +30,7 @@ export const Tooltip: React.FC<{
           sideOffset={5}
           className={cn(
             // Precisa ficar acima de Modals/Dialogs (que usam z ~12000-13000)
-            "z-[14000] overflow-hidden rounded-xl bg-surface-2 px-3 py-2 text-xs font-bold text-primary shadow-xl animate-in fade-in zoom-in-95 duration-200",
+            "z-tooltip overflow-hidden rounded-xl bg-surface-2 px-3 py-2 text-xs font-bold text-primary shadow-xl animate-in fade-in zoom-in-95 duration-200",
             className
           )}
         >
@@ -148,7 +148,7 @@ export const DatePicker: React.FC<{
         <Popover.Content
           sideOffset={10}
           align="start"
-          className="z-[14000] rounded-[2rem] border border-line bg-surface shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
+          className="la-popover-content rounded-[2rem] border border-line bg-surface shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
         >
           {variant === 'monthYear' && (
             <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-line">
@@ -792,7 +792,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         <Select.Content 
           // Inline zIndex to avoid any stacking-context edge cases inside other overlays/popovers.
           style={{ zIndex: 999999 }}
-          className="overflow-hidden bg-surface rounded-xl border border-line-strong shadow-2xl shadow-black/60 z-[99999] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
+          className="la-select-content overflow-hidden bg-surface rounded-xl border border-line-strong shadow-2xl shadow-black/60 min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
           position="popper"
           sideOffset={8}
         >

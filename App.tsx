@@ -902,7 +902,10 @@ export default function App() {
   };
 
   const saveProfile = async () => {
-    if (!userId) return;
+    if (!userId) {
+      setAlertState({ isOpen: true, title: 'Sessão expirada', message: 'Não foi possível identificar seu usuário. Faça login novamente.', variant: 'danger' });
+      return;
+    }
     if (profileSaving) return;
     const nome = (profileName || '').trim() || (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : 'Usuário');
     const role: UserProfile['role'] = isAna(userEmail) ? 'rh' : isLuciano(userEmail) ? 'admin' : 'user';
@@ -1734,9 +1737,10 @@ export default function App() {
     (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : userEmail || 'Usuário');
 
   return (
-    <div className="min-h-screen bg-bg text-secondary font-sans selection:bg-accent/30 flex">
+    <div className="min-h-screen bg-bg text-secondary font-sans selection:bg-accent/30 flex relative">
+      <div className="app-shell-ambient" aria-hidden="true" />
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block h-screen sticky top-0 z-30">
+      <div className="hidden lg:block h-screen sticky top-0 z-40 overflow-visible shrink-0">
         <Sidebar
           current={{ module: currentModule as any, page: activeTab as any }}
           onNavigate={(next) => handleNavigate(next.module, next.page)}
@@ -1744,9 +1748,9 @@ export default function App() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="relative z-0 flex-1 min-w-0 flex flex-col">
       {/* Header */}
-      <header className="border-b border-line bg-surface sticky top-0 z-40">
+      <header className="app-shell-header border-b border-line bg-surface sticky top-0 overflow-visible isolate">
         <div className="w-full py-4 px-6 md:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -1780,7 +1784,7 @@ export default function App() {
               </div>
             </div>
             
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="app-shell-header-actions flex items-center gap-2 sm:gap-3">
               {/* Tema + Perfil — canto superior direito, em todas as telas */}
               <ThemeToggle variant="icon" />
               <Popover.Root open={profilePopoverOpen} onOpenChange={setProfilePopoverOpen}>
@@ -1804,7 +1808,7 @@ export default function App() {
                     <Popover.Content
                       sideOffset={8}
                       align="end"
-                      className="z-[11000] w-56 rounded-2xl border border-line bg-bg/95 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-md"
+                      className="la-popover-content w-56 rounded-2xl border border-line bg-bg/95 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-md"
                     >
                       <div className="p-4 border-b border-line/60">
                         <div className="text-primary text-sm font-black truncate">{userLabelForSidebar}</div>

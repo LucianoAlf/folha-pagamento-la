@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Info, Plus } from 'lucide-react';
 import { CustomSelect, DatePicker, Modal } from '../UI';
-import { CategoriaDespesa, ContaPagar, UNIDADES_CONTA } from '../../types/contasPagar';
+import { CategoriaDespesa, ContaCredencial, ContaPagar, FONTE_TIPOS, FonteTipo, StatusColetaCodigo } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { cn } from '../CollaboratorComponents';
 
@@ -14,15 +14,29 @@ const UNIDADES_SIMPLES = [
 type LaunchType = 'unica' | 'recorrente' | 'parcelada';
 type PaymentStatus = 'pendente' | 'pago';
 
+export type NovaContaCodigoInput = {
+  codigo_barras: string;
+  chave_pix: string;
+  qr_pix_payload: string;
+  status_coleta: StatusColetaCodigo;
+};
+
+export type NovaContaOptions = {
+  valorPorParcela?: boolean;
+  codigo?: NovaContaCodigoInput;
+};
+
 export const NovaContaModal: React.FC<{
   isOpen: boolean;
   categorias: CategoriaDespesa[];
+  credenciais?: ContaCredencial[];
+  onOpenCredenciais?: () => void;
   onClose: () => void;
-  onConfirm: (conta: Partial<ContaPagar>, options?: { valorPorParcela?: boolean }) => Promise<void>;
+  onConfirm: (conta: Partial<ContaPagar>, options?: NovaContaOptions) => Promise<void>;
   defaultVencimento?: string; // yyyy-mm-dd
   defaultCompetenciaYM?: string; // yyyy-mm
   defaultUnidade?: 'cg' | 'rec' | 'bar';
-}> = ({ isOpen, categorias, onClose, onConfirm, defaultVencimento, defaultCompetenciaYM, defaultUnidade }) => {
+}> = ({ isOpen, categorias, credenciais = [], onOpenCredenciais, onClose, onConfirm, defaultVencimento, defaultCompetenciaYM, defaultUnidade }) => {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth < 768;
@@ -50,25 +64,65 @@ export const NovaContaModal: React.FC<{
 
   const [status, setStatus] = useState<PaymentStatus>('pendente');
   const [observacoes, setObservacoes] = useState('');
+  const [fonteTipo, setFonteTipo] = useState<FonteTipo | ''>('');
+  const [fonteUrl, setFonteUrl] = useState('');
+  const [fonteInstrucoes, setFonteInstrucoes] = useState('');
+  const [fonteIdentificador, setFonteIdentificador] = useState('');
+  const [credencialId, setCredencialId] = useState('');
+  const [pixChaveFixa, setPixChaveFixa] = useState('');
+  const [emailPagamento, setEmailPagamento] = useState('');
+  const [codigoBarras, setCodigoBarras] = useState('');
+  const [chavePix, setChavePix] = useState('');
+  const [qrPixPayload, setQrPixPayload] = useState('');
+  const [codigoStatus, setCodigoStatus] = useState<StatusColetaCodigo>('pendente');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
-    if (defaultUnidade) setUnidade(defaultUnidade);
-    if (defaultVencimento) {
-      setVencimento(defaultVencimento);
-      if (!competenciaManual) {
-        const [y, m] = defaultVencimento.split('-');
-        if (y && m) setCompetencia(`${y}-${m}-01`);
-      }
-    }
+
+    setDescricao('');
+    setValor('');
+    setCategoriaId('');
+    setUnidade(defaultUnidade || 'cg');
+    setLaunchType('unica');
+    setParcelas(2);
+    setParcelaInicial(1);
+    setValorMode('por_parcela');
+    setVencimento(defaultVencimento || '');
+    setStatus('pendente');
+    setObservacoes('');
+    setFonteTipo('');
+    setFonteUrl('');
+    setFonteInstrucoes('');
+    setFonteIdentificador('');
+    setCredencialId('');
+    setPixChaveFixa('');
+    setEmailPagamento('');
+    setCodigoBarras('');
+    setChavePix('');
+    setQrPixPayload('');
+    setCodigoStatus('pendente');
+    setError(null);
+    setTried(false);
+    setCompetenciaManual(!!defaultCompetenciaYM);
+
     if (defaultCompetenciaYM) {
       setCompetencia(`${defaultCompetenciaYM}-01`);
-      setCompetenciaManual(true);
+    } else if (defaultVencimento) {
+      const [y, m] = defaultVencimento.split('-');
+      if (y && m) setCompetencia(`${y}-${m}-01`);
+    } else {
+      const d = new Date();
+      setCompetencia(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
     }
   }, [isOpen, defaultVencimento, defaultCompetenciaYM, defaultUnidade]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (defaultUnidade) setUnidade(defaultUnidade);
+  }, [isOpen, defaultUnidade]);
 
   // Sincronização automática Vencimento -> Competência
   useEffect(() => {
@@ -173,7 +227,7 @@ export const NovaContaModal: React.FC<{
                   const payload: Partial<ContaPagar> = {
                     descricao: descricao.trim(),
                     categoria_id: categoriaId,
-                    unidade: unidade as any,
+                    unidade: unidade as ContaPagar['unidade'],
                     valor: valorNum,
                     data_lancamento: dataLancamentoAuto,
                     data_vencimento: vencimento,
@@ -183,11 +237,32 @@ export const NovaContaModal: React.FC<{
                     total_parcelas: launchType === 'parcelada' ? parcelas : null,
                     parcela_atual: launchType === 'parcelada' ? parcelaInicial : null,
                     observacoes: observacoes.trim() || null,
+                    fonte_tipo: fonteTipo || null,
+                    fonte_url: fonteUrl.trim() || null,
+                    fonte_instrucoes: fonteInstrucoes.trim() || null,
+                    fonte_identificador: fonteIdentificador.trim() || null,
+                    credencial_id: credencialId || null,
+                    pix_chave_fixa: pixChaveFixa.trim() || null,
+                    email_pagamento: emailPagamento.trim() || null,
                   };
-                  await onConfirm(
-                    payload,
-                    launchType === 'parcelada' ? { valorPorParcela: valorMode === 'por_parcela' } : undefined
-                  );
+
+                  const temCodigo = codigoBarras.trim() || chavePix.trim() || qrPixPayload.trim();
+                  const options: NovaContaOptions = {
+                    ...(launchType === 'parcelada' ? { valorPorParcela: valorMode === 'por_parcela' } : {}),
+                    ...(temCodigo
+                      ? {
+                          codigo: {
+                            codigo_barras: codigoBarras,
+                            chave_pix: chavePix,
+                            qr_pix_payload: qrPixPayload,
+                            status_coleta: codigoStatus,
+                          },
+                        }
+                      : {}),
+                  };
+
+                  await onConfirm(payload, options);
+                  onClose();
                 } catch (err: any) {
                   setError(err?.message || 'Erro ao criar lançamento. Tente novamente.');
                 } finally {
@@ -197,7 +272,7 @@ export const NovaContaModal: React.FC<{
               className={cn(
                 "w-full sm:w-auto px-10 py-4 rounded-[2rem] font-black shadow-xl transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2",
                 isFormValid && !saving
-                  ? "bg-accent hover:bg-accent/80 shadow-accent/20 text-white"
+                  ? "bg-accent hover:bg-accent/80 shadow-accent/20 text-on-accent"
                   : "bg-surface-3 cursor-not-allowed shadow-none opacity-60 text-muted"
               )}
             >
@@ -216,7 +291,7 @@ export const NovaContaModal: React.FC<{
           <div className="min-w-0">
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-accent/60">Dica</div>
             <div className="mt-1 text-xs font-bold text-primary leading-snug">
-              A competência é o mês de referência da despesa. Depois você pode ajustar valor e vencimento em cada lançamento.
+              Preencha tudo de uma vez: dados, origem do boleto/portal e código do mês. Parceladas e recorrentes também já saem completas.
             </div>
           </div>
         </div>
@@ -429,10 +504,167 @@ export const NovaContaModal: React.FC<{
           </div>
         </div>
 
-        {/* D) Status */}
+        {/* D) Origem / Fonte */}
+        <div className="rounded-3xl border border-line/70 bg-surface/20 p-6 md:p-8">
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">D</span>
+            Origem / Fonte
+          </div>
+          <p className="text-[10px] text-muted font-bold mb-6 px-1">Opcional — onde buscar o boleto ou qual portal usar.</p>
+
+          <div className="grid grid-cols-1 gap-5 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Tipo de fonte</label>
+                <CustomSelect
+                  value={fonteTipo}
+                  onValueChange={(v) => setFonteTipo(v as FonteTipo)}
+                  options={[{ value: '', label: '— Não definido —' }, ...FONTE_TIPOS.map((f) => ({ value: f.value, label: f.label }))]}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Credencial vinculada</label>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <CustomSelect
+                      value={credencialId}
+                      onValueChange={setCredencialId}
+                      options={[
+                        { value: '', label: '— Nenhuma —' },
+                        ...credenciais.filter((c) => c.ativo).map((c) => ({ value: c.id, label: `${c.nome} (${c.portal})` })),
+                      ]}
+                    />
+                  </div>
+                  {onOpenCredenciais && (
+                    <button
+                      type="button"
+                      onClick={onOpenCredenciais}
+                      className="shrink-0 px-3 py-2 rounded-xl border border-line text-[10px] font-black uppercase text-secondary hover:text-primary"
+                    >
+                      Nova
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {(fonteTipo === 'site' || fonteTipo === 'banco') && (
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">URL do portal</label>
+                <input
+                  value={fonteUrl}
+                  onChange={(e) => setFonteUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+            )}
+
+            {fonteTipo === 'pix_fixo' && (
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Chave PIX fixa</label>
+                <input
+                  value={pixChaveFixa}
+                  onChange={(e) => setPixChaveFixa(e.target.value)}
+                  className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+            )}
+
+            {fonteTipo === 'email' && (
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">E-mail de pagamento</label>
+                <input
+                  value={emailPagamento}
+                  onChange={(e) => setEmailPagamento(e.target.value)}
+                  className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Identificador (CNPJ, instalação…)</label>
+              <input
+                value={fonteIdentificador}
+                onChange={(e) => setFonteIdentificador(e.target.value)}
+                className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Instruções operacionais</label>
+              <textarea
+                value={fonteInstrucoes}
+                onChange={(e) => setFonteInstrucoes(e.target.value)}
+                rows={2}
+                placeholder="Passo a passo para buscar o código no portal..."
+                className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* E) Código do mês */}
+        <div className="rounded-3xl border border-line/70 bg-surface/20 p-6 md:p-8">
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-2">
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">E</span>
+            Código do mês
+          </div>
+          <p className="text-[10px] text-muted font-bold mb-6 px-1">
+            Opcional — boleto ou PIX desta competência. Entra direto no relatório do dia.
+            {launchType === 'parcelada' && ' Aplica-se à 1ª parcela gerada.'}
+          </p>
+
+          <div className="grid grid-cols-1 gap-5">
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Código de barras / linha digitável</label>
+              <textarea
+                value={codigoBarras}
+                onChange={(e) => setCodigoBarras(e.target.value)}
+                rows={2}
+                placeholder="Cole o código de barras ou linha digitável"
+                className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary font-mono placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">PIX copia e cola (EMV)</label>
+              <textarea
+                value={qrPixPayload}
+                onChange={(e) => setQrPixPayload(e.target.value)}
+                rows={2}
+                placeholder="Cole o QR PIX quando não houver boleto"
+                className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary font-mono placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Chave PIX (alternativa)</label>
+                <input
+                  value={chavePix}
+                  onChange={(e) => setChavePix(e.target.value)}
+                  className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Status da coleta</label>
+                <CustomSelect
+                  value={codigoStatus}
+                  onValueChange={(v) => setCodigoStatus(v as StatusColetaCodigo)}
+                  options={[
+                    { value: 'pendente', label: 'Pendente' },
+                    { value: 'coletado', label: 'Coletado' },
+                    { value: 'indisponivel', label: 'Indisponível' },
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* F) Status */}
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-6">
-            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">D</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">F</span>
             Status do Pagamento
           </div>
 
@@ -466,10 +698,10 @@ export const NovaContaModal: React.FC<{
           </div>
         </div>
 
-        {/* E) Observações */}
+        {/* G) Observações */}
         <div>
           <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-6">
-            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">E</span>
+            <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">G</span>
             Observações
           </div>
           <textarea

@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadingSpinner, ErrorState, ConfirmDialog } from '../UI';
-import { ContaPagar, CategoriaDespesa } from '../../types/contasPagar';
+import { ContaPagar, CategoriaDespesa, ContaCredencial, ContaPagarCodigoMes } from '../../types/contasPagar';
 import {
   calcularResumo,
   calcularResumoAuditoria,
   fetchCategorias,
   fetchContasPagar,
+  fetchCredenciais,
+  fetchCodigosMes,
   registrarPagamento,
   createContaPagar,
   updateContaPagar,
+  upsertCodigoMes,
   upsertCategoria,
   deleteCategoria,
   deleteConta,
@@ -22,13 +25,15 @@ import {
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../services/supabase';
 import { ContasSummaryCards } from './ContasSummaryCards';
 import { ContasTable } from './ContasTable';
-import { NovaContaModal } from './NovaContaModal';
+import { NovaContaModal, NovaContaOptions } from './NovaContaModal';
 import { PagarContaModal } from './PagarContaModal';
 import { CategoriaModal } from './CategoriaModal';
 import { EditarContaModal } from './EditarContaModal';
 import { ContaAuditCard } from './ContaAuditCard';
 import { ContasCalendar } from './ContasCalendar';
 import { ContasDoDiaModal } from './ContasDoDiaModal';
+import { CredenciaisModal } from './CredenciaisModal';
+import { RelatorioDoDiaPanel } from './RelatorioDoDiaPanel';
 import { Badge, Card, CustomSelect, Tooltip, Modal } from '../UI';
 import { formatCurrency } from '../../services/api';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
@@ -63,6 +68,7 @@ import {
   Bell,
   CheckSquare,
   X,
+  KeyRound,
   FileText
 } from 'lucide-react';
 import { cn } from '../CollaboratorComponents';
@@ -170,7 +176,7 @@ export const ContasPagarPage: React.FC<{
 
   // P1: tratamento de erro + feedback (toast) para mutações async
   const { run } = useAsyncAction();
-  const { success: toastSuccess } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const [categorias, setCategorias] = useState<CategoriaDespesa[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
@@ -423,6 +429,64 @@ export const ContasPagarPage: React.FC<{
 
   const [confirmDeleteCategoria, setConfirmDeleteCategoria] = useState<{ id: string; nome: string } | null>(null);
 
+  const [credenciais, setCredenciais] = useState<ContaCredencial[]>([]);
+  const [credenciaisOpen, setCredenciaisOpen] = useState(false);
+  const [codigosPorConta, setCodigosPorConta] = useState<Record<string, ContaPagarCodigoMes>>({});
+  const [operadorNome, setOperadorNome] = useState('operador');
+
+  useEffect(() => {
+    async function loadFatiaC() {
+      try {
+        const [creds, codigos] = await Promise.all([
+          fetchCredenciais(),
+          fetchCodigosMes(`${competenciaFiltro}-01`),
+        ]);
+        setCredenciais(creds);
+        const map: Record<string, ContaPagarCodigoMes> = {};
+        codigos.forEach((c) => { map[c.conta_pagar_id] = c; });
+        setCodigosPorConta(map);
+      } catch {
+        // schema novo — falha silenciosa até migration aplicada
+      }
+    }
+    loadFatiaC();
+  }, [competenciaFiltro]);
+
+  const reloadCodigos = useCallback(async () => {
+    try {
+      const codigos = await fetchCodigosMes(`${competenciaFiltro}-01`);
+      const map: Record<string, ContaPagarCodigoMes> = {};
+      codigos.forEach((c) => { map[c.conta_pagar_id] = c; });
+      setCodigosPorConta(map);
+    } catch {
+      // ignore
+    }
+  }, [competenciaFiltro]);
+
+  useEffect(() => {
+    async function loadOperador() {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) return;
+      const { data: profile } = await supabase.from('user_profiles').select('nome').eq('id', uid).maybeSingle();
+      if (profile?.nome) setOperadorNome(String(profile.nome).toLowerCase());
+    }
+    loadOperador();
+  }, []);
+
+  const unidadeLabelAtual = useMemo(
+    () => unidadeTabs.find((u) => u.id === unidadeFiltro)?.desktop || 'Consolidado',
+    [unidadeTabs, unidadeFiltro]
+  );
+
+  const reloadCredenciais = useCallback(async () => {
+    try {
+      setCredenciais(await fetchCredenciais());
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem('contas:visaoOperacionalModo', visaoOperacionalModo);
@@ -468,41 +532,51 @@ export const ContasPagarPage: React.FC<{
       setNotasAuditoriaLoading(true);
       setNotasAuditoriaSaved(false);
     }
-    
-    const [year, month] = competenciaFiltro.split('-').map(Number);
-    
-    // Tenta dar update ou insert (upsert não funciona bem com ano/mes se não for PK)
-    // Na verdade folhas_mensais tem id como PK. Vamos buscar o id primeiro.
-    const { data: folha } = await supabase
-      .from('folhas_mensais')
-      .select('id')
-      .eq('ano', year)
-      .eq('mes', month)
-      .single();
 
-    if (folha) {
-      await supabase
+    const [year, month] = competenciaFiltro.split('-').map(Number);
+    const notasPayload = isComp
+      ? { contas_comparativo_notas_rh: notasComparativo }
+      : { contas_notas_rh: notasAuditoria };
+
+    try {
+      const { data: folha, error: folhaErr } = await supabase
         .from('folhas_mensais')
-        .update(isComp ? { contas_comparativo_notas_rh: notasComparativo } : { contas_notas_rh: notasAuditoria })
-        .eq('id', folha.id);
-    } else {
-      await supabase
-        .from('folhas_mensais')
-        .insert([
-          isComp
-            ? { ano: year, mes: month, contas_comparativo_notas_rh: notasComparativo, status: 'rascunho' }
-            : { ano: year, mes: month, contas_notas_rh: notasAuditoria, status: 'rascunho' },
+        .select('id')
+        .eq('ano', year)
+        .eq('mes', month)
+        .maybeSingle();
+
+      if (folhaErr) throw folhaErr;
+
+      if (folha?.id) {
+        const { error: updateErr } = await supabase
+          .from('folhas_mensais')
+          .update(notasPayload)
+          .eq('id', folha.id);
+        if (updateErr) throw updateErr;
+      } else {
+        const { error: insertErr } = await supabase.from('folhas_mensais').insert([
+          { ano: year, mes: month, status: 'rascunho', ...notasPayload },
         ]);
-    }
-    
-    if (isComp) {
-      setNotasComparativoLoading(false);
-      setNotasComparativoSaved(true);
-      setTimeout(() => setNotasComparativoSaved(false), 3000);
-    } else {
-      setNotasAuditoriaLoading(false);
-      setNotasAuditoriaSaved(true);
-      setTimeout(() => setNotasAuditoriaSaved(false), 3000);
+        if (insertErr) throw insertErr;
+      }
+
+      if (isComp) {
+        setNotasComparativoSaved(true);
+        toastSuccess('Notas do comparativo salvas.');
+        setTimeout(() => setNotasComparativoSaved(false), 3000);
+      } else {
+        setNotasAuditoriaSaved(true);
+        toastSuccess('Notas da auditoria salvas.');
+        setTimeout(() => setNotasAuditoriaSaved(false), 3000);
+      }
+    } catch (e: any) {
+      const msg = e?.message || 'Não foi possível salvar as notas.';
+      toastError(msg);
+      console.error('saveNotas failed:', e);
+    } finally {
+      if (isComp) setNotasComparativoLoading(false);
+      else setNotasAuditoriaLoading(false);
     }
   };
 
@@ -545,6 +619,34 @@ export const ContasPagarPage: React.FC<{
   };
 
   const invokeEdgeFunction = async (functionName: string, params: any, timeoutMs = 12_000) => {
+    const formatInvokeError = async (err: any, response?: Response) => {
+      const status =
+        response?.status ??
+        err?.context?.status ??
+        err?.status;
+      let detail = err?.message || 'Falha na requisição';
+      try {
+        const body = err?.context?.body ?? err?.context?.json;
+        if (body?.error) detail = String(body.error);
+        else if (typeof body === 'string' && body.trim()) detail = body;
+        else if (response && !response.ok) {
+          const text = await response.clone().text();
+          if (text) {
+            try {
+              const json = JSON.parse(text);
+              if (json?.error) detail = String(json.error);
+              else detail = text.slice(0, 300);
+            } catch {
+              detail = text.slice(0, 300);
+            }
+          }
+        }
+      } catch {
+        // keep default detail
+      }
+      return new Error(status ? `Erro ${status}: ${detail}` : detail);
+    };
+
     // Sempre tentar renovar/validar a sessão antes (evita token expirado)
     const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
     const token = refreshData?.session?.access_token;
@@ -580,7 +682,7 @@ export const ContasPagarPage: React.FC<{
           (error as any)?.status;
 
         // Se não for 401, lançar erro imediatamente
-        if (status !== 401) throw error;
+        if (status !== 401) throw await formatInvokeError(error, response as Response | undefined);
 
         // Se for 401, tentar método alternativo
       } else {
@@ -591,7 +693,7 @@ export const ContasPagarPage: React.FC<{
         (err as any)?.context?.status ??
         (err as any)?.status;
 
-      if (status !== 401) throw err;
+      if (status !== 401) throw await formatInvokeError(err, err?.context?.response);
     }
 
     // Método 2: Fetch direto com token explícito (fallback)
@@ -797,6 +899,35 @@ export const ContasPagarPage: React.FC<{
       setLoading(false);
     }
   }, []);
+
+  const confirmNovaConta = useCallback(
+    (payload: Partial<ContaPagar>, options?: NovaContaOptions) =>
+      run(
+        async () => {
+          const created = await createContaPagar(payload, options);
+          const codigo = options?.codigo;
+          const temCodigo = codigo && (codigo.codigo_barras.trim() || codigo.chave_pix.trim() || codigo.qr_pix_payload.trim());
+          if (temCodigo && created.competencia) {
+            await upsertCodigoMes({
+              conta_pagar_id: created.id,
+              competencia: created.competencia.slice(0, 7) + '-01',
+              codigo_barras: codigo.codigo_barras.trim() || null,
+              chave_pix: codigo.chave_pix.trim() || null,
+              qr_pix_payload: codigo.qr_pix_payload.trim() || null,
+              status_coleta: codigo.status_coleta === 'pendente' ? 'coletado' : codigo.status_coleta,
+              coletado_por: operadorNome,
+              coletado_em: new Date().toISOString(),
+            });
+            await reloadCodigos();
+          }
+          setNovaOpen(false);
+          setNovaContaDefaults(null);
+          await refetch();
+        },
+        { success: 'Conta criada.', error: 'Não foi possível criar a conta.' }
+      ),
+    [run, operadorNome, reloadCodigos, refetch]
+  );
 
   useEffect(() => {
     void refetch();
@@ -1400,17 +1531,10 @@ export const ContasPagarPage: React.FC<{
         <NovaContaModal
           isOpen={novaOpen}
           categorias={categorias}
+          credenciais={credenciais}
+          onOpenCredenciais={() => setCredenciaisOpen(true)}
           onClose={() => setNovaOpen(false)}
-          onConfirm={(payload, options) =>
-            run(
-              async () => {
-                await createContaPagar(payload, options);
-                setNovaOpen(false);
-                await refetch();
-              },
-              { success: 'Conta criada.', error: 'Não foi possível criar a conta.' }
-            )
-          }
+          onConfirm={confirmNovaConta}
         />
       </div>
     );
@@ -2240,6 +2364,7 @@ export const ContasPagarPage: React.FC<{
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onToggleSelectAll={toggleSelectAll}
+            codigosPorConta={codigosPorConta}
           />
         )}
 
@@ -2449,17 +2574,10 @@ export const ContasPagarPage: React.FC<{
         <NovaContaModal
           isOpen={novaOpen}
           categorias={categorias}
+          credenciais={credenciais}
+          onOpenCredenciais={() => setCredenciaisOpen(true)}
           onClose={() => setNovaOpen(false)}
-          onConfirm={(payload, options) =>
-            run(
-              async () => {
-                await createContaPagar(payload, options);
-                setNovaOpen(false);
-                await refetch();
-              },
-              { success: 'Conta criada.', error: 'Não foi possível criar a conta.' }
-            )
-          }
+          onConfirm={confirmNovaConta}
         />
 
         <PagarContaModal
@@ -2487,6 +2605,11 @@ export const ContasPagarPage: React.FC<{
           isOpen={!!editarConta}
           conta={editarConta}
           categorias={categorias}
+          credenciais={credenciais}
+          codigoMes={editarConta ? codigosPorConta[editarConta.id] : null}
+          operadorNome={operadorNome}
+          onCodigoChanged={reloadCodigos}
+          onOpenCredenciais={() => setCredenciaisOpen(true)}
           onClose={() => setEditarConta(null)}
           onConfirm={(patch, aplicarAFuturos) => {
             if (!editarConta) return;
@@ -2742,11 +2865,19 @@ export const ContasPagarPage: React.FC<{
           </div>
           <button
             type="button"
+            onClick={() => setCredenciaisOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-3.5 rounded-2xl border border-line bg-surface/40 hover:bg-surface/60 text-secondary font-black transition-all active:scale-[0.98]"
+          >
+            <KeyRound size={16} className="text-accent" />
+            Credenciais
+          </button>
+          <button
+            type="button"
             onClick={() => {
               setNovaContaDefaults(null);
               setNovaOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-accent hover:bg-accent/80 text-white font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.98]"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-accent hover:bg-accent/80 text-on-accent font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.98]"
           >
             <Plus size={16} />
             Nova Conta
@@ -2820,6 +2951,15 @@ export const ContasPagarPage: React.FC<{
         vencidas={resumoFiltrado.vencidas}
         proximos7={resumoFiltrado.proximos7}
         proximos30={resumoFiltrado.proximos30}
+      />
+
+      <RelatorioDoDiaPanel
+        contas={contas}
+        codigosPorConta={codigosPorConta}
+        unidade={unidadeFiltro}
+        unidadeLabel={unidadeLabelAtual}
+        geradoPor={operadorNome}
+        onCopied={() => toastSuccess('Mensagem copiada. Status: copiado.')}
       />
 
       {/* Mobile: Bottom Sheets (premium) */}
@@ -3035,6 +3175,7 @@ export const ContasPagarPage: React.FC<{
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onToggleSelectAll={toggleSelectAll}
+            codigosPorConta={codigosPorConta}
           />
         </div>
       )}
@@ -3042,18 +3183,10 @@ export const ContasPagarPage: React.FC<{
       <NovaContaModal
         isOpen={novaOpen}
         categorias={categorias}
+        credenciais={credenciais}
+        onOpenCredenciais={() => setCredenciaisOpen(true)}
         onClose={() => setNovaOpen(false)}
-        onConfirm={(payload, options) =>
-          run(
-            async () => {
-              await createContaPagar(payload, options);
-              setNovaOpen(false);
-              setNovaContaDefaults(null);
-              await refetch();
-            },
-            { success: 'Conta criada.', error: 'Não foi possível criar a conta.' }
-          )
-        }
+        onConfirm={confirmNovaConta}
         defaultVencimento={novaContaDefaults?.vencimento}
         defaultCompetenciaYM={novaContaDefaults?.competenciaYM}
       />
@@ -3188,6 +3321,11 @@ export const ContasPagarPage: React.FC<{
         isOpen={!!editarConta}
         conta={editarConta}
         categorias={categorias}
+        credenciais={credenciais}
+        codigoMes={editarConta ? codigosPorConta[editarConta.id] : null}
+        operadorNome={operadorNome}
+        onCodigoChanged={reloadCodigos}
+        onOpenCredenciais={() => setCredenciaisOpen(true)}
         onClose={() => setEditarConta(null)}
         onConfirm={(patch, aplicarAFuturos) => {
           if (!editarConta) return;
@@ -3404,6 +3542,12 @@ export const ContasPagarPage: React.FC<{
         }
         confirmLabel="Finalizar"
         variant="primary"
+      />
+
+      <CredenciaisModal
+        isOpen={credenciaisOpen}
+        onClose={() => setCredenciaisOpen(false)}
+        onChanged={reloadCredenciais}
       />
     </div>
   );

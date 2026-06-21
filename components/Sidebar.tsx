@@ -169,10 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const containerClass = [
     collapsed ? 'w-20' : 'w-72',
     'h-full relative flex flex-col transition-all duration-300',
-    'bg-bg border-r border-line',
-    // Glow de accent bem sutil, somente no topo — limpo nos dois temas (sem fade escuro embaixo).
-    'before:content-[""] before:absolute before:inset-x-0 before:top-0 before:h-72 before:pointer-events-none',
-    'before:bg-[radial-gradient(560px_circle_at_30%_-20%,rgba(139,92,246,0.12),transparent_70%)]',
+    'app-sidebar bg-surface dark:bg-[#0a0d14] border-r border-line-strong dark:border-line',
     isMobileDrawer ? 'shadow-2xl shadow-black/60' : '',
   ].join(' ');
 
@@ -184,12 +181,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const activeModuleId: ModuleId = current.module || 'folha';
 
   return (
+    <div className="relative h-full overflow-visible">
     <aside className={containerClass} aria-label="Navegação principal">
       {/* Logo Area */}
-      <div className="p-5 border-b border-line">
+      <div className="relative z-10 p-5 border-b border-line-strong/70 bg-surface-2/50 dark:border-line/80 dark:bg-transparent">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 flex items-center justify-center shrink-0 rounded-2xl bg-transparent">
-            <img src="/logo-LA-colapsed.png" alt="LA" className="w-10 h-10 object-contain" />
+            <img
+              src="/logo-LA-light.png"
+              alt="LA"
+              className="w-10 h-10 object-contain dark:hidden"
+            />
+            <img
+              src="/logo-LA-colapsed.png"
+              alt="LA"
+              className="w-10 h-10 object-contain hidden dark:block"
+            />
           </div>
           {!collapsed && (
             <div className="min-w-0">
@@ -205,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="relative z-10 flex-1 p-4 space-y-2 overflow-y-auto">
         {modules.map((module) => {
           const ModuleIcon = module.icon;
           const isActiveModule = activeModuleId === module.id;
@@ -223,8 +230,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 module.disabled
                   ? 'opacity-50 cursor-not-allowed text-muted'
                   : isActiveModule
-                    ? 'bg-accent/15 text-accent border border-accent/20 shadow-lg shadow-accent/5'
-                    : 'text-secondary hover:bg-surface-2/40 hover:text-primary border border-transparent',
+                    ? 'bg-accent/12 text-accent border border-accent/25 shadow-sm shadow-accent/10'
+                    : 'text-secondary hover:bg-surface-2 hover:text-primary border border-transparent',
               ].join(' ')}
             >
               <ModuleIcon className="w-5 h-5 shrink-0" />
@@ -281,19 +288,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      {/* Collapse Toggle (desktop only) */}
+    </aside>
+
       {!isMobileDrawer && (
         <Tooltip content={collapsed ? 'Expandir' : 'Recolher'} side="right">
           <button
             type="button"
             onClick={() => setCollapsedPersisted(!collapsed)}
-            className="absolute top-1/2 -right-3 w-7 h-7 bg-surface border border-line-strong rounded-full flex items-center justify-center text-secondary hover:text-primary transition-colors"
+            className="absolute top-1/2 -right-3.5 -translate-y-1/2 w-7 h-7 bg-surface border-2 border-line-strong rounded-full flex items-center justify-center text-secondary hover:text-primary hover:border-accent/40 shadow-md dark:shadow-black/40 transition-colors z-50"
             aria-label={collapsed ? 'Expandir' : 'Recolher'}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         </Tooltip>
       )}
-    </aside>
+    </div>
   );
 };
