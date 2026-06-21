@@ -1570,8 +1570,8 @@ export default function App() {
 
           {/* Floating Notes */}
           <div className="absolute inset-0 pointer-events-none opacity-20">
-            <Music className="absolute animate-float text-white" style={{ left: '15%', top: '25%', width: '40px', height: '40px' }} />
-            <Music className="absolute animate-float text-white" style={{ left: '75%', top: '65%', width: '30px', height: '30px', animationDelay: '2s' }} />
+            <Music className="absolute animate-float text-primary" style={{ left: '15%', top: '25%', width: '40px', height: '40px' }} />
+            <Music className="absolute animate-float text-primary" style={{ left: '75%', top: '65%', width: '30px', height: '30px', animationDelay: '2s' }} />
           </div>
 
           <div className="relative z-10 flex flex-col justify-between p-16 w-full">
@@ -1686,7 +1686,7 @@ export default function App() {
                     type="password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-5 py-4 bg-bg/50 border border-base rounded-2xl text-white placeholder-muted transition-all focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none"
+                    className="w-full px-5 py-4 bg-bg/50 border border-base rounded-2xl text-primary placeholder-muted transition-all focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none"
                     placeholder="••••••••••••"
                     required
                     autoComplete="current-password"
@@ -2052,7 +2052,7 @@ export default function App() {
                     </div>
                     <button
                       onClick={() => { setIsCreatingLancamento(false); setEditingLancamento(null); setActiveNoteField(null); }}
-                      className="p-2 rounded-xl text-secondary hover:text-white hover:bg-surface-2 transition-all"
+                      className="p-2 rounded-xl text-secondary hover:text-primary hover:bg-surface-2 transition-all"
                       aria-label="Fechar"
                     >
                       <XCircle size={22} />
@@ -2660,8 +2660,8 @@ export default function App() {
                   {/* Distribuição por Unidade */}
                   <Card className="p-4 md:p-6">
                     <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
-                      <BarChart3 size={20} className="text-white" />
-                      <span className="text-white">Distribuição por Unidade</span>
+                      <BarChart3 size={20} className="text-primary" />
+                      <span className="text-primary">Distribuição por Unidade</span>
                     </h3>
                     <div className="w-full">
                       <DistributionChart 
@@ -2675,8 +2675,8 @@ export default function App() {
                   {/* Evolução */}
                   <Card className="p-4 md:p-6 flex flex-col">
                     <h3 className="text-base md:text-lg font-semibold mb-4 flex items-center gap-2">
-                      <LineChartIcon size={20} className="text-white" />
-                      <span className="text-white">Evolução Histórica (Total Geral)</span>
+                      <LineChartIcon size={20} className="text-primary" />
+                      <span className="text-primary">Evolução Histórica (Total Geral)</span>
                     </h3>
                     <div className="flex-1 min-h-[200px]">
                       {evolutionData.length > 0 ? (
@@ -2851,13 +2851,13 @@ export default function App() {
                       <div className="bg-surface-2 p-1 rounded-xl flex items-center gap-1">
                         <button 
                           onClick={() => setViewMode('cards')}
-                          className={cn("p-2 rounded-lg transition-all", viewMode === 'cards' ? "bg-accent text-white shadow-lg" : "text-secondary hover:text-white")}
+                          className={cn("p-2 rounded-lg transition-all", viewMode === 'cards' ? "bg-accent text-white shadow-lg" : "text-secondary hover:text-primary")}
                         >
                           <LayoutGrid size={18} />
                         </button>
                         <button 
                           onClick={() => setViewMode('table')}
-                          className={cn("p-2 rounded-lg transition-all", viewMode === 'table' ? "bg-accent text-white shadow-lg" : "text-secondary hover:text-white")}
+                          className={cn("p-2 rounded-lg transition-all", viewMode === 'table' ? "bg-accent text-white shadow-lg" : "text-secondary hover:text-primary")}
                         >
                           <List size={18} />
                         </button>
@@ -3010,7 +3010,7 @@ export default function App() {
                                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                                   unidadeFiltro === item.id
                                     ? 'bg-accent text-white shadow-sm'
-                                    : 'text-secondary hover:text-white hover:bg-surface-3/50'
+                                    : 'text-secondary hover:text-primary hover:bg-surface-3/50'
                                 }`}
                               >
                                 {item.label}
@@ -3038,7 +3038,7 @@ export default function App() {
                                 className={cn(
                                   'w-full px-2 py-2 rounded-xl text-xs font-black transition-all truncate',
                                   unidadeFiltro === u.id
-                                    ? 'bg-surface-2 text-white shadow-sm'
+                                    ? 'bg-surface-2 text-primary shadow-sm'
                                     : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                                 )}
                                 aria-pressed={unidadeFiltro === u.id}
@@ -3148,7 +3148,7 @@ export default function App() {
                                 >
                                   <Icon
                                     size={18}
-                                    className={a.disabled ? 'text-muted' : a.kind === 'danger' ? 'text-danger' : 'text-white'}
+                                    className={a.disabled ? 'text-muted' : a.kind === 'danger' ? 'text-danger' : 'text-primary'}
                                   />
                                   <span className="leading-none">{a.label}</span>
                                 </button>
@@ -3186,7 +3186,7 @@ export default function App() {
                         className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           unidadeFiltro === 'todos' || statusFolha !== 'rascunho'
                             ? 'bg-surface-2 text-muted cursor-not-allowed'
-                            : 'bg-surface-2 hover:bg-surface-3 text-white'
+                            : 'bg-surface-2 hover:bg-surface-3 text-primary'
                         }`}
                       >
                         <Plus size={16} />
@@ -3201,7 +3201,7 @@ export default function App() {
                         className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           statusFolha !== 'rascunho'
                             ? 'bg-surface-2 text-muted cursor-not-allowed'
-                            : 'bg-surface-2 hover:bg-surface-3 text-white'
+                            : 'bg-surface-2 hover:bg-surface-3 text-primary'
                         }`}
                       >
                         <Copy size={16} />
@@ -3216,7 +3216,7 @@ export default function App() {
                         className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           !folhaAtual
                             ? 'bg-surface-2 text-muted cursor-not-allowed'
-                            : 'bg-surface-2 hover:bg-surface-3 text-white'
+                            : 'bg-surface-2 hover:bg-surface-3 text-primary'
                         }`}
                       >
                         <Plus size={16} />
@@ -3795,7 +3795,7 @@ export default function App() {
                               "flex-1 px-6 py-3.5 rounded-2xl font-black transition-all active:scale-95 shadow-lg",
                               statusFolha !== 'rascunho'
                                 ? "bg-surface-2/60 text-muted cursor-not-allowed shadow-transparent"
-                                : "bg-surface/60 hover:bg-surface text-white shadow-surface/30"
+                                : "bg-surface/60 hover:bg-surface text-primary shadow-surface/30"
                             )}
                           >
                             Duplicar linha
@@ -4129,11 +4129,11 @@ export default function App() {
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
                             <span className="text-secondary">Total Mês Anterior</span>
-                            <span className="font-mono text-white">{formatCurrency(comparativoMensal.totalAnterior)}</span>
+                            <span className="font-mono text-primary">{formatCurrency(comparativoMensal.totalAnterior)}</span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-secondary">Total Mês Atual</span>
-                            <span className="font-mono text-white">{formatCurrency(totais.totalGeral)}</span>
+                            <span className="font-mono text-primary">{formatCurrency(totais.totalGeral)}</span>
                           </div>
                           <div className="pt-4 border-t border-base-strong flex justify-between items-center">
                             <span className="font-semibold text-primary">Diferença</span>
@@ -4151,11 +4151,11 @@ export default function App() {
                         <div className="space-y-4">
                           <div className="flex justify-between items-center">
                             <span className="text-secondary">Equipe Mês Anterior</span>
-                            <span className="font-mono text-white">{comparativoMensal.headcountAnterior}</span>
+                            <span className="font-mono text-primary">{comparativoMensal.headcountAnterior}</span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-secondary">Equipe Mês Atual</span>
-                            <span className="font-mono text-white">{totais.headcount.total}</span>
+                            <span className="font-mono text-primary">{totais.headcount.total}</span>
                           </div>
                           <div className="pt-4 border-t border-base-strong flex justify-between items-center">
                             <span className="font-semibold text-primary">Variação</span>
@@ -4182,7 +4182,7 @@ export default function App() {
                           </p>
                         </div>
                         <div className={cn(
-                          "w-10 h-10 rounded-2xl bg-surface-2/60 border border-base-strong/50 flex items-center justify-center text-secondary group-hover:text-white transition-all",
+                          "w-10 h-10 rounded-2xl bg-surface-2/60 border border-base-strong/50 flex items-center justify-center text-secondary group-hover:text-primary transition-all",
                           variacoesOpen ? "rotate-180" : ""
                         )}>
                           <ChevronDown size={20} />
