@@ -122,7 +122,7 @@ export const RhParticipantsPanel: React.FC<{ process: RhProcess | null }> = ({ p
           className={cn(
             'px-5 py-3 rounded-2xl font-black text-primary transition-all',
             !canManage || saving || selectedMentorId === (process.mentor_user_id || '')
-              ? 'bg-surface-3 opacity-60 cursor-not-allowed'
+              ? 'bg-surface-2 text-muted border border-line cursor-not-allowed'
               : 'bg-accent hover:bg-accent'
           )}
         >
@@ -195,7 +195,7 @@ export const RhParticipantsPanel: React.FC<{ process: RhProcess | null }> = ({ p
           }}
           className={cn(
             'px-5 py-3 rounded-2xl font-black text-primary flex items-center gap-2 transition-all',
-            !canManage || !selectedUserId || saving ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-accent hover:bg-accent'
+            !canManage || !selectedUserId || saving ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-accent hover:bg-accent'
           )}
         >
           <Plus className="w-4 h-4" />

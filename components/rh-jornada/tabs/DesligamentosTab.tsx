@@ -155,7 +155,7 @@ const DesligamentoCreateModal: React.FC<{
             }}
             className={cn(
               'px-8 py-3 rounded-2xl font-black text-primary transition-all flex items-center gap-2',
-              saving || !templateId || !colaboradorId || !dataInicio ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-accent hover:bg-accent'
+              saving || !templateId || !colaboradorId || !dataInicio ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-accent hover:bg-accent'
             )}
           >
             <Plus className="w-4 h-4" />
@@ -539,7 +539,7 @@ export const DesligamentosTab: React.FC = () => {
                             }}
                             className={cn(
                               'px-4 py-2.5 rounded-2xl font-black text-primary flex items-center gap-2 transition-all',
-                              !selectedProcessId || generating ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-accent hover:bg-accent'
+                              !selectedProcessId || generating ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-accent hover:bg-accent'
                             )}
                           >
                             <FileText className="w-4 h-4" />
@@ -567,7 +567,7 @@ export const DesligamentosTab: React.FC = () => {
                             }}
                             className={cn(
                               'px-4 py-2.5 rounded-2xl font-black text-primary flex items-center gap-2 transition-all',
-                              !selectedProcessId || generating ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-surface-2 hover:bg-surface-3'
+                              !selectedProcessId || generating ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-surface-2 hover:bg-surface-3'
                             )}
                           >
                             <FileText className="w-4 h-4" />

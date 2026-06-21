@@ -292,7 +292,7 @@ export const RhEvaluationPanel: React.FC<{
           }}
           className={cn(
             'px-5 py-3 rounded-2xl font-black text-primary flex items-center gap-2 transition-all',
-            !canCreateEvaluation || saving || !summary.trim() ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-success hover:bg-success'
+            !canCreateEvaluation || saving || !summary.trim() ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-success hover:bg-success'
           )}
         >
           {saving ? <Save className="w-4 h-4" /> : editingEvaluationId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}

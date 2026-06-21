@@ -115,7 +115,7 @@ const OnboardingCreateModal: React.FC<{
             }}
             className={cn(
               'px-8 py-3 rounded-2xl font-black text-primary transition-all flex items-center gap-2',
-              saving || !templateId || !colaboradorId || !dataInicio ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-accent hover:bg-accent'
+              saving || !templateId || !colaboradorId || !dataInicio ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-accent hover:bg-accent'
             )}
           >
             <Plus className="w-4 h-4" />

@@ -417,7 +417,7 @@ export const CandidatosTab: React.FC = () => {
                   setComparing(false);
                 }}
                 className={`mt-3 w-full px-4 py-3 rounded-2xl font-black text-primary transition-all ${
-                  !comparisonCandidateId || comparing ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-info hover:bg-info'
+                  !comparisonCandidateId || comparing ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-info hover:bg-info'
                 }`}
               >
                 {comparing ? <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Gerando comparativo</span> : 'Gerar comparativo IA'}

@@ -138,7 +138,7 @@ export const CandidateApprovalModal: React.FC<{
             className={cn(
               'px-8 py-3 rounded-2xl font-black text-primary transition-all flex items-center gap-2',
               saving || !nome.trim() || !funcao.trim() || (createOnboardingNow && !templateId)
-                ? 'bg-surface-3 opacity-60 cursor-not-allowed'
+                ? 'bg-surface-2 text-muted border border-line cursor-not-allowed'
                 : 'bg-success hover:bg-success/80'
             )}
           >

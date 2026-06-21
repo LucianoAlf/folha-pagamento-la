@@ -76,7 +76,7 @@ export const RhProcessActivityPanel: React.FC<{ processId: string | null; stageI
             }}
             className={cn(
               'px-5 py-3 rounded-2xl font-black text-primary flex items-center gap-2 transition-all',
-              !processId || !commentText.trim() || saving ? 'bg-surface-3 opacity-60 cursor-not-allowed' : 'bg-accent hover:bg-accent'
+              !processId || !commentText.trim() || saving ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-accent hover:bg-accent'
             )}
           >
             <Send className="w-4 h-4" />
