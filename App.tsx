@@ -1551,8 +1551,8 @@ export default function App() {
       <div className="dark min-h-screen flex bg-bg text-secondary font-sans selection:bg-accent/30">
         <style>{loginStyles}</style>
         
-        {/* Lado Esquerdo - Branding (Oculto em mobile) */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-bg via-accent to-accent">
+        {/* Lado Esquerdo - Branding (Oculto em mobile) — cores fixas claro-sobre-roxo (não usar tokens accent aqui) */}
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#0a0d14] via-[#6d28d9] to-[#8b5cf6] text-white">
           {/* Background Effects */}
           <div className="absolute inset-0 overflow-hidden opacity-30">
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2"></div>
@@ -1561,8 +1561,8 @@ export default function App() {
 
           {/* Floating Notes */}
           <div className="absolute inset-0 pointer-events-none opacity-20">
-            <Music className="absolute animate-float text-primary" style={{ left: '15%', top: '25%', width: '40px', height: '40px' }} />
-            <Music className="absolute animate-float text-primary" style={{ left: '75%', top: '65%', width: '30px', height: '30px', animationDelay: '2s' }} />
+            <Music className="absolute animate-float text-white/30" style={{ left: '15%', top: '25%', width: '40px', height: '40px' }} />
+            <Music className="absolute animate-float text-white/30" style={{ left: '75%', top: '65%', width: '30px', height: '30px', animationDelay: '2s' }} />
           </div>
 
           <div className="relative z-10 flex flex-col justify-between p-16 w-full">
@@ -1572,8 +1572,8 @@ export default function App() {
                 <img src="/logo-LA-colapsed.png" className="w-12 h-12 object-contain transition-transform duration-500 group-hover/logo:scale-110" alt="LA" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-[0.2em] text-primary leading-none uppercase">SUPER FOLHA SYSTEM</h1>
-                <p className="text-accent/60 text-[11px] font-bold uppercase tracking-[0.35em] mt-1.5">Sistema Inteligente</p>
+                <h1 className="text-2xl font-bold tracking-[0.2em] text-white leading-none uppercase">SUPER FOLHA SYSTEM</h1>
+                <p className="text-white/70 text-[11px] font-bold uppercase tracking-[0.35em] mt-1.5">Sistema Inteligente</p>
               </div>
             </div>
 
@@ -1591,10 +1591,10 @@ export default function App() {
                 </div>
               </div>
               
-              <h2 className="text-5xl font-black text-primary mb-4 tracking-tight">
+              <h2 className="text-5xl font-black text-white mb-4 tracking-tight">
                 Olá, {displayGreeting} <span className="inline-block animate-bounce">👋</span>
               </h2>
-              <p className="text-secondary text-lg max-w-sm leading-relaxed font-medium">
+              <p className="text-white/80 text-lg max-w-sm leading-relaxed font-medium">
                 Sua folha de pagamento inteligente está pronta para mais um dia de gestão.
               </p>
             </div>
@@ -1605,32 +1605,32 @@ export default function App() {
                 <div className="w-10 h-10 bg-info/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
                   <Users className="w-5 h-5 text-info" />
                 </div>
-                <h3 className="text-primary font-bold text-base leading-tight">71 Colaboradores</h3>
-                <p className="text-accent/50 text-[10px] font-bold uppercase tracking-wider mt-1">Gestão centralizada</p>
+                <h3 className="text-white font-bold text-base leading-tight">71 Colaboradores</h3>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider mt-1">Gestão centralizada</p>
               </div>
               
               <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
                 <div className="w-10 h-10 bg-success/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
                   <TrendingUp className="w-5 h-5 text-success" />
                 </div>
-                <h3 className="text-primary font-bold text-base leading-tight">R$ 150k+</h3>
-                <p className="text-accent/50 text-[10px] font-bold uppercase tracking-wider mt-1">Folha mensal</p>
+                <h3 className="text-white font-bold text-base leading-tight">R$ 150k+</h3>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider mt-1">Folha mensal</p>
               </div>
               
               <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
                 <div className="w-10 h-10 bg-warning/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
                   <ShieldCheck className="w-5 h-5 text-warning" />
                 </div>
-                <h3 className="text-primary font-bold text-base leading-tight">100% Seguro</h3>
-                <p className="text-accent/50 text-[10px] font-bold uppercase tracking-wider mt-1">Dados protegidos</p>
+                <h3 className="text-white font-bold text-base leading-tight">100% Seguro</h3>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider mt-1">Dados protegidos</p>
               </div>
               
               <div className="glass rounded-[2rem] p-5 hover:bg-white/[0.05] transition-all cursor-default group/card">
-                <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
-                  <Sparkles className="w-5 h-5 text-accent" />
+                <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center mb-3 group-hover/card:scale-110 transition-transform">
+                  <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-primary font-bold text-base leading-tight">IA Integrada</h3>
-                <p className="text-accent/50 text-[10px] font-bold uppercase tracking-wider mt-1">Insights automáticos</p>
+                <h3 className="text-white font-bold text-base leading-tight">IA Integrada</h3>
+                <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider mt-1">Insights automáticos</p>
               </div>
             </div>
           </div>
@@ -1687,7 +1687,7 @@ export default function App() {
                 <button
                   type="submit"
                   disabled={loginSubmitting}
-                  className="w-full py-5 bg-gradient-to-r from-accent to-accent hover:from-accent hover:to-accent text-white font-black rounded-2xl shadow-xl shadow-accent/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
+                  className="w-full py-5 bg-gradient-to-r from-accent to-accent hover:from-accent hover:to-accent text-on-accent font-black rounded-2xl shadow-xl shadow-accent/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
                 >
                   {loginSubmitting ? (
                     <>
