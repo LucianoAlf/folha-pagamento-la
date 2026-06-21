@@ -85,7 +85,7 @@ export const AniversarioModal: React.FC<{
               'px-6 py-2.5 rounded-2xl text-sm font-black transition-all',
               saving || !nome.trim() || !dataNascimento
                 ? 'bg-surface-2 text-muted cursor-not-allowed'
-                : 'bg-danger hover:bg-danger-hover text-white shadow-lg shadow-danger/20'
+                : 'bg-danger hover:bg-danger/90 text-white shadow-lg shadow-danger/20'
             )}
           >
             {saving ? 'Salvando…' : isEdit ? 'Salvar' : 'Adicionar'}
@@ -110,7 +110,7 @@ export const AniversarioModal: React.FC<{
             disabled={isColaborador}
             placeholder="Ex: João Silva"
             className={cn(
-              'w-full px-4 py-3 rounded-xl bg-surface/50 border border-strong text-primary text-sm font-bold placeholder:text-muted',
+              'w-full px-4 py-3 rounded-xl bg-surface/50 border border-line-strong text-primary text-sm font-bold placeholder:text-muted',
               'focus:ring-2 focus:ring-danger/40 focus:border-danger/40 outline-none transition-all',
               isColaborador && 'opacity-60 cursor-not-allowed'
             )}
@@ -166,7 +166,7 @@ export const AniversarioModal: React.FC<{
             placeholder="Ex: Gosta de chocolate, presente já comprado..."
             rows={3}
             className={cn(
-              'w-full px-4 py-3 rounded-xl bg-surface/50 border border-strong text-primary text-sm font-bold placeholder:text-muted',
+              'w-full px-4 py-3 rounded-xl bg-surface/50 border border-line-strong text-primary text-sm font-bold placeholder:text-muted',
               'focus:ring-2 focus:ring-danger/40 focus:border-danger/40 outline-none transition-all resize-none'
             )}
           />

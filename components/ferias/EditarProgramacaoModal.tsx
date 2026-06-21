@@ -168,7 +168,7 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="shrink-0 flex items-center justify-between p-4 md:p-6 border-b border-base/50">
+        <div className="shrink-0 flex items-center justify-between p-4 md:p-6 border-b border-line/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center">
               <Calendar size={20} className="text-accent" />
@@ -193,7 +193,7 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {/* Info do Período */}
-          <div className="p-4 rounded-xl bg-surface/40 border border-base">
+          <div className="p-4 rounded-xl bg-surface/40 border border-line">
             <div className="text-xs font-bold text-secondary mb-2">
               Período Aquisitivo
             </div>
@@ -250,7 +250,7 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
                 type="checkbox"
                 checked={vendeAbono}
                 onChange={(e) => handleAbonoChange(e.target.checked)}
-                className="w-5 h-5 rounded border-strong bg-surface/40 text-accent focus:ring-accent/50 cursor-pointer"
+                className="w-5 h-5 rounded border-line-strong bg-surface/40 text-accent focus:ring-accent/50 cursor-pointer"
               />
               <div className="flex-1">
                 <div className="text-sm font-bold text-secondary">
@@ -273,7 +273,7 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
                   max="10"
                   value={diasAbono}
                   onChange={(e) => setDiasAbono(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2.5 bg-surface/40 border border-base rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
+                  className="w-full px-4 py-2.5 bg-surface/40 border border-line rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                 />
                 <p className="text-xs text-secondary mt-1">
                   Máximo: {maxAbonoDias(periodo.dias_direito, diasCorridos)} dias (1/3 de{' '}
@@ -292,7 +292,7 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               rows={3}
-              className="w-full px-4 py-2.5 bg-surface/40 border border-base rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors resize-none"
+              className="w-full px-4 py-2.5 bg-surface/40 border border-line rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors resize-none"
               placeholder="Adicione observações ou justificativas..."
             />
           </div>
@@ -337,7 +337,7 @@ export const EditarProgramacaoModal: React.FC<EditarProgramacaoModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 flex gap-3 p-4 md:p-6 border-t border-base/50">
+        <div className="shrink-0 flex gap-3 p-4 md:p-6 border-t border-line/50">
           <Button onClick={onClose} variant="outline" className="flex-1">
             Cancelar
           </Button>

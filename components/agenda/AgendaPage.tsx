@@ -739,7 +739,7 @@ export const AgendaPage: React.FC = () => {
 
             <div
               className={cn(
-                'absolute top-0 left-0 h-full w-[86%] max-w-[320px] bg-bg/95 border-r border-base/70 shadow-2xl transition-transform duration-300',
+                'absolute top-0 left-0 h-full w-[86%] max-w-[320px] bg-bg/95 border-r border-line/70 shadow-2xl transition-transform duration-300',
                 isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
               )}
               onTouchStart={(e) => {
@@ -828,7 +828,7 @@ export const AgendaPage: React.FC = () => {
         </div>
 
         {selectedTarefa ? (
-          <div className={cn('hidden xl:flex border-l border-base min-w-0')}>
+          <div className={cn('hidden xl:flex border-l border-line min-w-0')}>
             <TarefaDetailPanel
               tarefa={selectedTarefa}
               listas={listas}
@@ -862,7 +862,7 @@ export const AgendaPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setNovaListaOpen(false)}
-                className="px-5 py-3 rounded-2xl bg-surface/40 border border-base text-secondary font-black hover:bg-surface/60 transition-all"
+                className="px-5 py-3 rounded-2xl bg-surface/40 border border-line text-secondary font-black hover:bg-surface/60 transition-all"
               >
                 Cancelar
               </button>
@@ -871,8 +871,8 @@ export const AgendaPage: React.FC = () => {
                 onClick={handleSaveLista}
                 disabled={novaListaSaving}
                 className={cn(
-                  'px-6 py-3 rounded-2xl font-black text-white transition-all shadow-lg active:scale-95',
-                  novaListaSaving ? 'bg-surface-2 cursor-not-allowed' : 'bg-accent hover:bg-accent-hover shadow-accent/20'
+                  'px-6 py-3 rounded-2xl font-black text-primary transition-all shadow-lg active:scale-95',
+                  novaListaSaving ? 'bg-surface-2 cursor-not-allowed' : 'bg-accent hover:bg-accent/90 shadow-accent/20'
                 )}
               >
                 {novaListaSaving ? (listaEditando ? 'Salvando…' : 'Criando…') : (listaEditando ? 'Salvar' : 'Criar Lista')}
@@ -888,7 +888,7 @@ export const AgendaPage: React.FC = () => {
               value={novaListaNome}
               onChange={(e) => setNovaListaNome(e.target.value)}
               placeholder="Ex.: Comercial, Contratos, Escola, Família…"
-              className="w-full bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
+              className="w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
             />
           </div>
 
@@ -899,7 +899,7 @@ export const AgendaPage: React.FC = () => {
                 <input
                   value={novaListaIcone}
                   onChange={(e) => setNovaListaIcone(e.target.value)}
-                  className="w-24 bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-black outline-none focus:ring-2 focus:ring-accent/50 text-center"
+                  className="w-24 bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-primary font-black outline-none focus:ring-2 focus:ring-accent/50 text-center"
                   aria-label="Ícone (emoji)"
                 />
                 <div className="text-xs text-muted font-bold">
@@ -917,7 +917,7 @@ export const AgendaPage: React.FC = () => {
                         'w-10 h-10 rounded-2xl border flex items-center justify-center transition-all',
                         novaListaIcone === ic
                           ? 'bg-accent/15 border-accent/25 text-primary'
-                          : 'bg-surface/30 border-base text-secondary hover:text-primary hover:border-accent/20'
+                          : 'bg-surface/30 border-line text-secondary hover:text-primary hover:border-accent/20'
                       )}
                       aria-label={`Usar ${ic}`}
                     >
@@ -930,7 +930,7 @@ export const AgendaPage: React.FC = () => {
 
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Cor</div>
-              <div className="rounded-2xl border border-base/60 bg-bg/20 p-4">
+              <div className="rounded-2xl border border-line/60 bg-bg/20 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-xs text-secondary font-black">Cores rápidas</div>
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Escolha 1</div>
@@ -946,21 +946,21 @@ export const AgendaPage: React.FC = () => {
                           'w-9 h-9 rounded-full border transition-all',
                           novaListaCor?.toLowerCase?.() === c.toLowerCase()
                             ? 'border-primary ring-2 ring-primary/20'
-                            : 'border-base hover:border-accent/25'
+                            : 'border-line hover:border-accent/25'
                         )}
                         style={{ backgroundColor: c }}
                         aria-label={`Selecionar cor ${c}`}
                       />
                     </Tooltip>
                   ))}
-                  <div className="w-px h-9 bg-base mx-1" />
+                  <div className="w-px h-9 bg-line mx-1" />
                   <div className="flex items-center gap-2">
                     <Tooltip content="Cor personalizada" side="top">
                       <input
                         type="color"
                         value={novaListaCor}
                         onChange={(e) => setNovaListaCor(e.target.value)}
-                        className="w-10 h-10 rounded-2xl border border-strong/60 bg-transparent"
+                        className="w-10 h-10 rounded-2xl border border-line-strong/60 bg-transparent"
                         aria-label="Cor personalizada"
                       />
                     </Tooltip>
@@ -968,7 +968,7 @@ export const AgendaPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-base bg-bg/10 px-4 py-3">
+                <div className="mt-4 rounded-2xl border border-line bg-bg/10 px-4 py-3">
                   <div className="text-xs text-muted font-black uppercase tracking-widest">Preview</div>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="text-lg">{novaListaIcone || '📌'}</span>

@@ -98,7 +98,7 @@ export const CandidateApprovalModal: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-3 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all"
+            className="px-6 py-3 rounded-2xl border border-line bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all"
           >
             Cancelar
           </button>
@@ -153,11 +153,11 @@ export const CandidateApprovalModal: React.FC<{
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Nome</div>
-            <input value={nome} onChange={(e) => setNome(e.target.value)} className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" />
+            <input value={nome} onChange={(e) => setNome(e.target.value)} className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" />
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Função</div>
-            <input value={funcao} onChange={(e) => setFuncao(e.target.value)} className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" />
+            <input value={funcao} onChange={(e) => setFuncao(e.target.value)} className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" />
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Departamento</div>
@@ -169,7 +169,7 @@ export const CandidateApprovalModal: React.FC<{
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Salário base</div>
-            <input type="number" min="0" value={salarioBase} onChange={(e) => setSalarioBase(e.target.value)} className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" />
+            <input type="number" min="0" value={salarioBase} onChange={(e) => setSalarioBase(e.target.value)} className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40" />
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Data de admissão</div>
@@ -187,7 +187,7 @@ export const CandidateApprovalModal: React.FC<{
           ) : <div />}
         </div>
 
-        <div className="rounded-3xl border border-base bg-bg/30 p-5">
+        <div className="rounded-3xl border border-line bg-bg/30 p-5">
           <div className="flex items-center gap-3 mb-4">
             <input id="create-onboarding-now" type="checkbox" checked={createOnboardingNow} onChange={(e) => setCreateOnboardingNow(e.target.checked)} className="accent-accent" />
             <label htmlFor="create-onboarding-now" className="text-sm font-black text-primary">Criar onboarding agora</label>
@@ -213,7 +213,7 @@ export const CandidateApprovalModal: React.FC<{
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}
                   rows={3}
-                  className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+                  className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
                   placeholder="Observações iniciais para a jornada de entrada"
                 />
               </div>

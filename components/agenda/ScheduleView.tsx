@@ -141,14 +141,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   return (
     <div 
-      className="flex flex-col h-full bg-bg/40 rounded-3xl border border-base/60 overflow-hidden backdrop-blur-md"
+      className="flex flex-col h-full bg-bg/40 rounded-3xl border border-line/60 overflow-hidden backdrop-blur-md"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* Date Strip / Header */}
-      <div className="flex border-b border-base/60 bg-surface/40 sticky top-0 z-20">
+      <div className="flex border-b border-line/60 bg-surface/40 sticky top-0 z-20">
         {/* Espaço para a coluna de horas */}
-        <div className="w-12 md:w-20 shrink-0 border-r border-base/60 flex flex-col items-center justify-center text-[10px] font-black text-muted uppercase tracking-widest">
+        <div className="w-12 md:w-20 shrink-0 border-r border-line/60 flex flex-col items-center justify-center text-[10px] font-black text-muted uppercase tracking-widest">
           {isMobile ? '' : 'GMT-3'}
         </div>
         
@@ -173,7 +173,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             <div 
               key={day.toISOString()} 
               className={cn(
-                "flex-1 min-w-0 py-4 flex flex-col items-center justify-center gap-1 border-r border-base/60 last:border-r-0 transition-colors md:min-w-[100px]",
+                "flex-1 min-w-0 py-4 flex flex-col items-center justify-center gap-1 border-r border-line/60 last:border-r-0 transition-colors md:min-w-[100px]",
                 isToday(day) && "bg-accent/5"
               )}
             >
@@ -212,15 +212,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
       {/* All-day tasks strip */}
       {allDayTasks.length > 0 && (
-        <div className="flex border-b border-base/60 bg-surface/20">
-          <div className="w-12 md:w-20 shrink-0 border-r border-base/60 flex items-center justify-center text-[9px] font-black text-muted uppercase tracking-widest">
+        <div className="flex border-b border-line/60 bg-surface/20">
+          <div className="w-12 md:w-20 shrink-0 border-r border-line/60 flex items-center justify-center text-[9px] font-black text-muted uppercase tracking-widest">
             DIA
           </div>
           <div className="flex-1 flex overflow-x-auto md:overflow-x-hidden scrollbar-hide">
             {days.map((day) => {
               const dayAllDay = allDayTasks.filter((t) => isSameDay(parseISO(t.vencimento_em!), day));
               return (
-                <div key={`allday-${day.toISOString()}`} className="flex-1 min-w-0 border-r border-base/40 last:border-r-0 p-1 md:min-w-[100px]">
+                <div key={`allday-${day.toISOString()}`} className="flex-1 min-w-0 border-r border-line/40 last:border-r-0 p-1 md:min-w-[100px]">
                   {dayAllDay.length === 0 ? (
                     <div className="h-6" />
                   ) : (
@@ -285,11 +285,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       >
         <div className="flex min-h-full" style={{ height: HOURS.length * 80 }}>
           {/* Coluna de Horas */}
-          <div className="w-12 md:w-20 shrink-0 border-r border-base/60 bg-surface/20">
+          <div className="w-12 md:w-20 shrink-0 border-r border-line/60 bg-surface/20">
             {HOURS.map(hour => (
               <div
                 key={hour}
-                className="h-20 border-b border-base/40 flex items-start justify-center pt-2 text-[10px] md:text-[11px] font-black text-muted"
+                className="h-20 border-b border-line/40 flex items-start justify-center pt-2 text-[10px] md:text-[11px] font-black text-muted"
               >
                 {String(hour).padStart(2, '0')}:00
               </div>
@@ -301,12 +301,12 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             {days.map((day) => (
               <div
                 key={day.toISOString()}
-                className="flex-1 min-w-0 border-r border-base/40 last:border-r-0 relative md:min-w-[100px]"
+                className="flex-1 min-w-0 border-r border-line/40 last:border-r-0 relative md:min-w-[100px]"
               >
                 {HOURS.map(hour => (
                   <div
                     key={hour}
-                    className="h-20 border-b border-base/40 transition-colors hover:bg-accent/5"
+                    className="h-20 border-b border-line/40 transition-colors hover:bg-accent/5"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, day, hour)}
                   />

@@ -1112,7 +1112,7 @@ export const ContasPagarPage: React.FC<{
       </div>
 
       {/* Desktop Tab Bar */}
-      <div className="hidden lg:block border-b border-base/60 bg-surface/20 backdrop-blur-sm mb-6">
+      <div className="hidden lg:block border-b border-line/60 bg-surface/20 backdrop-blur-sm mb-6">
         <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
           {CONTAS_TABS.map(tab => (
             <button
@@ -1135,9 +1135,9 @@ export const ContasPagarPage: React.FC<{
 
       {/* Mobile Tab Bar */}
       <div className="lg:hidden mb-6">
-        <div className="relative flex bg-surface p-1 rounded-xl border border-base/50 shadow-inner overflow-hidden">
+        <div className="relative flex bg-surface p-1 rounded-xl border border-line/50 shadow-inner overflow-hidden">
           <div
-            className="absolute top-1.5 bottom-1.5 transition-all duration-500 bg-surface-2/80 rounded-lg border border-strong/30 shadow-lg"
+            className="absolute top-1.5 bottom-1.5 transition-all duration-500 bg-surface-2/80 rounded-lg border border-line-strong/30 shadow-lg"
             style={{
               width: `calc(${100 / CONTAS_TABS.length}% - 10px)`,
               left: `calc(${(tabBarIdx * 100) / CONTAS_TABS.length}% + 5px)`,
@@ -1175,7 +1175,7 @@ export const ContasPagarPage: React.FC<{
       <div className="w-full animate-in fade-in slide-in-from-top-4 duration-500">
         {/* Mobile: Controles (unidade + ações) — rollback */}
         <div className="lg:hidden flex flex-col gap-3 mb-6">
-          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
@@ -1202,7 +1202,7 @@ export const ContasPagarPage: React.FC<{
                     // ignore
                   }
                 }}
-                className="flex-none px-4 py-3 rounded-2xl bg-surface/50 border border-base/70 text-secondary font-black hover:bg-surface/70 transition-all active:scale-[0.98]"
+                className="flex-none px-4 py-3 rounded-2xl bg-surface/50 border border-line/70 text-secondary font-black hover:bg-surface/70 transition-all active:scale-[0.98]"
                 aria-label="Notificações"
               >
                 <Bell size={16} className="text-accent" />
@@ -1224,7 +1224,7 @@ export const ContasPagarPage: React.FC<{
 
         {/* Desktop: manter layout atual */}
         <div className="hidden lg:flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
@@ -1261,7 +1261,7 @@ export const ContasPagarPage: React.FC<{
                     // ignore
                   }
                 }}
-                className="inline-flex items-center gap-2 px-4 py-3.5 rounded-2xl border border-base bg-surface/30 text-secondary font-black hover:bg-surface/45 hover:border-accent/30 transition-all active:scale-[0.98]"
+                className="inline-flex items-center gap-2 px-4 py-3.5 rounded-2xl border border-line bg-surface/30 text-secondary font-black hover:bg-surface/45 hover:border-accent/30 transition-all active:scale-[0.98]"
               >
                 <Bell size={16} className="text-accent" />
                 Notificações
@@ -1302,7 +1302,7 @@ export const ContasPagarPage: React.FC<{
             {alertsOpen && (
               <div className="mt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
                 {anomalies.map((a, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-surface/40 border border-base rounded-2xl">
+                  <div key={i} className="flex items-center justify-between p-4 bg-surface/40 border border-line rounded-2xl">
                     <div className="flex items-center gap-3">
                       <div className={cn("w-2 h-2 rounded-full", a.variant === 'rose' ? "bg-danger" : "bg-success")}></div>
                       <div>
@@ -1422,7 +1422,7 @@ export const ContasPagarPage: React.FC<{
     return renderWithShell(
       <div className="w-full animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
@@ -1483,7 +1483,7 @@ export const ContasPagarPage: React.FC<{
         {/* Insights e Notas */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card className="lg:col-span-2 overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-strong flex items-start justify-between gap-4 bg-surface-2/20">
+            <div className="p-6 border-b border-line-strong flex items-start justify-between gap-4 bg-surface-2/20">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <Bot size={16} className="text-info" />
@@ -1498,7 +1498,7 @@ export const ContasPagarPage: React.FC<{
                 <button
                   type="button"
                   onClick={() => loadComparativoAi(true)}
-                  className="px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold transition-colors border border-strong"
+                  className="px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold transition-colors border border-line-strong"
                   disabled={compAiLoading}
                 >
                   {compAiLoading ? 'Analisando...' : 'Atualizar'}
@@ -1541,7 +1541,7 @@ export const ContasPagarPage: React.FC<{
                       <div className="w-1.5 h-4 bg-info rounded-full"></div>
                       <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Resumo Executivo</h4>
                     </div>
-                    <div className="bg-surface/40 border border-strong/30 rounded-3xl p-6 relative overflow-hidden group">
+                    <div className="bg-surface/40 border border-line-strong/30 rounded-3xl p-6 relative overflow-hidden group">
                       <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-info to-accent"></div>
                       <p className="text-secondary leading-relaxed text-sm md:text-base font-medium italic">
                         {compAiRow.summary || compAiRow.response_json?.analise_executiva}
@@ -1617,7 +1617,7 @@ export const ContasPagarPage: React.FC<{
                   ) : null}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-48 text-muted border-2 border-dashed border-base rounded-2xl gap-4">
+                <div className="flex flex-col items-center justify-center h-48 text-muted border-2 border-dashed border-line rounded-2xl gap-4">
                   <div className="w-12 h-12 rounded-full bg-surface-2/50 flex items-center justify-center">
                     <Sparkles size={24} className="text-muted" />
                   </div>
@@ -1634,7 +1634,7 @@ export const ContasPagarPage: React.FC<{
 
           {/* Notas / Sugestão da Ana (mesma semântica da Folha) */}
           <Card className="overflow-hidden flex flex-col border-accent/20 shadow-accent/5">
-            <div className="p-6 border-b border-strong bg-accent/5 flex items-center gap-4">
+            <div className="p-6 border-b border-line-strong bg-accent/5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-accent/10 p-0.5 border border-accent/20 overflow-hidden shrink-0 shadow-lg">
                 <img
                   src="/Avatar_Ana.png"
@@ -1658,7 +1658,7 @@ export const ContasPagarPage: React.FC<{
                   onChange={(e) => setNotasComparativo(e.target.value)}
                   onBlur={saveNotas}
                   placeholder="Ana, registre aqui suas percepções sobre o fechamento do financeiro..."
-                  className="w-full h-full min-h-[160px] bg-surface/40 border border-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 transition-all resize-none placeholder:text-muted"
+                  className="w-full h-full min-h-[160px] bg-surface/40 border border-line-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 transition-all resize-none placeholder:text-muted"
                   spellCheck={false}
                   disabled={notasComparativoLoading}
                 />
@@ -1685,14 +1685,14 @@ export const ContasPagarPage: React.FC<{
         </div>
 
         <Card className="p-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-base/70 flex items-center justify-between bg-surface/20">
+          <div className="px-6 py-4 border-b border-line/70 flex items-center justify-between bg-surface/20">
             <h3 className="text-primary font-black">Detalhamento das Variações</h3>
             <div className="text-[10px] font-black text-muted uppercase tracking-widest">Ordenado por relevância</div>
           </div>
 
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-bg/30 border-b border-base/70 text-[10px] font-black uppercase tracking-[0.2em] text-muted">
+              <thead className="bg-bg/30 border-b border-line/70 text-[10px] font-black uppercase tracking-[0.2em] text-muted">
                 <tr>
                   <th className="px-6 py-3">Item / Unidade</th>
                   <th className="px-2 py-3 text-right">{formatCompetenciaLabel(competenciaComparar)}</th>
@@ -1701,7 +1701,7 @@ export const ContasPagarPage: React.FC<{
                   <th className="px-6 py-3 text-right">Variação %</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-base/50">
+              <tbody className="divide-y divide-line/50">
                 {variations
                   .sort((a, b) => {
                     const aScore = a.status === 'NOVO' || a.status === 'SAIU' ? 9999 : Math.abs(a.perc);
@@ -1715,7 +1715,7 @@ export const ContasPagarPage: React.FC<{
                         <div className="text-primary font-black">{(v.categoria || '').toUpperCase()}</div>
                         <div className="text-xs text-muted">{v.descricao}</div>
                         <div className="mt-1 flex items-center gap-2">
-                          <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-strong/50 uppercase">
+                          <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-line-strong/50 uppercase">
                             {(v.unidade || 'todas').toUpperCase()}
                           </span>
                           {v.status !== 'RECORRENTE' && (
@@ -1748,7 +1748,7 @@ export const ContasPagarPage: React.FC<{
           </div>
 
           {/* Mobile Cards */}
-          <div className="lg:hidden divide-y divide-base/50">
+          <div className="lg:hidden divide-y divide-line/50">
             {variations
               .sort((a, b) => {
                 const aScore = a.status === 'NOVO' || a.status === 'SAIU' ? 9999 : Math.abs(a.perc);
@@ -1765,7 +1765,7 @@ export const ContasPagarPage: React.FC<{
                       <p className="text-[10px] text-muted font-bold truncate">{v.descricao}</p>
                     </div>
                     <div className="flex gap-1 shrink-0 ml-2">
-                      <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-strong/50 uppercase">
+                      <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-line-strong/50 uppercase">
                         {(v.unidade || 'todas').toUpperCase()}
                       </span>
                       {v.status !== 'RECORRENTE' && (
@@ -1778,7 +1778,7 @@ export const ContasPagarPage: React.FC<{
                   </div>
 
                   {/* Comparativo: De / Para */}
-                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-base/40">
+                  <div className="grid grid-cols-2 gap-4 py-3 border-y border-line/40">
                     <div>
                       <span className="text-[9px] uppercase tracking-widest text-muted block mb-1">{formatCompetenciaLabel(competenciaComparar)}</span>
                       <span className="text-sm font-bold text-secondary font-mono">{v.prev ? formatCurrency(v.prev) : '-'}</span>
@@ -1839,11 +1839,11 @@ export const ContasPagarPage: React.FC<{
           {categorias.map((c) => (
             <div
               key={c.id}
-              className="group relative rounded-2xl border border-base bg-surface/20 p-5 flex items-center justify-between hover:border-danger/30 hover:bg-danger/5 hover:shadow-[var(--shadow-card)] transition-all"
+              className="group relative rounded-2xl border border-line bg-surface/20 p-5 flex items-center justify-between hover:border-danger/30 hover:bg-danger/5 hover:shadow-[var(--shadow-card)] transition-all"
             >
               <div className="flex items-center gap-4 min-w-0">
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-base group-hover:border-danger/30 transition-colors"
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-line group-hover:border-danger/30 transition-colors"
                   style={{ backgroundColor: `${c.cor}10` }}
                 >
                   <span className="text-2xl">{c.icone}</span>
@@ -1888,7 +1888,7 @@ export const ContasPagarPage: React.FC<{
         </div>
 
         {/* Mobile Premium List */}
-        <div className="md:hidden flex flex-col bg-surface/10 rounded-3xl border border-base/50 overflow-hidden">
+        <div className="md:hidden flex flex-col bg-surface/10 rounded-3xl border border-line/50 overflow-hidden">
           {categorias.map((c, idx) => (
             <div
               key={c.id}
@@ -1898,7 +1898,7 @@ export const ContasPagarPage: React.FC<{
               }}
               className={cn(
                 "flex items-center justify-between p-4 active:bg-surface-2/40 transition-colors cursor-pointer",
-                idx !== categorias.length - 1 && "border-b border-base/40"
+                idx !== categorias.length - 1 && "border-b border-line/40"
               )}
             >
               <div className="flex items-center gap-4">
@@ -1980,7 +1980,7 @@ export const ContasPagarPage: React.FC<{
       <div className="w-full">
         {/* MOBILE: Controles Simplificados (Unidades + Visão) */}
         <div className="lg:hidden flex flex-col gap-3 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
@@ -1997,7 +1997,7 @@ export const ContasPagarPage: React.FC<{
             ))}
           </div>
 
-          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
             {[
               { id: 'cards', label: 'Cards', icon: LayoutGrid },
               { id: 'lista', label: 'Lista', icon: List },
@@ -2021,7 +2021,7 @@ export const ContasPagarPage: React.FC<{
         {/* DESKTOP: Layout Original Validado */}
         <div className="hidden lg:flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+            <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
               {unidadeTabs.map((u) => (
                 <button
                   key={u.id}
@@ -2038,7 +2038,7 @@ export const ContasPagarPage: React.FC<{
               ))}
             </div>
 
-            <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+            <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
               {[
                 { id: 'cards', label: 'Cards', icon: LayoutGrid },
                 { id: 'lista', label: 'Lista', icon: List },
@@ -2084,7 +2084,7 @@ export const ContasPagarPage: React.FC<{
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 mb-8 bg-surface/20 p-4 rounded-3xl border border-base/60">
+        <div className="flex flex-wrap items-center gap-4 mb-8 bg-surface/20 p-4 rounded-3xl border border-line/60">
           <div className="flex items-center gap-2 text-muted mr-2">
             <Filter size={14} />
             <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
@@ -2101,7 +2101,7 @@ export const ContasPagarPage: React.FC<{
             />
           </div>
 
-          <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-xl p-1">
+          <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-xl p-1">
             {[
               { id: 'all', label: 'Todos' },
               { id: 'fixo', label: 'Fixo' },
@@ -2122,7 +2122,7 @@ export const ContasPagarPage: React.FC<{
             ))}
           </div>
 
-          <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-xl p-1">
+          <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-xl p-1">
             {[
               { id: 'all', label: 'Tipos' },
               { id: 'unica', label: 'Única' },
@@ -2150,7 +2150,7 @@ export const ContasPagarPage: React.FC<{
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por descrição ou categoria..."
-              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-base bg-bg/40 text-[11px] font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-line bg-bg/40 text-[11px] font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
             />
           </div>
         </div>
@@ -2166,9 +2166,9 @@ export const ContasPagarPage: React.FC<{
           </div>
 
           <Card className="p-0 overflow-hidden">
-            <div className="grid grid-cols-2 sm:grid-cols-3 border-t border-base/60">
+            <div className="grid grid-cols-2 sm:grid-cols-3 border-t border-line/60">
               {/* Linha 1 (mobile): Total + Pago | Linha 2 (mobile): Pendente (full) */}
-              <div className="p-5 border-b border-r border-base/60 sm:border-b-0 sm:border-r">
+              <div className="p-5 border-b border-r border-line/60 sm:border-b-0 sm:border-r">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted">
                   <TrendingUp size={12} />
                   Total do Período
@@ -2177,7 +2177,7 @@ export const ContasPagarPage: React.FC<{
                 <div className="mt-1 text-[11px] text-muted font-bold">Baseado nos filtros</div>
               </div>
 
-              <div className="p-5 border-b border-base/60 sm:border-b-0 sm:border-r">
+              <div className="p-5 border-b border-line/60 sm:border-b-0 sm:border-r">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted">
                   <CheckCircle2 size={12} className="text-success" />
                   Total Pago
@@ -2186,7 +2186,7 @@ export const ContasPagarPage: React.FC<{
                 <div className="mt-1 text-[11px] text-success font-black">{resumoAuditoriaFiltrado.totalPago.count} contas liquidadas</div>
               </div>
 
-              <div className="p-5 col-span-2 border-base/60 sm:col-span-1 text-center sm:text-left flex flex-col items-center sm:items-start">
+              <div className="p-5 col-span-2 border-line/60 sm:col-span-1 text-center sm:text-left flex flex-col items-center sm:items-start">
                 <div className="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-black uppercase tracking-widest text-muted">
                   <DollarSign size={12} className="text-accent" />
                   Pendente no Período
@@ -2268,7 +2268,7 @@ export const ContasPagarPage: React.FC<{
             </button>
 
             {auditAiOpen && (
-              <div className="p-6 border-t border-base/60 space-y-6">
+              <div className="p-6 border-t border-line/60 space-y-6">
                 {/* Notas da Ana (Auditoria do mês) */}
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Observações da Ana (Auditoria)</div>
@@ -2277,7 +2277,7 @@ export const ContasPagarPage: React.FC<{
                     onChange={(e) => setNotasAuditoria(e.target.value)}
                     onBlur={saveNotas}
                     placeholder="Contexto do mês (ex.: reajustes confirmados, contas pontuais, acordos, etc.)"
-                    className="w-full min-h-[110px] resize-none bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+                    className="w-full min-h-[110px] resize-none bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
                     spellCheck={false}
                     disabled={notasAuditoriaLoading}
                   />
@@ -2329,7 +2329,7 @@ export const ContasPagarPage: React.FC<{
                   </div>
                 ) : auditAiRow ? (
                   <div className="space-y-5">
-                    <div className="p-5 rounded-2xl border border-base/60 bg-bg/30">
+                    <div className="p-5 rounded-2xl border border-line/60 bg-bg/30">
                       <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Resumo Executivo</div>
                       <div className="text-sm text-secondary font-medium leading-relaxed whitespace-pre-line">
                         {auditAiRow.summary || auditAiRow.response_json?.resumo_executivo}
@@ -2337,7 +2337,7 @@ export const ContasPagarPage: React.FC<{
                     </div>
 
                     {!!auditAiRow.response_json?.pontos_de_atencao?.length && (
-                      <div className="p-5 rounded-2xl border border-base/60 bg-bg/30">
+                      <div className="p-5 rounded-2xl border border-line/60 bg-bg/30">
                         <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Pontos de Atenção</div>
                         <ul className="space-y-2">
                           {auditAiRow.response_json.pontos_de_atencao.map((p, idx) => (
@@ -2349,7 +2349,7 @@ export const ContasPagarPage: React.FC<{
                       </div>
                     )}
 
-                    <div className="p-5 rounded-2xl border border-base/60 bg-bg/30">
+                    <div className="p-5 rounded-2xl border border-line/60 bg-bg/30">
                       <div className="flex items-center justify-between gap-4 mb-3">
                         <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted">Anomalias do mês</div>
                         <div className="text-[10px] text-muted font-black">
@@ -2368,7 +2368,7 @@ export const ContasPagarPage: React.FC<{
                                   ? 'warning'
                                   : 'info';
                             return (
-                              <div key={a.key} className="p-4 rounded-2xl border border-base/60 bg-surface/10">
+                              <div key={a.key} className="p-4 rounded-2xl border border-line/60 bg-surface/10">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
@@ -2390,7 +2390,7 @@ export const ContasPagarPage: React.FC<{
                                     ) : null}
 
                                     {n?.nota ? (
-                                      <div className="mt-3 text-[12px] text-secondary font-bold bg-bg/40 border border-base/60 rounded-xl px-3 py-2">
+                                      <div className="mt-3 text-[12px] text-secondary font-bold bg-bg/40 border border-line/60 rounded-xl px-3 py-2">
                                         <span className="text-muted font-black mr-2">Nota:</span>
                                         {n.nota.length > 140 ? `${n.nota.slice(0, 140)}...` : n.nota}
                                       </div>
@@ -2401,7 +2401,7 @@ export const ContasPagarPage: React.FC<{
                                       <button
                                         type="button"
                                         onClick={() => openAnotar(a)}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-base bg-bg/40 hover:bg-surface/30 text-secondary text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.99]"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-line bg-bg/40 hover:bg-surface/30 text-secondary text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.99]"
                                       >
                                         Anotar
                                       </button>
@@ -2411,7 +2411,7 @@ export const ContasPagarPage: React.FC<{
                                   <button
                                     type="button"
                                     onClick={() => openAnotar(a)}
-                                    className="hidden lg:inline-flex shrink-0 px-4 py-2 rounded-xl border border-base bg-bg/40 hover:bg-surface/30 text-secondary text-[10px] font-black uppercase tracking-widest transition-all"
+                                    className="hidden lg:inline-flex shrink-0 px-4 py-2 rounded-xl border border-line bg-bg/40 hover:bg-surface/30 text-secondary text-[10px] font-black uppercase tracking-widest transition-all"
                                   >
                                     Anotar
                                   </button>
@@ -2426,7 +2426,7 @@ export const ContasPagarPage: React.FC<{
                     </div>
 
                     {!!auditAiRow.response_json?.recomendacoes_operacionais?.length && (
-                      <div className="p-5 rounded-2xl border border-base/60 bg-bg/30">
+                      <div className="p-5 rounded-2xl border border-line/60 bg-bg/30">
                         <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Recomendações</div>
                         <ul className="space-y-2">
                           {auditAiRow.response_json.recomendacoes_operacionais.map((r, idx) => (
@@ -2525,7 +2525,7 @@ export const ContasPagarPage: React.FC<{
               <button
                 type="button"
                 onClick={() => setAnotarOpen(false)}
-                className="px-6 py-3 rounded-2xl border border-base bg-surface/30 text-secondary font-black hover:bg-surface/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
+                className="px-6 py-3 rounded-2xl border border-line bg-surface/30 text-secondary font-black hover:bg-surface/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
               >
                 Fechar
               </button>
@@ -2544,7 +2544,7 @@ export const ContasPagarPage: React.FC<{
           <div className="space-y-6">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Status</div>
-              <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+              <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
                 {([
                   { id: 'pendente', label: 'Pendente' },
                   { id: 'verificado', label: 'Verificado' },
@@ -2570,7 +2570,7 @@ export const ContasPagarPage: React.FC<{
                 value={anotarTexto}
                 onChange={(e) => setAnotarTexto(e.target.value)}
                 placeholder="Ex.: confirmado reajuste com fornecedor; conta duplicada removida; valor correto é X; etc."
-                className="w-full min-h-[140px] resize-none bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="w-full min-h-[140px] resize-none bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
                 spellCheck={false}
               />
               <div className="mt-2 flex items-center justify-end">
@@ -2591,8 +2591,8 @@ export const ContasPagarPage: React.FC<{
   return renderWithShell(
     <div className="w-full">
       {/* Mobile: Command Bar (premium) */}
-      <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 pt-3 pb-3 bg-bg/70 backdrop-blur-xl border-b border-base/20 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-        <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+      <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 pt-3 pb-3 bg-bg/70 backdrop-blur-xl border-b border-line/20 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
+        <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
           {unidadeTabs.map((u) => (
             <button
               key={u.id}
@@ -2609,7 +2609,7 @@ export const ContasPagarPage: React.FC<{
           ))}
         </div>
 
-        <div className="mt-3 flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+        <div className="mt-3 flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
           {[
             { id: 'lista', label: 'Lista', icon: List },
             { id: 'calendario', label: 'Calendário', icon: Calendar },
@@ -2633,7 +2633,7 @@ export const ContasPagarPage: React.FC<{
           <button
             type="button"
             onClick={() => setContasMobileRefinarOpen(true)}
-            className="flex-none px-4 py-3 rounded-2xl bg-surface/50 border border-base/70 text-secondary font-black inline-flex items-center gap-2 active:scale-[0.98]"
+            className="flex-none px-4 py-3 rounded-2xl bg-surface/50 border border-line/70 text-secondary font-black inline-flex items-center gap-2 active:scale-[0.98]"
             aria-label="Filtros"
           >
             <Filter size={16} className="text-accent" />
@@ -2653,7 +2653,7 @@ export const ContasPagarPage: React.FC<{
                 // ignore
               }
             }}
-            className="flex-none px-4 py-3 rounded-2xl bg-surface/50 border border-base/70 text-secondary font-black hover:bg-surface/70 transition-all active:scale-[0.98]"
+            className="flex-none px-4 py-3 rounded-2xl bg-surface/50 border border-line/70 text-secondary font-black hover:bg-surface/70 transition-all active:scale-[0.98]"
             aria-label="Notificações"
           >
             <Bell size={16} className="text-accent" />
@@ -2677,7 +2677,7 @@ export const ContasPagarPage: React.FC<{
             {contasActiveFilterChips.slice(0, 4).map((c) => (
               <span
                 key={c}
-                className="max-w-full truncate px-3 py-1.5 rounded-full bg-bg/40 border border-base/60 text-[10px] font-black text-secondary"
+                className="max-w-full truncate px-3 py-1.5 rounded-full bg-bg/40 border border-line/60 text-[10px] font-black text-secondary"
               >
                 {c}
               </span>
@@ -2689,7 +2689,7 @@ export const ContasPagarPage: React.FC<{
       {/* Desktop: manter layout atual */}
       <div className="hidden lg:flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
@@ -2706,7 +2706,7 @@ export const ContasPagarPage: React.FC<{
             ))}
           </div>
 
-          <div className="flex items-center gap-2 bg-surface/40 border border-base p-1 rounded-2xl w-fit">
+          <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
             {[
               { id: 'lista', label: 'Lista', icon: List },
               { id: 'calendario', label: 'Calendário', icon: Calendar },
@@ -2754,7 +2754,7 @@ export const ContasPagarPage: React.FC<{
         </div>
       </div>
 
-      <div className="hidden lg:flex flex-wrap items-center gap-4 mb-8 bg-surface/20 p-4 rounded-3xl border border-base/60">
+      <div className="hidden lg:flex flex-wrap items-center gap-4 mb-8 bg-surface/20 p-4 rounded-3xl border border-line/60">
         <div className="flex items-center gap-2 text-muted mr-2">
           <Filter size={14} />
           <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
@@ -2771,7 +2771,7 @@ export const ContasPagarPage: React.FC<{
           />
         </div>
 
-        <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-xl p-1">
           {[
             { id: 'all', label: 'Todos' },
             { id: 'fixo', label: 'Fixo' },
@@ -2792,7 +2792,7 @@ export const ContasPagarPage: React.FC<{
           ))}
         </div>
 
-        <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-xl p-1">
           {[
             { id: 'all', label: 'Tipos' },
             { id: 'unica', label: 'Única' },
@@ -2850,7 +2850,7 @@ export const ContasPagarPage: React.FC<{
         }
       >
         <div className="space-y-5">
-          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+          <div className="bg-surface/40 border border-line/60 rounded-3xl p-4">
             <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-2">Competência</div>
             <CustomSelect
               value={draftCompetenciaYM || competenciaFiltro}
@@ -2859,7 +2859,7 @@ export const ContasPagarPage: React.FC<{
             />
           </div>
 
-          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+          <div className="bg-surface/40 border border-line/60 rounded-3xl p-4">
             <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-2">Categoria</div>
             <CustomSelect
               value={draftCategoriaFiltro}
@@ -2871,9 +2871,9 @@ export const ContasPagarPage: React.FC<{
             />
           </div>
 
-          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+          <div className="bg-surface/40 border border-line/60 rounded-3xl p-4">
             <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-3">Custo</div>
-            <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-2xl p-1">
+            <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-2xl p-1">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'fixo', label: 'Fixo' },
@@ -2894,9 +2894,9 @@ export const ContasPagarPage: React.FC<{
             </div>
           </div>
 
-          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+          <div className="bg-surface/40 border border-line/60 rounded-3xl p-4">
             <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-3">Tipos</div>
-            <div className="flex items-center gap-1 bg-bg/40 border border-base rounded-2xl p-1">
+            <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-2xl p-1">
               {[
                 { id: 'all', label: 'Todos' },
                 { id: 'unica', label: 'Única' },
@@ -2918,7 +2918,7 @@ export const ContasPagarPage: React.FC<{
             </div>
           </div>
 
-          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+          <div className="bg-surface/40 border border-line/60 rounded-3xl p-4">
             <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-2">Busca</div>
             <div className="relative">
               <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
@@ -2926,7 +2926,7 @@ export const ContasPagarPage: React.FC<{
                 value={draftBusca}
                 onChange={(e) => setDraftBusca(e.target.value)}
                 placeholder="Buscar por descrição ou categoria…"
-                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-base bg-bg/40 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-line bg-bg/40 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
               />
             </div>
           </div>
@@ -2970,7 +2970,7 @@ export const ContasPagarPage: React.FC<{
                 // ignore
               }
             }}
-            className="w-full inline-flex items-center justify-between px-5 py-4 rounded-3xl bg-surface/50 border border-base/70 text-secondary font-black hover:bg-surface/70 transition-all active:scale-[0.99]"
+            className="w-full inline-flex items-center justify-between px-5 py-4 rounded-3xl bg-surface/50 border border-line/70 text-secondary font-black hover:bg-surface/70 transition-all active:scale-[0.99]"
           >
             <span className="inline-flex items-center gap-3">
               <Bell size={16} className="text-accent" />
@@ -3083,7 +3083,7 @@ export const ContasPagarPage: React.FC<{
 
       {diaModalContaIdToDelete && (
         <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-surface border border-base rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="bg-surface border border-line rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="p-8 text-center">
               <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 bg-danger/10 text-danger">
                 <AlertTriangle size={32} />
@@ -3220,7 +3220,7 @@ export const ContasPagarPage: React.FC<{
 
       {!!contaParaExcluir && (
         <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-surface border border-base rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="bg-surface border border-line rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="p-8 text-center">
               <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 bg-danger/10 text-danger">
                 <AlertTriangle size={32} />
@@ -3309,7 +3309,7 @@ export const ContasPagarPage: React.FC<{
 
       {/* Barra flutuante de seleção em lote */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[12000] flex items-center gap-3 px-5 py-3 rounded-2xl bg-surface border border-strong shadow-[var(--shadow-card)] animate-in slide-in-from-bottom-4 fade-in duration-300">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[12000] flex items-center gap-3 px-5 py-3 rounded-2xl bg-surface border border-line-strong shadow-[var(--shadow-card)] animate-in slide-in-from-bottom-4 fade-in duration-300">
           <CheckSquare size={18} className="text-accent shrink-0" />
           <span className="text-primary font-bold text-sm whitespace-nowrap">
             {selectedIds.size} {selectedIds.size === 1 ? 'selecionada' : 'selecionadas'}
@@ -3332,7 +3332,7 @@ export const ContasPagarPage: React.FC<{
       {/* Dialog de confirmação exclusão em lote */}
       {batchDeleteOpen && (
         <div className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-surface border border-base rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="bg-surface border border-line rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="p-8 text-center">
               <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 bg-danger/10 text-danger">
                 <AlertTriangle size={32} />

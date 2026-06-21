@@ -135,29 +135,29 @@ export const CandidatosTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-strong/50">
+        <Card className="p-5 border border-line-strong/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Total</div>
           <div className="mt-2 text-3xl font-black text-primary">{candidates.length}</div>
           <div className="mt-1 text-xs font-bold text-muted">Base ativa de candidatos</div>
         </Card>
-        <Card className="p-5 border border-strong/50">
+        <Card className="p-5 border border-line-strong/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Entrevistas</div>
           <div className="mt-2 text-3xl font-black text-primary">{counts.entrevista || 0}</div>
           <div className="mt-1 text-xs font-bold text-muted">Aguardando conversa RH</div>
         </Card>
-        <Card className="p-5 border border-strong/50">
+        <Card className="p-5 border border-line-strong/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Aula teste</div>
           <div className="mt-2 text-3xl font-black text-primary">{counts.aula_teste || 0}</div>
           <div className="mt-1 text-xs font-bold text-muted">Em avaliação técnica</div>
         </Card>
-        <Card className="p-5 border border-strong/50">
+        <Card className="p-5 border border-line-strong/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Aprovados</div>
           <div className="mt-2 text-3xl font-black text-success">{counts.aprovado || 0}</div>
           <div className="mt-1 text-xs font-bold text-muted">Prontos para onboarding</div>
         </Card>
       </div>
 
-      <Card className="p-5 border border-strong/50">
+      <Card className="p-5 border border-line-strong/50">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-4 flex-1">
             <div>
@@ -171,7 +171,7 @@ export const CandidatosTab: React.FC = () => {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar por nome, cargo, e-mail ou vínculo"
-                  className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
                 />
                 <Filter className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-muted" />
               </div>
@@ -189,14 +189,14 @@ export const CandidatosTab: React.FC = () => {
         </div>
       </Card>
 
-      <Card className="p-5 border border-strong/50">
+      <Card className="p-5 border border-line-strong/50">
         <div className="flex items-center gap-2 mb-4">
           <UserPlus className="w-4 h-4 text-accent" />
           <h3 className="text-primary text-base font-black">Pipeline de recrutamento</h3>
         </div>
 
         {filteredCandidates.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-strong bg-surface/30 p-8 text-center">
+          <div className="rounded-3xl border border-dashed border-line-strong bg-surface/30 p-8 text-center">
             <div className="mx-auto w-14 h-14 rounded-3xl bg-surface-2/70 flex items-center justify-center mb-4">
               <FileSearch className="w-6 h-6 text-muted" />
             </div>
@@ -224,7 +224,7 @@ export const CandidatosTab: React.FC = () => {
                   className={`rounded-3xl border p-5 text-left transition-all ${
                     selectedCandidateId === candidate.id
                       ? 'border-accent/60 bg-accent/10'
-                      : 'border-base bg-surface/30 hover:border-strong'
+                      : 'border-line bg-surface/30 hover:border-line-strong'
                   }`}
                 >
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -259,7 +259,7 @@ export const CandidatosTab: React.FC = () => {
                     ) : null}
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-base bg-bg/30 p-4">
+                  <div className="mt-4 rounded-2xl border border-line bg-bg/30 p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Resumo operacional</div>
                     <div className="text-sm font-bold text-secondary leading-relaxed">
                       {candidate.questionario_resumo || candidate.observacoes || 'Sem resumo operacional registrado ainda.'}
@@ -297,7 +297,7 @@ export const CandidatosTab: React.FC = () => {
                             }
                           );
                         }}
-                        className="px-4 py-2.5 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 flex items-center gap-2 transition-all"
+                        className="px-4 py-2.5 rounded-2xl border border-line bg-surface/40 text-secondary font-black hover:bg-surface/60 flex items-center gap-2 transition-all"
                       >
                         <XCircle className="w-4 h-4" />
                         Reprovar
@@ -313,7 +313,7 @@ export const CandidatosTab: React.FC = () => {
 
       {selectedCandidate ? (
         <div className="grid grid-cols-1 2xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
-          <Card className="p-5 border border-strong/50">
+          <Card className="p-5 border border-line-strong/50">
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Candidato selecionado</div>
             <div className="mt-3 text-2xl font-black text-primary">{selectedCandidate.nome}</div>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -355,7 +355,7 @@ export const CandidatosTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setEditingCandidate(selectedCandidate)}
-                  className="w-full px-4 py-3 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 rounded-2xl border border-line bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all flex items-center justify-center gap-2"
                 >
                   <Pencil className="w-4 h-4" />
                   Editar cadastro
@@ -425,13 +425,13 @@ export const CandidatosTab: React.FC = () => {
               {comparison ? (
                 <div className="mt-4 space-y-3">
                   <div className="text-sm font-bold text-secondary">{comparison.resumo_executivo}</div>
-                  <div className="rounded-2xl border border-base bg-bg/40 p-3">
+                  <div className="rounded-2xl border border-line bg-bg/40 p-3">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Recomendação</div>
                     <div className="text-sm font-bold text-success">{comparison.recomendacao_final}</div>
                   </div>
                   <div className="space-y-2">
                     {comparison.ranking.map((item) => (
-                      <div key={item.candidate_id} className="rounded-2xl border border-base bg-bg/40 p-3">
+                      <div key={item.candidate_id} className="rounded-2xl border border-line bg-bg/40 p-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-primary font-black">{item.nome}</div>
                           <Badge variant="purple">{item.score}</Badge>
@@ -446,7 +446,7 @@ export const CandidatosTab: React.FC = () => {
           </Card>
 
           <div className="space-y-6">
-            <Card className="p-5 border border-strong/50">
+            <Card className="p-5 border border-line-strong/50">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Processo de recrutamento</div>
@@ -468,7 +468,7 @@ export const CandidatosTab: React.FC = () => {
                       className={`px-4 py-2.5 rounded-2xl text-sm font-black transition-all ${
                         selectedStageId === stage.id
                           ? 'bg-accent text-white'
-                          : 'border border-base bg-surface/30 text-secondary hover:bg-surface/60'
+                          : 'border border-line bg-surface/30 text-secondary hover:bg-surface/60'
                       }`}
                     >
                       {stage.titulo}

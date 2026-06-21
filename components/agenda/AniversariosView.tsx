@@ -214,8 +214,8 @@ export const AniversariosView: React.FC<{
               className={cn(
                 'flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all border',
                 syncing || loadingPreview
-                  ? 'bg-surface-2 text-muted border-base cursor-not-allowed'
-                  : 'bg-surface/60 text-secondary border-base hover:text-primary hover:bg-surface-2 hover:border-strong'
+                  ? 'bg-surface-2 text-muted border-line cursor-not-allowed'
+                  : 'bg-surface/60 text-secondary border-line hover:text-primary hover:bg-surface-2 hover:border-line-strong'
               )}
             >
               <Download className={cn('w-4 h-4', (syncing || loadingPreview) && 'animate-pulse')} />
@@ -224,7 +224,7 @@ export const AniversariosView: React.FC<{
             <button
               type="button"
               onClick={() => { setEditando(null); setModalOpen(true); }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-danger hover:bg-danger-hover text-white transition-all shadow-lg shadow-danger/20"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-danger hover:bg-danger/90 text-white transition-all shadow-lg shadow-danger/20"
             >
               <Plus className="w-4 h-4" />
               Adicionar
@@ -233,7 +233,7 @@ export const AniversariosView: React.FC<{
               <button
                 type="button"
                 onClick={() => setSelectMode(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black border border-base bg-surface/60 text-secondary hover:text-primary hover:bg-surface-2 transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black border border-line bg-surface/60 text-secondary hover:text-primary hover:bg-surface-2 transition-all"
               >
                 <CheckSquare className="w-4 h-4" />
                 Selecionar
@@ -249,7 +249,7 @@ export const AniversariosView: React.FC<{
             <button
               type="button"
               onClick={allSelected ? deselectAll : selectAll}
-              className="px-4 py-2.5 rounded-2xl text-xs font-black border border-base bg-surface/60 text-secondary hover:text-primary hover:bg-surface-2 transition-all"
+              className="px-4 py-2.5 rounded-2xl text-xs font-black border border-line bg-surface/60 text-secondary hover:text-primary hover:bg-surface-2 transition-all"
             >
               {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
             </button>
@@ -261,7 +261,7 @@ export const AniversariosView: React.FC<{
                 'flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black transition-all',
                 selectedIds.size === 0
                   ? 'bg-surface-2 text-muted cursor-not-allowed'
-                  : 'bg-danger hover:bg-danger-hover text-white shadow-lg shadow-danger/20'
+                  : 'bg-danger hover:bg-danger/90 text-white shadow-lg shadow-danger/20'
               )}
             >
               <Trash2 className="w-4 h-4" />
@@ -270,7 +270,7 @@ export const AniversariosView: React.FC<{
             <button
               type="button"
               onClick={exitSelectMode}
-              className="flex items-center justify-center w-10 h-10 rounded-2xl border border-base bg-surface/60 text-muted hover:text-primary hover:bg-surface-2 transition-all"
+              className="flex items-center justify-center w-10 h-10 rounded-2xl border border-line bg-surface/60 text-muted hover:text-primary hover:bg-surface-2 transition-all"
               aria-label="Cancelar seleção"
             >
               <X className="w-4 h-4" />
@@ -290,7 +290,7 @@ export const AniversariosView: React.FC<{
           <button
             type="button"
             onClick={() => setSyncResult(null)}
-            className="px-3 py-1.5 rounded-xl bg-surface/40 border border-base text-secondary text-xs font-black"
+            className="px-3 py-1.5 rounded-xl bg-surface/40 border border-line text-secondary text-xs font-black"
           >
             OK
           </button>
@@ -304,7 +304,7 @@ export const AniversariosView: React.FC<{
           <button
             type="button"
             onClick={() => setActionError(null)}
-            className="px-3 py-1.5 rounded-xl bg-surface/40 border border-base text-secondary text-xs font-black"
+            className="px-3 py-1.5 rounded-xl bg-surface/40 border border-line text-secondary text-xs font-black"
           >
             OK
           </button>
@@ -321,7 +321,7 @@ export const AniversariosView: React.FC<{
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por nome…"
-              className="w-full pl-9 pr-3 py-2.5 rounded-2xl bg-surface/60 border border-strong text-sm text-primary font-bold placeholder:text-muted focus:outline-none focus:border-danger/50 transition-colors"
+              className="w-full pl-9 pr-3 py-2.5 rounded-2xl bg-surface/60 border border-line-strong text-sm text-primary font-bold placeholder:text-muted focus:outline-none focus:border-danger/50 transition-colors"
             />
           </div>
           <div className="flex gap-1">
@@ -338,7 +338,7 @@ export const AniversariosView: React.FC<{
                   'flex items-center gap-1.5 px-3 py-2.5 rounded-2xl text-xs font-black border transition-all',
                   filtroLembrete === f.key
                     ? 'bg-danger/15 border-danger/30 text-danger-subtle'
-                    : 'bg-surface/60 border-base text-muted hover:text-primary hover:bg-surface-2'
+                    : 'bg-surface/60 border-line text-muted hover:text-primary hover:bg-surface-2'
                 )}
               >
                 {f.icon && <f.icon className="w-3.5 h-3.5" />}
@@ -362,7 +362,7 @@ export const AniversariosView: React.FC<{
       {loading ? (
         <div className="text-muted font-bold py-8">Carregando…</div>
       ) : aniversarios.length === 0 ? (
-        <div className="rounded-2xl border border-base/60 bg-bg/95 p-8 text-center">
+        <div className="rounded-2xl border border-line/60 bg-bg/95 p-8 text-center">
           <div className="text-4xl mb-3">🎂</div>
           <div className="text-primary font-black text-lg">Nenhum aniversário cadastrado</div>
           <p className="text-sm text-muted font-bold mt-2">
@@ -370,7 +370,7 @@ export const AniversariosView: React.FC<{
           </p>
         </div>
       ) : filtrados.length === 0 ? (
-        <div className="rounded-2xl border border-base/60 bg-bg/95 p-8 text-center">
+        <div className="rounded-2xl border border-line/60 bg-bg/95 p-8 text-center">
           <div className="text-4xl mb-3">🔍</div>
           <div className="text-primary font-black text-lg">Nenhum resultado</div>
           <p className="text-sm text-muted font-bold mt-2">
@@ -380,7 +380,7 @@ export const AniversariosView: React.FC<{
       ) : (
         <div className="space-y-4">
           {groups.map((g) => (
-            <div key={g.key} className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden shadow-sm">
+            <div key={g.key} className="rounded-2xl border border-line/60 bg-bg/95 overflow-hidden shadow-sm">
               <button
                 type="button"
                 onClick={() => toggle(g.key)}

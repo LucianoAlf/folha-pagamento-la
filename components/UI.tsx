@@ -125,11 +125,11 @@ export const DatePicker: React.FC<{
           placeholder={placeholder}
           className={cn(
             'w-full flex items-center justify-between px-5 py-3.5 rounded-2xl border bg-surface-2 text-sm font-bold',
-            'border-base',
+            'border-line',
             'text-primary',
             'focus:outline-none focus:ring-2 focus:ring-accent/60',
             'placeholder:text-muted',
-            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-strong',
+            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-line-strong',
             className
           )}
         />
@@ -148,10 +148,10 @@ export const DatePicker: React.FC<{
         <Popover.Content
           sideOffset={10}
           align="start"
-          className="z-[14000] rounded-[2rem] border border-base bg-surface shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
+          className="z-[14000] rounded-[2rem] border border-line bg-surface shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
         >
           {variant === 'monthYear' && (
-            <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-base">
+            <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-line">
               <button
                 type="button"
                 disabled={month <= new Date(minYear, 0, 1)}
@@ -162,7 +162,7 @@ export const DatePicker: React.FC<{
                 }}
                 className={cn(
                   "w-10 h-10 rounded-2xl border flex items-center justify-center transition-all",
-                  "border-base bg-surface-2/50 text-secondary",
+                  "border-line bg-surface-2/50 text-secondary",
                   "hover:bg-surface-3 active:scale-95",
                   (month <= new Date(minYear, 0, 1)) && "opacity-40 pointer-events-none"
                 )}
@@ -210,7 +210,7 @@ export const DatePicker: React.FC<{
                 }}
                 className={cn(
                   "w-10 h-10 rounded-2xl border flex items-center justify-center transition-all",
-                  "border-base bg-surface-2/50 text-secondary",
+                  "border-line bg-surface-2/50 text-secondary",
                   "hover:bg-surface-3 active:scale-95",
                   (month >= new Date(maxYear, 11, 1)) && "opacity-40 pointer-events-none"
                 )}
@@ -254,7 +254,7 @@ export const DatePicker: React.FC<{
             />
           </div>
 
-          <div className="pt-6 mt-4 border-t border-base flex justify-between gap-4">
+          <div className="pt-6 mt-4 border-t border-line flex justify-between gap-4">
             <button
               type="button"
               onClick={() => onChange(undefined)}
@@ -375,8 +375,8 @@ export const Button: React.FC<
     primary:
       'bg-accent hover:bg-accent/90 text-white shadow-lg shadow-accent/20 border border-accent/30',
     outline:
-      'bg-surface/30 hover:bg-surface-2/50 text-secondary border border-strong/60 hover:border-strong',
-    ghost: 'bg-surface/20 hover:bg-surface-2/40 text-secondary border border-base/50',
+      'bg-surface/30 hover:bg-surface-2/50 text-secondary border border-line-strong/60 hover:border-line-strong',
+    ghost: 'bg-surface/20 hover:bg-surface-2/40 text-secondary border border-line/50',
   } satisfies Record<NonNullable<React.ComponentProps<typeof Button>['variant']>, string>;
 
   return (
@@ -399,7 +399,7 @@ export const Card = React.forwardRef<
   const hasCustomBg = /\bbg-(surface|bg|slate-)/.test(className);
   const baseClass = hasCustomBg
     ? 'rounded-2xl'
-    : 'bg-surface border border-base rounded-2xl';
+    : 'bg-surface border border-line rounded-2xl';
   return (
     <div ref={ref} className={cn(baseClass, className)} {...rest}>
       {children}
@@ -446,8 +446,8 @@ export const ToggleSwitch: React.FC<{
       className={cn(
         'rounded-full border transition-all relative outline-none',
         dims.track,
-        checked ? color.onBg : 'bg-surface/50 border-base',
-        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-strong'
+        checked ? color.onBg : 'bg-surface/50 border-line',
+        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-line-strong'
       )}
     >
       <span
@@ -559,7 +559,7 @@ export const Modal: React.FC<{
         {(title || subtitle || headerIcon) && (
           <div className={cn(
             "sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b shrink-0 transition-colors",
-            headerClassName || "bg-surface/80 backdrop-blur-md border-strong/50"
+            headerClassName || "bg-surface/80 backdrop-blur-md border-line-strong/50"
           )}>
             <div className="flex items-center gap-3 min-w-0">
               {headerIcon ? <div className="shrink-0">{headerIcon}</div> : null}
@@ -582,13 +582,13 @@ export const Modal: React.FC<{
           </div>
         )}
         <div className={cn(
-          "overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-base-strong scrollbar-track-transparent",
+          "overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-line-strong scrollbar-track-transparent",
           position === 'bottom' ? "p-5" : "p-6 md:p-8"
         )}>
           {children}
         </div>
         {footer && (
-          <div className="sticky bottom-0 z-10 p-6 bg-surface/80 backdrop-blur-md border-t border-strong/50 shrink-0">
+          <div className="sticky bottom-0 z-10 p-6 bg-surface/80 backdrop-blur-md border-t border-line-strong/50 shrink-0">
             {footer}
           </div>
         )}
@@ -624,7 +624,7 @@ export const ConfirmDialog: React.FC<{
         aria-labelledby={titleId}
         aria-describedby={messageId}
         tabIndex={-1}
-        className="bg-surface border border-base rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
+        className="bg-surface border border-line rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
       >
         <div className="p-8 text-center">
           <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-danger/10 text-danger' : 'bg-accent/10 text-accent'}`}>
@@ -641,7 +641,7 @@ export const ConfirmDialog: React.FC<{
             </button>
             <button
               onClick={async () => { await onConfirm(); onClose(); }}
-              className={`flex-1 px-6 py-3.5 rounded-2xl font-bold text-white transition-all active:scale-95 shadow-lg ${
+              className={`flex-1 px-6 py-3.5 rounded-2xl font-bold text-primary transition-all active:scale-95 shadow-lg ${
                 variant === 'danger'
                   ? 'bg-danger hover:bg-danger/90 shadow-danger/20'
                   : 'bg-accent hover:bg-accent/90 shadow-accent/20'
@@ -681,7 +681,7 @@ export const AlertDialog: React.FC<{
         aria-labelledby={titleId}
         aria-describedby={messageId}
         tabIndex={-1}
-        className="bg-surface border border-base rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
+        className="bg-surface border border-line rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 focus:outline-none"
       >
         <div className="p-8 text-center">
           <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-6 ${variant === 'danger' ? 'bg-danger/10 text-danger' : 'bg-accent/10 text-accent'}`}>
@@ -691,7 +691,7 @@ export const AlertDialog: React.FC<{
           <p id={messageId} className="text-secondary leading-relaxed mb-8">{message}</p>
           <button
             onClick={onClose}
-            className={`w-full px-6 py-3.5 rounded-2xl font-bold text-white transition-all active:scale-95 shadow-lg ${
+            className={`w-full px-6 py-3.5 rounded-2xl font-bold text-primary transition-all active:scale-95 shadow-lg ${
               variant === 'danger'
                 ? 'bg-danger hover:bg-danger/90 shadow-danger/20'
                 : 'bg-accent hover:bg-accent/90 shadow-accent/20'
@@ -723,7 +723,7 @@ export const Badge: React.FC<{ children: React.ReactNode; variant?: 'default' | 
 
 export const LoadingSpinner: React.FC = () => (
   <div className="flex flex-col items-center justify-center py-20 gap-4">
-    <div className="w-10 h-10 border-4 border-base border-t-accent rounded-full animate-spin"></div>
+    <div className="w-10 h-10 border-4 border-line border-t-accent rounded-full animate-spin"></div>
     <div className="text-secondary">Carregando dados do Supabase...</div>
   </div>
 );
@@ -775,7 +775,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       onValueChange={(v) => onValueChange(v === EMPTY_SENTINEL ? '' : v)}
     >
       <Select.Trigger 
-        className={`flex items-center gap-2 bg-surface/50 hover:bg-surface-2 text-secondary px-4 py-3 rounded-xl border border-strong focus:ring-2 focus:ring-accent outline-none transition-all w-full justify-between group cursor-pointer whitespace-nowrap ${className}`}
+        className={`flex items-center gap-2 bg-surface/50 hover:bg-surface-2 text-secondary px-4 py-3 rounded-xl border border-line-strong focus:ring-2 focus:ring-accent outline-none transition-all w-full justify-between group cursor-pointer whitespace-nowrap ${className}`}
       >
         <div className="flex items-center gap-2 pointer-events-none min-w-0">
           {SelectedIcon ? (
@@ -792,7 +792,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         <Select.Content 
           // Inline zIndex to avoid any stacking-context edge cases inside other overlays/popovers.
           style={{ zIndex: 999999 }}
-          className="overflow-hidden bg-surface rounded-xl border border-strong shadow-2xl shadow-black/60 z-[99999] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
+          className="overflow-hidden bg-surface rounded-xl border border-line-strong shadow-2xl shadow-black/60 z-[99999] min-w-[var(--radix-select-trigger-width)] max-h-[320px]"
           position="popper"
           sideOffset={8}
         >

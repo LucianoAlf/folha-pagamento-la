@@ -88,7 +88,7 @@ export const ContaLembretesWhatsApp: React.FC<{
   }, [hasOverride, loading, saved, saving]);
 
   return (
-    <div className={cn('rounded-2xl border border-base bg-bg/20', dense ? 'p-4' : 'p-5')}>
+    <div className={cn('rounded-2xl border border-line bg-bg/20', dense ? 'p-4' : 'p-5')}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <Bell className="w-4 h-4 text-accent" />
@@ -112,7 +112,7 @@ export const ContaLembretesWhatsApp: React.FC<{
                     // ignore
                   }
                 }}
-                className="px-3 py-1.5 rounded-xl border border-base bg-bg/30 text-secondary font-bold hover:bg-bg/45 transition-all text-[10px] uppercase tracking-widest"
+                className="px-3 py-1.5 rounded-xl border border-line bg-bg/30 text-secondary font-bold hover:bg-bg/45 transition-all text-[10px] uppercase tracking-widest"
               >
                 Config. Globais
               </button>
@@ -145,7 +145,7 @@ export const ContaLembretesWhatsApp: React.FC<{
             ).map((it) => (
               <div
                 key={it.key}
-                className={cn('flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-all', 'border-base bg-bg/25 hover:bg-bg/40')}
+                className={cn('flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-all', 'border-line bg-bg/25 hover:bg-bg/40')}
               >
                 <span className="text-sm text-secondary font-bold">{it.label}</span>
                 <ToggleSwitch
@@ -196,7 +196,7 @@ export const ContaLembretesWhatsApp: React.FC<{
               }}
               className={cn(
                 'px-4 py-2 rounded-xl border transition-all text-[10px] uppercase tracking-widest font-black inline-flex items-center gap-2',
-                'border-base bg-bg/20 text-secondary hover:text-primary hover:bg-bg/35',
+                'border-line bg-bg/20 text-secondary hover:text-primary hover:bg-bg/35',
                 saving && 'opacity-60 cursor-not-allowed'
               )}
             >

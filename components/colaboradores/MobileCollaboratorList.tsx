@@ -43,15 +43,15 @@ export const MobileCollaboratorList: React.FC<{
   }, [hasMore, items.length]);
 
   return (
-    <div className="rounded-3xl border border-base/60 bg-bg/60 overflow-hidden">
-      <div className="px-5 py-4 border-b border-base/60 bg-bg/70">
+    <div className="rounded-3xl border border-line/60 bg-bg/60 overflow-hidden">
+      <div className="px-5 py-4 border-b border-line/60 bg-bg/70">
         <div className="text-primary font-black">Colaboradores</div>
         <div className="text-xs text-muted font-bold mt-1">
           Exibindo {Math.min(visibleCount, items.length)} de {items.length}
         </div>
       </div>
 
-      <div className="divide-y divide-base/60">
+      <div className="divide-y divide-line/60">
         {visibleItems.map((c) => {
           const deptColor = DEPARTMENT_COLORS[c.departamento];
           const deptLabel = DEPARTMENT_LABELS[c.departamento];
@@ -69,7 +69,7 @@ export const MobileCollaboratorList: React.FC<{
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg overflow-hidden shrink-0"
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center text-primary shadow-lg overflow-hidden shrink-0"
                   style={{ backgroundColor: deptColor }}
                 >
                   {c.id === 2 || c.nome?.includes('Ana Paula') ? (
@@ -117,7 +117,7 @@ export const MobileCollaboratorList: React.FC<{
                       {unidadeLabel ? (
                         <span className={cn(
                           'text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border',
-                          'bg-surface/30 border-base text-secondary'
+                          'bg-surface/30 border-line text-secondary'
                         )}>
                           {unidadeLabel}
                         </span>
@@ -128,7 +128,7 @@ export const MobileCollaboratorList: React.FC<{
                       <button
                         type="button"
                         onClick={() => onEdit(c)}
-                        className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-lg text-secondary active:text-accent active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-line-strong/50 rounded-lg text-secondary active:text-accent active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
                         aria-label="Editar"
                       >
                         <Edit2 size={11} />
@@ -137,7 +137,7 @@ export const MobileCollaboratorList: React.FC<{
                       <button
                         type="button"
                         onClick={() => onToggleInactive(c)}
-                        className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-lg text-secondary active:text-warning active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-line-strong/50 rounded-lg text-secondary active:text-warning active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
                         aria-label={c.status === 'active' ? 'Inativar' : 'Reativar'}
                       >
                         <UserX size={11} />
@@ -146,7 +146,7 @@ export const MobileCollaboratorList: React.FC<{
                       <button
                         type="button"
                         onClick={() => onDelete(c)}
-                        className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-lg text-secondary active:text-danger active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
+                        className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-line-strong/50 rounded-lg text-secondary active:text-danger active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
                         aria-label="Excluir"
                       >
                         <Trash2 size={11} />
@@ -167,7 +167,7 @@ export const MobileCollaboratorList: React.FC<{
       <div ref={sentinelRef} />
 
       {hasMore ? (
-        <div className="px-5 py-4 border-t border-base/60 bg-bg/70 text-center text-xs text-muted font-bold">
+        <div className="px-5 py-4 border-t border-line/60 bg-bg/70 text-center text-xs text-muted font-bold">
           Carregando mais…
         </div>
       ) : null}

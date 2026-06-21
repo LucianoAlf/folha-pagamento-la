@@ -70,8 +70,8 @@ export const TarefaCard: React.FC<{
       }}
       className={cn(
         'group p-3 md:p-4 rounded-2xl border transition-all cursor-pointer select-none mb-2 md:mb-0',
-        'bg-bg/95 md:bg-bg/95 hover:bg-surface/95 hover:border-strong/60',
-        isSelected ? 'bg-accent/10 border-accent/25 shadow-lg shadow-accent/5' : 'border-base/50',
+        'bg-bg/95 md:bg-bg/95 hover:bg-surface/95 hover:border-line-strong/60',
+        isSelected ? 'bg-accent/10 border-accent/25 shadow-lg shadow-accent/5' : 'border-line/50',
         tarefa.status === 'concluida' ? 'opacity-70' : '',
         'active:scale-[0.98] active:brightness-90 touch-none'
       )}
@@ -87,11 +87,11 @@ export const TarefaCard: React.FC<{
             'w-6 h-6 md:w-5 md:h-5 rounded-full border-2 flex items-center justify-center mt-0.5 shrink-0 transition-all',
             tarefa.status === 'concluida'
               ? 'bg-success border-success'
-              : 'border-strong hover:border-accent'
+              : 'border-line-strong hover:border-accent'
           )}
           aria-label={tarefa.status === 'concluida' ? 'Reabrir tarefa' : 'Concluir tarefa'}
         >
-          {tarefa.status === 'concluida' ? <Check className="w-3.5 h-3.5 md:w-3 md:h-3 text-white" /> : null}
+          {tarefa.status === 'concluida' ? <Check className="w-3.5 h-3.5 md:w-3 md:h-3 text-primary" /> : null}
         </button>
 
         <div className="flex-1 min-w-0">
@@ -141,7 +141,7 @@ export const TarefaCard: React.FC<{
                   <button
                     type="button"
                     onClick={(e) => e.stopPropagation()}
-                    className="w-9 h-9 rounded-2xl border border-transparent hover:border-strong hover:bg-surface/40 flex items-center justify-center text-muted hover:text-primary transition-all"
+                    className="w-9 h-9 rounded-2xl border border-transparent hover:border-line-strong hover:bg-surface/40 flex items-center justify-center text-muted hover:text-primary transition-all"
                     aria-label="Ações"
                   >
                     <MoreVertical className="w-4 h-4" />
@@ -152,7 +152,7 @@ export const TarefaCard: React.FC<{
                     sideOffset={8}
                     align="end"
                     // Precisa ficar acima do Modal (z ~12000/13000)
-                    className="z-[20000] w-56 rounded-2xl border border-base bg-bg/95 shadow-2xl overflow-hidden"
+                    className="z-[20000] w-56 rounded-2xl border border-line bg-bg/95 shadow-2xl overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {tarefa.vinculo_tipo && tarefa.vinculo_id ? (
@@ -188,7 +188,7 @@ export const TarefaCard: React.FC<{
                           <ExternalLink className="w-4 h-4 text-muted" />
                           Ir para origem
                         </button>
-                        <div className="h-px bg-base/70" />
+                        <div className="h-px bg-line/70" />
                       </>
                     ) : tarefa.categoria === 'financeiro' ? (
                       <>
@@ -206,7 +206,7 @@ export const TarefaCard: React.FC<{
                           <ExternalLink className="w-4 h-4 text-accent-subtle" />
                           Vincular a uma conta
                         </button>
-                        <div className="h-px bg-base/70" />
+                        <div className="h-px bg-line/70" />
                       </>
                     ) : null}
                     <button

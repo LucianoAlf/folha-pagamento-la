@@ -307,7 +307,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
             <AlertCircle size={16} className="inline mr-2" />
             Nenhum período aquisitivo disponível para este colaborador.
           </div>
-          <div className="p-4 rounded-xl bg-surface/40 border border-base">
+          <div className="p-4 rounded-xl bg-surface/40 border border-line">
             <div className="text-xs text-secondary mb-3">
               Se este colaborador e CLT e possui data de admissao, voce pode gerar os periodos automaticamente.
             </div>
@@ -342,7 +342,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
                 className={`block p-4 rounded-xl border-2 cursor-pointer transition-all ${
                   formData.periodo_aquisitivo_id === periodo.id
                     ? 'border-accent bg-accent/10'
-                    : 'border-base bg-surface/40 hover:border-strong'
+                    : 'border-line bg-surface/40 hover:border-line-strong'
                 }`}
               >
                 <input
@@ -427,7 +427,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
       </div>
 
       {formData.data_inicio && formData.data_fim && (
-        <div className="p-4 rounded-xl bg-surface/60 border border-base space-y-2">
+        <div className="p-4 rounded-xl bg-surface/60 border border-line space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-secondary">Dias corridos:</span>
             <span className="font-bold text-secondary">{formData.dias_corridos} dias</span>
@@ -475,7 +475,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
         </div>
       </div>
 
-      <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-base bg-surface/40 cursor-pointer hover:border-strong transition-all">
+      <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-line bg-surface/40 cursor-pointer hover:border-line-strong transition-all">
         <input
           type="checkbox"
           checked={formData.vendeu_abono}
@@ -486,7 +486,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
               dias_abono: e.target.checked ? maxAbonoDias(periodoSelecionado?.dias_direito, prev.dias_corridos) : 0,
             }))
           }
-          className="w-5 h-5 rounded border-2 border-strong text-accent focus:ring-2 focus:ring-accent"
+          className="w-5 h-5 rounded border-2 border-line-strong text-accent focus:ring-2 focus:ring-accent"
         />
         <span className="text-sm font-medium text-secondary">
           Sim, desejo vender parte das férias (abono pecuniário)
@@ -506,7 +506,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, dias_abono: Number(e.target.value) }))
             }
-            className="w-full px-4 py-2.5 bg-surface/40 border border-base rounded-xl text-secondary focus:outline-none focus:border-accent/50"
+            className="w-full px-4 py-2.5 bg-surface/40 border border-line rounded-xl text-secondary focus:outline-none focus:border-accent/50"
           />
           <div className="text-xs text-muted mt-1">
             Dias de férias descontados: {formData.dias_abono} | Dias de descanso: {formData.dias_corridos - formData.dias_abono}
@@ -522,13 +522,13 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
         Confira os valores calculados para as férias.
       </p>
 
-      <div className="p-4 rounded-xl bg-surface/40 border border-base">
+      <div className="p-4 rounded-xl bg-surface/40 border border-line">
         <div className="text-sm font-black text-primary mb-2">Modalidade de Pagamento</div>
         <div className="text-xs text-secondary mb-3">
           O adicional de 1/3 e sempre um valor a mais. Aqui você registra se o pagamento foi completo ou somente do adicional.
         </div>
         <div className="space-y-2">
-          <label className="flex items-start gap-3 p-3 rounded-xl bg-bg/30 border border-base cursor-pointer">
+          <label className="flex items-start gap-3 p-3 rounded-xl bg-bg/30 border border-line cursor-pointer">
             <input
               type="radio"
               name="pagamento_modalidade"
@@ -543,7 +543,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
               </div>
             </div>
           </label>
-          <label className="flex items-start gap-3 p-3 rounded-xl bg-bg/30 border border-base cursor-pointer">
+          <label className="flex items-start gap-3 p-3 rounded-xl bg-bg/30 border border-line cursor-pointer">
             <input
               type="radio"
               name="pagamento_modalidade"
@@ -580,7 +580,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-surface/60 border border-base">
+          <div className="p-4 rounded-xl bg-surface/60 border border-line">
             <div className="text-xs text-muted mb-2">Salário Base</div>
             <div className="text-2xl font-bold text-secondary">
               {valorCalculado.salario_base.toLocaleString('pt-BR', {
@@ -676,7 +676,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
         onChange={(e) => setFormData((prev) => ({ ...prev, observacoes: e.target.value }))}
         placeholder="Ex: Férias programadas conforme solicitação do colaborador..."
         rows={5}
-        className="w-full px-4 py-3 bg-surface/40 border border-base rounded-xl text-secondary placeholder:text-muted focus:outline-none focus:border-accent/50 resize-none"
+        className="w-full px-4 py-3 bg-surface/40 border border-line rounded-xl text-secondary placeholder:text-muted focus:outline-none focus:border-accent/50 resize-none"
       />
     </div>
   );
@@ -688,12 +688,12 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
       </p>
 
       <div className="space-y-3">
-        <div className="p-4 rounded-xl bg-surface/60 border border-base">
+        <div className="p-4 rounded-xl bg-surface/60 border border-line">
           <div className="text-xs text-muted mb-1">Colaborador</div>
           <div className="font-bold text-secondary">{colaborador.nome}</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-surface/60 border border-base">
+        <div className="p-4 rounded-xl bg-surface/60 border border-line">
           <div className="text-xs text-muted mb-1">Período</div>
           <div className="font-bold text-secondary">
             {formData.data_inicio &&
@@ -715,7 +715,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
           </div>
         )}
 
-        <div className="p-4 rounded-xl bg-surface/60 border border-base">
+        <div className="p-4 rounded-xl bg-surface/60 border border-line">
           <div className="text-xs text-muted mb-1">Modalidade de Pagamento</div>
           <div className="font-bold text-secondary">
             {formData.pagamento_modalidade === 'somente_terco'
@@ -737,7 +737,7 @@ export const ProgramarFeriasModal: React.FC<ProgramarFeriasModalProps> = ({
         )}
 
         {formData.observacoes && (
-          <div className="p-4 rounded-xl bg-surface/60 border border-base">
+          <div className="p-4 rounded-xl bg-surface/60 border border-line">
             <div className="text-xs text-muted mb-1">Observações</div>
             <div className="text-sm text-secondary">{formData.observacoes}</div>
           </div>

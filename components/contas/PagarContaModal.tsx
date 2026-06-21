@@ -46,7 +46,7 @@ export const PagarContaModal: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-3 rounded-2xl border border-base bg-surface/30 text-secondary font-black hover:bg-surface/50"
+            className="px-6 py-3 rounded-2xl border border-line bg-surface/30 text-secondary font-black hover:bg-surface/50"
           >
             Cancelar
           </button>
@@ -69,7 +69,7 @@ export const PagarContaModal: React.FC<{
       }
     >
       <div className="space-y-6">
-        <Card className="p-6 mb-6 bg-surface/40 border-base">
+        <Card className="p-6 mb-6 bg-surface/40 border-line">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Categoria</div>
@@ -109,7 +109,7 @@ export const PagarContaModal: React.FC<{
           <textarea
             value={obs}
             onChange={(e) => setObs(e.target.value)}
-            className="w-full min-h-[110px] rounded-2xl border border-base bg-surface/30 px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full min-h-[110px] rounded-2xl border border-line bg-surface/30 px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
             placeholder="Ex: Pago com desconto de 5%..."
             spellCheck={false}
           />

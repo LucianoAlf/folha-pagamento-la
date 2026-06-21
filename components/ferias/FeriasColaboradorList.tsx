@@ -93,7 +93,7 @@ export const FeriasColaboradorList: React.FC<FeriasColaboradorListProps> = ({
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
-            className="h-48 rounded-xl bg-surface-2/30 border border-base animate-pulse"
+            className="h-48 rounded-xl bg-surface-2/30 border border-line animate-pulse"
           />
         ))}
       </div>
@@ -115,7 +115,7 @@ export const FeriasColaboradorList: React.FC<FeriasColaboradorListProps> = ({
             placeholder="Buscar por nome, função..."
             value={filtros.busca || ''}
             onChange={(e) => handleBuscaChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-surface/40 border border-base rounded-xl text-secondary text-sm placeholder:text-muted focus:outline-none focus:border-accent/50 transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 bg-surface/40 border border-line rounded-xl text-secondary text-sm placeholder:text-muted focus:outline-none focus:border-accent/50 transition-colors"
           />
         </div>
 

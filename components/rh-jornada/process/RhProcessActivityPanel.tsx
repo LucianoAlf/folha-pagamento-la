@@ -30,7 +30,7 @@ export const RhProcessActivityPanel: React.FC<{ processId: string | null; stageI
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6">
-      <Card className="p-5 border border-strong/50">
+      <Card className="p-5 border border-line-strong/50">
         <div className="flex items-center gap-2 mb-4">
           <MessageSquare className="w-4 h-4 text-accent" />
           <h3 className="text-primary text-base font-black">Comentários</h3>
@@ -38,7 +38,7 @@ export const RhProcessActivityPanel: React.FC<{ processId: string | null; stageI
         </div>
         <div className="space-y-3 mb-4">
           {comments.map((comment) => (
-            <div key={comment.id} className="rounded-2xl border border-base bg-surface/30 p-4">
+            <div key={comment.id} className="rounded-2xl border border-line bg-surface/30 p-4">
               <div className="text-sm font-bold text-secondary whitespace-pre-wrap">{comment.comentario}</div>
               <div className="mt-2 text-[11px] font-bold text-muted">
                 {new Date(comment.created_at).toLocaleString('pt-BR')}
@@ -52,7 +52,7 @@ export const RhProcessActivityPanel: React.FC<{ processId: string | null; stageI
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
             rows={3}
-            className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+            className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
             placeholder={stageId ? 'Registrar atualização da etapa selecionada...' : 'Registrar atualização, pendência, alinhamento ou contexto do processo...'}
           />
           <button
@@ -85,14 +85,14 @@ export const RhProcessActivityPanel: React.FC<{ processId: string | null; stageI
         </div>
       </Card>
 
-      <Card className="p-5 border border-strong/50">
+      <Card className="p-5 border border-line-strong/50">
         <div className="flex items-center gap-2 mb-4">
           <History className="w-4 h-4 text-info" />
           <h3 className="text-primary text-base font-black">Histórico</h3>
         </div>
         <div className="space-y-3">
           {history.map((event) => (
-            <div key={event.id} className="rounded-2xl border border-base bg-surface/30 p-4">
+            <div key={event.id} className="rounded-2xl border border-line bg-surface/30 p-4">
               <div className="text-primary font-black">{event.acao.replaceAll('_', ' ')}</div>
               {event.comentario ? <div className="mt-1 text-sm font-bold text-secondary">{event.comentario}</div> : null}
               <div className="mt-2 text-[11px] font-bold text-muted">

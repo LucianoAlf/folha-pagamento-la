@@ -216,7 +216,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
               }}
               className={cn(
                 'relative rounded-2xl border transition-all text-left p-2 lg:p-3 h-[46px] lg:h-[92px] overflow-hidden cursor-pointer group',
-                inMonth ? 'border-base bg-surface/10 hover:bg-surface/20' : 'border-surface/10 bg-bg/10 opacity-40 cursor-default',
+                inMonth ? 'border-line bg-surface/10 hover:bg-surface/20' : 'border-surface/10 bg-bg/10 opacity-40 cursor-default',
                 isSelected && 'ring-2 ring-accent/60 border-accent/40 bg-accent/10'
               )}
               style={{ backgroundColor: bg }}
@@ -233,7 +233,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                     {hasVencida ? (
                       <Tooltip
                         content={tooltipContentFor(iso, 'vencida')}
-                        className="p-3 rounded-2xl border border-strong bg-bg/95 shadow-2xl"
+                        className="p-3 rounded-2xl border border-line-strong bg-bg/95 shadow-2xl"
                         side="top"
                       >
                         <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-danger" />
@@ -242,7 +242,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                     {hasPendente ? (
                       <Tooltip
                         content={tooltipContentFor(iso, 'pendente')}
-                        className="p-3 rounded-2xl border border-strong bg-bg/95 shadow-2xl"
+                        className="p-3 rounded-2xl border border-line-strong bg-bg/95 shadow-2xl"
                         side="top"
                       >
                         <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-warning" />
@@ -251,7 +251,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                     {hasPago ? (
                       <Tooltip
                         content={tooltipContentFor(iso, 'pago')}
-                        className="p-3 rounded-2xl border border-strong bg-bg/95 shadow-2xl"
+                        className="p-3 rounded-2xl border border-line-strong bg-bg/95 shadow-2xl"
                         side="top"
                       >
                         <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-success" />
@@ -285,7 +285,7 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                         e.stopPropagation();
                         onCreateForDate(iso);
                       }}
-                      className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-6 h-6 lg:w-8 lg:h-8 rounded-lg lg:rounded-xl bg-surface/60 border border-base text-secondary hover:text-primary hover:bg-accent/20 hover:border-accent/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+                      className="absolute bottom-1 right-1 lg:bottom-2 lg:right-2 w-6 h-6 lg:w-8 lg:h-8 rounded-lg lg:rounded-xl bg-surface/60 border border-line text-secondary hover:text-primary hover:bg-accent/20 hover:border-accent/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
                       aria-label="Nova conta para este dia"
                     >
                       <Plus size={14} />

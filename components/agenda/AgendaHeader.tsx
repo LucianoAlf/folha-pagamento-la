@@ -49,7 +49,7 @@ export const AgendaHeader: React.FC<{
             {onGoToToday && (
               <button
                 onClick={onGoToToday}
-                className="ml-2 px-3 py-1 rounded-lg border border-base bg-surface/40 text-[10px] font-black uppercase text-muted hover:text-primary hover:border-strong transition-all"
+                className="ml-2 px-3 py-1 rounded-lg border border-line bg-surface/40 text-[10px] font-black uppercase text-muted hover:text-primary hover:border-line-strong transition-all"
               >
                 Hoje
               </button>
@@ -64,7 +64,7 @@ export const AgendaHeader: React.FC<{
           <>
             {/* Linha principal: Lista / Mês + Ações na mesma linha */}
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1 p-1 rounded-2xl border border-base bg-surface/95 shadow-xl flex-1 min-w-[220px] md:flex-none">
+              <div className="flex items-center gap-1 p-1 rounded-2xl border border-line bg-surface/95 shadow-xl flex-1 min-w-[220px] md:flex-none">
                 <button
                   type="button"
                   onClick={() => onChangeViewMode('lista')}
@@ -95,7 +95,7 @@ export const AgendaHeader: React.FC<{
 
                 {!isMobile && (
                   <>
-                    <div className="h-6 w-px bg-base mx-1" />
+                    <div className="h-6 w-px bg-line mx-1" />
                     <button
                       type="button"
                       onClick={() => onChangeViewMode('kanban')}
@@ -123,7 +123,7 @@ export const AgendaHeader: React.FC<{
                       'w-10 h-10 md:w-11 md:h-11 rounded-2xl border flex items-center justify-center transition-all',
                       // Este botão só é renderizado no modo 'tarefas' (ternário acima),
                       // então sempre exibe o estilo inativo.
-                      'bg-surface/20 border-base text-muted hover:text-primary hover:bg-surface/40'
+                      'bg-surface/20 border-line text-muted hover:text-primary hover:bg-surface/40'
                     )}
                     aria-label="Configurações"
                   >
@@ -141,7 +141,7 @@ export const AgendaHeader: React.FC<{
                         // ignore
                       }
                     }}
-                    className="w-10 h-10 md:w-11 md:h-11 rounded-2xl border border-base bg-surface/20 text-muted hover:text-primary hover:bg-surface/40 flex items-center justify-center transition-all"
+                    className="w-10 h-10 md:w-11 md:h-11 rounded-2xl border border-line bg-surface/20 text-muted hover:text-primary hover:bg-surface/40 flex items-center justify-center transition-all"
                     aria-label="Notificações"
                   >
                     <Bell className="w-5 h-5" />
@@ -151,7 +151,7 @@ export const AgendaHeader: React.FC<{
             </div>
 
             {/* Linha secundária: visões de horário (sem scroll) */}
-            <div className="relative p-1 rounded-2xl border border-base bg-surface/95 shadow-xl w-full overflow-hidden">
+            <div className="relative p-1 rounded-2xl border border-line bg-surface/95 shadow-xl w-full overflow-hidden">
               {isScheduleView ? (
                 <div
                   className="absolute top-1 bottom-1 rounded-xl bg-accent/25 border border-accent/25 shadow-lg shadow-accent/10 transition-all duration-200 ease-out"

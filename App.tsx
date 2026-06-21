@@ -1656,7 +1656,7 @@ export default function App() {
                 <p className="text-muted font-bold uppercase text-[10px] tracking-[0.4em] mt-2">Sistema Inteligente</p>
               </div>
 
-            <div className="bg-surface/40 p-10 rounded-[3rem] border border-base/50 shadow-2xl backdrop-blur-sm relative overflow-hidden group">
+            <div className="bg-surface/40 p-10 rounded-[3rem] border border-line/50 shadow-2xl backdrop-blur-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-accent/20 transition-colors"></div>
               
               <div className="text-center mb-10 relative z-10">
@@ -1671,7 +1671,7 @@ export default function App() {
                     type="email"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full px-5 py-4 bg-bg/50 border border-base rounded-2xl text-primary placeholder-muted transition-all focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none font-medium"
+                    className="w-full px-5 py-4 bg-bg/50 border border-line rounded-2xl text-primary placeholder-muted transition-all focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none font-medium"
                     placeholder="ana.paula@lamusic.com.br"
                     required
                     autoComplete="email"
@@ -1686,7 +1686,7 @@ export default function App() {
                     type="password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-5 py-4 bg-bg/50 border border-base rounded-2xl text-primary placeholder-muted transition-all focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none"
+                    className="w-full px-5 py-4 bg-bg/50 border border-line rounded-2xl text-primary placeholder-muted transition-all focus:border-accent focus:ring-4 focus:ring-accent/10 outline-none"
                     placeholder="••••••••••••"
                     required
                     autoComplete="current-password"
@@ -1762,7 +1762,7 @@ export default function App() {
       {/* Main content */}
       <div className="flex-1 min-w-0 flex flex-col">
       {/* Header */}
-      <header className="border-b border-base bg-surface sticky top-0 z-40">
+      <header className="border-b border-line bg-surface sticky top-0 z-40">
         <div className="w-full py-4 px-6 md:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -1803,7 +1803,7 @@ export default function App() {
                   <Popover.Trigger asChild>
                     <button
                       type="button"
-                      className="w-10 h-10 rounded-2xl border border-strong/60 bg-surface/40 hover:bg-surface/60 flex items-center justify-center overflow-hidden transition-all active:scale-95 shadow-inner"
+                      className="w-10 h-10 rounded-2xl border border-line-strong/60 bg-surface/40 hover:bg-surface/60 flex items-center justify-center overflow-hidden transition-all active:scale-95 shadow-inner"
                       aria-label="Menu do perfil"
                     >
                       <img
@@ -1820,9 +1820,9 @@ export default function App() {
                     <Popover.Content
                       sideOffset={8}
                       align="end"
-                      className="z-[11000] w-56 rounded-2xl border border-base bg-bg/95 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-md"
+                      className="z-[11000] w-56 rounded-2xl border border-line bg-bg/95 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 backdrop-blur-md"
                     >
-                      <div className="p-4 border-b border-base/60">
+                      <div className="p-4 border-b border-line/60">
                         <div className="text-primary text-sm font-black truncate">{userLabelForSidebar}</div>
                         <div className="text-[10px] text-muted font-bold uppercase tracking-widest truncate mt-0.5">Administrador</div>
                 </div>
@@ -1942,7 +1942,7 @@ export default function App() {
         {tabs.length > 0 ? (
           <div className="animate-in fade-in slide-in-from-top-4 duration-500">
             {/* Desktop Tabs (MusiClass Style) */}
-            <div className="hidden lg:block border-b border-base/60 bg-surface/20 backdrop-blur-sm">
+            <div className="hidden lg:block border-b border-line/60 bg-surface/20 backdrop-blur-sm">
               <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
             {tabs.map(tab => (
               <button
@@ -1970,10 +1970,10 @@ export default function App() {
 
             {/* Mobile Tabs (Cockpit Premium Style) */}
             <div className="lg:hidden mb-6">
-              <div className="relative flex bg-surface p-1 rounded-xl border border-base/50 shadow-inner overflow-hidden">
+              <div className="relative flex bg-surface p-1 rounded-xl border border-line/50 shadow-inner overflow-hidden">
                 {/* Indicador Deslizante (Sliding Background) */}
                 <div
-                  className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-surface-2/80 rounded-lg border border-strong/30 shadow-lg"
+                  className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-surface-2/80 rounded-lg border border-line-strong/30 shadow-lg"
                   style={{
                     // inset horizontal para não “encostar” nas bordas do container
                     width: `calc(${100 / Math.max(tabs.length, 1)}% - 10px)`,
@@ -2039,8 +2039,8 @@ export default function App() {
           <>
             {(isCreatingLancamento || editingLancamento) && (
               <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                <Card className="w-full max-w-6xl p-0 overflow-visible border border-base-strong/50 shadow-2xl">
-                  <div className="flex items-center justify-between px-7 py-5 bg-surface/70 border-b border-base-strong/50">
+                <Card className="w-full max-w-6xl p-0 overflow-visible border border-line-strong/50 shadow-2xl">
+                  <div className="flex items-center justify-between px-7 py-5 bg-surface/70 border-b border-line-strong/50">
                     <div className="min-w-0">
                       <div className="text-primary font-black text-lg tracking-tight truncate">
                         {isCreatingLancamento ? 'Novo Lançamento' : 'Editar Lançamento'}
@@ -2114,7 +2114,7 @@ export default function App() {
                                 "rounded-2xl border p-4 transition-all",
                                 isActive
                                   ? "border-accent/40 bg-accent/5 ring-1 ring-accent/10"
-                                  : "border-base bg-surface/30 hover:border-base-strong"
+                                  : "border-line bg-surface/30 hover:border-line-strong"
                               )}
                               onClick={() => setActiveNoteField(key)}
                             >
@@ -2161,7 +2161,7 @@ export default function App() {
                     </div>
 
                     {/* Right: painel de detalhamento (premium) */}
-                    <div className="w-full lg:w-[420px] border-t lg:border-t-0 lg:border-l border-base bg-surface/40 p-7 overflow-y-auto">
+                    <div className="w-full lg:w-[420px] border-t lg:border-t-0 lg:border-l border-line bg-surface/40 p-7 overflow-y-auto">
                       <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-3">
                         Detalhamento
                       </div>
@@ -2220,7 +2220,7 @@ export default function App() {
                                   }
                                 }}
                                 placeholder="Descreva aqui o motivo/observação. Ex: variação por unidade, nota fiscal, ajuste pontual..."
-                                className="w-full min-h-[260px] bg-bg/50 border border-base-strong/60 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/30 resize-y leading-relaxed"
+                                className="w-full min-h-[260px] bg-bg/50 border border-line-strong/60 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/30 resize-y leading-relaxed"
                               />
 
                               <div className="text-[10px] text-muted flex items-center justify-between">
@@ -2231,7 +2231,7 @@ export default function App() {
                           );
                         })()
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-base bg-bg/20 p-6 text-center">
+                        <div className="rounded-2xl border border-dashed border-line bg-bg/20 p-6 text-center">
                           <div className="text-sm font-black text-secondary">Selecione um campo</div>
                           <div className="text-xs text-muted mt-1">
                             Clique (ou foque) em um valor à esquerda para escrever um detalhamento grande e confortável.
@@ -2241,7 +2241,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="px-7 py-5 bg-surface/70 border-t border-base-strong/50 flex items-center justify-end gap-3">
+                  <div className="px-7 py-5 bg-surface/70 border-t border-line-strong/50 flex items-center justify-end gap-3">
                     <button
                       onClick={() => { setIsCreatingLancamento(false); setEditingLancamento(null); setActiveNoteField(null); }}
                       className="px-4 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-sm font-bold"
@@ -2263,7 +2263,7 @@ export default function App() {
             {filteredAlertas.length > 0 && (
               <div className="mb-6">
                 <div 
-                  className={`bg-surface-2/40 border ${alertsExpanded ? 'border-base-strong' : 'border-warning/20'} rounded-2xl overflow-hidden transition-all duration-300 shadow-lg`}
+                  className={`bg-surface-2/40 border ${alertsExpanded ? 'border-line-strong' : 'border-warning/20'} rounded-2xl overflow-hidden transition-all duration-300 shadow-lg`}
                 >
                   <button 
                     onClick={() => setAlertsExpanded(!alertsExpanded)}
@@ -2292,7 +2292,7 @@ export default function App() {
                       {filteredAlertas.map((alerta, idx) => (
                         <div
                           key={idx}
-                          className="flex items-start gap-3 md:gap-4 p-3 md:p-4 hover:bg-surface-3/20 transition-colors border-t border-base-strong/30 first:border-t-0 group"
+                          className="flex items-start gap-3 md:gap-4 p-3 md:p-4 hover:bg-surface-3/20 transition-colors border-t border-line-strong/30 first:border-t-0 group"
                         >
                           <AlertTriangle className="text-warning shrink-0 mt-1" size={18} />
 
@@ -2340,7 +2340,7 @@ export default function App() {
 
                             {/* Ana note preview */}
                             {alerta.id && (noteDrafts[alerta.id] || '').trim() ? (
-                              <div className="mt-2 rounded-xl border border-base-strong/40 bg-surface/30 px-3 py-2">
+                              <div className="mt-2 rounded-xl border border-line-strong/40 bg-surface/30 px-3 py-2">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-muted">
                                   Motivo (Ana)
                                 </div>
@@ -2358,7 +2358,7 @@ export default function App() {
                                 <button
                                   onClick={() => openAlertNote(alerta)}
                                   className={cn(
-                                    "w-10 h-10 rounded-xl bg-surface-2/60 hover:bg-surface-3 text-secondary border border-base-strong transition-all flex items-center justify-center",
+                                    "w-10 h-10 rounded-xl bg-surface-2/60 hover:bg-surface-3 text-secondary border border-line-strong transition-all flex items-center justify-center",
                                     "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
                                   )}
                                   aria-label="Anotar"
@@ -2396,7 +2396,7 @@ export default function App() {
               className="max-w-xl"
             >
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-surface/40 border border-base-strong/50">
+                <div className="p-4 rounded-2xl bg-surface/40 border border-line-strong/50">
                   <div className="text-sm font-bold text-secondary">{alertNoteModal.titulo}</div>
                   <div className="text-xs text-secondary mt-1">{alertNoteModal.descricao}</div>
                 </div>
@@ -2409,7 +2409,7 @@ export default function App() {
                     value={alertNoteText}
                     onChange={(e) => setAlertNoteText(e.target.value)}
                     placeholder="Ex.: férias (sem VT), bônus pontual, ajuste de carga horária, pico de matrículas..."
-                    className="w-full min-h-[120px] bg-surface/40 border border-base-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 resize-y"
+                    className="w-full min-h-[120px] bg-surface/40 border border-line-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 resize-y"
                     spellCheck="false"
                     disabled={alertNoteSaving}
                   />
@@ -2544,7 +2544,7 @@ export default function App() {
             >
               <div className="space-y-5">
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-3xl overflow-hidden border border-base-strong bg-surface/40 shrink-0">
+                  <div className="w-20 h-20 rounded-3xl overflow-hidden border border-line-strong bg-surface/40 shrink-0">
                     <img
                       src={profileAvatar || getDefaultAvatarByEmail(userEmail) || '/logo-LA-colapsed.png'}
                       alt="Avatar"
@@ -2559,7 +2559,7 @@ export default function App() {
                       <input
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        className="w-full bg-surface/40 border border-base-strong/60 rounded-2xl px-4 py-3 text-secondary outline-none focus:ring-2 focus:ring-accent/40"
+                        className="w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-secondary outline-none focus:ring-2 focus:ring-accent/40"
                         placeholder="Seu nome"
                       />
                     </div>
@@ -2579,7 +2579,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => document.getElementById('profile-photo-input')?.click()}
-                          className="px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold transition-colors flex items-center gap-2 border border-base-strong"
+                          className="px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold transition-colors flex items-center gap-2 border border-line-strong"
                           disabled={profileSaving}
                         >
                           <Plus size={14} /> Selecionar Imagem
@@ -2700,7 +2700,7 @@ export default function App() {
                             <Card 
                               key={unit.id} 
                               className={cn(
-                                "p-4 md:p-6 relative overflow-hidden group hover:border-base-strong transition-colors",
+                                "p-4 md:p-6 relative overflow-hidden group hover:border-line-strong transition-colors",
                                 unit.id === 'cg' ? "col-span-2 md:col-span-1" : "col-span-1"
                               )}
                             >
@@ -2759,7 +2759,7 @@ export default function App() {
                           <input
                             type="text"
                             placeholder="Buscar por nome, email ou função..."
-                            className="w-full pl-10 pr-4 py-3 bg-surface/40 border border-base-strong/60 rounded-2xl text-sm font-medium text-secondary placeholder:text-muted outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-surface/40 border border-line-strong/60 rounded-2xl text-sm font-medium text-secondary placeholder:text-muted outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                             value={collabSearch}
                             onChange={(e) => setCollabSearch(e.target.value)}
                           />
@@ -2822,7 +2822,7 @@ export default function App() {
                         <input 
                           type="text" 
                           placeholder="Buscar por nome, email ou função..." 
-                          className="w-full pl-10 pr-4 py-2.5 bg-surface-2/50 border border-base-strong rounded-xl text-sm focus:ring-2 focus:ring-accent outline-none transition-all"
+                          className="w-full pl-10 pr-4 py-2.5 bg-surface-2/50 border border-line-strong rounded-xl text-sm focus:ring-2 focus:ring-accent outline-none transition-all"
                           value={collabSearch}
                           onChange={(e) => setCollabSearch(e.target.value)}
                         />
@@ -2894,10 +2894,10 @@ export default function App() {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-surface-2/40 rounded-3xl border border-base-strong/50 overflow-hidden">
+                  <div className="bg-surface-2/40 rounded-3xl border border-line-strong/50 overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="min-w-[980px] w-full border-collapse">
-                        <thead className="bg-surface/60 border-b border-base-strong/50">
+                        <thead className="bg-surface/60 border-b border-line-strong/50">
                           <tr>
                             <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Nome</th>
                             <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted">Departamento</th>
@@ -2911,7 +2911,7 @@ export default function App() {
                         </thead>
                         <tbody>
                           {filteredColaboradoresWithBase.map((c, idx) => (
-                            <tr key={c.id} className="border-b border-base-strong/30 hover:bg-surface-3/20 transition-colors group">
+                            <tr key={c.id} className="border-b border-line-strong/30 hover:bg-surface-3/20 transition-colors group">
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
         <div 
@@ -2945,9 +2945,9 @@ export default function App() {
                               <td className="px-6 py-4">
                                 <div className="flex gap-1">
                                   {c.is_rateado ? (
-                                    <span className="text-[9px] font-black text-muted bg-surface-3/30 px-2 py-0.5 rounded-full uppercase border border-base-strong/50">RATEADO</span>
+                                    <span className="text-[9px] font-black text-muted bg-surface-3/30 px-2 py-0.5 rounded-full uppercase border border-line-strong/50">RATEADO</span>
                                   ) : (
-                                    <span className="text-[9px] font-black text-muted bg-surface-3/30 px-2 py-0.5 rounded-full uppercase border border-base-strong/50">{c.unidade_fixa?.toUpperCase()}</span>
+                                    <span className="text-[9px] font-black text-muted bg-surface-3/30 px-2 py-0.5 rounded-full uppercase border border-line-strong/50">{c.unidade_fixa?.toUpperCase()}</span>
                                   )}
                                 </div>
                               </td>
@@ -3023,7 +3023,7 @@ export default function App() {
                       {/* Mobile: Command Bar v2 (sem modais) */}
                       <div className="sticky top-0 z-20 -mx-4 px-4 py-3 bg-bg/70 backdrop-blur-xl border-b border-white/5">
                         {/* Unidades (pills) */}
-                        <div className="bg-surface/40 border border-base p-1 rounded-2xl w-full">
+                        <div className="bg-surface/40 border border-line p-1 rounded-2xl w-full">
                           <div className="grid grid-cols-4 gap-1">
                             {[
                               { id: 'todos', label: 'Consolidado', short: 'Todas' },
@@ -3128,11 +3128,11 @@ export default function App() {
                               kind === 'primary'
                                 ? 'bg-accent hover:bg-accent border-accent/30 text-white shadow-lg shadow-accent/20'
                                 : kind === 'danger'
-                                  ? 'bg-surface/50 hover:bg-danger/10 border-base/70 hover:border-danger/30 text-danger'
-                                  : 'bg-surface/50 hover:bg-surface/70 border-base/70 text-secondary';
+                                  ? 'bg-surface/50 hover:bg-danger/10 border-line/70 hover:border-danger/30 text-danger'
+                                  : 'bg-surface/50 hover:bg-surface/70 border-line/70 text-secondary';
 
                             const styleDisabled =
-                              'opacity-40 cursor-not-allowed bg-surface/30 border-base/50 text-muted';
+                              'opacity-40 cursor-not-allowed bg-surface/30 border-line/50 text-muted';
 
                             const renderBtn = (a: (typeof actionItems)[number]) => {
                               const Icon = a.icon;
@@ -3294,7 +3294,7 @@ export default function App() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-base-strong/50 text-xs text-secondary font-medium">
+                        <tr className="border-b border-line-strong/50 text-xs text-secondary font-medium">
                           <th className="py-4 px-4 text-left">Colaborador</th>
                           <th className="py-4 px-2 text-center">Unid.</th>
                           <th className="py-4 px-2 text-center">Tipo</th>
@@ -3349,7 +3349,7 @@ export default function App() {
                                 const bistroVal = typeof bistroMeta?.valor === 'number' ? bistroMeta.valor : Number(bistroMeta?.valor) || 0;
                                 const bistroRefYm = typeof bistroMeta?.ref_ym === 'string' ? bistroMeta.ref_ym : null;
                                 return (
-                                  <tr key={l.id} className="border-b border-base-strong/30 hover:bg-surface-2/30 transition-colors group">
+                                  <tr key={l.id} className="border-b border-line-strong/30 hover:bg-surface-2/30 transition-colors group">
                                     <td className="py-3 px-4">
                                       <div className="flex items-center justify-between group/colab">
                                       <div className="flex items-center gap-3">
@@ -3408,7 +3408,7 @@ export default function App() {
                                       </div>
                                     </td>
                                     <td className="py-3 px-2 text-center">
-                                      <span className="bg-surface-3 text-secondary text-[10px] font-bold px-2.5 py-1 rounded-full border border-base-strong">
+                                      <span className="bg-surface-3 text-secondary text-[10px] font-bold px-2.5 py-1 rounded-full border border-line-strong">
                                         {unidadeLabels[l.unidade] || l.unidade}
                                       </span>
                                     </td>
@@ -3512,7 +3512,7 @@ export default function App() {
                                   </tr>
                                 );
                               })}
-                               <tr className="bg-surface-2/30 border-t border-base-strong/50">
+                               <tr className="bg-surface-2/30 border-t border-line-strong/50">
                                    <td colSpan={3} className="py-3 px-4">
                                      <div className="flex items-center justify-between">
                                        <div className="flex flex-col gap-0.5">
@@ -3571,9 +3571,9 @@ export default function App() {
                 ) : (
                   <div className="space-y-4">
                     {/* Busca + atalhos */}
-                    <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+                    <div className="bg-surface/40 border border-line/60 rounded-3xl p-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-2xl bg-bg/60 border border-base/60 text-secondary">
+                        <div className="p-2 rounded-2xl bg-bg/60 border border-line/60 text-secondary">
                           <Search size={16} />
                         </div>
                         <input
@@ -3586,7 +3586,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setLancamentosSearch('')}
-                            className="p-2 rounded-2xl bg-bg/60 border border-base/60 text-secondary"
+                            className="p-2 rounded-2xl bg-bg/60 border border-line/60 text-secondary"
                             aria-label="Limpar busca"
                           >
                             <X size={16} />
@@ -3597,7 +3597,7 @@ export default function App() {
                     </div>
 
                     {/* Summary bar discreta */}
-                    <div className="flex items-center justify-between bg-surface/40 border border-base/60 rounded-3xl px-5 py-4">
+                    <div className="flex items-center justify-between bg-surface/40 border border-line/60 rounded-3xl px-5 py-4">
                       <div className="min-w-0">
                         <div className="text-[10px] text-muted font-black uppercase tracking-widest truncate">
                           Total {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]} • {lancamentosKPIs.total.count} colaboradores
@@ -3624,7 +3624,7 @@ export default function App() {
                             <button
                               type="button"
                               onClick={() => setExpandedDept((prev) => ({ ...prev, [dept]: !prev[dept] }))}
-                              className="w-full flex items-center justify-between px-5 py-4 rounded-3xl bg-surface/40 border border-base/60"
+                              className="w-full flex items-center justify-between px-5 py-4 rounded-3xl bg-surface/40 border border-line/60"
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 {expandedDept[dept] ? (
@@ -3656,8 +3656,8 @@ export default function App() {
                                         variant === 'neg'
                                           ? "bg-danger/10 border-danger/20 text-danger"
                                           : variant === 'pos'
-                                            ? "bg-bg/40 border-base/60 text-secondary"
-                                            : "bg-bg/20 border-base/50 text-muted"
+                                            ? "bg-bg/40 border-line/60 text-secondary"
+                                            : "bg-bg/20 border-line/50 text-muted"
                                       )}
                                     >
                                       <span>{label}</span>
@@ -3676,16 +3676,16 @@ export default function App() {
                                         }
                                         setMobileLancDetail(l);
                                       }}
-                                      className="w-full text-left px-5 py-4 rounded-3xl bg-surface/40 border border-base/60 hover:bg-surface/55 transition-colors"
+                                      className="w-full text-left px-5 py-4 rounded-3xl bg-surface/40 border border-line/60 hover:bg-surface/55 transition-colors"
                                     >
                                       <div className="flex items-start justify-between gap-4">
                                         <div className="min-w-0">
                                           <div className="text-secondary font-black truncate">{colab.nome || 'N/A'}</div>
                                           <div className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted">
-                                            <span className="px-2 py-1 rounded-full bg-bg/40 border border-base/60">
+                                            <span className="px-2 py-1 rounded-full bg-bg/40 border border-line/60">
                                               {unidadeLabels[l.unidade] || l.unidade}
                                             </span>
-                                            <span className="px-2 py-1 rounded-full bg-bg/40 border border-base/60">
+                                            <span className="px-2 py-1 rounded-full bg-bg/40 border border-line/60">
                                               {tipoLabel}
                                             </span>
                                           </div>
@@ -3720,7 +3720,7 @@ export default function App() {
                                         [dept]: Math.min((prev[dept] ?? MOBILE_LANC_PAGE_SIZE) + MOBILE_LANC_PAGE_SIZE, lancs.length),
                                       }))
                                     }
-                                    className="w-full px-5 py-3 rounded-2xl bg-surface/30 border border-base/60 text-secondary font-black text-sm hover:bg-surface/45 transition-colors"
+                                    className="w-full px-5 py-3 rounded-2xl bg-surface/30 border border-line/60 text-secondary font-black text-sm hover:bg-surface/45 transition-colors"
                                   >
                                     Mostrar mais ({lancs.length - visible.length})
                                   </button>
@@ -3736,7 +3736,7 @@ export default function App() {
                 
                 {!isMobile ? (
                 <div className="flex justify-end">
-                    <div className="bg-surface-2 rounded-xl p-4 border border-base-strong inline-flex flex-col items-end gap-1 min-w-[200px]">
+                    <div className="bg-surface-2 rounded-xl p-4 border border-line-strong inline-flex flex-col items-end gap-1 min-w-[200px]">
                       <span className="text-xs text-muted uppercase tracking-wider">
                         Total {unidadeFiltro === 'todos' ? 'Geral' : unidadeLabels[unidadeFiltro]}
                       </span>
@@ -3830,7 +3830,7 @@ export default function App() {
                         const prevTotal = prev?.total || 0;
                         const perc = prevTotal > 0 ? ((currTotal - prevTotal) / prevTotal) * 100 : null;
                         return (
-                          <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+                          <div className="bg-surface/40 border border-line/60 rounded-3xl p-4">
                             <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0">
                                 <div className="text-[10px] text-muted font-black uppercase tracking-widest">Total do colaborador</div>
@@ -3865,7 +3865,7 @@ export default function App() {
                           { k: 'inss', label: 'INSS', neg: true },
                           { k: 'descontos', label: 'Descontos', neg: true },
                         ] as const).map(({ k, label, neg }) => (
-                          <div key={k} className="flex items-center justify-between gap-4 bg-surface/40 border border-base/60 rounded-3xl px-4 py-3">
+                          <div key={k} className="flex items-center justify-between gap-4 bg-surface/40 border border-line/60 rounded-3xl px-4 py-3">
                             <div className="text-xs font-black uppercase tracking-widest text-secondary">{label}</div>
                             <div className="w-[170px]">
                               <CellInput
@@ -3879,7 +3879,7 @@ export default function App() {
                         ))}
                       </div>
 
-                      <div className="bg-surface/40 border border-base/60 rounded-3xl p-4">
+                      <div className="bg-surface/40 border border-line/60 rounded-3xl p-4">
                         <div className="text-xs font-black uppercase tracking-widest text-secondary mb-2">Observação</div>
                         <textarea
                           spellCheck={false}
@@ -3902,7 +3902,7 @@ export default function App() {
                             }
                           }}
                           placeholder="Anotações rápidas sobre esse lançamento…"
-                          className="w-full min-h-[90px] bg-bg/30 border border-base/60 rounded-2xl px-4 py-3 text-sm text-secondary placeholder:text-muted outline-none focus:ring-2 focus:ring-accent/40"
+                          className="w-full min-h-[90px] bg-bg/30 border border-line/60 rounded-2xl px-4 py-3 text-sm text-secondary placeholder:text-muted outline-none focus:ring-2 focus:ring-accent/40"
                         />
                         <div className="mt-2 flex items-center justify-between text-[10px] font-bold text-muted">
                           <span>Salva automaticamente ao sair do campo</span>
@@ -3933,7 +3933,7 @@ export default function App() {
             {activeTab === 'comparativo' && (
               <div className="space-y-6">
                 {!comparativoMensal ? (
-                 <Card className="p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-base-strong bg-transparent">
+                 <Card className="p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-line-strong bg-transparent">
                     <div className="w-16 h-16 bg-surface-2 rounded-full flex items-center justify-center mb-4 text-muted">
                         <BarChart3 size={32} />
                     </div>
@@ -3947,7 +3947,7 @@ export default function App() {
                     {/* IA & Sugestão da Ana */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                       <Card className="lg:col-span-2 overflow-hidden flex flex-col">
-                        <div className="p-6 border-b border-base-strong flex items-start justify-between gap-4 bg-surface-2/20">
+                        <div className="p-6 border-b border-line-strong flex items-start justify-between gap-4 bg-surface-2/20">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <Sparkles size={16} className="text-info" />
@@ -3959,7 +3959,7 @@ export default function App() {
                           </div>
                           <button
                             onClick={() => selectedFolhaId && loadAiInsights(selectedFolhaId)}
-                            className="px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold shrink-0 transition-colors border border-base-strong"
+                            className="px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 text-secondary text-xs font-bold shrink-0 transition-colors border border-line-strong"
                             disabled={aiInsightsLoading || !selectedFolhaId}
                           >
                             {aiInsightsLoading ? 'Analisando...' : 'Atualizar'}
@@ -3990,7 +3990,7 @@ export default function App() {
                                   <div className="w-1.5 h-4 bg-info rounded-full"></div>
                                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Resumo Executivo</h4>
                                 </div>
-                                <div className="bg-surface/40 border border-base-strong/30 rounded-3xl p-6 relative overflow-hidden group">
+                                <div className="bg-surface/40 border border-line-strong/30 rounded-3xl p-6 relative overflow-hidden group">
                                   <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-info to-accent"></div>
                                   <p className="text-secondary leading-relaxed text-sm md:text-base font-medium italic">
                                     {aiInsights.summary}
@@ -4064,7 +4064,7 @@ export default function App() {
                               ) : null}
                             </div>
                           ) : (
-                            <div className="flex flex-col items-center justify-center h-48 text-muted border-2 border-dashed border-base rounded-2xl gap-4">
+                            <div className="flex flex-col items-center justify-center h-48 text-muted border-2 border-dashed border-line rounded-2xl gap-4">
                               <div className="w-12 h-12 rounded-full bg-surface-2/50 flex items-center justify-center">
                                 <Sparkles size={24} className="text-primary" />
                               </div>
@@ -4078,7 +4078,7 @@ export default function App() {
                       </Card>
 
                       <Card className="overflow-hidden flex flex-col border-accent/20 shadow-accent/5">
-                        <div className="p-6 border-b border-base-strong bg-accent/5 flex items-center gap-4">
+                        <div className="p-6 border-b border-line-strong bg-accent/5 flex items-center gap-4">
                           <div className="w-12 h-12 rounded-2xl bg-accent/10 p-0.5 border border-accent/20 overflow-hidden shrink-0 shadow-lg">
                             <img 
                               src="/Avatar_Ana.png" 
@@ -4099,7 +4099,7 @@ export default function App() {
                               onChange={(e) => setAnaNote(e.target.value)}
                               onBlur={handleSaveAnaNote}
                               placeholder="Ana, registre aqui suas percepções sobre este fechamento..."
-                              className="w-full h-full min-h-[160px] bg-surface/40 border border-base-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 transition-all resize-none placeholder:text-muted"
+                              className="w-full h-full min-h-[160px] bg-surface/40 border border-line-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 transition-all resize-none placeholder:text-muted"
                               disabled={anaNoteSaving}
                               spellCheck="false"
                             />
@@ -4135,7 +4135,7 @@ export default function App() {
                             <span className="text-secondary">Total Mês Atual</span>
                             <span className="font-mono text-primary">{formatCurrency(totais.totalGeral)}</span>
                           </div>
-                          <div className="pt-4 border-t border-base-strong flex justify-between items-center">
+                          <div className="pt-4 border-t border-line-strong flex justify-between items-center">
                             <span className="font-semibold text-primary">Diferença</span>
                             <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varTotal > 0 ? 'text-danger' : 'text-success'}`}>
                               {comparativoMensal.varTotal > 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
@@ -4157,7 +4157,7 @@ export default function App() {
                             <span className="text-secondary">Equipe Mês Atual</span>
                             <span className="font-mono text-primary">{totais.headcount.total}</span>
                           </div>
-                          <div className="pt-4 border-t border-base-strong flex justify-between items-center">
+                          <div className="pt-4 border-t border-line-strong flex justify-between items-center">
                             <span className="font-semibold text-primary">Variação</span>
                             <div className={`flex items-center gap-2 font-bold ${comparativoMensal.varHeadcount > 0 ? 'text-info' : 'text-secondary'}`}>
                               {comparativoMensal.varHeadcount > 0 ? <Users size={18} /> : <Users size={18} />}
@@ -4173,7 +4173,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setVariacoesOpen(!variacoesOpen)}
-                        className="w-full p-4 md:p-6 border-b border-base-strong flex items-center justify-between text-left group transition-all active:bg-surface-2/40"
+                        className="w-full p-4 md:p-6 border-b border-line-strong flex items-center justify-between text-left group transition-all active:bg-surface-2/40"
                       >
                         <div className="min-w-0">
                           <h3 className="text-base md:text-lg font-black text-primary">Maiores Variações por Colaborador</h3>
@@ -4182,7 +4182,7 @@ export default function App() {
                           </p>
                         </div>
                         <div className={cn(
-                          "w-10 h-10 rounded-2xl bg-surface-2/60 border border-base-strong/50 flex items-center justify-center text-secondary group-hover:text-primary transition-all",
+                          "w-10 h-10 rounded-2xl bg-surface-2/60 border border-line-strong/50 flex items-center justify-center text-secondary group-hover:text-primary transition-all",
                           variacoesOpen ? "rotate-180" : ""
                         )}>
                           <ChevronDown size={20} />
@@ -4249,7 +4249,7 @@ export default function App() {
                         return (
                           <>
                             {/* MOBILE: cards (no horizontal scroll) */}
-                            <div className="lg:hidden divide-y divide-base/60">
+                            <div className="lg:hidden divide-y divide-line/60">
                               {items.map(({ id, nome, funcao, totalCurr, totalPrev, diff, perc, status }) => (
                                 <div key={id} className="p-4">
                                   <div className="flex items-start justify-between gap-3">
@@ -4278,7 +4278,7 @@ export default function App() {
 
                                   {/* Metrics grid */}
                                   <div className="mt-3 grid grid-cols-2 gap-3">
-                                    <div className="rounded-2xl border border-base/60 bg-surface/30 px-3 py-2">
+                                    <div className="rounded-2xl border border-line/60 bg-surface/30 px-3 py-2">
                                       <div className="text-[9px] font-black uppercase tracking-widest text-muted">
                                         Mês anterior
                                       </div>
@@ -4286,7 +4286,7 @@ export default function App() {
                                         {totalPrev > 0 ? formatCurrency(totalPrev) : '—'}
                                       </div>
                                     </div>
-                                    <div className="rounded-2xl border border-base/60 bg-surface/30 px-3 py-2">
+                                    <div className="rounded-2xl border border-line/60 bg-surface/30 px-3 py-2">
                                       <div className="text-[9px] font-black uppercase tracking-widest text-muted">
                                         Mês atual
                                       </div>
@@ -4307,7 +4307,7 @@ export default function App() {
                                         onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
                                         onBlur={() => handleSaveNote(id)}
                                         placeholder="Ex.: férias (sem VT), bônus pontual, pico de matrículas..."
-                                        className="w-full h-[70px] resize-none bg-surface/40 border border-base-strong/50 rounded-2xl px-3 py-2 text-[11px] text-secondary outline-none focus:ring-2 focus:ring-accent/40"
+                                        className="w-full h-[70px] resize-none bg-surface/40 border border-line-strong/50 rounded-2xl px-3 py-2 text-[11px] text-secondary outline-none focus:ring-2 focus:ring-accent/40"
                                         disabled={noteSaving[id]}
                                         spellCheck="false"
                                       />
@@ -4333,7 +4333,7 @@ export default function App() {
                             <div className="hidden lg:block overflow-x-auto">
                               <table className="w-full text-left">
                                 <thead>
-                                  <tr className="border-b border-base-strong text-xs text-secondary uppercase tracking-wider">
+                                  <tr className="border-b border-line-strong text-xs text-secondary uppercase tracking-wider">
                                     <th className="py-4 px-6">Colaborador</th>
                                     <th className="py-4 px-2 text-right">Mês Anterior</th>
                                     <th className="py-4 px-2 text-right">Mês Atual</th>
@@ -4343,7 +4343,7 @@ export default function App() {
                                 </thead>
                                 <tbody>
                                   {items.map(({ id, nome, funcao, totalCurr, totalPrev, diff, perc, status }) => (
-                                    <tr key={id} className="border-b border-base-strong/50 hover:bg-surface-2/30">
+                                    <tr key={id} className="border-b border-line-strong/50 hover:bg-surface-2/30">
                                       <td className="py-4 px-6">
                                         <div className="flex items-center gap-3">
                                           <div>
@@ -4372,7 +4372,7 @@ export default function App() {
                                             onChange={(e) => setNoteDrafts((prev) => ({ ...prev, [id]: e.target.value }))}
                                             onBlur={() => handleSaveNote(id)}
                                             placeholder="Ex.: férias (sem VT), bônus pontual, pico de matrículas..."
-                                            className="w-full min-w-[280px] h-[52px] resize-none bg-surface/40 border border-base-strong/50 rounded-xl px-3 py-2 text-xs text-secondary outline-none focus:ring-2 focus:ring-accent/40"
+                                            className="w-full min-w-[280px] h-[52px] resize-none bg-surface/40 border border-line-strong/50 rounded-xl px-3 py-2 text-xs text-secondary outline-none focus:ring-2 focus:ring-accent/40"
                                             disabled={noteSaving[id]}
                                             spellCheck="false"
                                           />
@@ -4518,7 +4518,7 @@ export default function App() {
       
       {/* Mobile Bottom Navbar (4 módulos) */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-[10500] border-t border-base/70 bg-surface"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-[10500] border-t border-line/70 bg-surface"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)' }}
         aria-label="Navegação inferior"
       >

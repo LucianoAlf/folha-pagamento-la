@@ -25,7 +25,7 @@ export const AgendaSidebarListas: React.FC<{
   return (
     <aside className={cn(
       "shrink-0 flex flex-col h-full transition-all duration-300 bg-bg/95",
-      isMobile ? "w-full" : "w-[270px] border-r border-base/70"
+      isMobile ? "w-full" : "w-[270px] border-r border-line/70"
     )}>
       {/* Nota UX: removemos o header "Agenda" aqui para não ficar redundante com o módulo Agenda do sidebar principal */}
       <div className="flex-1 p-4 space-y-4 overflow-y-auto">
@@ -50,7 +50,7 @@ export const AgendaSidebarListas: React.FC<{
                 >
                   <span className="text-base shrink-0">{l.icone}</span>
                   <span className="min-w-0 flex-1 text-left text-sm font-bold truncate">{l.nome}</span>
-                  <span className="ml-auto text-[10px] bg-surface/60 border border-base px-2 py-0.5 rounded-full font-black text-muted">
+                  <span className="ml-auto text-[10px] bg-surface/60 border border-line px-2 py-0.5 rounded-full font-black text-muted">
                     {count}
                   </span>
                 </button>
@@ -69,14 +69,14 @@ export const AgendaSidebarListas: React.FC<{
             >
               <span className="text-base shrink-0">🎂</span>
               <span className="min-w-0 flex-1 text-left text-sm font-bold truncate">Aniversários</span>
-              <span className="ml-auto text-[10px] bg-surface/60 border border-base px-2 py-0.5 rounded-full font-black text-muted">
+              <span className="ml-auto text-[10px] bg-surface/60 border border-line px-2 py-0.5 rounded-full font-black text-muted">
                 {aniversariosCount}
               </span>
             </button>
           </div>
         </div>
 
-        <div className="border-t border-base/70" />
+        <div className="border-t border-line/70" />
 
         <div>
           <div className="px-2 pb-2 text-[10px] text-muted font-black uppercase tracking-[0.2em]">Minhas Listas</div>
@@ -108,7 +108,7 @@ export const AgendaSidebarListas: React.FC<{
                     <span className="min-w-0 flex-1 text-left text-sm font-bold truncate">{l.nome}</span>
                   </button>
 
-                  <span className="text-[10px] bg-surface/60 border border-base px-2 py-0.5 rounded-full font-black text-muted mr-1">
+                  <span className="text-[10px] bg-surface/60 border border-line px-2 py-0.5 rounded-full font-black text-muted mr-1">
                     {count}
                   </span>
 
@@ -119,7 +119,7 @@ export const AgendaSidebarListas: React.FC<{
                         onClick={(e) => e.stopPropagation()}
                         className={cn(
                           'ml-2 mr-2 w-9 h-9 rounded-xl border flex items-center justify-center transition-all shrink-0',
-                          'border-transparent bg-transparent text-muted hover:text-primary hover:bg-surface/40 hover:border-strong/60',
+                          'border-transparent bg-transparent text-muted hover:text-primary hover:bg-surface/40 hover:border-line-strong/60',
                           'opacity-0 group-hover:opacity-100'
                         )}
                         aria-label="Ações da lista"
@@ -132,7 +132,7 @@ export const AgendaSidebarListas: React.FC<{
                         sideOffset={8}
                         align="end"
                           // Precisa ficar acima do Modal (z ~12000/13000)
-                          className="z-[20000] w-56 rounded-2xl border border-base bg-bg/95 shadow-2xl overflow-hidden"
+                          className="z-[20000] w-56 rounded-2xl border border-line bg-bg/95 shadow-2xl overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button

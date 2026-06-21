@@ -151,7 +151,7 @@ export const NovaContaModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="sm:w-auto w-full px-6 py-3.5 rounded-2xl border border-base bg-surface/30 text-secondary font-black hover:bg-surface/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
+              className="sm:w-auto w-full px-6 py-3.5 rounded-2xl border border-line bg-surface/30 text-secondary font-black hover:bg-surface/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
             >
               Cancelar
             </button>
@@ -248,7 +248,7 @@ export const NovaContaModal: React.FC<{
                 onChange={(e) => { setDescricao(e.target.value); if (tried && e.target.value.trim()) setTried(false); }}
                 className={cn(
                   "w-full rounded-2xl border bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 transition-all",
-                  tried && !descricao.trim() ? "border-danger/60 focus:ring-danger/40" : "border-base focus:ring-accent/40"
+                  tried && !descricao.trim() ? "border-danger/60 focus:ring-danger/40" : "border-line focus:ring-accent/40"
                 )}
                 placeholder="Ex: Aluguel Unidade Matriz"
               />
@@ -263,7 +263,7 @@ export const NovaContaModal: React.FC<{
                   inputMode="decimal"
                   className={cn(
                     "w-full rounded-2xl border bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 transition-all",
-                    tried && !(valorNum > 0) ? "border-danger/60 focus:ring-danger/40" : "border-base focus:ring-accent/40"
+                    tried && !(valorNum > 0) ? "border-danger/60 focus:ring-danger/40" : "border-line focus:ring-accent/40"
                   )}
                   placeholder="R$ 0,00"
                 />
@@ -302,7 +302,7 @@ export const NovaContaModal: React.FC<{
             Tipo de Lançamento
           </div>
 
-          <div className="flex items-center gap-2 bg-surface/40 border border-base rounded-2xl p-1 w-full md:w-[520px]">
+          <div className="flex items-center gap-2 bg-surface/40 border border-line rounded-2xl p-1 w-full md:w-[520px]">
             {(
               [
                 { id: 'unica', label: 'Única' },
@@ -337,7 +337,7 @@ export const NovaContaModal: React.FC<{
                     setParcelas(v);
                     if (parcelaInicial > v) setParcelaInicial(v);
                   }}
-                  className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                  className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                 />
               </div>
               <div className="w-full md:w-[240px]">
@@ -348,7 +348,7 @@ export const NovaContaModal: React.FC<{
                   max={parcelas}
                   value={parcelaInicial}
                   onChange={(e) => setParcelaInicial(Math.max(1, Math.min(parcelas, Number(e.target.value || 1))))}
-                  className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                  className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                 />
                 <div className="mt-2 text-[10px] text-muted font-bold px-1">
                   Gera parcelas {parcelaInicial} a {parcelas} de {parcelas}
@@ -360,7 +360,7 @@ export const NovaContaModal: React.FC<{
               <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">
                 O valor informado é
               </label>
-              <div className="flex items-center gap-2 bg-surface/40 border border-base rounded-2xl p-1 w-full md:w-[520px]">
+              <div className="flex items-center gap-2 bg-surface/40 border border-line rounded-2xl p-1 w-full md:w-[520px]">
                 <button
                   type="button"
                   onClick={() => setValorMode('por_parcela')}
@@ -444,7 +444,7 @@ export const NovaContaModal: React.FC<{
                 'p-5 rounded-2xl border transition-all text-left group',
                 status === 'pendente'
                   ? 'border-accent/60 bg-accent/10 shadow-lg shadow-accent/5'
-                  : 'border-base bg-surface/20 hover:bg-surface/30'
+                  : 'border-line bg-surface/20 hover:bg-surface/30'
               )}
             >
               <div className={cn("font-black transition-colors", status === 'pendente' ? "text-primary" : "text-secondary group-hover:text-primary")}>PENDENTE</div>
@@ -457,7 +457,7 @@ export const NovaContaModal: React.FC<{
                 'p-5 rounded-2xl border transition-all text-left group',
                 status === 'pago'
                   ? 'border-success/60 bg-success/10 shadow-lg shadow-success/5'
-                  : 'border-base bg-surface/20 hover:bg-surface/30'
+                  : 'border-line bg-surface/20 hover:bg-surface/30'
               )}
             >
               <div className={cn("font-black transition-colors", status === 'pago' ? "text-primary" : "text-secondary group-hover:text-primary")}>JÁ PAGO</div>
@@ -475,7 +475,7 @@ export const NovaContaModal: React.FC<{
           <textarea
             value={observacoes}
             onChange={(e) => setObservacoes(e.target.value)}
-            className="w-full min-h-[130px] rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+            className="w-full min-h-[130px] rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
             placeholder="Notas adicionais sobre este lançamento..."
             spellCheck={false}
             maxLength={500}

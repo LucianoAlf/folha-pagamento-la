@@ -18,7 +18,7 @@ export const FeriasSummaryCards: React.FC<FeriasSummaryCardsProps> = ({
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
-            className="h-24 md:h-28 rounded-xl bg-surface-2/30 border border-base animate-pulse"
+            className="h-24 md:h-28 rounded-xl bg-surface-2/30 border border-line animate-pulse"
           />
         ))}
       </div>

@@ -44,13 +44,13 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
     : null;
 
   return (
-    <Card className="bg-surface/40 border border-base/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
+    <Card className="bg-surface/40 border border-line/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
       {/* Header com Avatar e Info Básica */}
-      <div className="p-4 border-b border-base/50 relative">
+      <div className="p-4 border-b border-line/50 relative">
         <div className="flex items-center gap-4">
           {/* Avatar */}
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg overflow-hidden shrink-0"
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-primary shadow-lg overflow-hidden shrink-0"
             style={{ backgroundColor: deptColor }}
           >
             {colaborador.colaborador_id === 2 || colaborador.nome?.includes('Ana Paula') ? (
@@ -175,7 +175,7 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
       </div>
 
       {/* Actions Footer */}
-      <div className="p-3 border-t border-base/50 bg-surface/20 flex gap-2">
+      <div className="p-3 border-t border-line/50 bg-surface/20 flex gap-2">
         <button
           onClick={() => onProgramarFerias(colaborador)}
           className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-accent/20 hover:bg-accent/30 border border-accent/30 rounded-xl text-accent hover:text-accent/80 text-xs font-bold transition-all active:scale-95"
@@ -187,7 +187,7 @@ export const FeriasColaboradorCard: React.FC<FeriasColaboradorCardProps> = ({
         <Tooltip content="Ajustar Períodos">
           <button
             onClick={() => onVerHistorico(colaborador)}
-            className="w-9 h-9 flex items-center justify-center bg-surface-2/60 hover:bg-surface-3/60 border border-strong/50 rounded-xl text-secondary hover:text-primary transition-all active:scale-95"
+            className="w-9 h-9 flex items-center justify-center bg-surface-2/60 hover:bg-surface-3/60 border border-line-strong/50 rounded-xl text-secondary hover:text-primary transition-all active:scale-95"
           >
             <Pencil size={14} />
           </button>

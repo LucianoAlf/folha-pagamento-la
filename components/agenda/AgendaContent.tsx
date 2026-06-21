@@ -195,7 +195,7 @@ export const AgendaContent: React.FC<{
       <div className="h-full flex flex-col">
         {listKey !== 'smart:aniversarios' && (
           <div className={cn(
-            "p-4 md:p-6 border-b border-base/60 bg-bg/60",
+            "p-4 md:p-6 border-b border-line/60 bg-bg/60",
             isMobile && "sticky top-0 z-20 backdrop-blur-md"
           )}>
             <AgendaHeader
@@ -225,7 +225,7 @@ export const AgendaContent: React.FC<{
                 <button
                   type="button"
                   onClick={() => setActionError(null)}
-                  className="px-3 py-2 rounded-xl bg-surface/40 border border-base text-secondary text-xs font-black"
+                  className="px-3 py-2 rounded-xl bg-surface/40 border border-line text-secondary text-xs font-black"
                 >
                   OK
                 </button>
@@ -250,7 +250,7 @@ export const AgendaContent: React.FC<{
                     <button
                       type="button"
                       onClick={onRefresh}
-                      className="mt-4 px-4 py-2 rounded-2xl bg-accent hover:bg-accent-hover text-white text-sm font-black"
+                      className="mt-4 px-4 py-2 rounded-2xl bg-accent hover:bg-accent/90 text-white text-sm font-black"
                     >
                       Tentar novamente
                     </button>
@@ -305,7 +305,7 @@ export const AgendaContent: React.FC<{
               {showMeuDia ? (
                 <div className="space-y-4 md:space-y-6">
                   {/* Atrasadas */}
-                  <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden shadow-sm">
+                  <div className="rounded-2xl border border-line/60 bg-bg/95 overflow-hidden shadow-sm">
                     <button
                       type="button"
                       onClick={() => setCollapsed((p) => ({ ...p, atrasadas: !p.atrasadas }))}
@@ -344,7 +344,7 @@ export const AgendaContent: React.FC<{
                   </div>
 
                   {/* Hoje */}
-                  <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden shadow-sm">
+                  <div className="rounded-2xl border border-line/60 bg-bg/95 overflow-hidden shadow-sm">
                     <button
                       type="button"
                       onClick={() => setCollapsed((p) => ({ ...p, hoje: !p.hoje }))}
@@ -387,7 +387,7 @@ export const AgendaContent: React.FC<{
                   {(() => {
                     if (!isSmartView) {
                       return (
-                        <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden">
+                        <div className="rounded-2xl border border-line/60 bg-bg/95 overflow-hidden">
                           <div className="p-1 md:p-2">
                             {tarefas.length === 0 ? (
                               <div className="px-4 py-6 text-sm text-muted font-bold text-center">Nenhuma tarefa nesta lista.</div>
@@ -420,20 +420,20 @@ export const AgendaContent: React.FC<{
                     const ordered = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
 
                     return ordered.length === 0 ? (
-                      <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden">
+                      <div className="rounded-2xl border border-line/60 bg-bg/95 overflow-hidden">
                         <div className="px-4 py-6 text-sm text-muted font-bold text-center">Nenhuma tarefa nesta visualização.</div>
                       </div>
                     ) : (
                       ordered.map((g) => (
-                        <div key={g.key} className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden mb-4">
-                          <div className="px-4 md:px-5 py-3 md:py-4 border-b border-base/60 bg-bg/95 flex items-center justify-between gap-3">
+                        <div key={g.key} className="rounded-2xl border border-line/60 bg-bg/95 overflow-hidden mb-4">
+                          <div className="px-4 md:px-5 py-3 md:py-4 border-b border-line/60 bg-bg/95 flex items-center justify-between gap-3">
                             <div className="min-w-0">
                               <div className="text-primary font-black truncate">{g.name}</div>
                               <div className="text-[10px] text-muted font-bold uppercase tracking-[0.2em]">
                                 {g.items.length} item{g.items.length === 1 ? '' : 's'}
                               </div>
                             </div>
-                            <span className="px-2 py-1 rounded-full text-[10px] font-black border border-base bg-surface/40 text-secondary">
+                            <span className="px-2 py-1 rounded-full text-[10px] font-black border border-line bg-surface/40 text-secondary">
                               {g.items.length}
                             </span>
                           </div>
@@ -498,7 +498,7 @@ export const AgendaContent: React.FC<{
         <button
           type="button"
           onClick={() => setMobileQuickAddOpen(true)}
-          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-accent text-white shadow-2xl shadow-accent/40 flex items-center justify-center z-[11000] transition-all active:scale-90 hover:bg-accent-hover"
+          className="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-accent text-white shadow-2xl shadow-accent/40 flex items-center justify-center z-[11000] transition-all active:scale-90 hover:bg-accent/90"
           aria-label="Adicionar tarefa"
         >
           <Plus size={28} />
@@ -546,8 +546,8 @@ export const AgendaContent: React.FC<{
             startOpen
           />
 
-          <div className="rounded-2xl border border-base/60 bg-bg/95 overflow-hidden">
-            <div className="px-5 py-4 border-b border-base/60 bg-bg/95">
+          <div className="rounded-2xl border border-line/60 bg-bg/95 overflow-hidden">
+            <div className="px-5 py-4 border-b border-line/60 bg-bg/95">
               <div className="text-primary font-black">Lançamentos do dia</div>
               <div className="text-xs text-muted font-bold mt-1">Clique em uma tarefa para abrir os detalhes</div>
             </div>

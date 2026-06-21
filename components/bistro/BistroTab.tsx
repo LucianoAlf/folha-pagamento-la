@@ -983,7 +983,7 @@ export const BistroTab: React.FC<{
         <button
           type="button"
           onClick={() => void loadAll()}
-          className="mt-4 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black"
+          className="mt-4 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-primary font-black"
         >
           Tentar novamente
         </button>
@@ -996,7 +996,7 @@ export const BistroTab: React.FC<{
       <Card className="p-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="text-white font-black text-lg">Bistrô (Campo Grande)</div>
+            <div className="text-primary font-black text-lg">Bistrô (Campo Grande)</div>
             <div className="text-xs text-slate-400 font-bold mt-1">
               Folha: <span className="text-slate-200">{monthLabelPt(ymFolha)}</span> • Referência (consumo):{' '}
               <span className="text-slate-200">{monthLabelPt(ymRef)}</span>
@@ -1011,7 +1011,7 @@ export const BistroTab: React.FC<{
               className={cn(
                 'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
                 canEdit
-                  ? 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30'
+                  ? 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30'
                   : 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
               )}
             >
@@ -1020,7 +1020,7 @@ export const BistroTab: React.FC<{
             <button
               type="button"
               onClick={() => setReportOpen(true)}
-              className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-primary text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
               <Copy className="w-4 h-4" /> Gerar Relatório (Copiar)
             </button>
@@ -1033,7 +1033,7 @@ export const BistroTab: React.FC<{
                   'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
                   !canEdit
                     ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/30',
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-primary border-emerald-500/30',
                   applyLoading && 'opacity-70'
                 )}
               >
@@ -1050,7 +1050,7 @@ export const BistroTab: React.FC<{
                   'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
                   !canEdit
                     ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                    : 'bg-rose-600 hover:bg-rose-500 text-white border-rose-500/30',
+                    : 'bg-rose-600 hover:bg-rose-500 text-primary border-rose-500/30',
                   revertLoading && 'opacity-70'
                 )}
               >
@@ -1108,7 +1108,7 @@ export const BistroTab: React.FC<{
                 'px-4 py-2 rounded-xl font-black border transition-all disabled:opacity-60 flex items-center gap-2',
                 !canEdit
                   ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                  : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30'
+                  : 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30'
               )}
             >
               {consumoEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -1157,7 +1157,7 @@ export const BistroTab: React.FC<{
         <Card className="p-5 xl:col-span-2">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-white font-black">Consumo por colaborador</div>
+              <div className="text-primary font-black">Consumo por colaborador</div>
               <div className="text-xs text-slate-500 font-bold mt-1">1 valor por pessoa (mês)</div>
             </div>
             <Badge variant="info">{formatMoneyBR(consumoTotal)}</Badge>
@@ -1227,7 +1227,7 @@ export const BistroTab: React.FC<{
 
         <div className="space-y-6">
           <Card className="p-5">
-            <div className="text-white font-black">Pagamento da Lúcia (Folha)</div>
+            <div className="text-primary font-black">Pagamento da Lúcia (Folha)</div>
             <div className="text-xs text-slate-500 font-bold mt-1">Resolve o Bistrô inteiro aqui: calcula e já preenche na Folha</div>
 
             <div className="mt-4">
@@ -1348,7 +1348,7 @@ export const BistroTab: React.FC<{
                   <button
                     type="button"
                     onClick={() => window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'folha', page: 'lancamentos' } }))}
-                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-700 bg-slate-800/50 text-white hover:bg-slate-700 transition-all flex items-center gap-2"
+                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-700 bg-slate-800/50 text-primary hover:bg-slate-700 transition-all flex items-center gap-2"
                   >
                     Ir para Lançamentos (Folha)
                   </button>
@@ -1371,7 +1371,7 @@ export const BistroTab: React.FC<{
                   'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2',
                   !canEdit || !luciaLanc || !lucia
                     ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed'
-                    : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 shadow-lg shadow-violet-600/10 active:scale-95',
+                    : 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30 shadow-lg shadow-violet-600/10 active:scale-95',
                   luciaApplyLoading && 'opacity-70'
                 )}
               >
@@ -1383,7 +1383,7 @@ export const BistroTab: React.FC<{
           </Card>
 
           <Card className="p-5">
-            <div className="text-white font-black">EMLA (saldo acumulado)</div>
+            <div className="text-primary font-black">EMLA (saldo acumulado)</div>
             <div className="text-xs text-slate-500 font-bold mt-1">Dívida/adiantamentos do Bistrô com a LA (EMLA)</div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1400,7 +1400,7 @@ export const BistroTab: React.FC<{
               </div>
               <div className="rounded-2xl border border-slate-800/60 bg-slate-950/30 p-4">
                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Saldo final (mês)</div>
-                <div className="mt-1 text-lg font-black text-white font-mono">{formatMoneyBR(saldoFinalEmla)}</div>
+                <div className="mt-1 text-lg font-black text-primary font-mono">{formatMoneyBR(saldoFinalEmla)}</div>
                 <div className="mt-1 text-xs text-slate-500 font-bold">Saldo inicial + aportes − abatimentos</div>
               </div>
             </div>
@@ -1410,7 +1410,7 @@ export const BistroTab: React.FC<{
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Card className="p-5">
-          <div className="text-white font-black">Vendas do mês (bruto)</div>
+          <div className="text-primary font-black">Vendas do mês (bruto)</div>
           <div className="text-xs text-slate-500 font-bold mt-1">Usado para taxas, lucro e bônus</div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1457,7 +1457,7 @@ export const BistroTab: React.FC<{
 
           <div className="mt-4 flex items-center justify-between gap-3">
             <div className="text-slate-300 font-bold">Total bruto</div>
-            <div className="text-white font-black">{formatMoneyBR(vendasCalc.totalBruto)}</div>
+            <div className="text-primary font-black">{formatMoneyBR(vendasCalc.totalBruto)}</div>
           </div>
           <div className="mt-1 flex items-center justify-between gap-3">
             <div className="text-slate-500 font-bold text-sm">Taxas</div>
@@ -1477,7 +1477,7 @@ export const BistroTab: React.FC<{
                 className={cn(
                   'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-violet-600/10',
                   canEdit 
-                    ? 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 active:scale-95' 
+                    ? 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30 active:scale-95' 
                     : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
                 )}
               >
@@ -1494,7 +1494,7 @@ export const BistroTab: React.FC<{
         <Card className="p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-white font-black">Movimentações (repasses / despesas / EMLA)</div>
+              <div className="text-primary font-black">Movimentações (repasses / despesas / EMLA)</div>
               <div className="text-xs text-slate-500 font-bold mt-1">
                 Repasses/despesas entram no relatório. <span className="text-slate-400">Saldo EMLA só muda com Aporte/Abatimento.</span>
               </div>
@@ -1595,7 +1595,7 @@ export const BistroTab: React.FC<{
                 className={cn(
                   'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all disabled:opacity-60 flex items-center gap-2 shadow-lg shadow-violet-600/10',
                   canEdit 
-                    ? 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 active:scale-95' 
+                    ? 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30 active:scale-95' 
                     : 'bg-slate-900/30 border-slate-800/50 text-slate-500 cursor-not-allowed'
                 )}
               >
@@ -1689,7 +1689,7 @@ export const BistroTab: React.FC<{
               disabled={!movEditDraft || movEditSaving || !canEdit}
               className={cn(
                 'px-4 py-2 rounded-xl font-black border transition-all disabled:opacity-60 flex items-center gap-2',
-                !canEdit ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30'
+                !canEdit ? 'bg-slate-900/30 text-slate-500 border-slate-800/50 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500 text-primary border-violet-500/30'
               )}
             >
               {movEditSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -1807,7 +1807,7 @@ export const BistroTab: React.FC<{
                 disabled={!canEdit || !pastePreview.length}
                 onClick={() => void confirmPaste()}
                 className={cn(
-                  'px-5 py-2 rounded-xl font-black text-white',
+                  'px-5 py-2 rounded-xl font-black text-primary',
                   !canEdit || !pastePreview.length ? 'bg-slate-800 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-500'
                 )}
               >
@@ -1908,7 +1908,7 @@ export const BistroTab: React.FC<{
                     setTimeout(() => setCopyOk(null), 1500);
                   });
                 }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-primary font-black flex items-center gap-2"
               >
                 <Copy className="w-4 h-4" /> Copiar Repasses
               </button>
@@ -1923,7 +1923,7 @@ export const BistroTab: React.FC<{
             className={cn(
               'px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
               reportKind === 'financeiro'
-                ? 'bg-violet-600 text-white border-violet-500/30'
+                ? 'bg-violet-600 text-primary border-violet-500/30'
                 : 'bg-slate-900/40 text-slate-300 border-slate-800 hover:bg-slate-900/60'
             )}
           >
@@ -1935,7 +1935,7 @@ export const BistroTab: React.FC<{
             className={cn(
               'px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all',
               reportKind === 'repasses'
-                ? 'bg-violet-600 text-white border-violet-500/30'
+                ? 'bg-violet-600 text-primary border-violet-500/30'
                 : 'bg-slate-900/40 text-slate-300 border-slate-800 hover:bg-slate-900/60'
             )}
           >

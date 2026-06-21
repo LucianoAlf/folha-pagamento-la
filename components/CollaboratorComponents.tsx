@@ -80,11 +80,11 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
   const statusColor = STATUS_COLORS[collaborator.status];
 
   return (
-    <Card className="bg-surface/40 border border-base/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
-      <div className="p-4 border-b border-base/50 relative">
+    <Card className="bg-surface/40 border border-line/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
+      <div className="p-4 border-b border-line/50 relative">
         <div className="flex items-center gap-4">
           <div 
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg overflow-hidden shrink-0"
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-primary shadow-lg overflow-hidden shrink-0"
             style={{ backgroundColor: deptColor }}
           >
             {collaborator.id === 2 || collaborator.nome?.includes('Ana Paula') ? (
@@ -123,7 +123,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <Tooltip content="Editar">
             <button 
               onClick={() => onEdit(collaborator)}
-              className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-xl text-secondary hover:text-accent shadow-sm transition-all active:scale-90"
+              className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-line-strong/50 rounded-xl text-secondary hover:text-accent shadow-sm transition-all active:scale-90"
             >
               <Edit2 size={12} />
             </button>
@@ -132,7 +132,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <Tooltip content={collaborator.status === 'active' ? 'Inativar' : 'Reativar'}>
             <button
               onClick={() => onToggleInactive(collaborator)}
-              className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-xl text-secondary hover:text-warning shadow-sm transition-all active:scale-90"
+              className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-line-strong/50 rounded-xl text-secondary hover:text-warning shadow-sm transition-all active:scale-90"
             >
               <UserX size={12} />
             </button>
@@ -141,7 +141,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <Tooltip content="Excluir">
             <button 
               onClick={() => onDelete(collaborator)}
-              className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-strong/50 rounded-xl text-secondary hover:text-danger shadow-sm transition-all active:scale-90"
+              className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-line-strong/50 rounded-xl text-secondary hover:text-danger shadow-sm transition-all active:scale-90"
             >
               <Trash2 size={12} />
             </button>
@@ -154,7 +154,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <Badge variant={statusColor} className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest">
             {STATUS_LABELS[collaborator.status]}
           </Badge>
-          <span className="text-[10px] font-black text-muted bg-surface-2/40 px-3 py-1 rounded-full uppercase border border-strong/50">
+          <span className="text-[10px] font-black text-muted bg-surface-2/40 px-3 py-1 rounded-full uppercase border border-line-strong/50">
             {CONTRACT_LABELS[collaborator.tipo]}
           </span>
         </div>
@@ -176,7 +176,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
           <div className="flex flex-wrap gap-1.5 mt-2">
             {collaborator.is_rateado ? (
               ['Campo Grande', 'Recreio', 'Barra'].map(u => (
-                <span key={u} className="text-[9px] font-bold text-muted bg-surface-2/30 border border-strong/50 px-2 py-0.5 rounded-full uppercase">
+                <span key={u} className="text-[9px] font-bold text-muted bg-surface-2/30 border border-line-strong/50 px-2 py-0.5 rounded-full uppercase">
                   {u}
                 </span>
               ))
@@ -200,7 +200,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
         </div>
       </div>
 
-      <div className="px-4 py-3 bg-surface/60 border-t border-base/50 flex items-center justify-between">
+      <div className="px-4 py-3 bg-surface/60 border-t border-line/50 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <span className="text-success"><DollarSign size={14} /></span>
           <span className="text-sm font-black text-secondary">
@@ -403,7 +403,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
     <div className="fixed inset-0 z-[12000] bg-bg flex flex-col">
       {/* Header */}
       <header
-        className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-base/50"
+        className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-line/50"
         style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
       >
         <button 
@@ -469,7 +469,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
             <>
               {/* Photo */}
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-surface-2 border border-strong overflow-hidden flex items-center justify-center shrink-0">
+                <div className="w-16 h-16 rounded-2xl bg-surface-2 border border-line-strong overflow-hidden flex items-center justify-center shrink-0">
                   {form.foto_url ? (
                     <img src={form.foto_url} alt="Foto" className="w-full h-full object-cover" />
                   ) : (
@@ -487,7 +487,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   <button
                     type="button"
                     onClick={() => document.getElementById('wizard-photo-input')?.click()}
-                    className="px-4 py-2.5 rounded-xl bg-surface-2 border border-strong text-secondary text-sm font-bold flex items-center gap-2"
+                    className="px-4 py-2.5 rounded-xl bg-surface-2 border border-line-strong text-secondary text-sm font-bold flex items-center gap-2"
                   >
                     <Plus size={16} /> Adicionar Foto
                   </button>
@@ -512,7 +512,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   type="text" 
                   value={form.nome || ''} 
                   onChange={(e) => updateForm({ nome: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base font-medium placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary text-base font-medium placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all"
                   placeholder="Nome do colaborador"
                 />
               </div>
@@ -525,7 +525,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     type="text" 
                     value={form.cpf || ''} 
                     onChange={(e) => updateForm({ cpf: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary font-mono text-base placeholder:text-muted focus:border-accent outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary font-mono text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="000.000.000-00"
                   />
                 </div>
@@ -535,7 +535,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     type="text" 
                     value={form.rg || ''} 
                     onChange={(e) => updateForm({ rg: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary font-mono text-base placeholder:text-muted focus:border-accent outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary font-mono text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="00.000.000-0"
                   />
                 </div>
@@ -548,7 +548,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   type="email" 
                   value={form.email || ''} 
                   onChange={(e) => updateForm({ email: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                   placeholder="email@exemplo.com"
                 />
               </div>
@@ -560,7 +560,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   type="text" 
                   value={form.telefone || ''} 
                   onChange={(e) => updateForm({ telefone: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                   placeholder="(00) 00000-0000"
                 />
               </div>
@@ -597,7 +597,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   type="text" 
                   value={form.funcao || ''} 
                   onChange={(e) => updateForm({ funcao: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                   placeholder="Ex: Analista Financeiro"
                 />
               </div>
@@ -644,7 +644,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     type="number" 
                     value={form.salario_base || 0} 
                     onChange={(e) => updateForm({ salario_base: Number(e.target.value) })}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base font-mono placeholder:text-muted focus:border-accent outline-none transition-all"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary text-base font-mono placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="0,00"
                   />
                 </div>
@@ -674,7 +674,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     "p-4 rounded-2xl border-2 text-left transition-all",
                     !form.is_rateado
                       ? "border-accent bg-accent/10"
-                      : "border-strong hover:border-strong"
+                      : "border-line-strong hover:border-line-strong"
                   )}
                 >
                   <Building size={24} className={!form.is_rateado ? "text-accent" : "text-muted"} />
@@ -688,7 +688,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     "p-4 rounded-2xl border-2 text-left transition-all",
                     form.is_rateado
                       ? "border-accent bg-accent/10"
-                      : "border-strong hover:border-strong"
+                      : "border-line-strong hover:border-line-strong"
                   )}
                 >
                   <RefreshCw size={24} className={form.is_rateado ? "text-accent" : "text-muted"} />
@@ -722,7 +722,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   type="text" 
                   value={form.pix || ''} 
                   onChange={(e) => updateForm({ pix: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
+                  className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                   placeholder="CPF, E-mail, Telefone ou Aleatória"
                 />
               </div>
@@ -734,7 +734,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     type="text" 
                     value={form.banco || ''} 
                     onChange={(e) => updateForm({ banco: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="Ex: Itaú"
                   />
                 </div>
@@ -744,7 +744,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     type="text" 
                     value={form.agencia || ''} 
                     onChange={(e) => updateForm({ agencia: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="0000"
                   />
                 </div>
@@ -757,7 +757,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     type="text" 
                     value={form.conta || ''} 
                     onChange={(e) => updateForm({ conta: e.target.value })}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-line-strong bg-surface-2/50 text-primary text-base placeholder:text-muted focus:border-accent outline-none transition-all"
                     placeholder="00000-0"
                   />
                 </div>
@@ -795,14 +795,14 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                         "flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-sm font-bold transition-all",
                         isSelected
                           ? "border-success bg-success/10 text-success"
-                          : "border-strong text-secondary hover:border-strong"
+                          : "border-line-strong text-secondary hover:border-line-strong"
                       )}
                     >
                       <div className={cn(
                         "w-5 h-5 rounded-md border-2 flex items-center justify-center",
                         isSelected ? "border-success bg-success" : "border-muted"
                       )}>
-                        {isSelected && <Check size={12} className="text-white" />}
+                        {isSelected && <Check size={12} className="text-primary" />}
                       </div>
                       {instr}
                     </button>
@@ -816,7 +816,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
       {/* Footer */}
       <footer 
-        className="shrink-0 px-4 pt-4 border-t border-base/50 bg-bg"
+        className="shrink-0 px-4 pt-4 border-t border-line/50 bg-bg"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
       >
         {/* Progress Dots */}
@@ -841,7 +841,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
           type="button"
           onClick={isLastStep ? handleFinish : goNext}
           disabled={saving}
-          className="w-full h-14 rounded-2xl text-white font-black text-base transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2"
+          className="w-full h-14 rounded-2xl text-primary font-black text-base transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2"
           style={{ backgroundColor: deptColor }}
         >
           {saving ? (
@@ -870,7 +870,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
             <button onClick={cropper.resetCropper} className="text-secondary text-sm font-bold">
               Cancelar
             </button>
-            <span className="text-white font-black">Ajustar Foto</span>
+            <span className="text-primary font-black">Ajustar Foto</span>
             <button onClick={cropper.applyCrop} className="text-accent text-sm font-bold">
               Aplicar
             </button>
@@ -953,23 +953,23 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
         >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-              <User className="w-7 h-7 text-white" />
+              <User className="w-7 h-7 text-primary" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white">
+              <h3 className="text-xl font-black text-primary">
                 {initialData ? 'Editar Colaborador' : 'Novo Colaborador'}
               </h3>
-              <p className="text-white/80 text-sm font-medium">{DEPARTMENT_LABELS[form.departamento as CollaboratorDepartment]}</p>
+              <p className="text-primary/80 text-sm font-medium">{DEPARTMENT_LABELS[form.departamento as CollaboratorDepartment]}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all text-white">
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all text-primary">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar */}
-          <div className="w-64 bg-surface-2 border-r border-base p-4 space-y-2 shrink-0 overflow-y-auto">
+          <div className="w-64 bg-surface-2 border-r border-line p-4 space-y-2 shrink-0 overflow-y-auto">
             {visibleSections.map((section, index) => {
               const Icon = section.icon;
               const isActive = activeSection === section.id;
@@ -980,7 +980,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all",
                     isActive
-                      ? "bg-surface-2 shadow-lg border border-base"
+                      ? "bg-surface-2 shadow-lg border border-line"
                       : "hover:bg-surface-3 text-muted"
                   )}
                 >
@@ -1010,7 +1010,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                 )}
 
                 <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-surface-2 border border-base overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-surface-2 border border-line overflow-hidden flex items-center justify-center shrink-0">
                     {form.foto_url ? (
                       <img src={form.foto_url} alt="Foto do colaborador" className="w-full h-full object-cover" />
                     ) : (
@@ -1053,7 +1053,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     type="text" 
                     value={form.nome || ''} 
                     onChange={(e) => updateForm({ nome: e.target.value })}
-                    className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
+                    className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold"
                     placeholder="Nome do colaborador"
                   />
                 </div>
@@ -1064,7 +1064,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       type="text" 
                       value={form.cpf || ''} 
                       onChange={(e) => updateForm({ cpf: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold font-mono"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold font-mono"
                       placeholder="000.000.000-00"
                     />
                   </div>
@@ -1074,7 +1074,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       type="text" 
                       value={form.rg || ''} 
                       onChange={(e) => updateForm({ rg: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold font-mono"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold font-mono"
                       placeholder="00.000.000-0"
                     />
                   </div>
@@ -1086,7 +1086,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       type="email" 
                       value={form.email || ''} 
                       onChange={(e) => updateForm({ email: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold"
                       placeholder="email@exemplo.com"
                     />
                   </div>
@@ -1096,7 +1096,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       type="text" 
                       value={form.telefone || ''} 
                       onChange={(e) => updateForm({ telefone: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold"
                       placeholder="(00) 00000-0000"
                     />
                   </div>
@@ -1132,7 +1132,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       type="text" 
                       value={form.funcao || ''} 
                       onChange={(e) => updateForm({ funcao: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold"
                       placeholder="Ex: Analista Financeiro"
                     />
                   </div>
@@ -1179,7 +1179,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       type="number" 
                       value={form.salario_base || 0} 
                       onChange={(e) => updateForm({ salario_base: Number(e.target.value) })}
-                      className="w-full pl-14 pr-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
+                      className="w-full pl-14 pr-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold"
                       placeholder="0,00"
                     />
                   </div>
@@ -1209,7 +1209,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       "p-6 rounded-3xl border-2 text-left transition-all",
                       !form.is_rateado 
                         ? "border-info bg-info/5 shadow-lg shadow-info/10"
-                        : "border-base hover:border-strong"
+                        : "border-line hover:border-line-strong"
                     )}
                   >
                     <Building size={24} className={!form.is_rateado ? "text-info" : "text-muted"} />
@@ -1222,7 +1222,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       "p-6 rounded-3xl border-2 text-left transition-all",
                       form.is_rateado 
                         ? "border-info bg-info/5 shadow-lg shadow-info/10"
-                        : "border-base hover:border-strong"
+                        : "border-line hover:border-line-strong"
                     )}
                   >
                     <RefreshCw size={24} className={form.is_rateado ? "text-info" : "text-muted"} />
@@ -1255,7 +1255,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     type="text" 
                     value={form.pix || ''} 
                     onChange={(e) => updateForm({ pix: e.target.value })}
-                    className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
+                    className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold"
                     placeholder="CPF, E-mail, Telefone ou Aleatória"
                   />
                 </div>
@@ -1266,7 +1266,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       type="text" 
                       value={form.banco || ''} 
                       onChange={(e) => updateForm({ banco: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold"
                       placeholder="Ex: Itaú, Nubank"
                     />
                   </div>
@@ -1276,7 +1276,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       type="text" 
                       value={form.agencia || ''} 
                       onChange={(e) => updateForm({ agencia: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold"
                       placeholder="0000"
                     />
                   </div>
@@ -1288,7 +1288,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                       type="text" 
                       value={form.conta || ''} 
                       onChange={(e) => updateForm({ conta: e.target.value })}
-                      className="w-full px-5 py-3.5 rounded-2xl border border-base bg-surface-2 text-sm font-bold"
+                      className="w-full px-5 py-3.5 rounded-2xl border border-line bg-surface-2 text-sm font-bold"
                       placeholder="00000-0"
                     />
                   </div>
@@ -1327,14 +1327,14 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                           "flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-sm font-bold",
                           isSelected
                             ? "border-success bg-success/10 text-success"
-                            : "border-base hover:border-success/50"
+                            : "border-line hover:border-success/50"
                         )}
                       >
                         <div className={cn(
                           "w-4 h-4 rounded-md border-2 flex items-center justify-center transition-all",
-                          isSelected ? "border-success bg-success" : "border-strong"
+                          isSelected ? "border-success bg-success" : "border-line-strong"
                         )}>
-                          {isSelected && <Check size={10} className="text-white" />}
+                          {isSelected && <Check size={10} className="text-primary" />}
                         </div>
                         {instr}
                       </button>
@@ -1347,7 +1347,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
         </div>
 
         {/* Footer */}
-        <div className="p-6 bg-surface-2 border-t border-base flex gap-4 shrink-0">
+        <div className="p-6 bg-surface-2 border-t border-line flex gap-4 shrink-0">
           <button
             onClick={onClose}
             className="flex-1 px-6 py-4 rounded-2xl bg-surface-2 hover:bg-surface-3 text-secondary font-bold transition-all active:scale-95"
@@ -1357,7 +1357,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
           <button 
             onClick={handleFinish}
             disabled={saving}
-            className="flex-[2] px-6 py-4 rounded-2xl text-white font-bold transition-all active:scale-95 flex items-center justify-center gap-2 shadow-xl"
+            className="flex-[2] px-6 py-4 rounded-2xl text-primary font-bold transition-all active:scale-95 flex items-center justify-center gap-2 shadow-xl"
             style={{ backgroundColor: deptColor }}
           >
             {saving ? <RefreshCw className="animate-spin" size={20} /> : <Check size={20} />}
@@ -1369,8 +1369,8 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
       {/* Cropper Overlay */}
       {cropper.isCropOpen && cropper.cropImageSrc && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-2xl bg-surface rounded-[2rem] border border-base shadow-2xl overflow-hidden">
-            <div className="px-6 py-5 border-b border-base flex items-center justify-between">
+          <div className="w-full max-w-2xl bg-surface rounded-[2rem] border border-line shadow-2xl overflow-hidden">
+            <div className="px-6 py-5 border-b border-line flex items-center justify-between">
               <div className="text-primary font-black">Ajustar Foto</div>
               <button
                 onClick={cropper.resetCropper}
@@ -1410,7 +1410,7 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
               </div>
             </div>
 
-            <div className="px-6 py-5 border-t border-base flex items-center justify-end gap-3">
+            <div className="px-6 py-5 border-t border-line flex items-center justify-end gap-3">
               <button
                 onClick={cropper.resetCropper}
                 className="px-5 py-3 rounded-2xl bg-surface-2 hover:bg-surface-3 text-secondary text-sm font-black"

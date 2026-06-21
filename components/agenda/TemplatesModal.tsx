@@ -138,11 +138,11 @@ export const TemplatesModal: React.FC<{
                     'p-4 rounded-2xl border text-left transition-all',
                     isActive
                       ? 'bg-accent/10 border-accent/25 text-primary'
-                      : 'bg-surface/20 border-base text-secondary hover:bg-surface/40'
+                      : 'bg-surface/20 border-line text-secondary hover:bg-surface/40'
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-surface/40 border border-base flex items-center justify-center text-secondary">
+                    <div className="w-10 h-10 rounded-2xl bg-surface/40 border border-line flex items-center justify-center text-secondary">
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
@@ -158,7 +158,7 @@ export const TemplatesModal: React.FC<{
         ) : null}
 
         {selected ? (
-          <div className="rounded-2xl border border-base bg-bg/20 p-4">
+          <div className="rounded-2xl border border-line bg-bg/20 p-4">
             <div className="flex items-center gap-2 text-primary font-black">
               <Sparkles className="w-4 h-4 text-accent-subtle" />
               Variáveis do template
@@ -179,7 +179,7 @@ export const TemplatesModal: React.FC<{
                     <input
                       value={vars[k] || ''}
                       onChange={(e) => setVars((p) => ({ ...p, [k]: e.target.value }))}
-                      className="w-full bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
+                      className="w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
                       placeholder={`Informe ${k}...`}
                     />
                   </div>
@@ -187,7 +187,7 @@ export const TemplatesModal: React.FC<{
               )}
             </div>
 
-            <div className="mt-4 rounded-2xl border border-base/60 bg-bg/10 p-4">
+            <div className="mt-4 rounded-2xl border border-line/60 bg-bg/10 p-4">
               <div className="text-primary font-black">Detalhes da tarefa</div>
               <div className="text-xs text-muted font-bold mt-1">Defina vencimento e ajustes finais antes de criar.</div>
 
@@ -209,7 +209,7 @@ export const TemplatesModal: React.FC<{
                       type="time"
                       value={time}
                       onChange={(e) => setTime(e.target.value)}
-                      className="mt-2 w-full bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
+                      className="mt-2 w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
                     />
                   ) : null}
                 </div>
@@ -233,7 +233,7 @@ export const TemplatesModal: React.FC<{
             <div className="mt-4 flex items-center justify-end gap-3">
               <button
                 type="button"
-                className="px-4 py-2.5 rounded-2xl bg-surface/40 hover:bg-surface/60 border border-base text-secondary font-black"
+                className="px-4 py-2.5 rounded-2xl bg-surface/40 hover:bg-surface/60 border border-line text-secondary font-black"
                 onClick={onClose}
               >
                 Cancelar
@@ -242,8 +242,8 @@ export const TemplatesModal: React.FC<{
                 type="button"
                 disabled={!canCreate}
                 className={cn(
-                  'px-5 py-2.5 rounded-2xl font-black text-white transition-all',
-                  canCreate ? 'bg-accent hover:bg-accent-hover' : 'bg-surface-2 text-muted cursor-not-allowed'
+                  'px-5 py-2.5 rounded-2xl font-black text-primary transition-all',
+                  canCreate ? 'bg-accent hover:bg-accent/90' : 'bg-surface-2 text-muted cursor-not-allowed'
                 )}
                 onClick={() => {
                   const template = selected;

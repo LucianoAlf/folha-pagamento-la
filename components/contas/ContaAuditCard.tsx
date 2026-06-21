@@ -55,8 +55,8 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
 
   return (
     <Card className={cn(
-      "group relative flex flex-col p-5 h-full transition-all hover:shadow-[var(--shadow-card)] hover:border-strong",
-      conta.status === 'pago' ? "border-success/10 bg-success/[0.02]" : "border-base bg-surface/40",
+      "group relative flex flex-col p-5 h-full transition-all hover:shadow-[var(--shadow-card)] hover:border-line-strong",
+      conta.status === 'pago' ? "border-success/10 bg-success/[0.02]" : "border-line bg-surface/40",
       selected && "border-accent/40 bg-accent/[0.04]"
     )}>
       {/* Checkbox de seleção */}
@@ -68,7 +68,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
             "absolute top-3 left-3 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all z-10",
             selected
               ? "bg-accent border-accent text-white"
-              : "border-strong opacity-0 group-hover:opacity-100 hover:border-accent"
+              : "border-line-strong opacity-0 group-hover:opacity-100 hover:border-accent"
           )}
           aria-label="Selecionar"
         >
@@ -98,7 +98,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
               </Badge>
             )}
             {/* Unidade como mini-chip (mais premium que texto solto) */}
-            <div className="text-[9px] h-4 px-1.5 rounded-md bg-surface-2/40 border border-strong/50 text-secondary font-black uppercase tracking-widest flex items-center">
+            <div className="text-[9px] h-4 px-1.5 rounded-md bg-surface-2/40 border border-line-strong/50 text-secondary font-black uppercase tracking-widest flex items-center">
               {(conta.unidade || 'todas').toUpperCase()}
             </div>
           </div>
@@ -140,7 +140,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
       </div>
 
       {/* Footer: Badges and Action */}
-      <div className="mt-4 pt-3 border-t border-base/50 flex items-center justify-between gap-2">
+      <div className="mt-4 pt-3 border-t border-line/50 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 overflow-hidden">
           <Badge 
             variant={conta.status === 'pago' ? 'success' : (statusVisual === 'vencida' ? 'danger' : (statusVisual === 'urgente' || statusVisual === 'hoje' ? 'warning' : 'info'))}
@@ -150,7 +150,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
           </Badge>
           
           {conta.categoria && (
-            <div className="h-6 flex items-center gap-1.5 px-2.5 rounded-md bg-surface-2/50 border border-strong/50 text-secondary text-[10px] font-black truncate">
+            <div className="h-6 flex items-center gap-1.5 px-2.5 rounded-md bg-surface-2/50 border border-line-strong/50 text-secondary text-[10px] font-black truncate">
               <span className="shrink-0">{conta.categoria.icone}</span>
               <span className="truncate">{conta.categoria.nome}</span>
             </div>

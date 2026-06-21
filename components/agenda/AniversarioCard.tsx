@@ -73,7 +73,7 @@ export const AniversarioCard: React.FC<{
             'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
             selected
               ? 'bg-accent border-accent text-white'
-              : 'border-strong bg-transparent'
+              : 'border-line-strong bg-transparent'
           )}
         >
           {selected && (
@@ -120,7 +120,7 @@ export const AniversarioCard: React.FC<{
             'text-[10px] font-black px-2 py-0.5 rounded-full border',
             aniversario.lembrete_ativo
               ? 'bg-accent/10 border-accent/20 text-accent-subtle'
-              : 'bg-surface-2/40 border-strong/40 text-muted'
+              : 'bg-surface-2/40 border-line-strong/40 text-muted'
           )}>
             {aniversario.lembrete_ativo ? lembrete.icone : '🔕'} {lembrete.label}
           </span>
@@ -138,7 +138,7 @@ export const AniversarioCard: React.FC<{
               onClick={(e) => e.stopPropagation()}
               className={cn(
                 'w-8 h-8 rounded-xl border flex items-center justify-center transition-all shrink-0',
-                'border-transparent bg-transparent text-muted hover:text-primary hover:bg-surface/40 hover:border-strong/60',
+                'border-transparent bg-transparent text-muted hover:text-primary hover:bg-surface/40 hover:border-line-strong/60',
                 'opacity-0 group-hover:opacity-100'
               )}
               aria-label="Ações"
@@ -150,7 +150,7 @@ export const AniversarioCard: React.FC<{
             <Popover.Content
               sideOffset={8}
               align="end"
-              className="z-[20000] w-48 rounded-2xl border border-base bg-bg/95 shadow-2xl overflow-hidden"
+              className="z-[20000] w-48 rounded-2xl border border-line bg-bg/95 shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <button

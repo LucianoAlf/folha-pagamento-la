@@ -30,7 +30,7 @@ export const ParcelasTimeline: React.FC<{
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-base bg-surface/20 p-5 flex items-center justify-center gap-2 text-muted text-sm">
+      <div className="rounded-2xl border border-line bg-surface/20 p-5 flex items-center justify-center gap-2 text-muted text-sm">
         <Loader2 size={16} className="animate-spin" />
         Carregando parcelas...
       </div>
@@ -44,7 +44,7 @@ export const ParcelasTimeline: React.FC<{
   const restante = pendentes.reduce((s, p) => s + (Number(p.valor) || 0), 0);
 
   return (
-    <div className="rounded-2xl border border-base bg-surface/20 p-5">
+    <div className="rounded-2xl border border-line bg-surface/20 p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">
           Parcelamento

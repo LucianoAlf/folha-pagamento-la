@@ -246,7 +246,7 @@ export const FeriasPage: React.FC = () => {
       <div className="px-4 md:px-6 pt-6 pb-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-black text-white flex items-center gap-3">
+            <h1 className="text-2xl font-black text-primary flex items-center gap-3">
               <Calendar className="text-accent" size={28} />
               {activeTab === 'dashboard' ? 'Férias CLT' :
                activeTab === 'colaboradores' ? 'Colaboradores CLT' :
@@ -273,7 +273,7 @@ export const FeriasPage: React.FC = () => {
         {/* Tabs */}
         <div className="animate-in fade-in slide-in-from-top-4 duration-500">
           {/* Desktop Tabs (MusiClass Style) */}
-          <div className="hidden lg:block border-b border-base/60 bg-surface/20 backdrop-blur-sm">
+          <div className="hidden lg:block border-b border-line/60 bg-surface/20 backdrop-blur-sm">
             <div className="flex items-center gap-1 overflow-x-auto pb-px scrollbar-hide px-0">
               {tabs.map((tab) => (
                 <button
@@ -311,10 +311,10 @@ export const FeriasPage: React.FC = () => {
 
           {/* Mobile Tabs (Cockpit Premium Style) */}
           <div className="lg:hidden mb-6">
-            <div className="relative flex bg-surface p-1 rounded-xl border border-base/50 shadow-inner overflow-hidden">
+            <div className="relative flex bg-surface p-1 rounded-xl border border-line/50 shadow-inner overflow-hidden">
               {/* Indicador Deslizante (Sliding Background) */}
               <div
-                className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-surface-2/80 rounded-lg border border-strong/30 shadow-lg"
+                className="absolute top-1.5 bottom-1.5 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) bg-surface-2/80 rounded-lg border border-line-strong/30 shadow-lg"
                 style={{
                   width: `calc(${100 / Math.max(tabs.length, 1)}% - 10px)`,
                   left: `calc(${(tabs.findIndex(t => t.id === activeTab) * 100) / Math.max(tabs.length, 1)}% + 5px)`,
@@ -484,7 +484,7 @@ export const FeriasPage: React.FC = () => {
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-20 rounded-xl bg-surface-2/30 border border-base animate-pulse"
+                    className="h-20 rounded-xl bg-surface-2/30 border border-line animate-pulse"
                   />
                 ))}
               </div>
@@ -505,7 +505,7 @@ export const FeriasPage: React.FC = () => {
                 {historico.map((h) => (
                   <div
                     key={h.id}
-                    className="p-4 rounded-xl bg-surface/40 border border-base hover:border-strong transition-colors"
+                    className="p-4 rounded-xl bg-surface/40 border border-line hover:border-line-strong transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">

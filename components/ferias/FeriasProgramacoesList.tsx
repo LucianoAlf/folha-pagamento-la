@@ -62,7 +62,7 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-32 rounded-xl bg-surface-2/30 border border-base animate-pulse"
+            className="h-32 rounded-xl bg-surface-2/30 border border-line animate-pulse"
           />
         ))}
       </div>
@@ -117,7 +117,7 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
         return (
           <div
             key={prog.id}
-            className="p-4 rounded-xl bg-surface/40 border border-base hover:border-strong transition-colors"
+            className="p-4 rounded-xl bg-surface/40 border border-line hover:border-line-strong transition-colors"
           >
             <div className="flex items-start justify-between gap-4">
               {/* Info Principal */}
@@ -203,7 +203,7 @@ export const FeriasProgramacoesList: React.FC<FeriasProgramacoesListProps> = ({
 
                 {/* Observações */}
                 {prog.observacoes && (
-                  <div className="p-2 rounded-lg bg-surface-2/40 border border-strong">
+                  <div className="p-2 rounded-lg bg-surface-2/40 border border-line-strong">
                     <div className="text-xs text-secondary">
                       💬 {prog.observacoes}
                     </div>

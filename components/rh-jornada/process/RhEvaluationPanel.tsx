@@ -125,7 +125,7 @@ export const RhEvaluationPanel: React.FC<{
   if (!processId) return null;
 
   return (
-    <Card className="p-5 border border-strong/50">
+    <Card className="p-5 border border-line-strong/50">
       <div className="flex items-center gap-2 mb-4">
         <ClipboardCheck className="w-4 h-4 text-success" />
         <h3 className="text-primary text-base font-black">Avaliações</h3>
@@ -134,7 +134,7 @@ export const RhEvaluationPanel: React.FC<{
 
       <div className="space-y-3 mb-5">
         {evaluations.map((evaluation) => (
-          <div key={evaluation.id} className="rounded-2xl border border-base bg-surface/30 p-4">
+          <div key={evaluation.id} className="rounded-2xl border border-line bg-surface/30 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="text-primary font-black">{TYPE_OPTIONS.find((item) => item.value === evaluation.tipo)?.label || evaluation.tipo}</div>
@@ -154,7 +154,7 @@ export const RhEvaluationPanel: React.FC<{
                       setNotes(evaluation.observacoes || '');
                       setEvaluatorUserId(evaluation.avaliador_user_id || '');
                     }}
-                    className="px-3 py-2 rounded-xl border border-base bg-surface/50 text-xs font-black text-secondary hover:bg-surface/70 transition-all flex items-center gap-2"
+                    className="px-3 py-2 rounded-xl border border-line bg-surface/50 text-xs font-black text-secondary hover:bg-surface/70 transition-all flex items-center gap-2"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Editar
@@ -196,7 +196,7 @@ export const RhEvaluationPanel: React.FC<{
       {editingEvaluationId ? (
         <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3">
           <div className="text-sm font-bold text-info">Editando uma avaliação existente.</div>
-          <button type="button" onClick={resetForm} className="px-3 py-2 rounded-xl border border-base bg-surface/40 text-xs font-black text-secondary hover:bg-surface/60 transition-all">Cancelar edição</button>
+          <button type="button" onClick={resetForm} className="px-3 py-2 rounded-xl border border-line bg-surface/40 text-xs font-black text-secondary hover:bg-surface/60 transition-all">Cancelar edição</button>
         </div>
       ) : null}
 
@@ -223,7 +223,7 @@ export const RhEvaluationPanel: React.FC<{
             value={score}
             onChange={(e) => setScore(e.target.value)}
             placeholder="0 a 10"
-            className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
         </div>
         <div className="md:col-span-2">
@@ -232,7 +232,7 @@ export const RhEvaluationPanel: React.FC<{
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             placeholder="Síntese da avaliação"
-            className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
         </div>
         <div className="md:col-span-2">
@@ -242,7 +242,7 @@ export const RhEvaluationPanel: React.FC<{
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Pontos fortes, ajustes, contexto e encaminhamentos"
-            className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+            className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
           />
         </div>
       </div>

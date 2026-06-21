@@ -50,7 +50,7 @@ export const ContasSummaryCards: React.FC<{
         <div className="mt-2 text-xs text-warning font-bold">{proximos7.count} contas</div>
       </Card>
 
-      <Card className="p-6 border border-strong/50">
+      <Card className="p-6 border border-line-strong/50">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-surface-2/60 text-secondary flex items-center justify-center">

@@ -85,7 +85,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             placeholder="Ex: Mensalidades"
-            className="w-full px-5 py-4 bg-bg border border-base rounded-2xl text-primary font-bold placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-danger/40 focus:border-danger/50 transition-all"
+            className="w-full px-5 py-4 bg-bg border border-line rounded-2xl text-primary font-bold placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-danger/40 focus:border-danger/50 transition-all"
           />
         </div>
 
@@ -101,7 +101,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
               className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-black text-xs transition-all ${
                 tipoCusto === 'fixo'
                   ? 'bg-danger/10 border-danger/50 text-danger'
-                  : 'bg-surface/40 border-base text-muted hover:bg-surface-2'
+                  : 'bg-surface/40 border-line text-muted hover:bg-surface-2'
               }`}
             >
               📌 FIXO
@@ -112,7 +112,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
               className={`flex items-center justify-center gap-2 py-3 rounded-xl border font-black text-xs transition-all ${
                 tipoCusto === 'variavel'
                   ? 'bg-danger/10 border-danger/50 text-danger'
-                  : 'bg-surface/40 border-base text-muted hover:bg-surface-2'
+                  : 'bg-surface/40 border-line text-muted hover:bg-surface-2'
               }`}
             >
               📈 VARIÁVEL
@@ -134,7 +134,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
                 className={`w-full aspect-square flex items-center justify-center rounded-xl text-xl transition-all border ${
                   icone === i
                     ? 'bg-danger/20 border-danger text-danger scale-110 shadow-lg shadow-danger/20'
-                    : 'bg-surface/40 border-base hover:bg-surface-2'
+                    : 'bg-surface/40 border-line hover:bg-surface-2'
                 }`}
               >
                 {i}
@@ -147,7 +147,7 @@ export const CategoriaModal: React.FC<CategoriaModalProps> = ({
       <div className="mt-10 flex gap-3">
         <button
           onClick={onClose}
-          className="flex-1 py-4 px-4 rounded-2xl border border-base text-secondary font-black text-xs hover:bg-surface-2 transition-all"
+          className="flex-1 py-4 px-4 rounded-2xl border border-line text-secondary font-black text-xs hover:bg-surface-2 transition-all"
         >
           CANCELAR
         </button>

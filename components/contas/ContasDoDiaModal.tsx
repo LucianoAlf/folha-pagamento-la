@@ -56,7 +56,7 @@ export const ContasDoDiaModal: React.FC<{
           <button
             type="button"
             onClick={() => onNovaConta(dateISO)}
-            className="w-full rounded-2xl border border-base bg-surface/20 hover:bg-surface/30 transition-all px-4 py-3 text-sm font-black text-primary"
+            className="w-full rounded-2xl border border-line bg-surface/20 hover:bg-surface/30 transition-all px-4 py-3 text-sm font-black text-primary"
           >
             + Nova conta para este dia
           </button>
@@ -113,7 +113,7 @@ export const ContasDoDiaModal: React.FC<{
                 <button
                   type="button"
                   onClick={() => onEditar(c)}
-                  className="px-4 py-2.5 rounded-xl border border-base bg-surface/20 hover:bg-surface/30 text-secondary text-xs font-black transition-all"
+                  className="px-4 py-2.5 rounded-xl border border-line bg-surface/20 hover:bg-surface/30 text-secondary text-xs font-black transition-all"
                 >
                   <span className="inline-flex items-center gap-2">
                     <Pencil size={14} />
@@ -125,7 +125,7 @@ export const ContasDoDiaModal: React.FC<{
                   <button
                     type="button"
                     onClick={() => onExcluir(c)}
-                    className="px-3 py-2.5 rounded-xl border border-base bg-surface/20 hover:bg-danger/10 hover:border-danger/30 text-danger text-xs font-black transition-all"
+                    className="px-3 py-2.5 rounded-xl border border-line bg-surface/20 hover:bg-danger/10 hover:border-danger/30 text-danger text-xs font-black transition-all"
                   >
                     <Trash2 size={14} />
                   </button>

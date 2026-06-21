@@ -179,7 +179,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const containerClass = [
     collapsed ? 'w-20' : 'w-72',
     'h-full relative flex flex-col transition-all duration-300',
-    'bg-bg border-r border-base',
+    'bg-bg border-r border-line',
     'before:content-[""] before:absolute before:inset-0 before:pointer-events-none',
     'before:bg-[radial-gradient(900px_circle_at_20%_-10%,rgba(139,92,246,0.20),transparent_55%),radial-gradient(700px_circle_at_80%_30%,rgba(6,182,212,0.10),transparent_60%)]',
     'before:opacity-100',
@@ -198,7 +198,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className={containerClass} aria-label="Navegação principal">
       {/* Logo Area */}
-      <div className="p-5 border-b border-base">
+      <div className="p-5 border-b border-line">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 flex items-center justify-center shrink-0 rounded-2xl bg-transparent">
             <img src="/logo-LA-colapsed.png" alt="LA" className="w-10 h-10 object-contain" />
@@ -294,18 +294,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-base">
+      <div className="p-4 border-t border-line">
         <Tooltip content={!collapsed ? 'Editar Perfil' : userLabel} side="right">
           <button
             type="button"
             className={[
-              'w-full flex items-center gap-3 rounded-2xl border border-base bg-surface/30 hover:bg-surface/50 hover:border-accent/30 transition-all group/profile',
+              'w-full flex items-center gap-3 rounded-2xl border border-line bg-surface/30 hover:bg-surface/50 hover:border-accent/30 transition-all group/profile',
               collapsed ? 'justify-center p-2.5' : 'p-3',
             ].join(' ')}
             onClick={onEditProfile}
             aria-label="Editar Perfil"
           >
-            <div className="w-10 h-10 rounded-full border border-strong overflow-hidden bg-surface/40 shrink-0 group-hover/profile:border-accent/50 transition-colors">
+            <div className="w-10 h-10 rounded-full border border-line-strong overflow-hidden bg-surface/40 shrink-0 group-hover/profile:border-accent/50 transition-colors">
               <img
                 src={userAvatarUrl || '/logo-LA-colapsed.png'}
                 alt="Usuário"
@@ -355,7 +355,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => setCollapsedPersisted(!collapsed)}
-            className="absolute top-1/2 -right-3 w-7 h-7 bg-surface border border-strong rounded-full flex items-center justify-center text-secondary hover:text-primary transition-colors"
+            className="absolute top-1/2 -right-3 w-7 h-7 bg-surface border border-line-strong rounded-full flex items-center justify-center text-secondary hover:text-primary transition-colors"
             aria-label={collapsed ? 'Expandir' : 'Recolher'}
           >
             {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}

@@ -89,7 +89,7 @@ export const NotificacoesPage: React.FC = () => {
 
   // Padrão do sistema: Card “dark” com borda (como usamos no resto do app)
   // OBS: quando usamos bg-slate-* o componente Card não aplica borda padrão automaticamente.
-  const cardClass = 'bg-bg/85 border border-base/70 backdrop-blur-none';
+  const cardClass = 'bg-bg/85 border border-line/70 backdrop-blur-none';
 
   const diasSemana = useMemo(
     () => [
@@ -205,7 +205,7 @@ export const NotificacoesPage: React.FC = () => {
       {/* Mobile Premium Header Card */}
       {isMobile ? (
         <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-          <Card className="p-4 bg-surface/40 border border-base/60">
+          <Card className="p-4 bg-surface/40 border border-line/60">
             <div className="flex items-center gap-3 mb-1">
               <Bell className="w-5 h-5 text-accent" />
               <h2 className="text-xl font-black text-primary leading-tight">Central de Notificações</h2>
@@ -270,7 +270,7 @@ export const NotificacoesPage: React.FC = () => {
               }
             }}
             className={cn(
-              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              'w-full px-6 py-4 border-b border-line/70 flex items-center justify-between',
               isMobile && 'cursor-pointer active:bg-surface/40 transition-colors'
             )}
           >
@@ -299,7 +299,7 @@ export const NotificacoesPage: React.FC = () => {
             </div>
           </div>
           {(!isMobile || accordionOpen.whatsapp) && (
-            <div className="divide-y divide-base/60">
+            <div className="divide-y divide-line/60">
               <div className="px-6 py-5 space-y-4">
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Número</div>
@@ -307,7 +307,7 @@ export const NotificacoesPage: React.FC = () => {
                     value={String(config.whatsapp_numero || '')}
                     onChange={(e) => setConfig((prev) => ({ ...prev, whatsapp_numero: e.target.value }))}
                     placeholder="55DDDNUMERO"
-                    className="w-full px-4 py-3 rounded-xl bg-surface/50 border border-base text-secondary outline-none focus:ring-2 focus:ring-accent"
+                    className="w-full px-4 py-3 rounded-xl bg-surface/50 border border-line text-secondary outline-none focus:ring-2 focus:ring-accent"
                   />
                   {waTestStatus !== 'idle' ? (
                     <div
@@ -344,7 +344,7 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('agenda')}
             className={cn(
-              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              'w-full px-6 py-4 border-b border-line/70 flex items-center justify-between',
               isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
@@ -362,7 +362,7 @@ export const NotificacoesPage: React.FC = () => {
             )}
           </button>
           {(!isMobile || accordionOpen.agenda) && (
-            <div className="divide-y divide-base/60">
+            <div className="divide-y divide-line/60">
               <div className="px-6 py-5 space-y-6">
                 {/* Lembrete de tarefas */}
                 <div className="space-y-3">
@@ -459,7 +459,7 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('rh')}
             className={cn(
-              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              'w-full px-6 py-4 border-b border-line/70 flex items-center justify-between',
               isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
@@ -477,9 +477,9 @@ export const NotificacoesPage: React.FC = () => {
             )}
           </button>
           {(!isMobile || accordionOpen.rh) && (
-            <div className="divide-y divide-base/60">
+            <div className="divide-y divide-line/60">
               <div className="px-6 py-5 space-y-6">
-                <div className="rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                <div className="rounded-2xl border border-line bg-bg/25 px-4 py-3">
                   <div className="text-sm text-secondary font-black">Espelhamento automatico na Agenda</div>
                   <div className="mt-1 text-xs text-muted font-medium leading-relaxed">
                     Tudo o que for agendado na Jornada RH continua aparecendo na Agenda da Ana. Aqui voce configura a antecedencia dos lembretes desses espelhos.
@@ -549,7 +549,7 @@ export const NotificacoesPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                <div className="rounded-2xl border border-line bg-bg/25 px-4 py-3">
                   <div className="text-sm text-secondary font-black">WhatsApp da Jornada RH</div>
                   <div className="mt-1 text-xs text-muted font-medium leading-relaxed">
                     O canal de WhatsApp continua sendo configurado acima. Dentro da Jornada RH, cada etapa pode marcar se deve avisar os responsaveis e o colaborador.
@@ -566,7 +566,7 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('contas')}
             className={cn(
-              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              'w-full px-6 py-4 border-b border-line/70 flex items-center justify-between',
               isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
@@ -584,7 +584,7 @@ export const NotificacoesPage: React.FC = () => {
             )}
           </button>
           {(!isMobile || accordionOpen.contas) && (
-            <div className="divide-y divide-base/60">
+            <div className="divide-y divide-line/60">
               <div className="px-6 py-5 space-y-6">
                 {/* Alertas por vencimento */}
                 <div className="space-y-3">
@@ -592,7 +592,7 @@ export const NotificacoesPage: React.FC = () => {
                     Alertas por vencimento
                   </div>
                   <div className="grid grid-cols-1 gap-3">
-                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-bg/25 px-4 py-3">
                       <div className="text-sm text-secondary font-black whitespace-nowrap">3 dias antes</div>
                       <ToggleSwitch
                         checked={!!config.contas_alerta_3d}
@@ -602,7 +602,7 @@ export const NotificacoesPage: React.FC = () => {
                         ariaLabel="Ativar alerta 3 dias antes"
                       />
                     </div>
-                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-bg/25 px-4 py-3">
                       <div className="text-sm text-secondary font-black whitespace-nowrap">1 dia antes</div>
                       <ToggleSwitch
                         checked={!!config.contas_alerta_1d}
@@ -612,7 +612,7 @@ export const NotificacoesPage: React.FC = () => {
                         ariaLabel="Ativar alerta 1 dia antes"
                       />
                     </div>
-                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-base bg-bg/25 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-bg/25 px-4 py-3">
                       <div className="text-sm text-secondary font-black whitespace-nowrap">No dia</div>
                       <ToggleSwitch
                         checked={!!config.contas_alerta_no_dia}
@@ -672,7 +672,7 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('folha')}
             className={cn(
-              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              'w-full px-6 py-4 border-b border-line/70 flex items-center justify-between',
               isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
@@ -690,7 +690,7 @@ export const NotificacoesPage: React.FC = () => {
             )}
           </button>
           {(!isMobile || accordionOpen.folha) && (
-            <div className="divide-y divide-base/60">
+            <div className="divide-y divide-line/60">
               <div className="px-6 py-5 space-y-6">
                 {/* Alerta de fechamento */}
                 <div className="space-y-3">
@@ -712,7 +712,7 @@ export const NotificacoesPage: React.FC = () => {
                       value={Number(config.folha_alerta_fechamento_dia ?? 25)}
                       onChange={(e) => setConfig((prev) => ({ ...prev, folha_alerta_fechamento_dia: Number(e.target.value || 25) }))}
                       className={cn(
-                        'w-full px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
+                        'w-full px-3 py-2.5 rounded-xl bg-surface/50 border border-line text-secondary outline-none',
                         !config.folha_alerta_fechamento_ativo && 'opacity-60 pointer-events-none'
                       )}
                     />
@@ -745,7 +745,7 @@ export const NotificacoesPage: React.FC = () => {
             type="button"
             onClick={() => isMobile && toggleAccordion('ferias')}
             className={cn(
-              'w-full px-6 py-4 border-b border-base/70 flex items-center justify-between',
+              'w-full px-6 py-4 border-b border-line/70 flex items-center justify-between',
               isMobile && 'active:bg-surface/40 transition-colors'
             )}
           >
@@ -763,7 +763,7 @@ export const NotificacoesPage: React.FC = () => {
             )}
           </button>
           {(!isMobile || accordionOpen.ferias) && (
-            <div className="divide-y divide-base/60">
+            <div className="divide-y divide-line/60">
               <div className="px-6 py-5 space-y-6">
                 {/* Alerta de férias vencidas (CRÍTICO) */}
                 <div className="space-y-3">
@@ -801,7 +801,7 @@ export const NotificacoesPage: React.FC = () => {
                       value={Number(config.ferias_alerta_concessivo_dias ?? 60)}
                       onChange={(e) => setConfig((prev) => ({ ...prev, ferias_alerta_concessivo_dias: Number(e.target.value || 60) }))}
                       className={cn(
-                        'w-20 px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
+                        'w-20 px-3 py-2.5 rounded-xl bg-surface/50 border border-line text-secondary outline-none',
                         !config.ferias_alerta_concessivo_critico && 'opacity-60 pointer-events-none'
                       )}
                     />
@@ -845,7 +845,7 @@ export const NotificacoesPage: React.FC = () => {
                       value={Number(config.ferias_alerta_aquisitivo_dias ?? 30)}
                       onChange={(e) => setConfig((prev) => ({ ...prev, ferias_alerta_aquisitivo_dias: Number(e.target.value || 30) }))}
                       className={cn(
-                        'w-20 px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
+                        'w-20 px-3 py-2.5 rounded-xl bg-surface/50 border border-line text-secondary outline-none',
                         !config.ferias_alerta_aquisitivo_prox && 'opacity-60 pointer-events-none'
                       )}
                     />
@@ -874,7 +874,7 @@ export const NotificacoesPage: React.FC = () => {
                         value={Number(config.ferias_resumo_mensal_dia ?? 1)}
                         onChange={(e) => setConfig((prev) => ({ ...prev, ferias_resumo_mensal_dia: Number(e.target.value || 1) }))}
                         className={cn(
-                          'w-full px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
+                          'w-full px-3 py-2.5 rounded-xl bg-surface/50 border border-line text-secondary outline-none',
                           !config.ferias_resumo_mensal_ativo && 'opacity-60 pointer-events-none'
                         )}
                       />
@@ -888,7 +888,7 @@ export const NotificacoesPage: React.FC = () => {
                         value={Number(config.ferias_resumo_mensal_hora ?? 8)}
                         onChange={(e) => setConfig((prev) => ({ ...prev, ferias_resumo_mensal_hora: Number(e.target.value || 8) }))}
                         className={cn(
-                          'w-full px-3 py-2.5 rounded-xl bg-surface/50 border border-base text-secondary outline-none',
+                          'w-full px-3 py-2.5 rounded-xl bg-surface/50 border border-line text-secondary outline-none',
                           !config.ferias_resumo_mensal_ativo && 'opacity-60 pointer-events-none'
                         )}
                       />
@@ -907,7 +907,7 @@ export const NotificacoesPage: React.FC = () => {
       {/* Sticky Save Bar (Mobile) */}
       {isMobile && (
         <div 
-          className="fixed left-0 right-0 z-[10400] bg-bg/95 backdrop-blur-xl border-t border-base/70 p-4 animate-in slide-in-from-bottom-2 duration-300"
+          className="fixed left-0 right-0 z-[10400] bg-bg/95 backdrop-blur-xl border-t border-line/70 p-4 animate-in slide-in-from-bottom-2 duration-300"
           style={{ bottom: 'calc(88px + env(safe-area-inset-bottom))' }}
         >
           <button

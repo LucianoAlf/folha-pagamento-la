@@ -78,7 +78,7 @@ const OnboardingCreateModal: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-3 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all"
+            className="px-6 py-3 rounded-2xl border border-line bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all"
           >
             Cancelar
           </button>
@@ -153,7 +153,7 @@ const OnboardingCreateModal: React.FC<{
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               placeholder="Ex: Onboarding João Silva"
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
             />
           </div>
           <div className="md:col-span-2">
@@ -162,7 +162,7 @@ const OnboardingCreateModal: React.FC<{
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               rows={4}
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
               placeholder="Anotações da admissão, mentor, prioridades ou contexto do onboarding"
             />
           </div>
@@ -260,29 +260,29 @@ export const OnboardingTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-strong/50">
+        <Card className="p-5 border border-line-strong/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Ativos</div>
           <div className="mt-2 text-3xl font-black text-primary">{activeProcessesCount}</div>
           <div className="mt-1 text-xs font-bold text-muted">Onboardings em andamento</div>
         </Card>
-        <Card className="p-5 border border-strong/50">
+        <Card className="p-5 border border-line-strong/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Etapas</div>
           <div className="mt-2 text-3xl font-black text-primary">{selectedProcess?.total_etapas || 0}</div>
           <div className="mt-1 text-xs font-bold text-muted truncate">{selectedProcessContext}</div>
         </Card>
-        <Card className="p-5 border border-strong/50">
+        <Card className="p-5 border border-line-strong/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Concluídas</div>
           <div className="mt-2 text-3xl font-black text-success">{selectedProcess?.etapas_concluidas || 0}</div>
           <div className="mt-1 text-xs font-bold text-muted">Etapas fechadas</div>
         </Card>
-        <Card className="p-5 border border-strong/50">
+        <Card className="p-5 border border-line-strong/50">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Progresso</div>
           <div className="mt-2 text-3xl font-black text-accent">{Math.round(selectedProcess?.percentual_conclusao || 0)}%</div>
           <div className="mt-1 text-xs font-bold text-muted">Conclusão estimada</div>
         </Card>
       </div>
 
-      <Card className="p-5 border border-strong/50">
+      <Card className="p-5 border border-line-strong/50">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-primary text-lg font-black">Onboardings ativos</div>
@@ -300,7 +300,7 @@ export const OnboardingTab: React.FC = () => {
       </Card>
 
       {processes.length === 0 ? (
-        <Card className="p-10 border border-dashed border-strong bg-surface/30 text-center">
+        <Card className="p-10 border border-dashed border-line-strong bg-surface/30 text-center">
           <div className="mx-auto w-14 h-14 rounded-3xl bg-surface-2/70 flex items-center justify-center mb-4">
             <Users className="w-6 h-6 text-muted" />
           </div>
@@ -309,7 +309,7 @@ export const OnboardingTab: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)] gap-6">
-          <Card className="p-5 border border-strong/50">
+          <Card className="p-5 border border-line-strong/50">
             <div className="flex items-center gap-2 mb-4">
               <Route className="w-4 h-4 text-info" />
               <h3 className="text-primary text-base font-black">Lista de processos</h3>
@@ -326,7 +326,7 @@ export const OnboardingTab: React.FC = () => {
                     onClick={() => setSelectedProcessId(process.id)}
                     className={[
                       'w-full rounded-3xl border p-4 text-left transition-all',
-                      active ? 'border-accent/30 bg-accent/10' : 'border-base bg-surface/30 hover:bg-surface/50',
+                      active ? 'border-accent/30 bg-accent/10' : 'border-line bg-surface/30 hover:bg-surface/50',
                     ].join(' ')}
                   >
                     <div className="text-primary font-black truncate">{process.titulo}</div>
@@ -342,7 +342,7 @@ export const OnboardingTab: React.FC = () => {
           </Card>
 
           <div className="space-y-6">
-            <Card className="p-5 border border-strong/50">
+            <Card className="p-5 border border-line-strong/50">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <div className="text-primary text-xl font-black">{selectedProcess?.titulo || 'Selecione um processo'}</div>
@@ -362,17 +362,17 @@ export const OnboardingTab: React.FC = () => {
 
               {selectedProcess ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-                  <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                  <div className="rounded-2xl border border-line bg-surface/30 p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Início</div>
                     <div className="mt-2 text-sm font-black text-primary">{new Date(`${selectedProcess.data_inicio}T00:00:00`).toLocaleDateString('pt-BR')}</div>
                   </div>
-                  <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                  <div className="rounded-2xl border border-line bg-surface/30 p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Fim previsto</div>
                     <div className="mt-2 text-sm font-black text-primary">
                       {selectedProcess.data_fim_prevista ? new Date(`${selectedProcess.data_fim_prevista}T00:00:00`).toLocaleDateString('pt-BR') : 'Não informado'}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-base bg-surface/30 p-4">
+                  <div className="rounded-2xl border border-line bg-surface/30 p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Cargo</div>
                     <div className="mt-2 text-sm font-black text-primary">{selectedProcess.cargo || 'Não informado'}</div>
                   </div>
@@ -380,7 +380,7 @@ export const OnboardingTab: React.FC = () => {
               ) : null}
             </Card>
 
-            <Card className="p-5 border border-strong/50">
+            <Card className="p-5 border border-line-strong/50">
               <div className="flex items-center gap-2 mb-4">
                 <ClipboardList className="w-4 h-4 text-warning" />
                 <h3 className="text-primary text-base font-black">Timeline de etapas</h3>
@@ -395,7 +395,7 @@ export const OnboardingTab: React.FC = () => {
                       onClick={() => setSelectedStageId(stage.id)}
                       className={cn(
                         'w-full rounded-2xl border p-4 text-left transition-all',
-                        selectedStageId === stage.id ? 'border-accent/40 bg-accent/10' : 'border-base bg-surface/30 hover:bg-surface/50'
+                        selectedStageId === stage.id ? 'border-accent/40 bg-accent/10' : 'border-line bg-surface/30 hover:bg-surface/50'
                       )}
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

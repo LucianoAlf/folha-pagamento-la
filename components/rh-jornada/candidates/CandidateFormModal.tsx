@@ -133,7 +133,7 @@ export const CandidateFormModal: React.FC<{
                 resetState();
                 onClose();
               }}
-              className="px-6 py-3 rounded-2xl border border-base bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all"
+              className="px-6 py-3 rounded-2xl border border-line bg-surface/40 text-secondary font-black hover:bg-surface/60 transition-all"
             >
               Cancelar
             </button>
@@ -201,7 +201,7 @@ export const CandidateFormModal: React.FC<{
             <input
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
               placeholder="Nome completo do candidato"
             />
           </div>
@@ -211,7 +211,7 @@ export const CandidateFormModal: React.FC<{
             <input
               value={cargoPretendido}
               onChange={(e) => setCargoPretendido(e.target.value)}
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
               placeholder="Ex: Professor de violão"
             />
           </div>
@@ -226,7 +226,7 @@ export const CandidateFormModal: React.FC<{
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
               placeholder="email@exemplo.com"
             />
           </div>
@@ -236,7 +236,7 @@ export const CandidateFormModal: React.FC<{
             <input
               value={telefone}
               onChange={(e) => setTelefone(e.target.value)}
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
               placeholder="(21) 99999-9999"
             />
           </div>
@@ -246,7 +246,7 @@ export const CandidateFormModal: React.FC<{
             <input
               value={cpf}
               onChange={(e) => setCpf(e.target.value)}
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
               placeholder="000.000.000-00"
             />
           </div>
@@ -258,7 +258,7 @@ export const CandidateFormModal: React.FC<{
 
           <div className="md:col-span-2">
             <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Currículo / PDF</label>
-            <div className="rounded-2xl border border-base bg-bg px-5 py-4">
+            <div className="rounded-2xl border border-line bg-bg px-5 py-4">
               <input
                 type="file"
                 accept=".pdf,.txt,.doc,.docx,.rtf"
@@ -277,7 +277,7 @@ export const CandidateFormModal: React.FC<{
               value={questionarioResumo}
               onChange={(e) => setQuestionarioResumo(e.target.value)}
               rows={3}
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
               placeholder="Resumo comportamental ou observações do formulário inicial"
             />
           </div>
@@ -288,7 +288,7 @@ export const CandidateFormModal: React.FC<{
               value={questionarioTexto}
               onChange={(e) => setQuestionarioTexto(e.target.value)}
               rows={4}
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
               placeholder="Cole aqui as respostas do formulário inicial para a IA resumir e sugerir pontos de atenção"
             />
           </div>
@@ -299,7 +299,7 @@ export const CandidateFormModal: React.FC<{
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               rows={4}
-              className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+              className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
               placeholder="Anotações iniciais sobre perfil, disponibilidade, fit cultural ou próximos passos"
             />
           </div>
@@ -357,7 +357,7 @@ export const CandidateFormModal: React.FC<{
 
             {aiDraft ? (
               <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-base bg-bg/40 p-4">
+                <div className="rounded-2xl border border-line bg-bg/40 p-4">
                   <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Pontos fortes</div>
                   <div className="space-y-2">
                     {aiDraft.pontos_fortes.length ? aiDraft.pontos_fortes.map((item, index) => (
@@ -365,7 +365,7 @@ export const CandidateFormModal: React.FC<{
                     )) : <div className="text-sm font-bold text-muted">Sem pontos destacados.</div>}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-base bg-bg/40 p-4">
+                <div className="rounded-2xl border border-line bg-bg/40 p-4">
                   <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Alertas / riscos</div>
                   <div className="space-y-2">
                     {aiDraft.alertas.length ? aiDraft.alertas.map((item, index) => (

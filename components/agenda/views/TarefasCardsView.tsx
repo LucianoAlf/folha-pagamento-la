@@ -48,7 +48,7 @@ export const TarefasCardsView: React.FC<{
     return (
       <div className="h-full flex items-center justify-center text-muted">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-2xl bg-surface/40 border border-base flex items-center justify-center mx-auto mb-3">
+          <div className="w-12 h-12 rounded-2xl bg-surface/40 border border-line flex items-center justify-center mx-auto mb-3">
             <Layers className="w-6 h-6 text-muted" />
           </div>
           <div className="text-sm font-bold">Nenhuma tarefa para exibir</div>
@@ -95,10 +95,10 @@ export const TarefasCardsView: React.FC<{
                         }}
                         className={cn(
                           'group relative rounded-2xl border transition-all cursor-pointer select-none overflow-hidden',
-                          'bg-bg/95 hover:bg-surface/95 hover:border-strong/60',
+                          'bg-bg/95 hover:bg-surface/95 hover:border-line-strong/60',
                           selected
                             ? 'border-accent/35 shadow-lg shadow-accent/5 ring-1 ring-accent/20'
-                            : 'border-base/60',
+                            : 'border-line/60',
                           t.status === 'concluida' ? 'opacity-70' : ''
                         )}
                       >
@@ -109,13 +109,13 @@ export const TarefasCardsView: React.FC<{
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                                <span className={cn('px-2 py-0.5 rounded-full border', prioridade.bg, prioridade.text, 'border-base')}>
+                                <span className={cn('px-2 py-0.5 rounded-full border', prioridade.bg, prioridade.text, 'border-line')}>
                                   <span className="inline-flex items-center gap-1.5">
                                     <PrioridadeIcon className="w-3.5 h-3.5" />
                                     {prioridade.label}
                                   </span>
                                 </span>
-                                <span className={cn('px-2 py-0.5 rounded-full border', categoria.bg, categoria.text, 'border-base')}>
+                                <span className={cn('px-2 py-0.5 rounded-full border', categoria.bg, categoria.text, 'border-line')}>
                                   <span className="inline-flex items-center gap-1.5">
                                     <CategoriaIcon className="w-3.5 h-3.5" />
                                     {categoria.label}
@@ -124,7 +124,7 @@ export const TarefasCardsView: React.FC<{
                                 {t.status === 'concluida' ? (
                                   <span
                                     className={cn(
-                                      'px-2 py-0.5 rounded-full border border-base',
+                                      'px-2 py-0.5 rounded-full border border-line',
                                       STATUS_TAREFA.concluida.bg,
                                       STATUS_TAREFA.concluida.text
                                     )}
@@ -160,7 +160,7 @@ export const TarefasCardsView: React.FC<{
                                   'w-9 h-9 rounded-2xl border flex items-center justify-center transition-all shrink-0',
                                   t.status === 'concluida'
                                     ? 'bg-success/15 border-success/25 text-success-subtle'
-                                    : 'bg-surface/30 border-base text-muted hover:text-primary hover:bg-surface/50 hover:border-accent/25'
+                                    : 'bg-surface/30 border-line text-muted hover:text-primary hover:bg-surface/50 hover:border-accent/25'
                                 )}
                                 aria-label={t.status === 'concluida' ? 'Reabrir tarefa' : 'Concluir tarefa'}
                               >
@@ -171,7 +171,7 @@ export const TarefasCardsView: React.FC<{
 
                           <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold text-muted">
                             {t.unidade ? (
-                              <span className="px-2 py-0.5 rounded-full border border-base bg-surface/40 text-secondary">
+                              <span className="px-2 py-0.5 rounded-full border border-line bg-surface/40 text-secondary">
                                 <span className="inline-flex items-center gap-1.5">
                                   <Building2 className="w-3.5 h-3.5" />
                                   {t.unidade.toUpperCase()}
@@ -179,14 +179,14 @@ export const TarefasCardsView: React.FC<{
                               </span>
                             ) : null}
                             {t.vencimento_em ? (
-                              <span className="px-2 py-0.5 rounded-full border border-base bg-surface/40 text-secondary">
+                              <span className="px-2 py-0.5 rounded-full border border-line bg-surface/40 text-secondary">
                                 <span className="inline-flex items-center gap-1.5">
                                   <Calendar className="w-3.5 h-3.5" />
                                   {formatWhen(t.vencimento_em)}
                                 </span>
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full border border-base bg-surface/20 text-muted">Sem data</span>
+                              <span className="px-2 py-0.5 rounded-full border border-line bg-surface/20 text-muted">Sem data</span>
                             )}
                           </div>
 
@@ -198,7 +198,7 @@ export const TarefasCardsView: React.FC<{
                                   {progressDone}/{progressTotal}
                                 </span>
                               </div>
-                              <div className="mt-2 h-2 rounded-full bg-surface/60 overflow-hidden border border-base/60">
+                              <div className="mt-2 h-2 rounded-full bg-surface/60 overflow-hidden border border-line/60">
                                 <div className="h-full rounded-full bg-accent/70" style={{ width: `${progressPct}%` }} />
                               </div>
                             </div>
@@ -235,8 +235,8 @@ export const TarefasCardsView: React.FC<{
                 }}
                 className={cn(
                   'group relative rounded-2xl border transition-all cursor-pointer select-none overflow-hidden',
-                  'bg-bg/95 hover:bg-surface/95 hover:border-strong/60',
-                  selected ? 'border-accent/35 shadow-lg shadow-accent/5 ring-1 ring-accent/20' : 'border-base/60',
+                  'bg-bg/95 hover:bg-surface/95 hover:border-line-strong/60',
+                  selected ? 'border-accent/35 shadow-lg shadow-accent/5 ring-1 ring-accent/20' : 'border-line/60',
                   t.status === 'concluida' ? 'opacity-70' : ''
                 )}
               >
@@ -247,20 +247,20 @@ export const TarefasCardsView: React.FC<{
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                        <span className={cn('px-2 py-0.5 rounded-full border', prioridade.bg, prioridade.text, 'border-base')}>
+                        <span className={cn('px-2 py-0.5 rounded-full border', prioridade.bg, prioridade.text, 'border-line')}>
                           <span className="inline-flex items-center gap-1.5">
                             <PrioridadeIcon className="w-3.5 h-3.5" />
                             {prioridade.label}
                           </span>
                         </span>
-                        <span className={cn('px-2 py-0.5 rounded-full border', categoria.bg, categoria.text, 'border-base')}>
+                        <span className={cn('px-2 py-0.5 rounded-full border', categoria.bg, categoria.text, 'border-line')}>
                           <span className="inline-flex items-center gap-1.5">
                             <CategoriaIcon className="w-3.5 h-3.5" />
                             {categoria.label}
                           </span>
                         </span>
                         {t.status === 'concluida' ? (
-                          <span className={cn('px-2 py-0.5 rounded-full border border-base', STATUS_TAREFA.concluida.bg, STATUS_TAREFA.concluida.text)}>
+                          <span className={cn('px-2 py-0.5 rounded-full border border-line', STATUS_TAREFA.concluida.bg, STATUS_TAREFA.concluida.text)}>
                             <span className="inline-flex items-center gap-1.5">
                               <Check className="w-3.5 h-3.5" />
                               {STATUS_TAREFA.concluida.label}
@@ -289,7 +289,7 @@ export const TarefasCardsView: React.FC<{
                           'w-9 h-9 rounded-2xl border flex items-center justify-center transition-all shrink-0',
                           t.status === 'concluida'
                             ? 'bg-success/15 border-success/25 text-success-subtle'
-                            : 'bg-surface/30 border-base text-muted hover:text-primary hover:bg-surface/50 hover:border-accent/25'
+                            : 'bg-surface/30 border-line text-muted hover:text-primary hover:bg-surface/50 hover:border-accent/25'
                         )}
                         aria-label={t.status === 'concluida' ? 'Reabrir tarefa' : 'Concluir tarefa'}
                       >
@@ -300,7 +300,7 @@ export const TarefasCardsView: React.FC<{
 
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-bold text-muted">
                     {t.unidade ? (
-                      <span className="px-2 py-0.5 rounded-full border border-base bg-surface/40 text-secondary">
+                      <span className="px-2 py-0.5 rounded-full border border-line bg-surface/40 text-secondary">
                         <span className="inline-flex items-center gap-1.5">
                           <Building2 className="w-3.5 h-3.5" />
                           {t.unidade.toUpperCase()}
@@ -308,14 +308,14 @@ export const TarefasCardsView: React.FC<{
                       </span>
                     ) : null}
                     {t.vencimento_em ? (
-                      <span className="px-2 py-0.5 rounded-full border border-base bg-surface/40 text-secondary">
+                      <span className="px-2 py-0.5 rounded-full border border-line bg-surface/40 text-secondary">
                         <span className="inline-flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5" />
                           {formatWhen(t.vencimento_em)}
                         </span>
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full border border-base bg-surface/20 text-muted">
+                      <span className="px-2 py-0.5 rounded-full border border-line bg-surface/20 text-muted">
                         Sem data
                       </span>
                     )}
@@ -329,7 +329,7 @@ export const TarefasCardsView: React.FC<{
                           {progressDone}/{progressTotal}
                         </span>
                       </div>
-                      <div className="mt-2 h-2 rounded-full bg-surface/60 overflow-hidden border border-base/60">
+                      <div className="mt-2 h-2 rounded-full bg-surface/60 overflow-hidden border border-line/60">
                         <div
                           className="h-full rounded-full bg-accent/70"
                           style={{ width: `${progressPct}%` }}

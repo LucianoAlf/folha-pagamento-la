@@ -92,7 +92,7 @@ export const TarefasKanbanView: React.FC<{
                 key={col.status}
                 className={cn(
                   "min-w-0 rounded-3xl border bg-bg/95 overflow-hidden flex flex-col transition-colors",
-                  dragOverStatus === col.status ? "border-accent/35 ring-1 ring-accent/15" : "border-base/60"
+                  dragOverStatus === col.status ? "border-accent/35 ring-1 ring-accent/15" : "border-line/60"
                 )}
                 onDragOver={(e) => {
                   // Necessário para permitir drop
@@ -116,9 +116,9 @@ export const TarefasKanbanView: React.FC<{
                   onMoveStatus(t, col.status);
                 }}
               >
-                <div className="px-4 py-3 border-b border-base/60 bg-bg/30 flex items-center justify-between gap-3">
+                <div className="px-4 py-3 border-b border-line/60 bg-bg/30 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn('w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0', meta.bg, meta.text, 'border-base')}>
+                    <div className={cn('w-9 h-9 rounded-2xl border flex items-center justify-center shrink-0', meta.bg, meta.text, 'border-line')}>
                       {col.icon}
                     </div>
                     <div className="min-w-0">
@@ -128,7 +128,7 @@ export const TarefasKanbanView: React.FC<{
                       </div>
                     </div>
                   </div>
-                  <span className={cn('px-2 py-1 rounded-full text-[10px] font-black border', meta.bg, meta.text, 'border-base')}>
+                  <span className={cn('px-2 py-1 rounded-full text-[10px] font-black border', meta.bg, meta.text, 'border-line')}>
                     {list.length}
                   </span>
                 </div>
@@ -165,8 +165,8 @@ export const TarefasKanbanView: React.FC<{
                             onDragEnd={() => setDragOverStatus(null)}
                             className={cn(
                               'group rounded-2xl border p-3 transition-all cursor-pointer select-none',
-                              'bg-surface/20 hover:bg-surface-2/95 hover:border-strong/60',
-                              selected ? 'border-accent/35 ring-1 ring-accent/20' : 'border-base/60',
+                              'bg-surface/20 hover:bg-surface-2/95 hover:border-line-strong/60',
+                              selected ? 'border-accent/35 ring-1 ring-accent/20' : 'border-line/60',
                               t.status === 'concluida' ? 'opacity-70' : '',
                               'cursor-grab active:cursor-grabbing'
                             )}
@@ -182,13 +182,13 @@ export const TarefasKanbanView: React.FC<{
                                   {t.titulo}
                                 </div>
                                 <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-wider">
-                                  <span className={cn('px-2 py-0.5 rounded-full border normal-case tracking-normal', prioridade.bg, prioridade.text, 'border-base')}>
+                                  <span className={cn('px-2 py-0.5 rounded-full border normal-case tracking-normal', prioridade.bg, prioridade.text, 'border-line')}>
                                     <span className="inline-flex items-center gap-1.5">
                                       <PrioridadeIcon className="w-3.5 h-3.5" />
                                       {prioridade.label}
                                     </span>
                                   </span>
-                                  <span className={cn('px-2 py-0.5 rounded-full border normal-case tracking-normal', categoria.bg, categoria.text, 'border-base')}>
+                                  <span className={cn('px-2 py-0.5 rounded-full border normal-case tracking-normal', categoria.bg, categoria.text, 'border-line')}>
                                     <span className="inline-flex items-center gap-1.5">
                                       <CategoriaIcon className="w-3.5 h-3.5" />
                                       {categoria.label}
@@ -211,7 +211,7 @@ export const TarefasKanbanView: React.FC<{
                                   <button
                                     type="button"
                                     onClick={(e) => e.stopPropagation()}
-                                    className="w-9 h-9 rounded-2xl border border-transparent hover:border-strong hover:bg-surface/40 flex items-center justify-center text-muted hover:text-primary transition-all opacity-0 group-hover:opacity-100"
+                                    className="w-9 h-9 rounded-2xl border border-transparent hover:border-line-strong hover:bg-surface/40 flex items-center justify-center text-muted hover:text-primary transition-all opacity-0 group-hover:opacity-100"
                                     aria-label="Ações"
                                   >
                                     <MoreVertical className="w-4 h-4" />
@@ -222,7 +222,7 @@ export const TarefasKanbanView: React.FC<{
                                     sideOffset={8}
                                     align="end"
                                     // Precisa ficar acima do Modal (z ~12000/13000)
-                                    className="z-[20000] w-56 rounded-2xl border border-base bg-bg/95 shadow-2xl overflow-hidden"
+                                    className="z-[20000] w-56 rounded-2xl border border-line bg-bg/95 shadow-2xl overflow-hidden"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <button
@@ -271,9 +271,9 @@ export const TarefasKanbanView: React.FC<{
                       const ordered = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 
                       return ordered.map((g) => (
-                        <div key={g.key} className="rounded-2xl border border-base/60 bg-bg/10 overflow-hidden">
+                        <div key={g.key} className="rounded-2xl border border-line/60 bg-bg/10 overflow-hidden">
                           <div
-                            className="px-3 py-2 border-b border-base/60 flex items-center justify-between gap-2"
+                            className="px-3 py-2 border-b border-line/60 flex items-center justify-between gap-2"
                             style={(() => {
                               const first: any = g.items[0] as any;
                               const color: string | undefined = first?.lista?.cor || undefined;

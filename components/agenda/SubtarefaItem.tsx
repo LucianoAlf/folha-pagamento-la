@@ -12,7 +12,7 @@ export const SubtarefaItem: React.FC<{
   const [busy, setBusy] = useState(false);
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-base bg-surface/20 px-3 py-2">
+    <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface/20 px-3 py-2">
       <button
         type="button"
         disabled={busy}
@@ -26,11 +26,11 @@ export const SubtarefaItem: React.FC<{
         }}
         className={cn(
           'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all',
-          item.concluida ? 'bg-success border-success' : 'border-strong hover:border-accent'
+          item.concluida ? 'bg-success border-success' : 'border-line-strong hover:border-accent'
         )}
         aria-label={item.concluida ? 'Marcar como pendente' : 'Concluir subtarefa'}
       >
-        {item.concluida ? <Check className="w-3 h-3 text-white" /> : null}
+        {item.concluida ? <Check className="w-3 h-3 text-primary" /> : null}
       </button>
 
       <div className={cn('flex-1 text-sm font-bold', item.concluida ? 'text-muted line-through' : 'text-primary')}>

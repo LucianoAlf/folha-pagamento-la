@@ -91,11 +91,11 @@ export const CalendarioView: React.FC<{
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex items-center justify-between p-2 bg-surface/40 backdrop-blur-xl rounded-3xl border border-base/60 shadow-xl">
+      <div className="flex items-center justify-between p-2 bg-surface/40 backdrop-blur-xl rounded-3xl border border-line/60 shadow-xl">
         <button
           type="button"
           onClick={() => setCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-          className="w-11 h-11 rounded-2xl border border-base bg-surface/40 hover:bg-surface/60 text-secondary flex items-center justify-center transition-all active:scale-90"
+          className="w-11 h-11 rounded-2xl border border-line bg-surface/40 hover:bg-surface/60 text-secondary flex items-center justify-center transition-all active:scale-90"
           aria-label="Mes anterior"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -106,14 +106,14 @@ export const CalendarioView: React.FC<{
         <button
           type="button"
           onClick={() => setCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-          className="w-11 h-11 rounded-2xl border border-base bg-surface/40 hover:bg-surface/60 text-secondary flex items-center justify-center transition-all active:scale-90"
+          className="w-11 h-11 rounded-2xl border border-line bg-surface/40 hover:bg-surface/60 text-secondary flex items-center justify-center transition-all active:scale-90"
           aria-label="Proximo mes"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="rounded-2xl border border-base/70 bg-bg/95 p-2 md:p-4">
+      <div className="rounded-2xl border border-line/70 bg-bg/95 p-2 md:p-4">
         <div className="grid grid-cols-7 gap-[4.8px] mb-1">
           {weekDays.map((w) => (
             <div key={w} className="text-[10px] font-black uppercase tracking-widest text-muted px-1 text-center">
@@ -140,8 +140,8 @@ export const CalendarioView: React.FC<{
                 className={cn(
                   'w-full relative transition-all text-left px-1.5 py-1.5 h-[100px] md:h-[120px] overflow-hidden rounded-[5px] border',
                   inMonth
-                    ? 'border-base bg-bg/40 hover:bg-surface/80 hover:border-strong'
-                    : 'border-base/20 bg-bg/20 opacity-40 cursor-default',
+                    ? 'border-line bg-bg/40 hover:bg-surface/80 hover:border-line-strong'
+                    : 'border-line/20 bg-bg/20 opacity-40 cursor-default',
                   isSelected ? 'z-10 ring-2 ring-accent border-accent bg-accent/10' : '',
                   today && inMonth ? 'z-10 border-accent/50 bg-accent/5' : ''
                 )}
@@ -220,7 +220,7 @@ export const CalendarioView: React.FC<{
                               className={cn(
                                 'w-full px-1.5 py-0.5 text-[9px] md:text-[10px] font-bold leading-tight shadow-sm rounded-[4px] flex items-center gap-1 cursor-pointer transition-all hover:brightness-125 hover:scale-[1.03] active:scale-95 relative z-20',
                                 isContaPendente
-                                  ? 'bg-success text-white hover:bg-success-hover'
+                                  ? 'bg-success text-white hover:bg-success/90'
                                   : getPrioColors(t.prioridade)
                               )}
                             >

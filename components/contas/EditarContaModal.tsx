@@ -142,7 +142,7 @@ export const EditarContaModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 rounded-2xl border border-base bg-surface/30 text-secondary font-black hover:bg-surface/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
+              className="px-6 py-3 rounded-2xl border border-line bg-surface/30 text-secondary font-black hover:bg-surface/50 transition-all active:scale-95 text-xs uppercase tracking-widest"
             >
               Cancelar
             </button>
@@ -202,7 +202,7 @@ export const EditarContaModal: React.FC<{
                 <input
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
-                  className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                  className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                 />
               </div>
 
@@ -212,7 +212,7 @@ export const EditarContaModal: React.FC<{
                   <input
                     value={valor}
                     onChange={(e) => setValor(e.target.value)}
-                    className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                    className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                   />
                   <div className="mt-2 text-[10px] text-muted font-bold px-1">{valor ? `Preview: ${valorPreview}` : ''}</div>
                 </div>
@@ -237,7 +237,7 @@ export const EditarContaModal: React.FC<{
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Tipo de Lançamento</label>
-                  <div className="flex items-center gap-2 bg-surface/40 border border-base rounded-2xl p-1">
+                  <div className="flex items-center gap-2 bg-surface/40 border border-line rounded-2xl p-1">
                     {(['unica', 'recorrente', 'parcelada'] as const).map((t) => (
                       <button
                         key={t}
@@ -264,7 +264,7 @@ export const EditarContaModal: React.FC<{
                       max={totalParcelas}
                       value={parcelaAtual}
                       onChange={(e) => setParcelaAtual(Math.max(1, Math.min(totalParcelas, Number(e.target.value || 1))))}
-                      className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                      className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                     />
                   </div>
                   <div>
@@ -279,7 +279,7 @@ export const EditarContaModal: React.FC<{
                         setTotalParcelas(v);
                         if (parcelaAtual > v) setParcelaAtual(v);
                       }}
-                      className="w-full rounded-2xl border border-base bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                      className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
                     />
                   </div>
                   <div className="col-span-2 text-[10px] text-muted font-bold px-1 -mt-3">

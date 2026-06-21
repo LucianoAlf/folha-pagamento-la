@@ -81,19 +81,19 @@ export const RhParticipantsPanel: React.FC<{ process: RhProcess | null }> = ({ p
   if (!process) return null;
 
   return (
-    <Card className="p-5 border border-strong/50">
+    <Card className="p-5 border border-line-strong/50">
       <div className="flex items-center gap-2 mb-4">
         <UserCog className="w-4 h-4 text-info" />
         <h3 className="text-primary text-base font-black">Participantes do processo</h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-        <div className="rounded-2xl border border-base bg-surface/30 p-4">
+        <div className="rounded-2xl border border-line bg-surface/30 p-4">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Responsável principal</div>
           <div className="mt-2 text-sm font-black text-primary">{owner?.nome || 'Responsável não identificado'}</div>
           <div className="mt-1 text-xs font-bold text-muted">{owner ? humanizeRole(owner.role) : 'Pessoa que conduz esta jornada'}</div>
         </div>
-        <div className="rounded-2xl border border-base bg-surface/30 p-4">
+        <div className="rounded-2xl border border-line bg-surface/30 p-4">
           <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Mentor</div>
           <div className="mt-2 text-sm font-black text-primary">{mentor?.nome || 'Não definido'}</div>
           <div className="mt-1 text-xs font-bold text-muted">{mentor ? humanizeRole(mentor.role) : 'Defina quem acompanha o colaborador'}</div>
@@ -132,7 +132,7 @@ export const RhParticipantsPanel: React.FC<{ process: RhProcess | null }> = ({ p
 
       <div className="space-y-3 mb-5">
         {participants.map((participant) => (
-          <div key={participant.id} className="rounded-2xl border border-base bg-surface/30 p-4 flex items-center justify-between gap-3">
+          <div key={participant.id} className="rounded-2xl border border-line bg-surface/30 p-4 flex items-center justify-between gap-3">
             <div>
               <div className="text-primary font-black">{participant.user?.nome || 'Usuário não identificado'}</div>
               <div className="mt-1 text-sm font-bold text-muted">{humanizeRole(participant.papel)}</div>

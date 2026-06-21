@@ -28,7 +28,7 @@ export const KPICard: React.FC<KPICardProps> = ({ icon: Icon, label, value, subv
   };
 
   return (
-    <Card className="p-4 md:p-5 hover:border-strong/50 transition-all duration-300">
+    <Card className="p-4 md:p-5 hover:border-line-strong/50 transition-all duration-300">
       <div className="flex items-start justify-between mb-2 md:mb-3">
         <div className={`p-2 md:p-2.5 rounded-xl bg-gradient-to-br ${colorMap[variant]} text-white shadow-lg shadow-black/20`}>
           <Icon size={18} className="md:w-5 md:h-5" />

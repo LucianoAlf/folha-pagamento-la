@@ -53,7 +53,7 @@ export class ErrorBoundary extends Component<
         role="alert"
         className="min-h-screen flex items-center justify-center p-6 bg-bg text-secondary font-sans"
       >
-        <div className="w-full max-w-lg rounded-3xl border border-base bg-surface/60 backdrop-blur-md p-8 shadow-2xl shadow-[var(--shadow-card)]">
+        <div className="w-full max-w-lg rounded-3xl border border-line bg-surface/60 backdrop-blur-md p-8 shadow-2xl shadow-[var(--shadow-card)]">
           <div className="w-14 h-14 rounded-2xl bg-danger/10 border border-danger/30 flex items-center justify-center mb-5">
             <span className="text-3xl" aria-hidden="true">
               ⚠️
@@ -67,7 +67,7 @@ export class ErrorBoundary extends Component<
             novamente — se persistir, recarregue a página.
           </p>
 
-          <pre className="mt-4 max-h-40 overflow-auto rounded-xl border border-base bg-black/30 p-3 text-xs text-danger/80 whitespace-pre-wrap break-words">
+          <pre className="mt-4 max-h-40 overflow-auto rounded-xl border border-line bg-black/30 p-3 text-xs text-danger/80 whitespace-pre-wrap break-words">
             {error.name}: {error.message}
           </pre>
 
@@ -82,7 +82,7 @@ export class ErrorBoundary extends Component<
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="flex-1 px-5 py-3 rounded-2xl font-black text-secondary border border-strong bg-surface/40 hover:bg-surface/70 transition-colors active:scale-95"
+              className="flex-1 px-5 py-3 rounded-2xl font-black text-secondary border border-line-strong bg-surface/40 hover:bg-surface/70 transition-colors active:scale-95"
             >
               Recarregar a página
             </button>

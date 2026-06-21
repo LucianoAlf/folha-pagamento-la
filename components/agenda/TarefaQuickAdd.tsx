@@ -119,7 +119,7 @@ export const TarefaQuickAdd: React.FC<{
     <>
       <div
         className={cn(
-          'rounded-2xl border border-base/60 bg-bg/95 overflow-hidden',
+          'rounded-2xl border border-line/60 bg-bg/95 overflow-hidden',
           open ? 'shadow-xl shadow-[var(--shadow-card)]' : ''
         )}
       >
@@ -130,7 +130,7 @@ export const TarefaQuickAdd: React.FC<{
             className="w-full flex items-center justify-between px-5 py-4 text-muted hover:text-primary hover:bg-surface/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full border-2 border-strong" />
+              <div className="w-5 h-5 rounded-full border-2 border-line-strong" />
               <span className="text-sm font-bold">Adicionar uma tarefa…</span>
             </div>
             <Plus className="w-5 h-5" />
@@ -153,7 +153,7 @@ export const TarefaQuickAdd: React.FC<{
                   }
                 }}
                 placeholder="Título da tarefa…"
-                className="flex-1 bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
+                className="flex-1 bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
               />
               <Tooltip content="Fechar" side="left">
                 <button
@@ -162,7 +162,7 @@ export const TarefaQuickAdd: React.FC<{
                     setOpen(false);
                     reset();
                   }}
-                  className="w-11 h-11 rounded-2xl border border-base bg-surface/20 text-muted hover:text-primary hover:bg-surface/40 flex items-center justify-center"
+                  className="w-11 h-11 rounded-2xl border border-line bg-surface/20 text-muted hover:text-primary hover:bg-surface/40 flex items-center justify-center"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -194,7 +194,7 @@ export const TarefaQuickAdd: React.FC<{
                     type="time"
                     value={time}
                     onChange={(e) => setTime(e.target.value)}
-                    className="mt-2 w-full bg-surface/40 border border-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
+                    className="mt-2 w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-primary font-bold outline-none focus:ring-2 focus:ring-accent/50"
                   />
                 ) : null}
               </div>
@@ -222,7 +222,7 @@ export const TarefaQuickAdd: React.FC<{
               <button
                 type="button"
                 onClick={() => setTemplatesOpen(true)}
-                className="px-4 py-3 rounded-2xl border border-base bg-surface/20 hover:bg-surface/40 text-secondary font-black flex items-center gap-2"
+                className="px-4 py-3 rounded-2xl border border-line bg-surface/20 hover:bg-surface/40 text-secondary font-black flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4 text-accent-subtle" />
                 Usar template
@@ -235,7 +235,7 @@ export const TarefaQuickAdd: React.FC<{
                     setOpen(false);
                     reset();
                   }}
-                  className="px-4 py-3 rounded-2xl bg-surface/40 hover:bg-surface/60 border border-base text-secondary font-black"
+                  className="px-4 py-3 rounded-2xl bg-surface/40 hover:bg-surface/60 border border-line text-secondary font-black"
                 >
                   Cancelar
                 </button>
@@ -244,8 +244,8 @@ export const TarefaQuickAdd: React.FC<{
                   disabled={!canSave}
                   onClick={handleSave}
                   className={cn(
-                    'px-5 py-3 rounded-2xl font-black text-white transition-all',
-                    canSave ? 'bg-accent hover:bg-accent-hover' : 'bg-surface-2 text-muted cursor-not-allowed'
+                    'px-5 py-3 rounded-2xl font-black text-primary transition-all',
+                    canSave ? 'bg-accent hover:bg-accent/90' : 'bg-surface-2 text-muted cursor-not-allowed'
                   )}
                 >
                   {saving ? 'Salvando…' : 'Criar'}

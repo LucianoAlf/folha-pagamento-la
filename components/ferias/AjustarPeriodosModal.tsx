@@ -170,13 +170,13 @@ export const AjustarPeriodosModal: React.FC<{
       onClose={onClose}
       title="Ajustar Periodos Aquisitivos"
       subtitle={
-        <div className="text-white/80">
+        <div className="text-primary/80">
           {colaborador.nome} • Cada linha abaixo e um periodo de direito (12 meses). Aqui voce ajusta o saldo real.
         </div>
       }
       className="max-w-3xl"
     >
-      <div className="mb-4 p-3 rounded-xl bg-surface/40 border border-base flex items-start gap-2">
+      <div className="mb-4 p-3 rounded-xl bg-surface/40 border border-line flex items-start gap-2">
         <Info size={16} className="text-info shrink-0 mt-0.5" />
         <div className="flex-1 text-xs text-secondary">
           <div className="font-bold text-secondary mb-1">Como preencher</div>
@@ -247,7 +247,7 @@ export const AjustarPeriodosModal: React.FC<{
             return (
               <div
                 key={p.id}
-                className="p-4 rounded-xl bg-surface/40 border border-base"
+                className="p-4 rounded-xl bg-surface/40 border border-line"
               >
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div className="min-w-0">
@@ -271,7 +271,7 @@ export const AjustarPeriodosModal: React.FC<{
                     <label className="block text-[10px] font-black uppercase tracking-widest text-muted mb-1 px-1">
                       Dias direito
                     </label>
-                    <div className="px-3 py-2.5 rounded-xl bg-bg/40 border border-base/60 text-sm text-secondary font-bold">
+                    <div className="px-3 py-2.5 rounded-xl bg-bg/40 border border-line/60 text-sm text-secondary font-bold">
                       {p.dias_direito}
                     </div>
                   </div>
@@ -298,7 +298,7 @@ export const AjustarPeriodosModal: React.FC<{
                           },
                         }))
                       }
-                      className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full px-3 py-2.5 bg-bg/40 border border-line/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                       inputMode="numeric"
                     />
                   </div>
@@ -325,7 +325,7 @@ export const AjustarPeriodosModal: React.FC<{
                           },
                         }))
                       }
-                      className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full px-3 py-2.5 bg-bg/40 border border-line/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                       inputMode="numeric"
                     />
                   </div>
@@ -353,7 +353,7 @@ export const AjustarPeriodosModal: React.FC<{
                         }))
                       }
                       options={statusOptions}
-                      className="bg-bg/40 border-base/60"
+                      className="bg-bg/40 border-line/60"
                     />
                   </div>
                 </div>
@@ -382,7 +382,7 @@ export const AjustarPeriodosModal: React.FC<{
                           },
                         }))
                       }
-                      className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full px-3 py-2.5 bg-bg/40 border border-line/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                     />
                   </div>
                   <div>
@@ -408,7 +408,7 @@ export const AjustarPeriodosModal: React.FC<{
                           },
                         }))
                       }
-                      className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
+                      className="w-full px-3 py-2.5 bg-bg/40 border border-line/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                     />
                   </div>
                 </div>
@@ -436,7 +436,7 @@ export const AjustarPeriodosModal: React.FC<{
                       }))
                     }
                     rows={2}
-                    className="w-full px-3 py-2.5 bg-bg/40 border border-base/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full px-3 py-2.5 bg-bg/40 border border-line/60 rounded-xl text-secondary text-sm focus:outline-none focus:border-accent/50 transition-colors"
                   />
                 </div>
 

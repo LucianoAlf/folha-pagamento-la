@@ -152,7 +152,7 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
                 { value: '2025-Q4', label: 'Q4/2025 (Out-Dez)' },
                 { value: '2026-Q1', label: 'Q1/2026 (Jan-Mar)' },
               ]}
-              className="bg-bg/40 border-base/60"
+              className="bg-bg/40 border-line/60"
             />
           </div>
 
@@ -171,7 +171,7 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
                 { value: 'equipe_operacional', label: 'Operacional' },
                 { value: 'professores', label: 'Professores' },
               ]}
-              className="bg-bg/40 border-base/60"
+              className="bg-bg/40 border-line/60"
             />
           </div>
 
@@ -232,7 +232,7 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
       {insights && (
         <div className="space-y-6">
           {/* Análise Executiva */}
-          <div className="p-5 rounded-xl bg-surface/40 border border-base">
+          <div className="p-5 rounded-xl bg-surface/40 border border-line">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp size={18} className="text-accent" />
               <h3 className="text-sm font-black text-secondary">Análise Executiva</h3>
@@ -253,7 +253,7 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
               {insights.situacoes_criticas.map((situacao, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-xl bg-surface/40 border border-base hover:border-strong transition-colors"
+                  className="p-4 rounded-xl bg-surface/40 border border-line hover:border-line-strong transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex-1">
@@ -317,7 +317,7 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
                 {insights.sugestoes_distribuicao.map((sugestao, idx) => (
                   <div
                     key={idx}
-                    className="p-4 rounded-xl bg-surface/40 border border-base hover:border-strong transition-colors"
+                    className="p-4 rounded-xl bg-surface/40 border border-line hover:border-line-strong transition-colors"
                   >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="flex-1">
@@ -373,7 +373,7 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
 
           {/* Impacto Financeiro */}
           {insights.impacto_financeiro && (
-            <div className="p-5 rounded-xl bg-surface/40 border border-base">
+            <div className="p-5 rounded-xl bg-surface/40 border border-line">
               <div className="flex items-center gap-2 mb-4">
                 <DollarSign size={18} className="text-success" />
                 <h3 className="text-sm font-black text-secondary">Impacto Financeiro</h3>
@@ -436,7 +436,7 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
                 ([dept, info]) => (
                   <div
                     key={dept}
-                    className="p-4 rounded-xl bg-surface/40 border border-base"
+                    className="p-4 rounded-xl bg-surface/40 border border-line"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-bold text-secondary capitalize">
@@ -458,7 +458,7 @@ export const FeriasAiInsightsPanel: React.FC<FeriasAiInsightsPanelProps> = ({
           {/* Recomendações Operacionais */}
           {insights.recomendacoes_operacionais &&
             insights.recomendacoes_operacionais.length > 0 && (
-              <div className="p-5 rounded-xl bg-surface/40 border border-base">
+              <div className="p-5 rounded-xl bg-surface/40 border border-line">
                 <h3 className="text-sm font-black text-secondary mb-3">
                   📋 Recomendações Operacionais
                 </h3>
