@@ -24,6 +24,7 @@ import {
   cn
 } from './components/CollaboratorComponents';
 import { Sidebar } from './components/Sidebar';
+import { ThemeToggle } from './components/ThemeToggle';
 import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
 
 const ContasPagarPage = lazy(() =>
@@ -1752,10 +1753,6 @@ export default function App() {
         <Sidebar
           current={{ module: currentModule as any, page: activeTab as any }}
           onNavigate={(next) => handleNavigate(next.module, next.page)}
-          onLogout={handleLogout}
-          onEditProfile={openProfile}
-          userLabel={userLabelForSidebar}
-          userAvatarUrl={userProfile?.avatar_url || getDefaultAvatarByEmail(userEmail)}
         />
       </div>
 
@@ -1796,10 +1793,10 @@ export default function App() {
               </div>
             </div>
             
-            <div className="flex items-center gap-3 sm:gap-6">
-              {/* Profile Menu Popover - Only on Mobile */}
-              <div className="lg:hidden">
-                <Popover.Root open={profilePopoverOpen} onOpenChange={setProfilePopoverOpen}>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Tema + Perfil — canto superior direito, em todas as telas */}
+              <ThemeToggle variant="icon" />
+              <Popover.Root open={profilePopoverOpen} onOpenChange={setProfilePopoverOpen}>
                   <Popover.Trigger asChild>
                     <button
                       type="button"
@@ -1845,7 +1842,6 @@ export default function App() {
                     </Popover.Content>
                   </Popover.Portal>
                 </Popover.Root>
-              </div>
             </div>
           </div>
         </div>

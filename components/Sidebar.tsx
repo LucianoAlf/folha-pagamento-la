@@ -13,9 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  LogOut,
 } from 'lucide-react';
-import { ThemeToggle } from './ThemeToggle';
 
 const SIDEBAR_COLLAPSED_KEY = 'la-music-sidebar-collapsed';
 const FERIAS_BADGE_TTL_MS = 60_000;
@@ -67,10 +65,6 @@ export interface SidebarNavigate {
 export interface SidebarProps {
   current: SidebarNavigate;
   onNavigate: (next: SidebarNavigate) => void;
-  onLogout: () => void;
-  onEditProfile?: () => void;
-  userLabel: string;
-  userAvatarUrl?: string | null;
   isMobileDrawer?: boolean;
   onCloseMobileDrawer?: () => void;
 }
@@ -78,10 +72,6 @@ export interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   current,
   onNavigate,
-  onLogout,
-  onEditProfile,
-  userLabel,
-  userAvatarUrl,
   isMobileDrawer = false,
   onCloseMobileDrawer,
 }) => {
@@ -180,11 +170,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     collapsed ? 'w-20' : 'w-72',
     'h-full relative flex flex-col transition-all duration-300',
     'bg-bg border-r border-line',
-    'before:content-[""] before:absolute before:inset-0 before:pointer-events-none',
-    'before:bg-[radial-gradient(900px_circle_at_20%_-10%,rgba(139,92,246,0.20),transparent_55%),radial-gradient(700px_circle_at_80%_30%,rgba(6,182,212,0.10),transparent_60%)]',
-    'before:opacity-100',
-    'after:content-[""] after:absolute after:inset-0 after:pointer-events-none',
-    'after:bg-gradient-to-b after:from-white/[0.03] after:via-transparent after:to-black/40',
+    // Glow de accent bem sutil, somente no topo — limpo nos dois temas (sem fade escuro embaixo).
+    'before:content-[""] before:absolute before:inset-x-0 before:top-0 before:h-72 before:pointer-events-none',
+    'before:bg-[radial-gradient(560px_circle_at_30%_-20%,rgba(139,92,246,0.12),transparent_70%)]',
     isMobileDrawer ? 'shadow-2xl shadow-black/60' : '',
   ].join(' ');
 
@@ -292,62 +280,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
       </nav>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-line">
-        <Tooltip content={!collapsed ? 'Editar Perfil' : userLabel} side="right">
-          <button
-            type="button"
-            className={[
-              'w-full flex items-center gap-3 rounded-2xl border border-line bg-surface/30 hover:bg-surface/50 hover:border-accent/30 transition-all group/profile',
-              collapsed ? 'justify-center p-2.5' : 'p-3',
-            ].join(' ')}
-            onClick={onEditProfile}
-            aria-label="Editar Perfil"
-          >
-            <div className="w-10 h-10 rounded-full border border-line-strong overflow-hidden bg-surface/40 shrink-0 group-hover/profile:border-accent/50 transition-colors">
-              <img
-                src={userAvatarUrl || '/logo-LA-colapsed.png'}
-                alt="Usuário"
-                className="w-full h-full object-cover group-hover/profile:scale-110 transition-transform duration-300"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = '/logo-LA-colapsed.png';
-                }}
-              />
-            </div>
-            {!collapsed && (
-              <div className="min-w-0 flex-1 text-left">
-                <div className="text-primary text-sm font-black truncate group-hover/profile:text-accent transition-colors">{userLabel}</div>
-                <div className="text-[10px] text-muted font-bold uppercase tracking-widest truncate group-hover/profile:text-secondary">Meu Perfil</div>
-              </div>
-            )}
-          </button>
-        </Tooltip>
-
-        <div key="logout">
-          {collapsed ? (
-            <Tooltip content="Sair" side="right">
-              <button
-                type="button"
-                onClick={onLogout}
-                className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-secondary hover:text-danger hover:bg-danger/10 transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </Tooltip>
-          ) : (
-            <button
-              type="button"
-              onClick={onLogout}
-              className="w-full flex items-center justify-center gap-2 mt-3 px-3 py-2.5 rounded-xl text-secondary hover:text-danger hover:bg-danger/10 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="text-sm font-bold">Sair</span>
-            </button>
-          )}
-        </div>
-        <ThemeToggle collapsed={collapsed} />
-      </div>
 
       {/* Collapse Toggle (desktop only) */}
       {!isMobileDrawer && (
