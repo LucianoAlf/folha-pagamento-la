@@ -10,12 +10,7 @@ import {
   salvarRelatorioDia,
 } from '../../services/contasPagarService';
 import { cn } from '../CollaboratorComponents';
-
-function formatDateBR(iso: string) {
-  if (!iso) return '—';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
+import { formatDateBR } from '../../utils/dateOnly';
 
 export const RelatorioDoDiaPanel: React.FC<{
   contas: ContaPagar[];

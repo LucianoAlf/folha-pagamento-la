@@ -8,8 +8,20 @@ import {
   ContaPagarRelatorioDia,
   StatusVisual,
 } from '../types/contasPagar';
+import { competenciaFromVencimento, toDateOnly } from '../utils/dateOnly';
 
-// Categorias
+function normalizeContaDates(conta: Partial<ContaPagar>): Partial<ContaPagar> {
+  const next = { ...conta };
+  if (next.data_vencimento) {
+    next.data_vencimento = toDateOnly(next.data_vencimento);
+    const comp = competenciaFromVencimento(next.data_vencimento);
+    if (comp) next.competencia = comp;
+  } else if (next.competencia) {
+    next.competencia = competenciaFromVencimento(next.competencia) || toDateOnly(next.competencia);
+  }
+  return next;
+}
+
 export async function fetchCategorias(): Promise<CategoriaDespesa[]> {
   const { data, error } = await supabase
     .from('categorias_despesa')
@@ -164,6 +176,7 @@ export async function createContaPagar(
   conta: Partial<ContaPagar>,
   options?: { valorPorParcela?: boolean }
 ): Promise<ContaPagar> {
+  conta = normalizeContaDates(conta);
   const { data: user } = await supabase.auth.getUser();
 
   // Parcelada: cria N registros
@@ -246,13 +259,7 @@ export async function registrarPagamento(
 }
 
 export async function updateContaPagar(contaId: string, patch: Partial<ContaPagar>): Promise<ContaPagar> {
-  const nextPatch: Partial<ContaPagar> = { ...patch };
-
-  // Mantém competência consistente com o mês do vencimento, se o vencimento mudar.
-  if (nextPatch.data_vencimento) {
-    const [yyyy, mm] = nextPatch.data_vencimento.split('-');
-    if (yyyy && mm) nextPatch.competencia = `${yyyy}-${mm}-01`;
-  }
+  const nextPatch: Partial<ContaPagar> = normalizeContaDates(patch);
 
   const { data, error } = await supabase
     .from('contas_pagar')

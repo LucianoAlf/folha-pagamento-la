@@ -12,6 +12,7 @@ import 'react-day-picker/dist/style.css';
 import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from './CollaboratorComponents';
+import { toDateOnly } from '../utils/dateOnly';
 
 export const Tooltip: React.FC<{
   content: React.ReactNode;
@@ -66,8 +67,9 @@ export const DatePicker: React.FC<{
   const currentYear = new Date().getFullYear();
   const selected = (() => {
     if (!value) return undefined;
-    // Accepts either "yyyy-mm-dd" or ISO strings from DB (e.g. "2026-02-07T00:00:00.000Z")
-    const d = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
+    const dateOnly = toDateOnly(value);
+    if (!dateOnly) return undefined;
+    const d = new Date(`${dateOnly}T12:00:00`);
     return isValid(d) ? d : undefined;
   })();
   const minYear = fromYear ?? currentYear - 80;

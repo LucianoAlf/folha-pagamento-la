@@ -7,13 +7,7 @@ import { formatCurrency } from '../../services/api';
 import { getCodigoMesBadge, getStatusVisual } from '../../services/contasPagarService';
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
 import { ParcelasTimeline } from './ParcelasTimeline';
-
-// Helper simples para formatar data ISO (YYYY-MM-DD) para BR (DD/MM/YYYY)
-const formatDateBR = (isoDate: string) => {
-  if (!isoDate) return '—';
-  const [year, month, day] = isoDate.split('-');
-  return `${day}/${month}/${year}`;
-};
+import { formatDateBR, toDateOnly } from '../../utils/dateOnly';
 
 type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 

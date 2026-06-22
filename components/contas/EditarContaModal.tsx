@@ -5,6 +5,7 @@ import { CategoriaDespesa, ContaCredencial, ContaPagar, ContaPagarCodigoMes, FON
 import { formatCurrency } from '../../services/api';
 import { upsertCodigoMes } from '../../services/contasPagarService';
 import { cn } from '../CollaboratorComponents';
+import { competenciaFromVencimento, formatCompetenciaLabel, toDateOnly } from '../../utils/dateOnly';
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
 
 const UNIDADES_SIMPLES = [
@@ -41,7 +42,6 @@ export const EditarContaModal: React.FC<{
   const [categoriaId, setCategoriaId] = useState<string>('');
   const [unidade, setUnidade] = useState<string>('');
   const [vencimento, setVencimento] = useState<string>('');
-  const [competencia, setCompetencia] = useState<string>('');
   const [launchType, setLaunchType] = useState<'unica' | 'recorrente' | 'parcelada'>('unica');
   const [observacoes, setObservacoes] = useState('');
   const [fonteTipo, setFonteTipo] = useState<FonteTipo | ''>('');
@@ -68,8 +68,7 @@ export const EditarContaModal: React.FC<{
     setValor(conta.valor ? String(conta.valor).replace('.', ',') : '');
     setCategoriaId(conta.categoria_id || '');
     setUnidade(conta.unidade || 'cg');
-    setVencimento(conta.data_vencimento || '');
-    setCompetencia(conta.competencia || '');
+    setVencimento(toDateOnly(conta.data_vencimento));
     setLaunchType(conta.tipo_lancamento || 'unica');
     setObservacoes(conta.observacoes || '');
     setFonteTipo((conta.fonte_tipo as FonteTipo) || '');
@@ -101,6 +100,9 @@ export const EditarContaModal: React.FC<{
 
   const [showConfirmParceladas, setShowConfirmParceladas] = useState(false);
 
+  const competencia = useMemo(() => competenciaFromVencimento(vencimento), [vencimento]);
+  const competenciaLabel = useMemo(() => formatCompetenciaLabel(vencimento), [vencimento]);
+
   const handleSave = async (aplicarAFuturos?: boolean) => {
     if (!conta) return;
 
@@ -109,7 +111,7 @@ export const EditarContaModal: React.FC<{
       valor: valorNum,
       categoria_id: categoriaId,
       unidade: unidade as any,
-      data_vencimento: vencimento,
+      data_vencimento: toDateOnly(vencimento),
       competencia,
       tipo_lancamento: launchType,
       observacoes: observacoes.trim() || null,
@@ -356,18 +358,10 @@ export const EditarContaModal: React.FC<{
               </div>
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Mês de Competência *</label>
-                <CustomSelect
-                  value={competencia}
-                  onValueChange={(v) => setCompetencia(v)}
-                  options={Array.from({ length: 12 }).map((_, i) => {
-                    const d = new Date();
-                    const target = new Date(d.getFullYear(), d.getMonth() - 6 + i, 1);
-                    const yyyy = target.getFullYear();
-                    const mm = String(target.getMonth() + 1).padStart(2, '0');
-                    const label = target.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-                    return { value: `${yyyy}-${mm}-01`, label: label.charAt(0).toUpperCase() + label.slice(1) };
-                  })}
-                />
+                <div className="w-full rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-primary">
+                  {vencimento ? competenciaLabel : '—'}
+                </div>
+                <p className="text-[10px] text-muted font-bold mt-2 px-1">Altere o vencimento para mudar a competência.</p>
               </div>
             </div>
           </div>

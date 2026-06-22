@@ -4,6 +4,7 @@ import { CustomSelect, DatePicker, Modal } from '../UI';
 import { CategoriaDespesa, ContaCredencial, ContaPagar, FONTE_TIPOS, FonteTipo, StatusColetaCodigo } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { cn } from '../CollaboratorComponents';
+import { competenciaFromVencimento, formatCompetenciaLabel, toDateOnly } from '../../utils/dateOnly';
 
 const UNIDADES_SIMPLES = [
   { value: 'cg', label: 'Campo Grande' },
@@ -53,14 +54,6 @@ export const NovaContaModal: React.FC<{
   const [valorMode, setValorMode] = useState<'por_parcela' | 'total'>('por_parcela');
 
   const [vencimento, setVencimento] = useState<string>('');
-  const [competencia, setCompetencia] = useState<string>(() => {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    return `${yyyy}-${mm}-01`;
-  });
-
-  const [competenciaManual, setCompetenciaManual] = useState(false);
 
   const [status, setStatus] = useState<PaymentStatus>('pendente');
   const [observacoes, setObservacoes] = useState('');
@@ -106,33 +99,15 @@ export const NovaContaModal: React.FC<{
     setCodigoStatus('pendente');
     setError(null);
     setTried(false);
-    setCompetenciaManual(!!defaultCompetenciaYM);
-
-    if (defaultCompetenciaYM) {
-      setCompetencia(`${defaultCompetenciaYM}-01`);
-    } else if (defaultVencimento) {
-      const [y, m] = defaultVencimento.split('-');
-      if (y && m) setCompetencia(`${y}-${m}-01`);
-    } else {
-      const d = new Date();
-      setCompetencia(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
-    }
-  }, [isOpen, defaultVencimento, defaultCompetenciaYM, defaultUnidade]);
+  }, [isOpen, defaultVencimento, defaultUnidade]);
 
   useEffect(() => {
     if (!isOpen) return;
     if (defaultUnidade) setUnidade(defaultUnidade);
   }, [isOpen, defaultUnidade]);
 
-  // Sincronização automática Vencimento -> Competência
-  useEffect(() => {
-    if (vencimento && !competenciaManual) {
-      const [y, m] = vencimento.split('-');
-      if (y && m) {
-        setCompetencia(`${y}-${m}-01`);
-      }
-    }
-  }, [vencimento, competenciaManual]);
+  const competencia = useMemo(() => competenciaFromVencimento(vencimento), [vencimento]);
+  const competenciaLabel = useMemo(() => formatCompetenciaLabel(vencimento), [vencimento]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -230,7 +205,7 @@ export const NovaContaModal: React.FC<{
                     unidade: unidade as ContaPagar['unidade'],
                     valor: valorNum,
                     data_lancamento: dataLancamentoAuto,
-                    data_vencimento: vencimento,
+                    data_vencimento: toDateOnly(vencimento),
                     competencia,
                     status,
                     tipo_lancamento: launchType,
@@ -485,21 +460,10 @@ export const NovaContaModal: React.FC<{
             </div>
             <div>
               <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Mês de Competência *</label>
-              <CustomSelect
-                value={competencia}
-                onValueChange={(v) => {
-                  setCompetencia(v);
-                  setCompetenciaManual(true);
-                }}
-                options={Array.from({ length: 12 }).map((_, i) => {
-                  const d = new Date();
-                  const target = new Date(d.getFullYear(), d.getMonth() - 6 + i, 1);
-                  const yyyy = target.getFullYear();
-                  const mm = String(target.getMonth() + 1).padStart(2, '0');
-                  const label = target.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-                  return { value: `${yyyy}-${mm}-01`, label: label.charAt(0).toUpperCase() + label.slice(1) };
-                })}
-              />
+              <div className="w-full rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-primary">
+                {vencimento ? competenciaLabel : '— Acompanha o vencimento —'}
+              </div>
+              <p className="text-[10px] text-muted font-bold mt-2 px-1">Competência = mês do vencimento (ex.: vence em julho → julho/2026).</p>
             </div>
           </div>
         </div>

@@ -22,6 +22,7 @@ import {
   updateFuturasRecorrentes,
   updateFuturasParceladas,
 } from '../../services/contasPagarService';
+import { toDateOnly } from '../../utils/dateOnly';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../services/supabase';
 import { ContasSummaryCards } from './ContasSummaryCards';
 import { ContasTable } from './ContasTable';
@@ -860,8 +861,9 @@ export const ContasPagarPage: React.FC<{
 
   const matchesCompetencia = useCallback(
     (c: ContaPagar) => {
-      if (!c.competencia) return false;
-      const [y, m] = c.competencia.split('-');
+      const comp = toDateOnly(c.competencia);
+      if (!comp) return false;
+      const [y, m] = comp.split('-');
       return `${y}-${m}` === competenciaFiltro;
     },
     [competenciaFiltro]
@@ -905,6 +907,10 @@ export const ContasPagarPage: React.FC<{
       run(
         async () => {
           const created = await createContaPagar(payload, options);
+          const ym = toDateOnly(created.competencia).slice(0, 7);
+          if (ym && ym !== competenciaFiltro) {
+            setCompetenciaFiltro(ym);
+          }
           const codigo = options?.codigo;
           const temCodigo = codigo && (codigo.codigo_barras.trim() || codigo.chave_pix.trim() || codigo.qr_pix_payload.trim());
           if (temCodigo && created.competencia) {
@@ -926,7 +932,7 @@ export const ContasPagarPage: React.FC<{
         },
         { success: 'Conta criada.', error: 'Não foi possível criar a conta.' }
       ),
-    [run, operadorNome, reloadCodigos, refetch]
+    [run, operadorNome, reloadCodigos, refetch, competenciaFiltro, setCompetenciaFiltro]
   );
 
   useEffect(() => {
@@ -2616,7 +2622,11 @@ export const ContasPagarPage: React.FC<{
             const conta = editarConta;
             return run(
               async () => {
-                await updateContaPagar(conta.id, patch);
+                const updated = await updateContaPagar(conta.id, patch);
+                const ym = updated.competencia?.slice(0, 7);
+                if (ym && ym !== competenciaFiltro) {
+                  setCompetenciaFiltro(ym);
+                }
 
                 if (aplicarAFuturos && conta.tipo_lancamento === 'recorrente') {
                   await updateFuturasRecorrentes(conta, patch);
@@ -3333,7 +3343,11 @@ export const ContasPagarPage: React.FC<{
           return run(
             async () => {
               // 1. Atualiza a conta atual
-              await updateContaPagar(conta.id, patch);
+              const updated = await updateContaPagar(conta.id, patch);
+              const ym = toDateOnly(updated.competencia).slice(0, 7);
+              if (ym && ym !== competenciaFiltro) {
+                setCompetenciaFiltro(ym);
+              }
 
               // 2. Se for recorrente e o usuário escolheu aplicar a futuros, atualiza os próximos meses
               if (aplicarAFuturos && conta.tipo_lancamento === 'recorrente') {
