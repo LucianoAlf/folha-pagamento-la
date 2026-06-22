@@ -53,6 +53,20 @@ export async function deleteCategoria(id: string): Promise<void> {
   if (error) throw error;
 }
 
+function dedupeRecorrentesVisao(contas: ContaPagar[]): ContaPagar[] {
+  const instanciaPorModeloMes = new Set(
+    contas
+      .filter((c) => c.recorrente_modelo_id && c.competencia)
+      .map((c) => `${c.recorrente_modelo_id}|${toDateOnly(c.competencia).slice(0, 7)}`)
+  );
+  return contas.filter((c) => {
+    if (c.tipo_lancamento !== 'recorrente' || c.recorrente_modelo_id) return true;
+    const comp = toDateOnly(c.competencia).slice(0, 7);
+    if (!comp) return true;
+    return !instanciaPorModeloMes.has(`${c.id}|${comp}`);
+  });
+}
+
 // Contas
 export async function fetchContasPagar(filtros?: {
   status?: 'todas' | 'pendente' | 'pago';
@@ -110,7 +124,10 @@ export async function fetchContasPagar(filtros?: {
             metodo_pagamento: null,
           };
         });
-        await supabase.from('contas_pagar').insert(novos);
+        await supabase.from('contas_pagar').upsert(novos, {
+          onConflict: 'recorrente_modelo_id,competencia',
+          ignoreDuplicates: true,
+        });
       }
     }
   } catch (err) {
@@ -133,7 +150,7 @@ export async function fetchContasPagar(filtros?: {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as ContaPagar[];
+  return dedupeRecorrentesVisao((data || []) as ContaPagar[]);
 }
 
 export async function fetchContaPagarById(contaId: string): Promise<ContaPagar | null> {
