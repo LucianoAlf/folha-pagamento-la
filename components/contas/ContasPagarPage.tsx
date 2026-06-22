@@ -971,33 +971,39 @@ export const ContasPagarPage: React.FC<{
 
   const competenciaOptions = useMemo(() => {
     const opts = new Set<string>();
-    contas.forEach(c => {
-      if (c.competencia) {
-        const [y, m] = c.competencia.split('-');
-        opts.add(`${y}-${m}`);
-      }
+    contas.forEach((c) => {
+      const ym = toDateOnly(c.competencia).slice(0, 7);
+      if (ym) opts.add(ym);
     });
-    
+
     const hoje = new Date();
-    const cur = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
-    opts.add(cur);
-    
-    const prox = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
-    const nxt = `${prox.getFullYear()}-${String(prox.getMonth() + 1).padStart(2, '0')}`;
-    opts.add(nxt);
+    const curY = hoje.getFullYear();
+    const curM = hoje.getMonth();
+
+    // Recorrentes não têm fim — Rose precisa navegar meses futuros mesmo sem lançamento manual.
+    for (let i = 0; i <= 12; i++) {
+      const d = new Date(curY, curM + i, 1);
+      opts.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(curY, curM - i, 1);
+      opts.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+
+    if (competenciaFiltro) opts.add(competenciaFiltro);
 
     return Array.from(opts)
       .sort((a, b) => a.localeCompare(b))
-      .map(v => {
+      .map((v) => {
         const [y, m] = v.split('-');
         const date = new Date(Number(y), Number(m) - 1, 1);
         const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-        return { 
-          value: v, 
-          label: label.charAt(0).toUpperCase() + label.slice(1)
+        return {
+          value: v,
+          label: label.charAt(0).toUpperCase() + label.slice(1),
         };
       });
-  }, [contas]);
+  }, [contas, competenciaFiltro]);
 
   const matchesCompetenciaComparar = useCallback(
     (c: ContaPagar) => {
