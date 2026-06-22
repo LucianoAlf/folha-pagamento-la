@@ -892,7 +892,10 @@ export const ContasPagarPage: React.FC<{
     setLoading(true);
     setError(null);
     try {
-      const [cats, rows] = await Promise.all([fetchCategorias(), fetchContasPagar()]);
+      const [cats, rows] = await Promise.all([
+        fetchCategorias(),
+        fetchContasPagar({ competenciaGarantir: competenciaFiltro }),
+      ]);
       setCategorias(cats);
       setContas(rows);
     } catch (e: any) {
@@ -900,7 +903,7 @@ export const ContasPagarPage: React.FC<{
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [competenciaFiltro]);
 
   const confirmNovaConta = useCallback(
     (payload: Partial<ContaPagar>, options?: NovaContaOptions) =>

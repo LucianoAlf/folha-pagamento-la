@@ -67,68 +67,98 @@ function dedupeRecorrentesVisao(contas: ContaPagar[]): ContaPagar[] {
   });
 }
 
+function competenciaPrimeiroDia(ymOrDate: string): string {
+  const d = toDateOnly(ymOrDate);
+  if (!d) return '';
+  return `${d.slice(0, 7)}-01`;
+}
+
+function ymFromCompetencia(comp?: string | null): string {
+  return competenciaPrimeiroDia(comp || '').slice(0, 7);
+}
+
+/** Gera instância recorrente para um mês (YYYY-MM), se aplicável. */
+async function ensureRecorrentesInstancias(competenciaYM: string): Promise<void> {
+  const alvo = competenciaPrimeiroDia(competenciaYM);
+  if (!alvo) return;
+
+  const [yyyy, mm] = alvo.split('-');
+  const alvoYM = `${yyyy}-${mm}`;
+
+  const { data: recorrentes, error: errRec } = await supabase
+    .from('contas_pagar')
+    .select('*')
+    .eq('tipo_lancamento', 'recorrente')
+    .neq('status', 'cancelado')
+    .neq('status', 'finalizado')
+    .is('recorrente_modelo_id', null);
+
+  if (errRec) throw errRec;
+  if (!recorrentes?.length) return;
+
+  const { data: existentes, error: errEx } = await supabase
+    .from('contas_pagar')
+    .select('recorrente_modelo_id')
+    .eq('competencia', alvo)
+    .not('recorrente_modelo_id', 'is', null);
+
+  if (errEx) throw errEx;
+
+  const geradosSet = new Set((existentes || []).map((e) => e.recorrente_modelo_id));
+
+  const faltantes = recorrentes.filter((modelo) => {
+    const inicioYM = ymFromCompetencia(modelo.competencia);
+    if (!inicioYM) return false;
+    // Só gera a partir do mês de início do modelo (ex.: julho → não aparece em junho).
+    if (alvoYM < inicioYM) return false;
+    // O registro modelo já representa o primeiro mês — não duplicar instância.
+    if (alvoYM === inicioYM) return false;
+    if (geradosSet.has(modelo.id)) return false;
+    if (modelo.status === 'pago' && competenciaPrimeiroDia(modelo.competencia) === alvo) return false;
+    return true;
+  });
+
+  if (faltantes.length === 0) return;
+
+  const novos = faltantes.map((modelo) => {
+    const dataVencOriginal = new Date(`${modelo.data_vencimento}T00:00:00`);
+    const dia = String(dataVencOriginal.getDate()).padStart(2, '0');
+    const novoVencimento = `${yyyy}-${mm}-${dia}`;
+    const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = modelo;
+    return {
+      ...rest,
+      recorrente_modelo_id: modelo.id,
+      competencia: alvo,
+      data_vencimento: novoVencimento,
+      status: 'pendente',
+      data_pagamento: null,
+      metodo_pagamento: null,
+    };
+  });
+
+  const { error: errIns } = await supabase.from('contas_pagar').upsert(novos, {
+    onConflict: 'recorrente_modelo_id,competencia',
+    ignoreDuplicates: true,
+  });
+  if (errIns) throw errIns;
+}
+
 // Contas
 export async function fetchContasPagar(filtros?: {
   status?: 'todas' | 'pendente' | 'pago';
   unidade?: 'todas' | 'cg' | 'rec' | 'bar';
+  /** YYYY-MM — mês selecionado na tela; garante instância recorrente além do mês corrente. */
+  competenciaGarantir?: string;
 }): Promise<ContaPagar[]> {
-  // 1. Garantir que contas recorrentes existam para o mês atual (batch otimizado)
   try {
     const hoje = new Date();
-    const yyyy = hoje.getFullYear();
-    const mm = String(hoje.getMonth() + 1).padStart(2, '0');
-    const competenciaAtual = `${yyyy}-${mm}-01`;
+    const atualYM = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+    const meses = new Set<string>([atualYM]);
+    const garantir = filtros?.competenciaGarantir?.slice(0, 7);
+    if (garantir) meses.add(garantir);
 
-    // 1a. Busca SOMENTE modelos recorrentes (recorrente_modelo_id IS NULL)
-    const { data: recorrentes } = await supabase
-      .from('contas_pagar')
-      .select('*')
-      .eq('tipo_lancamento', 'recorrente')
-      .neq('status', 'cancelado')
-      .neq('status', 'finalizado')
-      .is('recorrente_modelo_id', null);
-
-    if (recorrentes && recorrentes.length > 0) {
-      // 1b. Busca instâncias já geradas neste mês (por modelo_id)
-      const { data: existentes } = await supabase
-        .from('contas_pagar')
-        .select('recorrente_modelo_id')
-        .eq('competencia', competenciaAtual)
-        .not('recorrente_modelo_id', 'is', null);
-
-      // 1c. Set de modelo_ids já gerados para lookup O(1)
-      const geradosSet = new Set(
-        (existentes || []).map(e => e.recorrente_modelo_id)
-      );
-
-      // 1d. Filtrar modelos que ainda não têm instância este mês
-      //     e que não foram pagos diretamente no mês atual (previne duplicatas)
-      const faltantes = recorrentes.filter(
-        modelo => !geradosSet.has(modelo.id)
-          && !(modelo.status === 'pago' && modelo.competencia === competenciaAtual)
-      );
-
-      // 1e. Batch INSERT com recorrente_modelo_id vinculado
-      if (faltantes.length > 0) {
-        const novos = faltantes.map(modelo => {
-          const dataVencOriginal = new Date(`${modelo.data_vencimento}T00:00:00`);
-          const novoVencimento = `${yyyy}-${mm}-${String(dataVencOriginal.getDate()).padStart(2, '0')}`;
-          const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = modelo;
-          return {
-            ...rest,
-            recorrente_modelo_id: modelo.id,
-            competencia: competenciaAtual,
-            data_vencimento: novoVencimento,
-            status: 'pendente',
-            data_pagamento: null,
-            metodo_pagamento: null,
-          };
-        });
-        await supabase.from('contas_pagar').upsert(novos, {
-          onConflict: 'recorrente_modelo_id,competencia',
-          ignoreDuplicates: true,
-        });
-      }
+    for (const ym of meses) {
+      await ensureRecorrentesInstancias(ym);
     }
   } catch (err) {
     console.error('Erro ao processar recorrentes automáticos:', err);
