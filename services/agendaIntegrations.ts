@@ -136,15 +136,15 @@ async function ensureListByName(input: {
 async function fetchExistingLinkedTasks(input: {
   vinculo_tipo: NonNullable<Tarefa['vinculo_tipo']>;
   vinculo_ids: string[];
-}): Promise<Array<Pick<Tarefa, 'id' | 'vinculo_id' | 'vinculo_tipo' | 'status' | 'lista_id'>>> {
+}): Promise<Array<Pick<Tarefa, 'id' | 'vinculo_id' | 'vinculo_tipo' | 'status' | 'lista_id' | 'created_at'>>> {
   const ids = (input.vinculo_ids || []).filter(Boolean);
   if (!ids.length) return [];
 
-  const out: Array<Pick<Tarefa, 'id' | 'vinculo_id' | 'vinculo_tipo' | 'status' | 'lista_id'>> = [];
+  const out: Array<Pick<Tarefa, 'id' | 'vinculo_id' | 'vinculo_tipo' | 'status' | 'lista_id' | 'created_at'>> = [];
   for (const part of chunk(ids, 100)) {
     const { data, error } = await supabase
       .from('tarefas')
-      .select('id,vinculo_id,vinculo_tipo,status,lista_id')
+      .select('id,vinculo_id,vinculo_tipo,status,lista_id,created_at')
       .eq('vinculo_tipo', input.vinculo_tipo)
       .in('vinculo_id', part);
     if (error) {
@@ -154,6 +154,101 @@ async function fetchExistingLinkedTasks(input: {
     out.push(...(((data || []) as any) ?? []));
   }
   return out;
+}
+
+/** Remove tarefas automáticas cuja conta foi excluída ou cancelada. */
+async function cleanupOrphanContaTasks(listaFinanceiroId: string): Promise<number> {
+  const { data: tasks, error } = await supabase
+    .from('tarefas')
+    .select('id, vinculo_id')
+    .eq('lista_id', listaFinanceiroId)
+    .eq('vinculo_tipo', 'conta_pagar')
+    .not('vinculo_id', 'is', null);
+
+  if (error) throw error;
+  if (!tasks?.length) return 0;
+
+  const vinculoIds = [...new Set(tasks.map((t) => String(t.vinculo_id)).filter(Boolean))];
+  const validIds = new Set<string>();
+
+  for (const part of chunk(vinculoIds, 100)) {
+    const { data: contas, error: errContas } = await supabase
+      .from('contas_pagar')
+      .select('id, status')
+      .in('id', part);
+    if (errContas) throw errContas;
+    for (const c of contas || []) {
+      if (c.status !== 'cancelado' && c.status !== 'finalizado') {
+        validIds.add(String(c.id));
+      }
+    }
+  }
+
+  const orphanIds = tasks
+    .filter((t) => t.vinculo_id && !validIds.has(String(t.vinculo_id)))
+    .map((t) => t.id);
+
+  if (!orphanIds.length) return 0;
+
+  for (const part of chunk(orphanIds, 100)) {
+    const { error: delErr } = await supabase.from('tarefas').delete().in('id', part);
+    if (delErr) throw delErr;
+  }
+
+  console.log('[agendaIntegrations] cleanupOrphanContaTasks: removed', orphanIds.length);
+  return orphanIds.length;
+}
+
+/** Mantém 1 tarefa por conta (a mais recente) — evita duplicata na agenda. */
+async function dedupeContaTasksByVinculo(listaFinanceiroId: string): Promise<number> {
+  const { data: tasks, error } = await supabase
+    .from('tarefas')
+    .select('id, vinculo_id, created_at')
+    .eq('lista_id', listaFinanceiroId)
+    .eq('vinculo_tipo', 'conta_pagar')
+    .not('vinculo_id', 'is', null);
+
+  if (error) throw error;
+  if (!tasks?.length) return 0;
+
+  const byVinculo = new Map<string, Array<{ id: string; created_at: string }>>();
+  for (const t of tasks) {
+    const k = String(t.vinculo_id);
+    const group = byVinculo.get(k) || [];
+    group.push({ id: t.id, created_at: t.created_at });
+    byVinculo.set(k, group);
+  }
+
+  const toDelete: string[] = [];
+  for (const group of byVinculo.values()) {
+    if (group.length <= 1) continue;
+    group.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    toDelete.push(...group.slice(1).map((t) => t.id));
+  }
+
+  if (!toDelete.length) return 0;
+
+  for (const part of chunk(toDelete, 100)) {
+    const { error: delErr } = await supabase.from('tarefas').delete().in('id', part);
+    if (delErr) throw delErr;
+  }
+
+  console.log('[agendaIntegrations] dedupeContaTasksByVinculo: removed', toDelete.length);
+  return toDelete.length;
+}
+
+function pickPrimaryLinkedTask(
+  rows: Array<Pick<Tarefa, 'id' | 'vinculo_id' | 'created_at'>>
+): Map<string, Pick<Tarefa, 'id' | 'vinculo_id' | 'created_at'>> {
+  const byVinculo = new Map<string, Pick<Tarefa, 'id' | 'vinculo_id' | 'created_at'>>();
+  for (const row of rows) {
+    const k = String(row.vinculo_id);
+    const prev = byVinculo.get(k);
+    if (!prev || new Date(row.created_at || 0) > new Date(prev.created_at || 0)) {
+      byVinculo.set(k, row);
+    }
+  }
+  return byVinculo;
 }
 
 /* ------------------------------------------------------------------ */
@@ -189,11 +284,15 @@ async function syncContasAsAgendaTasks(input: { listaFinanceiroId: string; cfg: 
 
   const contas = (data || []) as ContaPagarRow[];
   console.log('[agendaIntegrations] syncContas: found', contas.length, 'contas in window');
-  if (!contas.length) return;
+  if (!contas.length) {
+    await cleanupOrphanContaTasks(input.listaFinanceiroId);
+    await dedupeContaTasksByVinculo(input.listaFinanceiroId);
+    return;
+  }
 
   const contaIds = contas.map((c) => c.id);
   const existing = await fetchExistingLinkedTasks({ vinculo_tipo: 'conta_pagar', vinculo_ids: contaIds });
-  const byVinculo = new Map(existing.map((t) => [String(t.vinculo_id), t]));
+  const byVinculo = pickPrimaryLinkedTask(existing);
   console.log('[agendaIntegrations] syncContas: existing linked tasks:', existing.length);
 
   const inserts: Record<string, any>[] = [];
@@ -266,6 +365,9 @@ async function syncContasAsAgendaTasks(input: { listaFinanceiroId: string; cfg: 
     }
     console.log('[agendaIntegrations] syncContas: updated', updates.length, 'tasks');
   }
+
+  await cleanupOrphanContaTasks(input.listaFinanceiroId);
+  await dedupeContaTasksByVinculo(input.listaFinanceiroId);
 }
 
 /* ------------------------------------------------------------------ */
