@@ -1845,7 +1845,11 @@ export default function App() {
           "flex-1 overflow-auto flex flex-col",
           // Agenda precisa ficar 100% full-bleed (sem “margem/contorno” visual).
           // No desktop, mantemos um respiro no fundo para não “cortar” a última seção.
-          currentModule === 'agenda' ? "p-0 pb-28 lg:pb-10" : "p-8 pb-28 lg:pb-10"
+          currentModule === 'agenda'
+            ? "p-0 pb-28 lg:pb-10"
+            : currentModule === 'contas'
+              ? "px-4 py-8 pb-28 lg:p-8 lg:pb-10"
+              : "p-8 pb-28 lg:pb-10"
         )}
       >
         {/* Module-specific Header/Toolbar */}
