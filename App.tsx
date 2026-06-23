@@ -1293,6 +1293,20 @@ export default function App() {
   const currentModuleConfig = MODULE_CONFIG[currentModule] ?? MODULE_CONFIG.folha;
   const getShortLabel = (id: string) => {
     // Mobile cockpit labels dependem do módulo (pra caber sem scroll e manter semântica)
+    if (currentModule === 'rh') {
+      const rhMap: Record<string, string> = {
+        dashboard: 'Dash',
+        candidatos: 'Candid.',
+        onboarding: 'Onboard.',
+        colaboradores: 'Pessoal',
+        desenvolvimento: 'PDI',
+        desligamentos: 'Saidas',
+        documentos: 'Docs',
+        templates: 'Modelos',
+      };
+      return rhMap[id] || id;
+    }
+
     if (currentModule === 'contas') {
       const contasMap: Record<string, string> = {
         'dashboard': 'Dash',
@@ -1963,6 +1977,27 @@ export default function App() {
 
             {/* Mobile Tabs (Cockpit Premium Style) */}
             <div className="lg:hidden mb-6">
+              {currentModule === 'rh' ? (
+                <div className="-mx-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="flex min-w-max gap-2 px-1">
+                    {tabs.map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => handleTabChange(tab.id)}
+                        className={cn(
+                          "h-11 shrink-0 rounded-xl border px-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                          activeTab === tab.id
+                            ? "border-accent/25 bg-accent/15 text-accent shadow-lg shadow-accent/10"
+                            : "border-line/60 bg-surface/80 text-muted hover:text-secondary hover:bg-surface-2/70"
+                        )}
+                      >
+                        <tab.icon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{getShortLabel(tab.id)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
               <div className="relative flex bg-surface p-1 rounded-xl border border-line/50 shadow-inner overflow-hidden">
                 {/* Indicador Deslizante (Sliding Background) */}
                 <div
@@ -1990,6 +2025,7 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              )}
             </div>
           </div>
         ) : null}

@@ -52,23 +52,27 @@ export const DashboardTab: React.FC = () => {
   useEffect(() => { void loadData(); }, []);
 
   const myCriticalCount = useMemo(() => alerts.filter((item) => (item.dias_para_vencimento ?? 99) <= 0).length, [alerts]);
+  const kpiCardClass = "min-h-[108px] p-3.5 sm:min-h-0 sm:p-5 border border-line-strong/50";
+  const kpiLabelClass = "text-[9px] sm:text-[10px] uppercase tracking-[0.14em] sm:tracking-[0.2em] text-muted font-black leading-tight";
+  const kpiValueClass = "mt-2 text-2xl sm:text-3xl font-black";
+  const kpiSubClass = "mt-1 text-[11px] sm:text-xs font-bold text-muted leading-tight";
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={loadData} />;
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4">
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Recrutamentos</div><div className="mt-2 text-3xl font-black text-primary">{kpis?.recrutamentos_ativos || 0}</div><div className="mt-1 text-xs font-bold text-muted">Ativos</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Onboardings</div><div className="mt-2 text-3xl font-black text-primary">{kpis?.onboardings_ativos || 0}</div><div className="mt-1 text-xs font-bold text-muted">Em andamento</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Desligamentos</div><div className="mt-2 text-3xl font-black text-primary">{kpis?.desligamentos_ativos || 0}</div><div className="mt-1 text-xs font-bold text-muted">Abertos</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Documentos</div><div className="mt-2 text-3xl font-black text-warning">{kpis?.documentos_pendentes || 0}</div><div className="mt-1 text-xs font-bold text-muted">Pendentes</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Criticos</div><div className="mt-2 text-3xl font-black text-danger">{myCriticalCount}</div><div className="mt-1 text-xs font-bold text-muted">Atrasados</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">PDI ativos</div><div className="mt-2 text-3xl font-black text-accent">{pdiKpis?.pdis_ativos || 0}</div><div className="mt-1 text-xs font-bold text-muted">Planos em andamento</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Checkpoints</div><div className="mt-2 text-3xl font-black text-info">{pdiKpis?.checkpoints_atrasados || 0}</div><div className="mt-1 text-xs font-bold text-muted">Atrasados</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Conquistas</div><div className="mt-2 text-3xl font-black text-success">{pdiKpis?.conquistas_mes || 0}</div><div className="mt-1 text-xs font-bold text-muted">No mes</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Promocao</div><div className="mt-2 text-3xl font-black text-info">{developmentHealth?.prontos_para_promocao || 0}</div><div className="mt-1 text-xs font-bold text-muted">Prontos</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Travados</div><div className="mt-2 text-3xl font-black text-danger">{developmentHealth?.colaboradores_travados || 0}</div><div className="mt-1 text-xs font-bold text-muted">Desenvolvimento</div></Card>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3 sm:gap-4">
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>Recrutamentos</div><div className={`${kpiValueClass} text-primary`}>{kpis?.recrutamentos_ativos || 0}</div><div className={kpiSubClass}>Ativos</div></Card>
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>Onboardings</div><div className={`${kpiValueClass} text-primary`}>{kpis?.onboardings_ativos || 0}</div><div className={kpiSubClass}>Em andamento</div></Card>
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>Desligamentos</div><div className={`${kpiValueClass} text-primary`}>{kpis?.desligamentos_ativos || 0}</div><div className={kpiSubClass}>Abertos</div></Card>
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>Documentos</div><div className={`${kpiValueClass} text-warning`}>{kpis?.documentos_pendentes || 0}</div><div className={kpiSubClass}>Pendentes</div></Card>
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>Criticos</div><div className={`${kpiValueClass} text-danger`}>{myCriticalCount}</div><div className={kpiSubClass}>Atrasados</div></Card>
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>PDI ativos</div><div className={`${kpiValueClass} text-accent`}>{pdiKpis?.pdis_ativos || 0}</div><div className={kpiSubClass}>Planos em andamento</div></Card>
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>Checkpoints</div><div className={`${kpiValueClass} text-info`}>{pdiKpis?.checkpoints_atrasados || 0}</div><div className={kpiSubClass}>Atrasados</div></Card>
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>Conquistas</div><div className={`${kpiValueClass} text-success`}>{pdiKpis?.conquistas_mes || 0}</div><div className={kpiSubClass}>No mes</div></Card>
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>Promocao</div><div className={`${kpiValueClass} text-info`}>{developmentHealth?.prontos_para_promocao || 0}</div><div className={kpiSubClass}>Prontos</div></Card>
+        <Card className={kpiCardClass}><div className={kpiLabelClass}>Travados</div><div className={`${kpiValueClass} text-danger`}>{developmentHealth?.colaboradores_travados || 0}</div><div className={kpiSubClass}>Desenvolvimento</div></Card>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_.9fr] gap-6">
