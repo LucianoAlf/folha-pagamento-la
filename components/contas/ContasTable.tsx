@@ -33,6 +33,9 @@ export const ContasTable: React.FC<{
   codigosPorConta?: Record<string, ContaPagarCodigoMes>;
 }> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar, selectedIds, onToggleSelect, onToggleSelectAll, codigosPorConta }) => {
   const hasSelection = !!selectedIds && !!onToggleSelect;
+  const desktopGridClass = hasSelection
+    ? "grid-cols-[40px_minmax(140px,1fr)_96px_102px_104px_228px]"
+    : "grid-cols-[minmax(180px,1fr)_96px_102px_104px_228px]";
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [localBusca, setLocalBusca] = useState(busca);
 
@@ -136,7 +139,7 @@ export const ContasTable: React.FC<{
 
       <div className="border-t border-line/70">
         {/* Desktop Header */}
-        <div className={cn("hidden lg:grid px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-muted bg-bg/30", hasSelection ? "grid-cols-[40px_repeat(12,minmax(0,1fr))]" : "grid-cols-12")}>
+        <div className={cn("hidden lg:grid px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-muted bg-bg/30", desktopGridClass)}>
           {hasSelection && (
             <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
               <button
@@ -156,11 +159,11 @@ export const ContasTable: React.FC<{
               </button>
             </div>
           )}
-          <div className="col-span-5">Plano / Descrição</div>
-          <div className="col-span-2">Vencimento</div>
-          <div className="col-span-2 text-right">Valor</div>
-          <div className="col-span-1 text-center">Status</div>
-          <div className="col-span-2 text-right">Ações</div>
+          <div>Plano / Descrição</div>
+          <div>Vencimento</div>
+          <div className="text-right">Valor</div>
+          <div className="text-center">Status</div>
+          <div className="text-right">Ações</div>
         </div>
 
         {filtered.length === 0 ? (
@@ -174,13 +177,15 @@ export const ContasTable: React.FC<{
               const isHoje = c.data_vencimento === new Date().toISOString().split('T')[0];
               const planoLabel = formatContaPlanoLabel(c);
               const planoCodigo = formatContaPlanoCodigo(c);
+              const planoNome = c.plano_conta?.nome || planoLabel;
+              const hasPlanoConta = Boolean(c.plano_conta?.codigo && c.plano_conta?.nome);
               const centroLabel = formatContaCentroCustoLabel(c);
 
               return (
                 <div key={c.id}>
                   {/* Desktop Row */}
                   <div
-                    className={cn("hidden lg:grid px-6 py-5 items-center bg-surface/10 hover:bg-surface/20 transition-colors cursor-pointer", hasSelection ? "grid-cols-[40px_repeat(12,minmax(0,1fr))]" : "grid-cols-12", hasSelection && selectedIds!.has(c.id) && "bg-accent/5")}
+                    className={cn("hidden lg:grid px-6 py-5 items-center bg-surface/10 hover:bg-surface/20 transition-colors cursor-pointer", desktopGridClass, hasSelection && selectedIds!.has(c.id) && "bg-accent/5")}
                     onClick={() => setExpandedId(isOpen ? null : c.id)}
                     role="button"
                     tabIndex={0}
@@ -208,7 +213,7 @@ export const ContasTable: React.FC<{
                         </button>
                       </div>
                     )}
-                    <div className="col-span-5 min-w-0">
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-primary font-black truncate">{planoLabel}</span>
                         {centroLabel && (
@@ -225,15 +230,15 @@ export const ContasTable: React.FC<{
                       <div className="text-xs text-muted truncate">{c.descricao}</div>
                       {codigosPorConta && <div className="mt-1">{codigoBadgeFor(c)}</div>}
                     </div>
-                    <div className="col-span-2 text-sm font-bold text-secondary">{formatDateBR(c.data_vencimento)}</div>
-                    <div className="col-span-2 text-right text-primary font-bold">{formatCurrency(Number(c.valor) || 0)}</div>
-                    <div className="col-span-1 flex justify-center">{badgeFor(c)}</div>
-                    <div className="col-span-2 flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="text-sm font-bold text-secondary">{formatDateBR(c.data_vencimento)}</div>
+                    <div className="text-right text-primary font-bold">{formatCurrency(Number(c.valor) || 0)}</div>
+                    <div className="flex justify-center">{badgeFor(c)}</div>
+                    <div className="flex justify-end gap-1 pl-2 min-w-0" onClick={(e) => e.stopPropagation()}>
                       <Tooltip content="Lembretes WhatsApp (por conta)">
                         <button
                           type="button"
                           onClick={() => setExpandedId(isOpen ? null : c.id)}
-                          className="p-2 rounded-xl border border-line text-secondary hover:text-primary hover:bg-surface-2 transition-all"
+                          className="w-8 h-8 rounded-xl border border-line text-secondary hover:text-primary hover:bg-surface-2 transition-all flex items-center justify-center"
                           aria-label="Lembretes WhatsApp"
                         >
                           <Bell size={14} />
@@ -256,7 +261,7 @@ export const ContasTable: React.FC<{
                               <button
                                 type="button"
                                 onClick={() => onFinalizar(c)}
-                                className="p-2 rounded-xl border border-line text-secondary hover:text-success hover:bg-success/10 transition-all"
+                                className="w-8 h-8 rounded-xl border border-line text-secondary hover:text-success hover:bg-success/10 transition-all flex items-center justify-center"
                               >
                                 <CheckSquare size={14} />
                               </button>
@@ -266,7 +271,7 @@ export const ContasTable: React.FC<{
                             <button
                               type="button"
                               onClick={() => onEditar(c)}
-                              className="p-2 rounded-xl border border-line text-secondary hover:text-primary hover:bg-surface-2 transition-all"
+                              className="w-8 h-8 rounded-xl border border-line text-secondary hover:text-primary hover:bg-surface-2 transition-all flex items-center justify-center"
                             >
                               <Edit2 size={14} />
                             </button>
@@ -275,7 +280,7 @@ export const ContasTable: React.FC<{
                             <button
                               type="button"
                               onClick={() => onExcluir(c)}
-                              className="p-2 rounded-xl border border-line text-secondary hover:text-danger hover:bg-danger/10 transition-all"
+                              className="w-8 h-8 rounded-xl border border-line text-secondary hover:text-danger hover:bg-danger/10 transition-all flex items-center justify-center"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -283,9 +288,9 @@ export const ContasTable: React.FC<{
                           <button
                             type="button"
                             onClick={() => onPagar(c)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent hover:bg-accent/80 text-white text-xs font-black shadow-lg shadow-accent/20"
+                            className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-xl bg-accent hover:bg-accent/80 text-white text-xs font-black shadow-lg shadow-accent/20"
                           >
-                            <DollarSign size={14} />
+                            <DollarSign size={12} />
                             Pagar
                           </button>
                         </>
@@ -295,12 +300,12 @@ export const ContasTable: React.FC<{
 
                   {/* Mobile Premium Card */}
                   <div
-                    className={cn("lg:hidden p-4 bg-surface/10 active:bg-surface/30 transition-all border-b border-line/50 group", hasSelection && selectedIds!.has(c.id) && "bg-accent/5")}
+                    className={cn("lg:hidden px-4 py-3 bg-surface/10 active:bg-surface/30 transition-all border-b border-line/50 group", hasSelection && selectedIds!.has(c.id) && "bg-accent/5")}
                     onClick={() => setExpandedId(isOpen ? null : c.id)}
                   >
                     <div className="flex flex-col gap-3">
-                      {/* Top Info: Plano, Data e Centro */}
-                      <div className="flex items-start justify-between gap-2">
+                      {/* Top Info: Conta, plano, data e centro */}
+                      <div className="flex items-start gap-3">
                         {hasSelection && (
                           <button
                             type="button"
@@ -318,47 +323,55 @@ export const ContasTable: React.FC<{
                             )}
                           </button>
                         )}
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={cn(
-                              "text-[10px] font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-md",
-                              c.status === 'pago' ? "bg-success/10 text-success" :
-                              isVencida ? "bg-danger/10 text-danger" :
-                              isHoje ? "bg-warning/10 text-warning" :
-                              "bg-surface-2 text-secondary"
-                            )}>
-                              {planoCodigo}
-                            </span>
-                            {c.total_parcelas && c.parcela_atual && (
-                              <span className="text-[10px] font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
-                                Parcela {c.parcela_atual} de {c.total_parcelas}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-[15px] font-black text-primary leading-snug break-words">
+                                {c.descricao}
+                              </h4>
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-secondary leading-snug">
+                                {hasPlanoConta ? (
+                                  <>
+                                    <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] font-black text-secondary leading-none">
+                                      {planoCodigo}
+                                    </span>
+                                    <span>{planoNome}</span>
+                                  </>
+                                ) : (
+                                  <span>{planoLabel}</span>
+                                )}
+                                <span className="text-muted">&middot;</span>
+                                <span className="text-muted">{centroLabel}</span>
+                              </div>
+                              {c.total_parcelas && c.parcela_atual && (
+                                <div className="mt-1">
+                                  <span className="inline-flex text-[10px] font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
+                                    Parcela {c.parcela_atual} de {c.total_parcelas}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="shrink-0 flex flex-col items-end gap-1">
+                              <span className="text-[10px] font-bold text-muted">
+                                {formatDateBR(c.data_vencimento)}
                               </span>
-                            )}
-                            <span className="text-[10px] font-bold text-muted">
-                              {formatDateBR(c.data_vencimento)}
-                            </span>
-                          </div>
-                          <h4 className="text-sm font-black text-secondary truncate">
-                            {c.descricao}
-                          </h4>
-                          <div className="text-[10px] font-bold text-muted mt-0.5">
-                            {centroLabel}
+                              {badgeFor(c)}
+                            </div>
                           </div>
                         </div>
-                        {badgeFor(c)}
                       </div>
 
-                      {/* Bottom Info: Valor e Ações Diretas */}
-                      <div className="flex items-center justify-between gap-1 mt-1">
-                        <div className="text-base font-bold text-primary leading-none shrink-0">
+                      {/* Bottom Info: Valor e Acoes Diretas */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[17px] font-black text-primary leading-none shrink-0">
                           {formatCurrency(Number(c.valor) || 0)}
                         </div>
 
-                        <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5 min-w-0" onClick={e => e.stopPropagation()}>
                           <button
                             onClick={() => setExpandedId(isOpen ? null : c.id)}
                             className={cn(
-                              "w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-90",
+                              "w-8 h-8 rounded-xl border flex items-center justify-center transition-all active:scale-90",
                               isOpen ? "bg-accent border-accent/80 text-white" : "bg-surface/40 border-line text-secondary"
                             )}
                             aria-label="Lembretes WhatsApp"
@@ -368,7 +381,7 @@ export const ContasTable: React.FC<{
 
                           <button
                             onClick={() => onEditar(c)}
-                            className="w-9 h-9 rounded-xl bg-surface/40 border border-line text-secondary flex items-center justify-center active:scale-90 transition-all"
+                            className="w-8 h-8 rounded-xl bg-surface/40 border border-line text-secondary flex items-center justify-center active:scale-90 transition-all"
                             aria-label="Editar"
                           >
                             <Edit2 size={14} />
@@ -379,7 +392,7 @@ export const ContasTable: React.FC<{
                               {c.tipo_lancamento === 'parcelada' && (
                                 <button
                                   onClick={() => onFinalizar(c)}
-                                  className="w-9 h-9 rounded-xl bg-surface/40 border border-line text-secondary flex items-center justify-center active:scale-90 transition-all"
+                                  className="w-8 h-8 rounded-xl bg-surface/40 border border-line text-secondary flex items-center justify-center active:scale-90 transition-all"
                                   aria-label="Finalizar"
                                 >
                                   <CheckSquare size={14} />
@@ -387,26 +400,26 @@ export const ContasTable: React.FC<{
                               )}
                               <button
                                 onClick={() => onExcluir(c)}
-                                className="w-9 h-9 rounded-xl bg-surface/40 border border-line text-secondary flex items-center justify-center active:scale-90 transition-all"
+                                className="w-8 h-8 rounded-xl bg-surface/40 border border-line text-secondary flex items-center justify-center active:scale-90 transition-all"
                                 aria-label="Excluir"
                               >
                                 <Trash2 size={14} />
                               </button>
                               <button
                                 onClick={() => onPagar(c)}
-                                className="h-9 px-3 rounded-xl bg-accent text-white text-[10px] font-black shadow-lg shadow-accent/20 active:scale-95 transition-all flex items-center gap-1.5"
+                                className="h-8 px-3 rounded-xl bg-accent text-white text-[10px] font-black shadow-lg shadow-accent/20 active:scale-95 transition-all flex items-center gap-1.5"
                               >
                                 <DollarSign size={12} />
                                 Pagar
                               </button>
                             </>
                           ) : c.status === 'finalizado' ? (
-                            <div className="h-9 px-3 rounded-xl bg-surface-2 text-secondary text-[10px] font-black border border-line-strong flex items-center gap-1.5">
+                            <div className="h-8 px-3 rounded-xl bg-surface-2 text-secondary text-[10px] font-black border border-line-strong flex items-center gap-1.5">
                               <CheckSquare size={12} />
                               Finalizado
                             </div>
                           ) : (
-                            <div className="h-9 px-3 rounded-xl bg-success/10 text-success text-[10px] font-black border border-success/20 flex items-center gap-1.5">
+                            <div className="h-8 px-3 rounded-xl bg-success/10 text-success text-[10px] font-black border border-success/20 flex items-center gap-1.5">
                               <CheckCircle2 size={12} />
                               Liquidado
                             </div>
