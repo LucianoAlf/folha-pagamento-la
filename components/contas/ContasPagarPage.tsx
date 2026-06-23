@@ -22,7 +22,7 @@ import {
   updateFuturasRecorrentes,
   updateFuturasParceladas,
 } from '../../services/contasPagarService';
-import { toDateOnly } from '../../utils/dateOnly';
+import { toDateOnly, formatDateBR } from '../../utils/dateOnly';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../services/supabase';
 import { ContasSummaryCards } from './ContasSummaryCards';
 import { ContasTable } from './ContasTable';
@@ -1074,9 +1074,19 @@ export const ContasPagarPage: React.FC<{
     return contasPendentesBase.filter(matchesCompetencia);
   }, [contasPendentesBase, matchesCompetencia]);
 
+  const contasDoMesOperacional = useMemo(() => {
+    return contas.filter(
+      (c) =>
+        c.status !== 'cancelado' &&
+        c.status !== 'finalizado' &&
+        matchesCommonFilters(c) &&
+        matchesCompetencia(c)
+    );
+  }, [contas, matchesCommonFilters, matchesCompetencia]);
+
   const contasParaTabelaVisaoGeral = useMemo(() => {
-    return filtroTab === 'todas' ? contasPendentesMes : contasPendentesBase;
-  }, [filtroTab, contasPendentesMes, contasPendentesBase]);
+    return filtroTab === 'todas' ? contasDoMesOperacional : contasPendentesBase;
+  }, [filtroTab, contasDoMesOperacional, contasPendentesBase]);
 
   const contasParaCalendario = useMemo(() => {
     // calendário: mostra contas do mês (competência) — pendentes e pagas, para visão geral.
@@ -1313,7 +1323,7 @@ export const ContasPagarPage: React.FC<{
 
   if (mode === 'dashboard') {
     const {
-      totalMes, totalTrend, totalPendenteMes, pendentesMes, totalPagoMes, pagasMes,
+      contasMes, totalMes, totalTrend, totalPendenteMes, pendentesMes, totalPagoMes, pagasMes,
       totalVencendoHoje, vencendoHoje, categoryData, evolutionData, anomalies,
     } = dashboardData;
 
@@ -1542,6 +1552,57 @@ export const ContasPagarPage: React.FC<{
             </div>
           </Card>
         </div>
+
+        {/* Lançamentos do mês — Rose conferia totais/gráfico mas não achava a lista */}
+        <Card className="p-6 mt-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+            <div>
+              <h3 className="text-lg font-black text-primary flex items-center gap-2">
+                <List size={20} className="text-accent" />
+                Lançamentos do mês
+              </h3>
+              <p className="text-xs text-muted font-bold mt-1">
+                Todas as contas do período selecionado (pendentes e pagas)
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMode('visao-geral')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-line bg-surface/40 text-secondary font-black text-xs uppercase tracking-widest hover:bg-surface/60 transition-all"
+            >
+              Abrir Contas a Pagar
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          {contasMes.length === 0 ? (
+            <div className="py-12 text-center text-muted font-bold">
+              Nenhum lançamento neste mês. Troque o mês de referência ou cadastre uma nova conta.
+            </div>
+          ) : (
+            <div className="divide-y divide-line/60">
+              {contasMes.map((c) => (
+                <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <div className="text-sm font-black text-primary truncate">{c.descricao}</div>
+                    <div className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">
+                      {c.categoria?.nome || 'Sem categoria'}
+                      {c.tipo_lancamento === 'recorrente' ? ' · Recorrente' : ''}
+                      {' · Venc. '}
+                      {formatDateBR(c.data_vencimento)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0">
+                    <span className="text-sm font-black text-primary">{formatCurrency(Number(c.valor) || 0)}</span>
+                    <Badge variant={c.status === 'pago' ? 'success' : 'info'}>
+                      {c.status === 'pago' ? 'Pago' : 'Pendente'}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
 
         <NovaContaModal
           isOpen={novaOpen}
