@@ -40,6 +40,12 @@ supabase/.temp/
 /tmp-deploy-results/
 /tmp-mcp-invoke/
 /tmp-mcp-args/
+.tmp/
+scripts/.deploy-*
+scripts/.mcp-*
+
+# Local Claude Code settings (machine-specific permissions/paths)
+.claude/
 
 # Superpowers visual brainstorming companion (mockups/state)
 .superpowers/
