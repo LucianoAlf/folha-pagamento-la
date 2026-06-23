@@ -5,8 +5,12 @@ import {
   centroCustoToUnidade,
   filterSelectablePlanos,
   formatPlanoContaLabel,
+  formatContaCentroCustoLabel,
+  formatContaPlanoCodigo,
+  formatContaPlanoLabel,
   getPlanoContaParentName,
   isPlanoContaSelecionavel,
+  matchesContaPlanoCentroSearch,
   matchesPlanoContaSearch,
   resolvePlanosMaisUsados,
 } from './planoContasSelectors.ts';
@@ -92,6 +96,13 @@ test('matchesPlanoContaSearch finds codigo and nome without accents', () => {
   assert.equal(matchesPlanoContaSearch(conta, 'marketing'), false);
 });
 
+test('matchesPlanoContaSearch treats dotted account codes as segmented codes', () => {
+  assert.equal(matchesPlanoContaSearch({ codigo: '5.2.1', nome: 'Telefone e Internet' }, '5.2.1'), true);
+  assert.equal(matchesPlanoContaSearch({ codigo: '5.2.10', nome: 'Outras Despesas Administrativas' }, '5.2.1'), false);
+  assert.equal(matchesPlanoContaSearch({ codigo: '5.2.11', nome: 'Softwares e Plataformas' }, '5.2.1'), false);
+  assert.equal(matchesPlanoContaSearch({ codigo: '5.2.1.1', nome: 'Subconta' }, '5.2.1'), true);
+});
+
 test('centroCustoToUnidade returns the legacy unidade code for supported cost centers', () => {
   assert.equal(
     centroCustoToUnidade({
@@ -149,6 +160,21 @@ test('filterSelectablePlanos matches codigo or nome ignoring case and accents', 
   );
 });
 
+test('filterSelectablePlanos searches account codes by segment and names by text', () => {
+  const planos = [
+    { id: 'telefone', codigo: '5.2.1', nome: 'Telefone e Internet', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 1 },
+    { id: 'iptu', codigo: '5.2.6', nome: 'IPTU', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 6 },
+    { id: 'outras', codigo: '5.2.10', nome: 'Outras Despesas Administrativas', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 10 },
+    { id: 'software', codigo: '5.2.11', nome: 'Softwares e Plataformas', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 11 },
+    { id: 'trafego', codigo: '4.7.4', nome: 'Trafego pago', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 4 },
+  ];
+
+  assert.deepEqual(filterSelectablePlanos(planos, '5.2.1').map((p) => p.codigo), ['5.2.1']);
+  assert.deepEqual(filterSelectablePlanos(planos, '5.2').map((p) => p.codigo), ['5.2.1', '5.2.6', '5.2.10', '5.2.11']);
+  assert.deepEqual(filterSelectablePlanos(planos, '5.2.6').map((p) => p.codigo), ['5.2.6']);
+  assert.deepEqual(filterSelectablePlanos(planos, 'iptu').map((p) => p.codigo), ['5.2.6']);
+});
+
 test('getPlanoContaParentName returns the level 2 parent label for a leaf', () => {
   const byId = new Map([
     ['bloco', { id: 'bloco', codigo: '5', nome: 'Despesas', nivel: 1 as const, natureza: 'saida' as const, ativo: true, ordem: 1 }],
@@ -184,4 +210,77 @@ test('resolvePlanosMaisUsados preserves usage order and ignores non-selectable i
       ['energia', 3],
     ]
   );
+});
+
+test('formatContaPlanoLabel renders plano codigo and nome with category fallback', () => {
+  assert.equal(
+    formatContaPlanoLabel({
+      plano_conta: { id: 'energia', codigo: '5.2.3', nome: 'Energia Eletrica', nivel: 3, natureza: 'saida', ativo: true, ordem: 3 },
+      categoria: { id: 'cat', nome: 'Energia antiga', icone: '', cor: '', tipo_fluxo: 'despesa', tipo_custo: 'fixo', ativo: true, ordem: 1 },
+    }),
+    '5.2.3 Energia Eletrica'
+  );
+
+  assert.equal(
+    formatContaPlanoLabel({
+      plano_conta: null,
+      categoria: { id: 'cat', nome: 'Energia antiga', icone: '', cor: '', tipo_fluxo: 'despesa', tipo_custo: 'fixo', ativo: true, ordem: 1 },
+    }),
+    'Energia antiga'
+  );
+});
+
+test('formatContaPlanoCodigo and formatContaCentroCustoLabel use defensive fallbacks', () => {
+  assert.equal(
+    formatContaPlanoCodigo({
+      plano_conta: { id: 'energia', codigo: '5.2.3', nome: 'Energia Eletrica', nivel: 3, natureza: 'saida', ativo: true, ordem: 3 },
+    }),
+    '5.2.3'
+  );
+
+  assert.equal(
+    formatContaPlanoCodigo({
+      plano_conta: null,
+      categoria: { id: 'cat', nome: 'Energia antiga', icone: '', cor: '', tipo_fluxo: 'despesa', tipo_custo: 'fixo', ativo: true, ordem: 1 },
+    }),
+    'Energia antiga'
+  );
+
+  assert.equal(
+    formatContaCentroCustoLabel({
+      centro_custo: { id: 'cg', codigo: 'cg', nome: 'Campo Grande', tipo: 'unidade', ativo: true, ordem: 1 },
+      unidade: 'rec',
+    }),
+    'Campo Grande'
+  );
+
+  assert.equal(formatContaCentroCustoLabel({ centro_custo: null, unidade: 'rec' }), 'REC');
+});
+
+test('matchesContaPlanoCentroSearch finds descricao, plano and centro without accents', () => {
+  const conta = {
+    descricao: 'Light loja 171',
+    plano_conta: { id: 'energia', codigo: '5.2.3', nome: 'Energia Eletrica', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 3 },
+    centro_custo: { id: 'cg', codigo: 'cg', nome: 'Campo Grande', tipo: 'unidade', ativo: true, ordem: 1 },
+    categoria: { id: 'cat', nome: 'Conta de luz', icone: '', cor: '', tipo_fluxo: 'despesa' as const, tipo_custo: 'fixo' as const, ativo: true, ordem: 1 },
+    unidade: 'cg' as const,
+  };
+
+  assert.equal(matchesContaPlanoCentroSearch(conta, 'light'), true);
+  assert.equal(matchesContaPlanoCentroSearch(conta, '5.2.3'), true);
+  assert.equal(matchesContaPlanoCentroSearch(conta, 'energia elétrica'), true);
+  assert.equal(matchesContaPlanoCentroSearch(conta, 'campo grande'), true);
+  assert.equal(matchesContaPlanoCentroSearch(conta, 'recreio'), false);
+});
+
+test('matchesContaPlanoCentroSearch does not match sibling account codes by substring', () => {
+  const conta = {
+    descricao: 'Emusys - (CG)',
+    plano_conta: { id: 'software', codigo: '5.2.11', nome: 'Softwares e Plataformas', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 11 },
+    centro_custo: { id: 'cg', codigo: 'cg', nome: 'Campo Grande', tipo: 'unidade', ativo: true, ordem: 1 },
+    unidade: 'cg' as const,
+  };
+
+  assert.equal(matchesContaPlanoCentroSearch(conta, '5.2.1'), false);
+  assert.equal(matchesContaPlanoCentroSearch(conta, '5.2.11'), true);
 });

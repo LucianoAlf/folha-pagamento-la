@@ -1,4 +1,4 @@
-import type { CentroCusto, PlanoConta } from '../../types/contasPagar.ts';
+import type { CategoriaDespesa, CentroCusto, PlanoConta } from '../../types/contasPagar.ts';
 
 export type UnidadeContaLegada = 'cg' | 'rec' | 'bar';
 type PlanoContaSelecionavelInput = Pick<PlanoConta, 'ativo' | 'natureza' | 'nivel'> & Partial<PlanoConta>;
@@ -6,6 +6,13 @@ type PlanoContaLabelInput = Pick<PlanoConta, 'codigo' | 'nome'> & Partial<PlanoC
 type PlanoContaSearchInput = Pick<PlanoConta, 'codigo' | 'nome'> & Partial<PlanoConta>;
 type CentroCustoCodigoInput = Pick<CentroCusto, 'codigo'> & Partial<CentroCusto>;
 type PlanoContaParentInput = Pick<PlanoConta, 'id' | 'nome' | 'nivel'> & Partial<PlanoConta>;
+type ContaPlanoDisplayInput = {
+  descricao?: string | null;
+  unidade?: string | null;
+  categoria?: (Partial<CategoriaDespesa> & { nome?: string | null }) | null;
+  plano_conta?: PlanoContaLabelInput | null;
+  centro_custo?: (Partial<CentroCusto> & { nome?: string | null }) | null;
+};
 
 export type PlanoContaMaisUsadoInput = {
   plano_conta_id: string | null;
@@ -25,6 +32,18 @@ function normalizeSearch(value: string): string {
     .trim();
 }
 
+function isCodigoPlanoSearch(query: string): boolean {
+  return /^\d+(?:\.\d+)*$/.test(query);
+}
+
+function matchesCodigoPlano(codigo: string | null | undefined, query: string): boolean {
+  const normalizedCodigo = normalizeSearch(codigo || '').replace(/\s+/g, '');
+  const normalizedQuery = normalizeSearch(query).replace(/\s+/g, '');
+  if (!normalizedCodigo || !isCodigoPlanoSearch(normalizedQuery)) return false;
+  if (normalizedCodigo === normalizedQuery) return true;
+  return normalizedCodigo.startsWith(`${normalizedQuery}.`);
+}
+
 export function isPlanoContaSelecionavel(plano: PlanoContaSelecionavelInput): boolean {
   return plano.ativo === true && plano.natureza === 'saida' && plano.nivel === 3;
 }
@@ -33,13 +52,56 @@ export function formatPlanoContaLabel(plano: PlanoContaLabelInput): string {
   return `${plano.codigo} ${plano.nome}`;
 }
 
+export function formatContaPlanoLabel(conta: ContaPlanoDisplayInput): string {
+  if (conta.plano_conta) return formatPlanoContaLabel(conta.plano_conta);
+  return conta.categoria?.nome || 'Sem plano';
+}
+
+export function formatContaPlanoCodigo(conta: ContaPlanoDisplayInput): string {
+  return conta.plano_conta?.codigo || conta.categoria?.nome || 'Sem plano';
+}
+
+export function formatContaCentroCustoLabel(conta: ContaPlanoDisplayInput): string {
+  if (conta.centro_custo?.nome) return conta.centro_custo.nome;
+  return (conta.unidade || 'todas').toUpperCase();
+}
+
 export function matchesPlanoContaSearch(
   plano: PlanoContaSearchInput,
   query: string
 ): boolean {
   const q = normalizeSearch(query);
   if (!q) return true;
+  if (isCodigoPlanoSearch(q)) return matchesCodigoPlano(plano.codigo, q);
   return normalizeSearch(`${plano.codigo} ${plano.nome}`).includes(q);
+}
+
+export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, query: string): boolean {
+  const q = normalizeSearch(query);
+  if (!q) return true;
+  if (isCodigoPlanoSearch(q)) {
+    if (matchesCodigoPlano(conta.plano_conta?.codigo, q)) return true;
+    return normalizeSearch(
+      [
+        conta.descricao || '',
+        conta.categoria?.nome || '',
+        conta.plano_conta?.nome || '',
+        conta.centro_custo?.nome || '',
+        conta.unidade || '',
+      ].join(' ')
+    ).includes(q);
+  }
+
+  return normalizeSearch(
+    [
+      conta.descricao || '',
+      conta.categoria?.nome || '',
+      conta.plano_conta?.codigo || '',
+      conta.plano_conta?.nome || '',
+      conta.centro_custo?.nome || '',
+      conta.unidade || '',
+    ].join(' ')
+  ).includes(q);
 }
 
 export function comparePlanoContaCodigo<T extends Pick<PlanoConta, 'codigo'>>(a: T, b: T): number {

@@ -8,6 +8,12 @@ import { getCodigoMesBadge, getStatusVisual } from '../../services/contasPagarSe
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
 import { ParcelasTimeline } from './ParcelasTimeline';
 import { formatDateBR, toDateOnly } from '../../utils/dateOnly';
+import {
+  formatContaCentroCustoLabel,
+  formatContaPlanoCodigo,
+  formatContaPlanoLabel,
+  matchesContaPlanoCentroSearch,
+} from './planoContasSelectors';
 
 type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
@@ -38,15 +44,11 @@ export const ContasTable: React.FC<{
   }, [localBusca]);
 
   const filtered = useMemo(() => {
-    const q = (busca || '').trim().toLowerCase();
+    const q = (busca || '').trim();
     const hojeISO = new Date().toISOString().split('T')[0];
 
     return contas.filter((c) => {
-      if (q) {
-        const inDesc = (c.descricao || '').toLowerCase().includes(q);
-        const inCat = (c.categoria?.nome || '').toLowerCase().includes(q);
-        if (!inDesc && !inCat) return false;
-      }
+      if (q && !matchesContaPlanoCentroSearch(c, q)) return false;
 
       const statusVisual = getStatusVisual(c);
       const hoje = new Date();
@@ -126,7 +128,7 @@ export const ContasTable: React.FC<{
           <input
             value={localBusca}
             onChange={(e) => setLocalBusca(e.target.value)}
-            placeholder="Buscar fornecedor ou categoria..."
+            placeholder="Buscar fornecedor, plano ou centro..."
             className="w-full pl-11 pr-4 py-3 rounded-2xl border border-line bg-surface/30 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
         </div>
@@ -154,7 +156,7 @@ export const ContasTable: React.FC<{
               </button>
             </div>
           )}
-          <div className="col-span-5">Descrição / Categoria</div>
+          <div className="col-span-5">Plano / Descrição</div>
           <div className="col-span-2">Vencimento</div>
           <div className="col-span-2 text-right">Valor</div>
           <div className="col-span-1 text-center">Status</div>
@@ -170,6 +172,9 @@ export const ContasTable: React.FC<{
               const statusVisual = getStatusVisual(c);
               const isVencida = statusVisual === 'vencida';
               const isHoje = c.data_vencimento === new Date().toISOString().split('T')[0];
+              const planoLabel = formatContaPlanoLabel(c);
+              const planoCodigo = formatContaPlanoCodigo(c);
+              const centroLabel = formatContaCentroCustoLabel(c);
 
               return (
                 <div key={c.id}>
@@ -204,10 +209,15 @@ export const ContasTable: React.FC<{
                       </div>
                     )}
                     <div className="col-span-5 min-w-0">
-                      <div className="text-primary font-black truncate">
-                        {(c.categoria?.nome || '').toUpperCase()}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-primary font-black truncate">{planoLabel}</span>
+                        {centroLabel && (
+                          <span className="shrink-0 rounded-lg border border-line bg-surface-2 px-2 py-0.5 text-[10px] font-black text-secondary">
+                            {centroLabel}
+                          </span>
+                        )}
                         {c.total_parcelas && c.parcela_atual && (
-                          <span className="ml-2 text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
+                          <span className="shrink-0 text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
                             Parcela {c.parcela_atual} de {c.total_parcelas}
                           </span>
                         )}
@@ -289,7 +299,7 @@ export const ContasTable: React.FC<{
                     onClick={() => setExpandedId(isOpen ? null : c.id)}
                   >
                     <div className="flex flex-col gap-3">
-                      {/* Top Info: Categoria, Data e Unidade */}
+                      {/* Top Info: Plano, Data e Centro */}
                       <div className="flex items-start justify-between gap-2">
                         {hasSelection && (
                           <button
@@ -317,7 +327,7 @@ export const ContasTable: React.FC<{
                               isHoje ? "bg-warning/10 text-warning" :
                               "bg-surface-2 text-secondary"
                             )}>
-                              {(c.categoria?.nome || 'Sem categoria').toUpperCase()}
+                              {planoCodigo}
                             </span>
                             {c.total_parcelas && c.parcela_atual && (
                               <span className="text-[10px] font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
@@ -331,8 +341,8 @@ export const ContasTable: React.FC<{
                           <h4 className="text-sm font-black text-secondary truncate">
                             {c.descricao}
                           </h4>
-                          <div className="text-[10px] font-bold text-muted uppercase tracking-widest mt-0.5">
-                            {(c.unidade || 'todas').toUpperCase()}
+                          <div className="text-[10px] font-bold text-muted mt-0.5">
+                            {centroLabel}
                           </div>
                         </div>
                         {badgeFor(c)}

@@ -5,6 +5,7 @@ import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
 import { cn } from '../CollaboratorComponents';
+import { formatContaCentroCustoLabel, formatContaPlanoLabel } from './planoContasSelectors';
 
 interface Props {
   conta: ContaPagar;
@@ -17,6 +18,8 @@ interface Props {
 
 export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDelete, selected, onToggleSelect }) => {
   const statusVisual = getStatusVisual(conta);
+  const planoLabel = formatContaPlanoLabel(conta);
+  const centroLabel = formatContaCentroCustoLabel(conta);
 
   const formatDateShortBR = (iso: string) => {
     // iso can be YYYY-MM-DD (preferred) or a full ISO string; we only need dd/MM
@@ -97,9 +100,9 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
                 Parcela {conta.parcela_atual}/{conta.total_parcelas}
               </Badge>
             )}
-            {/* Unidade como mini-chip (mais premium que texto solto) */}
-            <div className="text-[9px] h-4 px-1.5 rounded-md bg-surface-2/40 border border-line-strong/50 text-secondary font-black uppercase tracking-widest flex items-center">
-              {(conta.unidade || 'todas').toUpperCase()}
+            {/* Centro de custo como mini-chip */}
+            <div className="text-[9px] h-4 px-1.5 rounded-md bg-surface-2/40 border border-line-strong/50 text-secondary font-black flex items-center">
+              {centroLabel}
             </div>
           </div>
         </div>
@@ -149,12 +152,12 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
             {conta.status === 'pago' ? 'Pago' : (statusVisual === 'vencida' ? 'Pendente' : (statusVisual === 'hoje' ? 'Hoje' : (statusVisual === 'urgente' ? 'Urgente' : 'Pendente')))}
           </Badge>
           
-          {conta.categoria && (
-            <div className="h-6 flex items-center gap-1.5 px-2.5 rounded-md bg-surface-2/50 border border-line-strong/50 text-secondary text-[10px] font-black truncate">
-              <span className="shrink-0">{conta.categoria.icone}</span>
-              <span className="truncate">{conta.categoria.nome}</span>
-            </div>
-          )}
+          <div className="h-6 flex items-center gap-1.5 px-2.5 rounded-md bg-surface-2/50 border border-line-strong/50 text-secondary text-[10px] font-black truncate">
+            <span className="truncate">{planoLabel}</span>
+          </div>
+          <div className="hidden sm:flex h-6 items-center px-2.5 rounded-md bg-surface-2/30 border border-line text-secondary text-[10px] font-black truncate">
+            <span className="truncate">{centroLabel}</span>
+          </div>
         </div>
 
         {conta.status !== 'pago' && (

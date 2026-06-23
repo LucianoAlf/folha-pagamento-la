@@ -77,6 +77,11 @@ import {
 } from 'lucide-react';
 import { cn } from '../CollaboratorComponents';
 import { KPICard, DistributionChart, EvolutionChart } from '../DashboardWidgets';
+import {
+  formatContaCentroCustoLabel,
+  formatContaPlanoLabel,
+  matchesContaPlanoCentroSearch,
+} from './planoContasSelectors';
 
 type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
@@ -882,12 +887,8 @@ export const ContasPagarPage: React.FC<{
       if (comportamentoFiltro !== 'all' && c.categoria?.tipo_custo !== comportamentoFiltro) return false;
       if (tipoFiltro !== 'all' && c.tipo_lancamento !== tipoFiltro) return false;
 
-      const q = (busca || '').trim().toLowerCase();
-      if (q) {
-        const inDesc = (c.descricao || '').toLowerCase().includes(q);
-        const inCat = (c.categoria?.nome || '').toLowerCase().includes(q);
-        if (!inDesc && !inCat) return false;
-      }
+      const q = (busca || '').trim();
+      if (q && !matchesContaPlanoCentroSearch(c, q)) return false;
 
       return true;
     },
@@ -1202,7 +1203,7 @@ export const ContasPagarPage: React.FC<{
         if (Math.abs(p) >= THRESHOLD) {
           anomalies.push({
             title: `Variação de ${p.toFixed(0)}% em ${data.sample.descricao}`,
-            description: `${data.sample.categoria?.nome || 'Conta'} na unidade ${(data.sample.unidade || 'Matriz').toUpperCase()}`,
+            description: `${formatContaPlanoLabel(data.sample)} · ${formatContaCentroCustoLabel(data.sample)}`,
             variant: p > 0 ? 'rose' : 'emerald'
           });
         }
@@ -1255,7 +1256,19 @@ export const ContasPagarPage: React.FC<{
       const diff = curr - prev;
       const perc = prev > 0 ? (diff / prev) * 100 : curr > 0 ? 100 : 0;
       const status = prev === 0 && curr > 0 ? 'NOVO' : curr === 0 && prev > 0 ? 'SAIU' : 'RECORRENTE';
-      return { key: k, unidade: (sample?.unidade || 'todas') as string, categoria: sample?.categoria?.nome || 'Sem categoria', descricao: sample?.descricao || '', prev, curr, diff, perc, status };
+      return {
+        key: k,
+        unidade: (sample?.unidade || 'todas') as string,
+        centro: sample ? formatContaCentroCustoLabel(sample) : 'TODAS',
+        categoria: sample?.categoria?.nome || 'Sem categoria',
+        plano: sample ? formatContaPlanoLabel(sample) : 'Sem plano',
+        descricao: sample?.descricao || '',
+        prev,
+        curr,
+        diff,
+        perc,
+        status,
+      };
     });
 
     const totalPrev = variations.reduce((s, v) => s + v.prev, 0);
@@ -1955,11 +1968,11 @@ export const ContasPagarPage: React.FC<{
                   .map((v) => (
                     <tr key={v.key} className="hover:bg-surface/10 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="text-primary font-black">{(v.categoria || '').toUpperCase()}</div>
+                        <div className="text-primary font-black">{v.plano}</div>
                         <div className="text-xs text-muted">{v.descricao}</div>
                         <div className="mt-1 flex items-center gap-2">
-                          <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-line-strong/50 uppercase">
-                            {(v.unidade || 'todas').toUpperCase()}
+                          <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-line-strong/50">
+                            {v.centro}
                           </span>
                           {v.status !== 'RECORRENTE' && (
                             <span className={cn("text-[9px] font-black px-1.5 py-0.5 rounded border uppercase",
@@ -2004,12 +2017,12 @@ export const ContasPagarPage: React.FC<{
                   {/* Header: Nome e Badges */}
                   <div className="flex justify-between items-start mb-3">
                     <div className="min-w-0">
-                      <h4 className="text-sm font-black text-primary uppercase truncate">{(v.categoria || '').toUpperCase()}</h4>
+                      <h4 className="text-sm font-black text-primary truncate">{v.plano}</h4>
                       <p className="text-[10px] text-muted font-bold truncate">{v.descricao}</p>
                     </div>
                     <div className="flex gap-1 shrink-0 ml-2">
-                      <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-line-strong/50 uppercase">
-                        {(v.unidade || 'todas').toUpperCase()}
+                      <span className="text-[9px] font-black text-muted bg-surface-2/50 px-1.5 py-0.5 rounded border border-line-strong/50">
+                        {v.centro}
                       </span>
                       {v.status !== 'RECORRENTE' && (
                         <span className={cn("text-[9px] font-black px-1.5 py-0.5 rounded border uppercase",
@@ -2392,7 +2405,7 @@ export const ContasPagarPage: React.FC<{
             <input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por descrição ou categoria..."
+              placeholder="Buscar por descrição, plano ou centro..."
               className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-line bg-bg/40 text-[11px] font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
             />
           </div>
@@ -3192,7 +3205,7 @@ export const ContasPagarPage: React.FC<{
               <input
                 value={draftBusca}
                 onChange={(e) => setDraftBusca(e.target.value)}
-                placeholder="Buscar por descrição ou categoria…"
+                placeholder="Buscar por descrição, plano ou centro…"
                 className="w-full pl-11 pr-4 py-3 rounded-2xl border border-line bg-bg/40 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
               />
             </div>

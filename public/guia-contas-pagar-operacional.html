@@ -377,7 +377,7 @@
               </div>
               <div class="mock-body">
                 <div class="mock-tabs">
-                  <span class="mock-tab on">Resumo</span><span class="mock-tab">Contas</span><span class="mock-tab">Auditoria</span><span class="mock-tab">Comparativo</span><span class="mock-tab">Categorias</span>
+                  <span class="mock-tab on">Resumo</span><span class="mock-tab">Contas</span><span class="mock-tab">Auditoria</span><span class="mock-tab">Comparativo</span><span class="mock-tab">Planos</span>
                 </div>
                 <div class="mock-card" style="text-align:center;padding:2rem;color:var(--text-3);font-weight:700;font-size:9px">Lista vazia — pronta para os lançamentos</div>
               </div>
@@ -395,7 +395,7 @@
             <div class="mock-main" style="width:100%">
               <div class="mock-body">
                 <div class="mock-tabs" style="margin-bottom:.5rem">
-                  <span class="mock-tab on">Resumo</span><span class="mock-tab">Contas</span><span class="mock-tab">Auditoria</span><span class="mock-tab">Comparativo</span><span class="mock-tab">Categorias</span>
+                  <span class="mock-tab on">Resumo</span><span class="mock-tab">Contas</span><span class="mock-tab">Auditoria</span><span class="mock-tab">Comparativo</span><span class="mock-tab">Planos</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem">
                   <div class="mock-card" style="text-align:center;padding:.6rem"><div style="font-size:7px;color:var(--text-3)">Hoje</div><div style="font-size:14px;font-weight:900;color:var(--accent)">R$ 0</div></div>
@@ -410,7 +410,7 @@
               <li><strong>Contas a Pagar</strong> — lista principal: Nova Despesa, filtros, relatório do dia, pagar/editar</li>
               <li><strong>Auditoria</strong> — histórico completo + notas do mês; IA quando houver volume</li>
               <li><strong>Comparativo</strong> — mês vs mês; mais útil depois de 1–2 meses de uso</li>
-              <li><strong>Categorias</strong> — Light, CEDAE, Simples… já existem 18; só conferir nomes</li>
+              <li><strong>Plano + centro</strong> — classificar pela árvore Emusys e escolher a unidade que pagou</li>
             </ul>
             <div class="callout">O dia a dia de vocês fica em <strong>Contas a Pagar</strong>. Resumo é para bater o olho de manhã.</div>
           </div>
@@ -441,41 +441,44 @@
             <div class="mock-tabs">
               <span class="mock-tab on">Todas</span><span class="mock-tab">Hoje</span><span class="mock-tab">Vencidas</span><span class="mock-tab">Próx. 7d</span><span class="mock-tab">Próx. 30d</span>
             </div>
-            <div class="mock-input" style="margin-top:.5rem;color:var(--text-3)">Buscar por descrição…</div>
+            <div class="mock-input" style="margin-top:.5rem;color:var(--text-3)">Buscar por descrição, plano ou centro…</div>
           </div>
         </div>
       </section>
 
       <!-- SLIDE 5 -->
       <section class="slide compact-slide" data-slide="4">
-        <div class="slide-tag">Categorias</div>
-        <h1>Conferir categorias (aba Categorias)</h1>
+        <div class="slide-tag">Plano + centro</div>
+        <h1>Plano de conta e centro de custo</h1>
         <div class="grid-2 reverse">
           <div class="mock-modal-wrap" style="min-height:300px">
             <div class="mock-modal">
-              <div class="mock-modal-head">NOVA CATEGORIA</div>
+              <div class="mock-modal-head">NOVA DESPESA</div>
               <div class="mock-modal-body">
-                <div class="mock-label">Nome da categoria</div>
-                <div class="mock-input filled">Simples Nacional</div>
-                <div class="mock-label">Tipo de custo</div>
-                <div class="mock-pills"><span class="mock-pill on">Fixo</span><span class="mock-pill">Variável</span></div>
-                <div class="mock-label">Ícone</div>
-                <div style="display:flex;gap:.2rem;flex-wrap:wrap;margin-bottom:.4rem">
-                  <span style="padding:.2rem .35rem;border:1px solid var(--accent);border-radius:.4rem;font-size:10px">📊</span>
-                  <span style="padding:.2rem .35rem;border:1px solid var(--border);border-radius:.4rem;font-size:10px">⚡</span>
-                  <span style="padding:.2rem .35rem;border:1px solid var(--border);border-radius:.4rem;font-size:10px">💧</span>
+                <div class="mock-label">Plano de conta *</div>
+                <div class="mock-input">🔎 Buscar por código ou nome…</div>
+                <div class="mock-card" style="margin:.4rem 0;padding:.45rem">
+                  <div style="font-size:7px;color:var(--text-3);font-weight:900;margin-bottom:.35rem">MAIS USADOS</div>
+                  <div style="display:grid;gap:.35rem">
+                    <div><span class="mock-badge muted">5.2.3</span> <strong style="font-size:8px">Energia Elétrica</strong><br><span style="font-size:7px;color:var(--text-3);margin-left:2.8rem">Despesas Administrativas</span></div>
+                    <div><span class="mock-badge muted">5.2.4</span> <strong style="font-size:8px">Aluguel e condomínio</strong><br><span style="font-size:7px;color:var(--text-3);margin-left:2.8rem">Despesas Administrativas</span></div>
+                    <div><span class="mock-badge muted">5.3.15</span> <strong style="font-size:8px">Salários de professores horistas</strong><br><span style="font-size:7px;color:var(--text-3);margin-left:3.2rem">Despesas com pessoal</span></div>
+                  </div>
                 </div>
-                <div class="mock-btn-green" style="margin-top:.25rem">Salvar categoria</div>
+                <div class="mock-btn-outline" style="margin-bottom:.5rem">Ver árvore completa</div>
+                <div class="mock-label">Centro de custo *</div>
+                <div class="mock-pills"><span class="mock-pill on">Campo Grande</span><span class="mock-pill">Recreio</span><span class="mock-pill">Barra</span></div>
               </div>
             </div>
           </div>
           <div>
-            <p class="lead">Já existem <strong>18 categorias</strong> (Light, CEDAE, Aluguel, Simples…). Na primeira semana, só <strong>conferam</strong> se os nomes batem com o que vocês usam.</p>
+            <p class="lead">O plano de conta agora vem da <strong>árvore Emusys</strong>. O campo principal é uma busca: digitem o nome ou o código, como <strong>energia</strong> ou <strong>5.2.3</strong>.</p>
             <ul class="bullets compact">
-              <li>Só criem categoria nova se realmente faltar alguma</li>
-              <li><strong>Fixo</strong> — despesa que repete todo mês (luz, aluguel)</li>
-              <li><strong>Variável</strong> — muda de valor (compras, eventos)</li>
-              <li>Na Nova Despesa, a categoria é obrigatória no campo com *</li>
+              <li><strong>Mais usados</strong> aparece quando o campo está vazio — é o caminho rápido do dia a dia</li>
+              <li><strong>Ver árvore completa</strong> é a saída quando não souberem o código ou o nome</li>
+              <li>Só aparecem contas de <strong>saída</strong> no último nível da árvore; blocos e grupos não são escolhidos</li>
+              <li><strong>Centro de custo</strong> é a unidade de cujo caixa saiu o pagamento: Campo Grande, Recreio ou Barra</li>
+              <li>Se uma unidade adiantar por outra, escolham a unidade que pagou; o rateio acerta depois</li>
             </ul>
           </div>
         </div>
@@ -491,8 +494,8 @@
             <div class="field-grid">
               <div class="field-item"><strong>Descrição *</strong>Texto que aparece na lista e no WhatsApp. Padrão: <code style="font-size:.65rem">01 - PG … - (EMLA CG)</code></div>
               <div class="field-item"><strong>Valor *</strong>Em reais. Ex.: 1674,33 ou R$ 1.674,33</div>
-              <div class="field-item"><strong>Categoria *</strong>Simples Nacional, Light, CEDAE…</div>
-              <div class="field-item"><strong>Unidade *</strong>Campo Grande · Recreio · Barra · Todas/Matriz</div>
+              <div class="field-item"><strong>Plano de conta *</strong>Buscar por código ou nome. Ex.: energia ou 5.2.3</div>
+              <div class="field-item"><strong>Centro de custo *</strong>Campo Grande · Recreio · Barra — caixa que pagou</div>
             </div>
             <div class="callout" style="margin-top:.75rem">Sufixos na descrição: <strong>(EMLA CG)</strong> <strong>(Kids CG)</strong> <strong>(Recreio)</strong> <strong>(Barra)</strong> — ajuda no relatório.</div>
           </div>
@@ -502,12 +505,12 @@
               <div class="mock-modal-body">
                 <div class="mock-section"><span class="badge-a">A</span> Dados principais</div>
                 <div class="mock-label">Descrição *</div>
-                <div class="mock-input filled">01 - PG Simples Nacional EMLA - (EMLA CG)</div>
+                <div class="mock-input filled">02 - PG Light LJ 171 - (EMLA CG)</div>
                 <div class="mock-row">
-                  <div><div class="mock-label">Valor *</div><div class="mock-input filled">1674,33</div></div>
-                  <div><div class="mock-label">Categoria *</div><div class="mock-input filled">📊 Simples Nacional</div></div>
+                  <div><div class="mock-label">Valor *</div><div class="mock-input filled">642,10</div></div>
+                  <div><div class="mock-label">Plano de conta *</div><div class="mock-input filled">5.2.3 Energia Elétrica</div></div>
                 </div>
-                <div class="mock-label">Unidade *</div>
+                <div class="mock-label">Centro de custo *</div>
                 <div class="mock-input filled">Campo Grande</div>
               </div>
             </div>
@@ -810,10 +813,11 @@
               <div class="mock-modal-body">
                 <div class="mock-card" style="margin-bottom:.5rem">
                   <div class="mock-row">
-                    <div><div style="font-size:6px;color:var(--text-3)">CATEGORIA</div><div style="font-weight:900;font-size:8px">SIMPLES NACIONAL</div></div>
-                    <div style="text-align:right"><div style="font-size:6px;color:var(--text-3)">VALOR</div><div style="font-weight:900;font-size:12px;color:var(--accent)">R$ 1.674,33</div></div>
+                    <div><div style="font-size:6px;color:var(--text-3)">PLANO</div><div style="font-weight:900;font-size:8px">5.2.3 Energia Elétrica</div></div>
+                    <div style="text-align:right"><div style="font-size:6px;color:var(--text-3)">VALOR</div><div style="font-weight:900;font-size:12px;color:var(--accent)">R$ 642,10</div></div>
                   </div>
-                  <div style="font-size:7px;margin-top:.35rem;color:var(--text-2)">01 - PG Simples Nacional EMLA - (EMLA CG)</div>
+                  <div style="font-size:7px;margin-top:.35rem;color:var(--text-2)">02 - PG Light LJ 171 - (EMLA CG)</div>
+                  <div style="font-size:7px;color:var(--text-3);font-weight:800;margin-top:.2rem">Centro: Campo Grande</div>
                   <div style="font-size:7px;color:var(--danger);font-weight:800;margin-top:.2rem">Venc. 20/06/2026 (Hoje)</div>
                 </div>
                 <div class="mock-row">
@@ -870,11 +874,11 @@
             </div>
             <div class="mock-whatsapp" style="font-size:7px">*CONTAS A PAGAR HOJE 20/06* 🧾
 
-*PG Simples Nacional EMLA 06/2026 R$1.674,33*
+*PG Light LJ 171 EMLA CG 06/2026 R$642,10*
 85820000016 3 74330328261 2 ...
 
 _________
-*PG Simples Kids CG 06/2026 R$1.094,16*
+*PG Energia Kids CG 06/2026 R$1.094,16*
 ...
 
 *SALDO EM CONTAS*
@@ -945,7 +949,7 @@ EMLA CG: R$</div>
           </div>
           <div class="callout">
             <strong>Modais que vocês usam:</strong><br>
-            Nova Despesa · Editar · Credenciais · Registrar Pagamento · Categoria (raro) · Dia no calendário<br><br>
+            Nova Despesa · Editar · Credenciais · Registrar Pagamento · Dia no calendário<br><br>
             <strong>Dúvidas?</strong> Chamem o Alf no primeiro dia.
           </div>
         </div>
