@@ -729,9 +729,9 @@ function linhaSaldo(label: string, valor?: number | null): string {
 
 function limparTituloPG(descricao: string): string {
   let d = descricao.trim();
+  // Remove prefixo legado "1 - PG " sem cortar a unidade no final, ex.: "Light Loja 170 - (Recreio)"
   d = d.replace(/^\d+\s*-\s*PG\s*/i, '');
-  d = d.replace(/\s*-\s*\([^)]+\)\s*$/i, '').trim();
-  return d;
+  return d.trim();
 }
 
 function ordemContaRelatorio(conta: ContaPagar): number {
