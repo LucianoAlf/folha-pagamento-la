@@ -826,7 +826,7 @@ export function montarRelatorioMensagem(
   const gruposComContas = GRUPOS_RELATORIO.filter((g) => (porGrupo.get(g.id)?.length || 0) > 0);
 
   if (gruposComContas.length === 0) {
-    partes.push('_Nenhuma conta pendente para hoje/amanhã._');
+    partes.push('_Nenhuma conta pendente para esta data._');
   } else {
     gruposComContas.forEach((grupo, idxGrupo) => {
       const lista = porGrupo.get(grupo.id) || [];
@@ -850,20 +850,16 @@ export function montarRelatorioMensagem(
   return partes.join('\n').trimEnd();
 }
 
-/** Filtra contas pendentes com vencimento na data ou no dia seguinte */
+/** Filtra contas pendentes com vencimento exatamente na data de referência */
 export function filtrarContasRelatorioDia(
   contas: ContaPagar[],
   dataRef: string,
   unidadeFiltro: string
 ): ContaPagar[] {
-  const alvo = new Date(`${dataRef}T00:00:00`);
-  alvo.setDate(alvo.getDate() + 1);
-  const amanhaISO = alvo.toISOString().split('T')[0];
-
   return contas.filter((c) => {
     if (c.status !== 'pendente') return false;
     if (!contaPassaFiltroUnidade(c, unidadeFiltro)) return false;
-    return c.data_vencimento === dataRef || c.data_vencimento === amanhaISO;
+    return c.data_vencimento === dataRef;
   });
 }
 

@@ -98,7 +98,7 @@ export const RelatorioDoDiaPanel: React.FC<{
           </h3>
           <p className="text-sm text-secondary font-medium mt-2 max-w-2xl leading-relaxed">
             Monta a mensagem no molde das meninas: blocos EMLA CG → Kids CG → Barra → Recreio, com código de barras ou PIX
-            quando cadastrado. Inclui contas que vencem <strong className="text-primary font-bold">hoje ou amanhã</strong>.
+            quando cadastrado. Inclui apenas contas que vencem na <strong className="text-primary font-bold">data de referência</strong>.
             Rose gera, revisa e copia — saldos entram na Fatia D (Pluggy).
           </p>
         </div>
@@ -134,7 +134,7 @@ export const RelatorioDoDiaPanel: React.FC<{
                 className="w-full"
               />
               <p className="text-[10px] text-muted font-bold mt-2 px-0.5">
-                Referência: {formatDateBR(dataRef)} · inclui vencimentos de hoje e amanhã
+                Referência: {formatDateBR(dataRef)} · vencimentos somente deste dia
               </p>
             </div>
 

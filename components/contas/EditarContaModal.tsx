@@ -472,7 +472,7 @@ export const EditarContaModal: React.FC<{
               Código do mês
             </div>
             <p className="text-xs text-muted font-bold mb-5 leading-relaxed">
-              Boleto ou PIX desta competência — entra no relatório do dia quando a conta vence hoje ou amanhã.
+              Boleto ou PIX desta competência — entra no relatório do dia quando a conta vence na data de referência.
             </p>
             <div className="grid grid-cols-1 gap-5">
               <div>
