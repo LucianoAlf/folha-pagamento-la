@@ -9,7 +9,10 @@ const PRESET_ICONS = [
   '⚡', '🔧', '📄', '🧹', '📢',
   '💵', '↩️', '📦', '📌', '📈',
   // Ícones que já existem nas categorias (garante que o modal sempre tenha os mesmos)
-  '🏢', '🏦', '🧑‍🤝‍🧑', '💡', '💧', '💻', '🤝'
+  '🏢', '🏦', '🧑‍🤝‍🧑', '💡', '💧', '💻', '🤝',
+  // Música / instrumentos / operação LA Music
+  '🎸', '🎹', '🎵', '🎻', '🥁',
+  '🎤', '🎧', '🎼', '🪑', '👕',
 ];
 
 interface CategoriaModalProps {

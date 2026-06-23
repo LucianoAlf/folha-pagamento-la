@@ -116,6 +116,24 @@ export const DatePicker: React.FC<{
     }
   };
 
+  const navBtnClass = cn(
+    'w-8 h-8 shrink-0 rounded-xl border flex items-center justify-center transition-all',
+    'border-line bg-surface-2/50 text-secondary',
+    'hover:bg-surface-3 active:scale-95'
+  );
+
+  const goPrevMonth = () => {
+    const prev = new Date(month.getFullYear(), month.getMonth() - 1, 1);
+    if (variant === 'monthYear' && prev < new Date(minYear, 0, 1)) return;
+    setMonth(prev);
+  };
+
+  const goNextMonth = () => {
+    const next = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+    if (variant === 'monthYear' && next > new Date(maxYear, 11, 1)) return;
+    setMonth(next);
+  };
+
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <div className="relative w-full group">
@@ -152,21 +170,40 @@ export const DatePicker: React.FC<{
           align="start"
           className="la-popover-content rounded-[2rem] border border-line bg-surface shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 min-w-fit"
         >
+          {variant === 'default' && (
+            <div className="flex items-center justify-center gap-3 pb-6">
+              <button
+                type="button"
+                onClick={goPrevMonth}
+                className={navBtnClass}
+                aria-label="Mês anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="min-w-[9.5rem] text-center text-sm font-black uppercase tracking-wider text-primary">
+                {format(month, 'MMMM yyyy', { locale: ptBR })}
+              </span>
+              <button
+                type="button"
+                onClick={goNextMonth}
+                className={navBtnClass}
+                aria-label="Próximo mês"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {variant === 'monthYear' && (
             <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-line">
               <button
                 type="button"
                 disabled={month <= new Date(minYear, 0, 1)}
-                onClick={() => {
-                  const prev = new Date(month.getFullYear(), month.getMonth() - 1, 1);
-                  if (prev < new Date(minYear, 0, 1)) return;
-                  setMonth(prev);
-                }}
+                onClick={goPrevMonth}
                 className={cn(
-                  "w-10 h-10 rounded-2xl border flex items-center justify-center transition-all",
-                  "border-line bg-surface-2/50 text-secondary",
-                  "hover:bg-surface-3 active:scale-95",
-                  (month <= new Date(minYear, 0, 1)) && "opacity-40 pointer-events-none"
+                  navBtnClass,
+                  'w-10 h-10 rounded-2xl',
+                  month <= new Date(minYear, 0, 1) && 'opacity-40 pointer-events-none'
                 )}
                 aria-label="Mês anterior"
               >
@@ -205,16 +242,11 @@ export const DatePicker: React.FC<{
               <button
                 type="button"
                 disabled={month >= new Date(maxYear, 11, 1)}
-                onClick={() => {
-                  const next = new Date(month.getFullYear(), month.getMonth() + 1, 1);
-                  if (next > new Date(maxYear, 11, 1)) return;
-                  setMonth(next);
-                }}
+                onClick={goNextMonth}
                 className={cn(
-                  "w-10 h-10 rounded-2xl border flex items-center justify-center transition-all",
-                  "border-line bg-surface-2/50 text-secondary",
-                  "hover:bg-surface-3 active:scale-95",
-                  (month >= new Date(maxYear, 11, 1)) && "opacity-40 pointer-events-none"
+                  navBtnClass,
+                  'w-10 h-10 rounded-2xl',
+                  month >= new Date(maxYear, 11, 1) && 'opacity-40 pointer-events-none'
                 )}
                 aria-label="Próximo mês"
               >
@@ -223,25 +255,20 @@ export const DatePicker: React.FC<{
             </div>
           )}
 
-          <div className={cn("rdp-modern", variant === 'monthYear' && "sf-monthyear")}>
+          <div className="rdp-modern sf-hide-caption">
             <DayPicker
               mode="single"
-              month={variant === 'monthYear' ? month : undefined}
-              onMonthChange={variant === 'monthYear' ? setMonth : undefined}
+              month={month}
+              onMonthChange={setMonth}
               selected={selected}
-              {...(variant === 'monthYear'
-                ? {
-                    // We render our own Month/Year header to avoid native <select> dropdown quirks.
-                    hideNavigation: true,
-                  }
-                : {})}
+              hideNavigation
               onSelect={(d) => {
                 if (!d) return onChange(undefined);
                 const yyyy = d.getFullYear();
                 const mm = String(d.getMonth() + 1).padStart(2, '0');
                 const dd = String(d.getDate()).padStart(2, '0');
                 onChange(`${yyyy}-${mm}-${dd}`);
-                if (variant === 'monthYear') setMonth(new Date(yyyy, d.getMonth(), 1));
+                setMonth(new Date(yyyy, d.getMonth(), 1));
               }}
               weekStartsOn={0}
               locale={ptBR}
@@ -288,50 +315,9 @@ export const DatePicker: React.FC<{
             .rdp {
               margin: 0;
             }
-            .rdp-month_caption {
-              display: flex;
-              justify-content: center;
-              padding: 0 0 1.5rem 0;
-              font-weight: 900;
-              text-transform: uppercase;
-              letter-spacing: 0.1em;
-              color: var(--slate-900);
-            }
-            .sf-monthyear .rdp-month_caption,
-            .sf-monthyear .rdp-nav {
+            .sf-hide-caption .rdp-month_caption,
+            .sf-hide-caption .rdp-nav {
               display: none !important;
-            }
-            .dark .rdp-month_caption {
-              color: white;
-            }
-            .rdp-nav {
-              position: absolute;
-              right: 1.5rem;
-              top: 1.5rem;
-              display: flex;
-              gap: 0.5rem;
-            }
-            .rdp-button_next, .rdp-button_previous {
-              border: 1px solid #e2e8f0;
-              border-radius: 12px;
-              width: 32px;
-              height: 32px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              transition: all 0.2s;
-            }
-            .dark .rdp-button_next, .dark .rdp-button_previous {
-              border-color: #1e293b;
-              background: #0f172a;
-              color: #94a3b8;
-            }
-            .rdp-button_next:hover, .rdp-button_previous:hover {
-              background: #f1f5f9;
-            }
-            .dark .rdp-button_next:hover, .dark .rdp-button_previous:hover {
-              background: #1e293b;
-              color: white;
             }
             .rdp-head_cell {
               font-size: 10px;
