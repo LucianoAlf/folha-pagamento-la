@@ -2950,7 +2950,7 @@ export const ContasPagarPage: React.FC<{
       </div>
 
       {/* Desktop: manter layout atual */}
-      <div className="hidden lg:grid lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
+      <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
         <div className="flex flex-wrap items-center gap-3 min-w-0">
           <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
@@ -2990,23 +2990,26 @@ export const ContasPagarPage: React.FC<{
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-2.5">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="shrink-0 text-[10px] font-bold text-muted uppercase tracking-widest">Competência</div>
+        <div className="flex shrink-0 items-center justify-end gap-2 xl:gap-2.5">
+          <div className="flex shrink-0 items-center gap-2 xl:gap-3">
+            <div className="shrink-0 text-[10px] font-bold text-muted uppercase tracking-widest">
+              <span className="xl:hidden">Comp.</span>
+              <span className="hidden xl:inline">Competência</span>
+            </div>
             <CustomSelect
               value={competenciaFiltro}
               onValueChange={(v) => {
                 setCompetenciaFiltro(v);
                 setCalendarioDiaSelecionado(undefined);
               }}
-              className="min-w-[180px] xl:min-w-[200px]"
+              className="w-[168px] shrink-0 xl:w-[200px]"
               options={competenciaOptions}
             />
           </div>
           <button
             type="button"
             onClick={() => setCredenciaisOpen(true)}
-            className="inline-flex h-[52px] shrink-0 items-center gap-2 whitespace-nowrap px-3.5 rounded-2xl border border-line bg-surface/40 hover:bg-surface/60 text-secondary font-black transition-all active:scale-[0.98]"
+            className="inline-flex h-[52px] shrink-0 items-center gap-2 whitespace-nowrap px-3 xl:px-3.5 rounded-2xl border border-line bg-surface/40 hover:bg-surface/60 text-secondary font-black transition-all active:scale-[0.98]"
           >
             <KeyRound size={16} className="text-accent" />
             Credenciais
