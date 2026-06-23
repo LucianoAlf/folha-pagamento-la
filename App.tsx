@@ -1847,7 +1847,7 @@ export default function App() {
           // No desktop, mantemos um respiro no fundo para não “cortar” a última seção.
           currentModule === 'agenda'
             ? "p-0 pb-28 lg:pb-10"
-            : currentModule === 'contas'
+            : currentModule === 'contas' || currentModule === 'folha' || currentModule === 'notificacoes' || currentModule === 'rh'
               ? "px-4 py-8 pb-28 lg:p-8 lg:pb-10"
               : "p-8 pb-28 lg:pb-10"
         )}
