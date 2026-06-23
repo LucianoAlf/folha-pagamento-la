@@ -12,6 +12,7 @@ import {
   StatusVisual,
 } from '../types/contasPagar';
 import { competenciaFromVencimento, toDateOnly } from '../utils/dateOnly';
+import { buildParcelasContaPagar } from './contasPagarParcelas';
 
 const CONTA_PAGAR_SELECT =
   '*, categoria:categorias_despesa(*), plano_conta:plano_contas(*), centro_custo:centros_custo(*)';
@@ -278,7 +279,6 @@ export async function createContaPagar(
 
   // Parcelada: cria N registros
   if (conta.tipo_lancamento === 'parcelada' && conta.total_parcelas && conta.total_parcelas > 1) {
-    const parcelas: Partial<ContaPagar>[] = [];
     const parcelaInicial = conta.parcela_atual || 1;
     const qtdParcelas = conta.total_parcelas - parcelaInicial + 1;
     const valorPorParcela = options?.valorPorParcela ?? true;
@@ -294,26 +294,7 @@ export async function createContaPagar(
       const resto = totalCents - baseCents * qtdParcelas;
       return Array.from({ length: qtdParcelas }, (_, i) => (baseCents + (i < resto ? 1 : 0)) / 100);
     })();
-    const dataBase = new Date(`${conta.data_vencimento!}T00:00:00`);
-
-    for (let i = 0; i < qtdParcelas; i++) {
-      const dataVenc = new Date(dataBase);
-      dataVenc.setMonth(dataVenc.getMonth() + i);
-
-      const yyyy = dataVenc.getFullYear();
-      const mm = String(dataVenc.getMonth() + 1).padStart(2, '0');
-      const dd = String(dataVenc.getDate()).padStart(2, '0');
-
-      parcelas.push({
-        ...conta,
-        descricao: `${conta.descricao} (${parcelaInicial + i}/${conta.total_parcelas})`,
-        valor: valoresParcela[i],
-        data_vencimento: `${yyyy}-${mm}-${dd}`,
-        parcela_atual: parcelaInicial + i,
-        total_parcelas: conta.total_parcelas,
-        created_by: user.user?.id,
-      });
-    }
+    const parcelas = buildParcelasContaPagar(conta, valoresParcela, user.user?.id);
 
     const { data, error } = await supabase
       .from('contas_pagar')
