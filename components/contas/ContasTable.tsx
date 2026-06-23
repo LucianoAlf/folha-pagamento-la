@@ -159,7 +159,7 @@ export const ContasTable: React.FC<{
               </button>
             </div>
           )}
-          <div>Plano / Descrição</div>
+          <div>Conta / Plano</div>
           <div>Vencimento</div>
           <div className="text-right">Valor</div>
           <div className="text-center">Status</div>
@@ -215,19 +215,31 @@ export const ContasTable: React.FC<{
                     )}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-primary font-black truncate">{planoLabel}</span>
-                        {centroLabel && (
-                          <span className="shrink-0 rounded-lg border border-line bg-surface-2 px-2 py-0.5 text-[10px] font-black text-secondary">
-                            {centroLabel}
-                          </span>
-                        )}
+                        <span className="text-primary font-black truncate">{c.descricao}</span>
                         {c.total_parcelas && c.parcela_atual && (
                           <span className="shrink-0 text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
                             Parcela {c.parcela_atual} de {c.total_parcelas}
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-muted truncate">{c.descricao}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-bold text-secondary leading-snug">
+                        {hasPlanoConta ? (
+                          <>
+                            <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] font-black text-secondary leading-none">
+                              {planoCodigo}
+                            </span>
+                            <span className="truncate">{planoNome}</span>
+                          </>
+                        ) : (
+                          <span className="truncate">{planoLabel}</span>
+                        )}
+                        {centroLabel && (
+                          <>
+                            <span className="text-muted">&middot;</span>
+                            <span className="text-muted">{centroLabel}</span>
+                          </>
+                        )}
+                      </div>
                       {codigosPorConta && <div className="mt-1">{codigoBadgeFor(c)}</div>}
                     </div>
                     <div className="text-sm font-bold text-secondary">{formatDateBR(c.data_vencimento)}</div>
