@@ -1005,6 +1005,11 @@ export const ContasPagarPage: React.FC<{
       });
   }, [contas, competenciaFiltro]);
 
+  const competenciaOptionsCompact = useMemo(
+    () => competenciaOptions.map((o) => ({ ...o, label: formatCompetenciaLabel(o.value) })),
+    [competenciaOptions, formatCompetenciaLabel]
+  );
+
   const matchesCompetenciaComparar = useCallback(
     (c: ContaPagar) => {
       if (!c.competencia) return false;
@@ -1257,14 +1262,38 @@ export const ContasPagarPage: React.FC<{
   const { title: tabTitle, subtitle: tabSubtitle } = CONTAS_TITLES[mode];
   const tabBarIdx = CONTAS_TABS.findIndex(t => t.id === mode);
 
+  const showMobileCompetencia =
+    mode === 'dashboard' || mode === 'visao-geral' || mode === 'todas';
+
   const renderWithShell = (content: React.ReactNode) => (
     <>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
+      <div
+        className={cn(
+          'mb-6 gap-3',
+          showMobileCompetencia
+            ? 'flex items-start justify-between'
+            : 'flex flex-col sm:flex-row sm:items-center justify-between gap-4'
+        )}
+      >
+        <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-black text-primary">{tabTitle}</h2>
           <p className="text-sm text-muted font-bold mt-1">{tabSubtitle}</p>
         </div>
+        {showMobileCompetencia ? (
+          <div className="lg:hidden shrink-0 pt-1">
+            <CustomSelect
+              value={competenciaFiltro}
+              onValueChange={(v) => {
+                setCompetenciaFiltro(v);
+                setCalendarioDiaSelecionado(undefined);
+              }}
+              icon={Calendar}
+              className="w-[7.25rem] px-2.5 py-2 text-[11px] font-black uppercase tracking-wide bg-surface/60 border-line/70 shadow-sm"
+              options={competenciaOptionsCompact}
+            />
+          </div>
+        ) : null}
       </div>
 
       {/* Desktop Tab Bar */}
