@@ -1641,7 +1641,8 @@ export default function App() {
           <div className="w-full max-w-md">
               <div className="lg:hidden flex flex-col items-center mb-12">
                 <div className="w-20 h-20 flex items-center justify-center mb-6 pulse-glow rounded-3xl">
-                  <img src="/logo-LA-colapsed.png" className="w-16 h-16 object-contain" alt="LA" />
+                  <img src="/logo-LA-light.png" className="w-16 h-16 object-contain dark:hidden" alt="LA" />
+                  <img src="/logo-LA-colapsed.png" className="w-16 h-16 object-contain hidden dark:block" alt="LA" />
                 </div>
                 <h1 className="text-primary text-3xl font-black tracking-tight uppercase">SUPER FOLHA</h1>
                 <p className="text-muted font-bold uppercase text-[10px] tracking-[0.4em] mt-2">Sistema Inteligente</p>
@@ -1756,7 +1757,8 @@ export default function App() {
             <div className="flex items-center gap-4">
               {/* MOBILE: Logo + System Name (Hidden on Desktop) */}
               <div className="flex lg:hidden items-center gap-3">
-                <img src="/logo-LA-colapsed.png" alt="Logo" className="w-9 h-9 object-contain" />
+                <img src="/logo-LA-light.png" alt="Logo" className="w-9 h-9 object-contain dark:hidden" />
+                <img src="/logo-LA-colapsed.png" alt="Logo" className="w-9 h-9 object-contain hidden dark:block" />
                 <div>
                   <h1 className="text-primary font-black text-sm md:text-base tracking-tight leading-tight flex items-center gap-1.5">
                     SUPER FOLHA <span className="text-accent">SYSTEM</span>
