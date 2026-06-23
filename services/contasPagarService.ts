@@ -440,7 +440,6 @@ export async function fetchParcelasIrmas(conta: ContaPagar): Promise<ContaPagar[
     .from('contas_pagar')
     .select(CONTA_PAGAR_SELECT)
     .eq('tipo_lancamento', 'parcelada')
-    .eq('categoria_id', conta.categoria_id)
     .eq('unidade', conta.unidade)
     .like('descricao', `${baseDesc} (%`)
     .order('parcela_atual', { ascending: true });
@@ -459,7 +458,6 @@ export async function deleteParcelamento(conta: ContaPagar): Promise<number> {
   const { data, error } = await supabase
     .from('contas_pagar')
     .delete()
-    .eq('categoria_id', conta.categoria_id)
     .eq('unidade', conta.unidade)
     .like('descricao', `${baseDesc} (%`)
     .eq('tipo_lancamento', 'parcelada')
@@ -481,9 +479,9 @@ export async function finalizarParcelamento(conta: ContaPagar): Promise<void> {
   const { error } = await supabase
     .from('contas_pagar')
     .update({ status: 'finalizado' })
-    .eq('categoria_id', conta.categoria_id)
     .eq('unidade', conta.unidade)
     .like('descricao', `${baseDesc} (%`)
+    .eq('tipo_lancamento', 'parcelada')
     .eq('status', 'pendente')
     .gte('data_vencimento', conta.data_vencimento);
 
