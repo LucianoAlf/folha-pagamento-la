@@ -73,7 +73,7 @@ export const TarefaCard: React.FC<{
         'bg-bg/95 md:bg-bg/95 hover:bg-surface/95 hover:border-line-strong/60',
         isSelected ? 'bg-accent/10 border-accent/25 shadow-lg shadow-accent/5' : 'border-line/50',
         tarefa.status === 'concluida' ? 'opacity-70' : '',
-        'active:scale-[0.98] active:brightness-90 touch-none'
+        'active:scale-[0.98] active:brightness-90 touch-pan-y'
       )}
     >
       <div className="flex items-start gap-3 md:gap-4">
