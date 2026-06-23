@@ -6,6 +6,7 @@ import type { AgendaKanbanColumnConfig, NotificacaoConfig } from '../../types/ag
 import { AGENDA_BG_PRESETS } from '../../types/agenda';
 import { supabase } from '../../services/supabase';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../../services/supabase';
+import { sendWhatsappMessage } from '../../services/whatsappService';
 import {
   fetchAgendaKanbanConfig,
   fetchNotificacaoConfig,
@@ -259,11 +260,7 @@ export const ConfiguracoesAgenda: React.FC<{
     setWaTestMsg('');
     try {
       const mensagem = `✅ *TESTE LA MUSIC*\n\nSeu WhatsApp está configurado corretamente!\n\n📅 Agenda funcionando\n🔔 Você receberá lembretes aqui\n\n_${new Date().toLocaleString('pt-BR')}_`;
-      const { data, error } = await supabase.functions.invoke('whatsapp-send', {
-        body: { numero, mensagem },
-      });
-      if (error) throw error;
-      if (!(data as any)?.success) throw new Error((data as any)?.error || 'Falha ao enviar mensagem');
+      await sendWhatsappMessage(numero, mensagem);
 
       setWaTestStatus('success');
       setWaTestMsg('Mensagem de teste enviada!');

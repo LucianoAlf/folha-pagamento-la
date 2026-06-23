@@ -4,7 +4,7 @@ import { cn } from '../CollaboratorComponents';
 import { Bell, Calendar, ClipboardCheck, CreditCard, Send, Loader2, Save, Smartphone, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NotificacaoConfig } from '../../types/agenda';
 import { fetchNotificacaoConfig, upsertNotificacaoConfig } from '../../services/agendaService';
-import { supabase } from '../../services/supabase';
+import { sendWhatsappMessage } from '../../services/whatsappService';
 
 export const NotificacoesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -172,11 +172,7 @@ export const NotificacoesPage: React.FC = () => {
     setWaTestMsg('');
     try {
       const mensagem = `✅ *TESTE LA MUSIC*\n\nSeu WhatsApp está configurado corretamente!\n\n🔔 Você receberá lembretes aqui\n\n_${new Date().toLocaleString('pt-BR')}_`;
-      const { data, error } = await supabase.functions.invoke('whatsapp-send', {
-        body: { numero, mensagem },
-      });
-      if (error) throw error;
-      if (!(data as any)?.success) throw new Error((data as any)?.error || 'Falha ao enviar mensagem');
+      await sendWhatsappMessage(numero, mensagem);
 
       setWaTestStatus('success');
       setWaTestMsg('Mensagem de teste enviada!');
