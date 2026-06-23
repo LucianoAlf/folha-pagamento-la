@@ -2950,15 +2950,15 @@ export const ContasPagarPage: React.FC<{
       </div>
 
       {/* Desktop: manter layout atual */}
-      <div className="hidden lg:flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="hidden lg:grid lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center gap-4 mb-8 animate-in fade-in slide-in-from-top-2 duration-500">
+        <div className="flex flex-wrap items-center gap-3 min-w-0">
           <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
             {unidadeTabs.map((u) => (
               <button
                 key={u.id}
                 onClick={() => setUnidadeFiltro(u.id as any)}
                 className={cn(
-                  "px-4 py-2 rounded-xl text-xs font-black transition-all",
+                  "px-3 xl:px-4 py-2 rounded-xl text-xs font-black transition-all",
                   unidadeFiltro === u.id
                     ? "bg-surface-2 text-primary shadow-sm"
                     : "text-muted hover:text-secondary hover:bg-surface-2/40"
@@ -2979,7 +2979,7 @@ export const ContasPagarPage: React.FC<{
                 type="button"
                 onClick={() => setVisaoOperacionalModo(t.id as any)}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all',
+                  'flex items-center gap-2 px-3 xl:px-4 py-2 rounded-xl text-xs font-black transition-all',
                   visaoOperacionalModo === t.id ? 'bg-surface-2 text-primary shadow-sm' : 'text-muted hover:text-secondary hover:bg-surface-2/40'
                 )}
               >
@@ -2990,23 +2990,23 @@ export const ContasPagarPage: React.FC<{
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mr-1">Competência</div>
+        <div className="flex min-w-0 items-center justify-end gap-2.5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="shrink-0 text-[10px] font-bold text-muted uppercase tracking-widest">Competência</div>
             <CustomSelect
               value={competenciaFiltro}
               onValueChange={(v) => {
                 setCompetenciaFiltro(v);
                 setCalendarioDiaSelecionado(undefined);
               }}
-              className="min-w-[200px]"
+              className="min-w-[180px] xl:min-w-[200px]"
               options={competenciaOptions}
             />
           </div>
           <button
             type="button"
             onClick={() => setCredenciaisOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-3.5 rounded-2xl border border-line bg-surface/40 hover:bg-surface/60 text-secondary font-black transition-all active:scale-[0.98]"
+            className="inline-flex h-[52px] shrink-0 items-center gap-2 whitespace-nowrap px-3.5 rounded-2xl border border-line bg-surface/40 hover:bg-surface/60 text-secondary font-black transition-all active:scale-[0.98]"
           >
             <KeyRound size={16} className="text-accent" />
             Credenciais
@@ -3017,7 +3017,7 @@ export const ContasPagarPage: React.FC<{
               setNovaContaDefaults(null);
               setNovaOpen(true);
             }}
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-accent hover:bg-accent/80 text-on-accent font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.98]"
+            className="inline-flex h-[52px] min-w-[142px] shrink-0 items-center justify-center gap-2 whitespace-nowrap px-4 rounded-2xl bg-accent hover:bg-accent/80 text-on-accent font-black shadow-lg shadow-accent/20 transition-all active:scale-[0.98]"
           >
             <Plus size={16} />
             Nova Conta
