@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadingSpinner, ErrorState, ConfirmDialog } from '../UI';
-import { ContaPagar, CategoriaDespesa, ContaCredencial, ContaPagarCodigoMes } from '../../types/contasPagar';
+import { ContaPagar, CategoriaDespesa, CentroCusto, ContaCredencial, ContaPagarCodigoMes, PlanoConta, PlanoContaMaisUsado } from '../../types/contasPagar';
 import {
   calcularResumo,
   calcularResumoAuditoria,
   fetchCategorias,
+  fetchCentrosCusto,
   fetchContasPagar,
   fetchCredenciais,
   fetchCodigosMes,
+  fetchPlanoContasMaisUsados,
+  fetchPlanoContas,
   registrarPagamento,
   createContaPagar,
   updateContaPagar,
@@ -180,6 +183,9 @@ export const ContasPagarPage: React.FC<{
   const { success: toastSuccess, error: toastError } = useToast();
 
   const [categorias, setCategorias] = useState<CategoriaDespesa[]>([]);
+  const [planosConta, setPlanosConta] = useState<PlanoConta[]>([]);
+  const [planoContaMaisUsados, setPlanoContaMaisUsados] = useState<PlanoContaMaisUsado[]>([]);
+  const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -892,11 +898,17 @@ export const ContasPagarPage: React.FC<{
     setLoading(true);
     setError(null);
     try {
-      const [cats, rows] = await Promise.all([
+      const [cats, planos, usosPlano, centros, rows] = await Promise.all([
         fetchCategorias(),
+        fetchPlanoContas(),
+        fetchPlanoContasMaisUsados(),
+        fetchCentrosCusto(),
         fetchContasPagar({ competenciaGarantir: competenciaFiltro }),
       ]);
       setCategorias(cats);
+      setPlanosConta(planos);
+      setPlanoContaMaisUsados(usosPlano);
+      setCentrosCusto(centros);
       setContas(rows);
     } catch (e: any) {
       setError(e?.message || 'Falha ao carregar contas');
@@ -1635,7 +1647,9 @@ export const ContasPagarPage: React.FC<{
 
         <NovaContaModal
           isOpen={novaOpen}
-          categorias={categorias}
+          planosConta={planosConta}
+          planoContaMaisUsados={planoContaMaisUsados}
+          centrosCusto={centrosCusto}
           credenciais={credenciais}
           onOpenCredenciais={() => setCredenciaisOpen(true)}
           onClose={() => setNovaOpen(false)}
@@ -2678,7 +2692,9 @@ export const ContasPagarPage: React.FC<{
 
         <NovaContaModal
           isOpen={novaOpen}
-          categorias={categorias}
+          planosConta={planosConta}
+          planoContaMaisUsados={planoContaMaisUsados}
+          centrosCusto={centrosCusto}
           credenciais={credenciais}
           onOpenCredenciais={() => setCredenciaisOpen(true)}
           onClose={() => setNovaOpen(false)}
@@ -2709,7 +2725,9 @@ export const ContasPagarPage: React.FC<{
         <EditarContaModal
           isOpen={!!editarConta}
           conta={editarConta}
-          categorias={categorias}
+          planosConta={planosConta}
+          planoContaMaisUsados={planoContaMaisUsados}
+          centrosCusto={centrosCusto}
           credenciais={credenciais}
           codigoMes={editarConta ? codigosPorConta[editarConta.id] : null}
           operadorNome={operadorNome}
@@ -3291,7 +3309,9 @@ export const ContasPagarPage: React.FC<{
 
       <NovaContaModal
         isOpen={novaOpen}
-        categorias={categorias}
+        planosConta={planosConta}
+        planoContaMaisUsados={planoContaMaisUsados}
+        centrosCusto={centrosCusto}
         credenciais={credenciais}
         onOpenCredenciais={() => setCredenciaisOpen(true)}
         onClose={() => setNovaOpen(false)}
@@ -3429,7 +3449,9 @@ export const ContasPagarPage: React.FC<{
       <EditarContaModal
         isOpen={!!editarConta}
         conta={editarConta}
-        categorias={categorias}
+        planosConta={planosConta}
+        planoContaMaisUsados={planoContaMaisUsados}
+        centrosCusto={centrosCusto}
         credenciais={credenciais}
         codigoMes={editarConta ? codigosPorConta[editarConta.id] : null}
         operadorNome={operadorNome}

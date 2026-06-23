@@ -1,19 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Info, Save } from 'lucide-react';
 import { Modal, DatePicker, CustomSelect, ConfirmDialog } from '../UI';
-import { CategoriaDespesa, ContaCredencial, ContaPagar, ContaPagarCodigoMes, FONTE_TIPOS, FonteTipo, StatusColetaCodigo } from '../../types/contasPagar';
+import { CentroCusto, ContaCredencial, ContaPagar, ContaPagarCodigoMes, FONTE_TIPOS, FonteTipo, PlanoConta, PlanoContaMaisUsado, StatusColetaCodigo } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { upsertCodigoMes } from '../../services/contasPagarService';
 import { cn } from '../CollaboratorComponents';
 import { competenciaFromVencimento, formatCompetenciaLabel, toDateOnly } from '../../utils/dateOnly';
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
-
-const UNIDADES_SIMPLES = [
-  { value: 'cg', label: 'Campo Grande' },
-  { value: 'rec', label: 'Recreio' },
-  { value: 'bar', label: 'Barra' },
-  { value: 'todas', label: 'Todas / Matriz' }
-];
+import { CentroCustoSelect, PlanoContaTreeSelect } from './PlanoContaTreeSelect';
+import { centroCustoToUnidade } from './planoContasSelectors';
 
 const parseBRL = (raw: string) => {
   const cleaned = (raw || '')
@@ -28,7 +23,9 @@ const parseBRL = (raw: string) => {
 export const EditarContaModal: React.FC<{
   isOpen: boolean;
   conta: ContaPagar | null;
-  categorias: CategoriaDespesa[];
+  planosConta: PlanoConta[];
+  planoContaMaisUsados?: PlanoContaMaisUsado[];
+  centrosCusto: CentroCusto[];
   credenciais?: ContaCredencial[];
   codigoMes?: ContaPagarCodigoMes | null;
   operadorNome?: string;
@@ -36,10 +33,11 @@ export const EditarContaModal: React.FC<{
   onOpenCredenciais?: () => void;
   onClose: () => void;
   onConfirm: (patch: Partial<ContaPagar>, aplicarAFuturos?: boolean) => Promise<void>;
-}> = ({ isOpen, conta, categorias, credenciais = [], codigoMes, operadorNome = 'operador', onCodigoChanged, onOpenCredenciais, onClose, onConfirm }) => {
+}> = ({ isOpen, conta, planosConta, planoContaMaisUsados = [], centrosCusto, credenciais = [], codigoMes, operadorNome = 'operador', onCodigoChanged, onOpenCredenciais, onClose, onConfirm }) => {
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState<string>('');
-  const [categoriaId, setCategoriaId] = useState<string>('');
+  const [planoContaId, setPlanoContaId] = useState<string>('');
+  const [centroCustoId, setCentroCustoId] = useState<string>('');
   const [unidade, setUnidade] = useState<string>('');
   const [vencimento, setVencimento] = useState<string>('');
   const [launchType, setLaunchType] = useState<'unica' | 'recorrente' | 'parcelada'>('unica');
@@ -64,10 +62,18 @@ export const EditarContaModal: React.FC<{
 
   useEffect(() => {
     if (!isOpen || !conta) return;
+    const centroDefault =
+      centrosCusto.find((c) => c.id === conta.centro_custo_id) ||
+      centrosCusto.find((c) => c.codigo === conta.unidade) ||
+      centrosCusto.find((c) => c.codigo === 'cg') ||
+      centrosCusto[0];
+    const unidadeDefault = centroCustoToUnidade(centroDefault) || conta.unidade || 'cg';
+
     setDescricao(conta.descricao || '');
     setValor(conta.valor ? String(conta.valor).replace('.', ',') : '');
-    setCategoriaId(conta.categoria_id || '');
-    setUnidade(conta.unidade || 'cg');
+    setPlanoContaId(conta.plano_conta_id || '');
+    setCentroCustoId(centroDefault?.id || '');
+    setUnidade(unidadeDefault);
     setVencimento(toDateOnly(conta.data_vencimento));
     setLaunchType(conta.tipo_lancamento || 'unica');
     setObservacoes(conta.observacoes || '');
@@ -84,16 +90,7 @@ export const EditarContaModal: React.FC<{
     setChavePix(codigoMes?.chave_pix || '');
     setQrPixPayload(codigoMes?.qr_pix_payload || '');
     setCodigoStatus(codigoMes?.status_coleta || 'pendente');
-  }, [isOpen, conta, codigoMes]);
-
-  const categoriaOptions = useMemo(
-    () =>
-      categorias.map((c) => ({
-        value: c.id,
-        label: `${c.icone ? `${c.icone} ` : ''}${c.nome}`,
-      })),
-    [categorias]
-  );
+  }, [isOpen, conta, codigoMes, centrosCusto]);
 
   const valorNum = useMemo(() => parseBRL(valor), [valor]);
   const valorPreview = useMemo(() => formatCurrency(valorNum), [valorNum]);
@@ -109,7 +106,9 @@ export const EditarContaModal: React.FC<{
     const patch: Partial<ContaPagar> = {
       descricao: descricao.trim(),
       valor: valorNum,
-      categoria_id: categoriaId,
+      categoria_id: conta.categoria_id || null,
+      plano_conta_id: planoContaId,
+      centro_custo_id: centroCustoId,
       unidade: unidade as any,
       data_vencimento: toDateOnly(vencimento),
       competencia,
@@ -130,7 +129,8 @@ export const EditarContaModal: React.FC<{
       const mudouModelo =
         patch.descricao !== conta.descricao ||
         patch.valor !== conta.valor ||
-        patch.categoria_id !== conta.categoria_id ||
+        patch.plano_conta_id !== conta.plano_conta_id ||
+        patch.centro_custo_id !== conta.centro_custo_id ||
         patch.unidade !== conta.unidade;
 
       if (mudouModelo) {
@@ -144,7 +144,9 @@ export const EditarContaModal: React.FC<{
     if (conta.tipo_lancamento === 'parcelada' && aplicarAFuturos === undefined) {
       const mudouRelevante =
         patch.valor !== conta.valor ||
-        patch.categoria_id !== conta.categoria_id;
+        patch.plano_conta_id !== conta.plano_conta_id ||
+        patch.centro_custo_id !== conta.centro_custo_id ||
+        patch.unidade !== conta.unidade;
 
       if (mudouRelevante) {
         setPendingPatch(patch);
@@ -202,7 +204,7 @@ export const EditarContaModal: React.FC<{
             </button>
             <button
               type="button"
-              disabled={saving || !descricao.trim() || !vencimento || !(valorNum > 0)}
+              disabled={saving || !descricao.trim() || !vencimento || !(valorNum > 0) || !planoContaId || !centroCustoId}
               onClick={() => handleSave()}
               className="px-10 py-4 rounded-[2rem] bg-accent hover:bg-accent/80 text-on-accent font-black shadow-xl shadow-accent/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
             >
@@ -271,22 +273,28 @@ export const EditarContaModal: React.FC<{
                   <div className="mt-2 text-[10px] text-muted font-bold px-1">{valor ? `Preview: ${valorPreview}` : ''}</div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Categoria *</label>
-                  <CustomSelect
-                    value={categoriaId}
-                    onValueChange={(v) => setCategoriaId(v)}
-                    options={categoriaOptions}
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Plano de conta *</label>
+                  <PlanoContaTreeSelect
+                    planos={planosConta}
+                    maisUsados={planoContaMaisUsados}
+                    value={planoContaId}
+                    onValueChange={setPlanoContaId}
+                    invalid={!planoContaId}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Unidade *</label>
-                  <CustomSelect
-                    value={unidade}
-                    onValueChange={(v) => setUnidade(v)}
-                    options={UNIDADES_SIMPLES}
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Centro de custo *</label>
+                  <CentroCustoSelect
+                    centros={centrosCusto}
+                    value={centroCustoId}
+                    invalid={!centroCustoId}
+                    onValueChange={(id, unidadeLegada) => {
+                      setCentroCustoId(id);
+                      if (unidadeLegada) setUnidade(unidadeLegada);
+                    }}
                   />
                 </div>
                 <div>

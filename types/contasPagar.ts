@@ -9,6 +9,33 @@ export interface CategoriaDespesa {
   ordem: number;
 }
 
+export interface PlanoConta {
+  id: string;
+  codigo: string;
+  nome: string;
+  nome_completo?: string | null;
+  parent_id?: string | null;
+  nivel: 1 | 2 | 3;
+  grupo_plano?: string | null;
+  natureza: 'entrada' | 'saida';
+  ativo: boolean;
+  ordem: number;
+}
+
+export interface PlanoContaMaisUsado {
+  plano_conta_id: string | null;
+  total: number;
+}
+
+export interface CentroCusto {
+  id: string;
+  codigo: 'cg' | 'rec' | 'bar' | string;
+  nome: string;
+  tipo: 'unidade' | string;
+  ativo: boolean;
+  ordem: number;
+}
+
 export type FonteTipo = 'site' | 'email' | 'pix_fixo' | 'banco' | 'whatsapp' | 'manual';
 
 export type StatusColetaCodigo = 'pendente' | 'coletado' | 'indisponivel';
@@ -63,6 +90,11 @@ export interface ContaPagar {
   descricao: string;
   categoria_id: string | null;
   categoria?: CategoriaDespesa;
+  plano_conta_id?: string | null;
+  plano_conta?: PlanoConta | null;
+  centro_custo_id?: string | null;
+  centro_custo?: CentroCusto | null;
+  emusys_lancamento_id?: string | null;
   unidade: 'cg' | 'rec' | 'bar' | 'todas' | null;
   valor: number;
   data_lancamento: string;

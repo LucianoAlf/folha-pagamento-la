@@ -1,14 +1,20 @@
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 import {
   CategoriaDespesa,
+  CentroCusto,
   CodigoMesBadge,
   ContaCredencial,
   ContaPagar,
   ContaPagarCodigoMes,
   ContaPagarRelatorioDia,
+  PlanoConta,
+  PlanoContaMaisUsado,
   StatusVisual,
 } from '../types/contasPagar';
 import { competenciaFromVencimento, toDateOnly } from '../utils/dateOnly';
+
+const CONTA_PAGAR_SELECT =
+  '*, categoria:categorias_despesa(*), plano_conta:plano_contas(*), centro_custo:centros_custo(*)';
 
 function normalizeContaDates(conta: Partial<ContaPagar>): Partial<ContaPagar> {
   const next = { ...conta };
@@ -31,6 +37,50 @@ export async function fetchCategorias(): Promise<CategoriaDespesa[]> {
 
   if (error) throw error;
   return (data || []) as CategoriaDespesa[];
+}
+
+export async function fetchPlanoContas(): Promise<PlanoConta[]> {
+  const { data, error } = await supabase
+    .from('plano_contas')
+    .select('id,codigo,nome,nome_completo,parent_id,nivel,grupo_plano,natureza,ativo,ordem')
+    .eq('ativo', true)
+    .order('ordem', { ascending: true })
+    .order('codigo', { ascending: true });
+
+  if (error) throw error;
+  return (data || []) as PlanoConta[];
+}
+
+export async function fetchCentrosCusto(): Promise<CentroCusto[]> {
+  const { data, error } = await supabase
+    .from('centros_custo')
+    .select('id,codigo,nome,tipo,ativo,ordem')
+    .eq('ativo', true)
+    .eq('tipo', 'unidade')
+    .order('ordem', { ascending: true });
+
+  if (error) throw error;
+  return (data || []) as CentroCusto[];
+}
+
+export async function fetchPlanoContasMaisUsados(limit = 8): Promise<PlanoContaMaisUsado[]> {
+  const { data, error } = await supabase
+    .from('contas_pagar')
+    .select('plano_conta_id')
+    .not('plano_conta_id', 'is', null)
+    .limit(1000);
+
+  if (error) throw error;
+
+  const counts = new Map<string, number>();
+  (data || []).forEach((row: { plano_conta_id: string | null }) => {
+    if (!row.plano_conta_id) return;
+    counts.set(row.plano_conta_id, (counts.get(row.plano_conta_id) || 0) + 1);
+  });
+
+  return Array.from(counts, ([plano_conta_id, total]) => ({ plano_conta_id, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
 }
 
 export async function upsertCategoria(categoria: Partial<CategoriaDespesa>): Promise<CategoriaDespesa> {
@@ -166,7 +216,7 @@ export async function fetchContasPagar(filtros?: {
 
   let query = supabase
     .from('contas_pagar')
-    .select('*, categoria:categorias_despesa(*)')
+    .select(CONTA_PAGAR_SELECT)
     .neq('status', 'cancelado')
     .neq('status', 'finalizado')
     .order('data_vencimento', { ascending: true });
@@ -187,7 +237,7 @@ export async function fetchContaPagarById(contaId: string): Promise<ContaPagar |
   if (!contaId) return null;
   const { data, error } = await supabase
     .from('contas_pagar')
-    .select('*, categoria:categorias_despesa(*)')
+    .select(CONTA_PAGAR_SELECT)
     .eq('id', contaId)
     .maybeSingle();
   if (error) throw error;
@@ -207,7 +257,7 @@ export async function fetchContasPendentesForAgenda(input?: {
 
   const { data, error } = await supabase
     .from('contas_pagar')
-    .select('*, categoria:categorias_despesa(*)')
+    .select(CONTA_PAGAR_SELECT)
     .eq('status', 'pendente')
     .neq('status', 'cancelado')
     .neq('status', 'finalizado')
@@ -268,7 +318,7 @@ export async function createContaPagar(
     const { data, error } = await supabase
       .from('contas_pagar')
       .insert(parcelas)
-      .select('*, categoria:categorias_despesa(*)');
+      .select(CONTA_PAGAR_SELECT);
 
     if (error) throw error;
     if (!data || data.length === 0) throw new Error('Nenhuma parcela foi criada');
@@ -278,7 +328,7 @@ export async function createContaPagar(
   const { data, error } = await supabase
     .from('contas_pagar')
     .insert([{ ...conta, created_by: user.user?.id }])
-    .select('*, categoria:categorias_despesa(*)')
+    .select(CONTA_PAGAR_SELECT)
     .single();
 
   if (error) throw error;
@@ -298,7 +348,7 @@ export async function registrarPagamento(
       observacoes: pagamento.observacoes || null,
     })
     .eq('id', contaId)
-    .select('*, categoria:categorias_despesa(*)')
+    .select(CONTA_PAGAR_SELECT)
     .single();
 
   if (error) throw error;
@@ -312,7 +362,7 @@ export async function updateContaPagar(contaId: string, patch: Partial<ContaPaga
     .from('contas_pagar')
     .update(nextPatch)
     .eq('id', contaId)
-    .select('*, categoria:categorias_despesa(*)')
+    .select(CONTA_PAGAR_SELECT)
     .single();
 
   if (error) throw error;
@@ -324,6 +374,8 @@ export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch:
   if (patch.descricao) fieldsToUpdate.descricao = patch.descricao;
   if (patch.valor) fieldsToUpdate.valor = patch.valor;
   if (patch.categoria_id) fieldsToUpdate.categoria_id = patch.categoria_id;
+  if (patch.plano_conta_id) fieldsToUpdate.plano_conta_id = patch.plano_conta_id;
+  if (patch.centro_custo_id) fieldsToUpdate.centro_custo_id = patch.centro_custo_id;
   if (patch.unidade) fieldsToUpdate.unidade = patch.unidade;
   if (patch.tipo_lancamento) fieldsToUpdate.tipo_lancamento = patch.tipo_lancamento;
 
@@ -354,6 +406,9 @@ export async function updateFuturasParceladas(contaOriginal: ContaPagar, patch: 
   const fieldsToUpdate: any = {};
   if (patch.valor !== undefined) fieldsToUpdate.valor = patch.valor;
   if (patch.categoria_id) fieldsToUpdate.categoria_id = patch.categoria_id;
+  if (patch.plano_conta_id) fieldsToUpdate.plano_conta_id = patch.plano_conta_id;
+  if (patch.centro_custo_id) fieldsToUpdate.centro_custo_id = patch.centro_custo_id;
+  if (patch.unidade) fieldsToUpdate.unidade = patch.unidade;
   if (patch.observacoes !== undefined) fieldsToUpdate.observacoes = patch.observacoes;
 
   if (Object.keys(fieldsToUpdate).length === 0) return;
@@ -402,7 +457,7 @@ export async function fetchParcelasIrmas(conta: ContaPagar): Promise<ContaPagar[
   const baseDesc = conta.descricao.replace(/\s*\(\d+\/\d+\)\s*$/, '');
   const { data, error } = await supabase
     .from('contas_pagar')
-    .select('*, categoria:categorias_despesa(*)')
+    .select(CONTA_PAGAR_SELECT)
     .eq('tipo_lancamento', 'parcelada')
     .eq('categoria_id', conta.categoria_id)
     .eq('unidade', conta.unidade)

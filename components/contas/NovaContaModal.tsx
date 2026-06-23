@@ -1,16 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Info, Plus } from 'lucide-react';
 import { CustomSelect, DatePicker, Modal } from '../UI';
-import { CategoriaDespesa, ContaCredencial, ContaPagar, FONTE_TIPOS, FonteTipo, StatusColetaCodigo } from '../../types/contasPagar';
+import { CentroCusto, ContaCredencial, ContaPagar, FONTE_TIPOS, FonteTipo, PlanoConta, PlanoContaMaisUsado, StatusColetaCodigo } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { cn } from '../CollaboratorComponents';
 import { competenciaFromVencimento, formatCompetenciaLabel, toDateOnly } from '../../utils/dateOnly';
-
-const UNIDADES_SIMPLES = [
-  { value: 'cg', label: 'Campo Grande' },
-  { value: 'rec', label: 'Recreio' },
-  { value: 'bar', label: 'Barra' }
-];
+import { CentroCustoSelect, PlanoContaTreeSelect } from './PlanoContaTreeSelect';
+import { centroCustoToUnidade } from './planoContasSelectors';
 
 type LaunchType = 'unica' | 'recorrente' | 'parcelada';
 type PaymentStatus = 'pendente' | 'pago';
@@ -29,7 +25,9 @@ export type NovaContaOptions = {
 
 export const NovaContaModal: React.FC<{
   isOpen: boolean;
-  categorias: CategoriaDespesa[];
+  planosConta: PlanoConta[];
+  planoContaMaisUsados?: PlanoContaMaisUsado[];
+  centrosCusto: CentroCusto[];
   credenciais?: ContaCredencial[];
   onOpenCredenciais?: () => void;
   onClose: () => void;
@@ -37,7 +35,7 @@ export const NovaContaModal: React.FC<{
   defaultVencimento?: string; // yyyy-mm-dd
   defaultCompetenciaYM?: string; // yyyy-mm
   defaultUnidade?: 'cg' | 'rec' | 'bar';
-}> = ({ isOpen, categorias, credenciais = [], onOpenCredenciais, onClose, onConfirm, defaultVencimento, defaultCompetenciaYM, defaultUnidade }) => {
+}> = ({ isOpen, planosConta, planoContaMaisUsados = [], centrosCusto, credenciais = [], onOpenCredenciais, onClose, onConfirm, defaultVencimento, defaultCompetenciaYM, defaultUnidade }) => {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth < 768;
@@ -45,7 +43,8 @@ export const NovaContaModal: React.FC<{
 
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState<string>('');
-  const [categoriaId, setCategoriaId] = useState<string>('');
+  const [planoContaId, setPlanoContaId] = useState<string>('');
+  const [centroCustoId, setCentroCustoId] = useState<string>('');
   const [unidade, setUnidade] = useState<string>('cg');
 
   const [launchType, setLaunchType] = useState<LaunchType>('unica');
@@ -74,11 +73,17 @@ export const NovaContaModal: React.FC<{
 
   useEffect(() => {
     if (!isOpen) return;
+    const centroDefault =
+      centrosCusto.find((c) => c.codigo === defaultUnidade) ||
+      centrosCusto.find((c) => c.codigo === 'cg') ||
+      centrosCusto[0];
+    const unidadeDefault = centroCustoToUnidade(centroDefault) || defaultUnidade || 'cg';
 
     setDescricao('');
     setValor('');
-    setCategoriaId('');
-    setUnidade(defaultUnidade || 'cg');
+    setPlanoContaId('');
+    setCentroCustoId(centroDefault?.id || '');
+    setUnidade(unidadeDefault);
     setLaunchType('unica');
     setParcelas(2);
     setParcelaInicial(1);
@@ -99,12 +104,19 @@ export const NovaContaModal: React.FC<{
     setCodigoStatus('pendente');
     setError(null);
     setTried(false);
-  }, [isOpen, defaultVencimento, defaultUnidade]);
+  }, [isOpen, defaultVencimento, defaultUnidade, centrosCusto]);
 
   useEffect(() => {
     if (!isOpen) return;
-    if (defaultUnidade) setUnidade(defaultUnidade);
-  }, [isOpen, defaultUnidade]);
+    if (!centroCustoId && centrosCusto.length) {
+      const centroDefault =
+        centrosCusto.find((c) => c.codigo === defaultUnidade) ||
+        centrosCusto.find((c) => c.codigo === 'cg') ||
+        centrosCusto[0];
+      setCentroCustoId(centroDefault?.id || '');
+      setUnidade(centroCustoToUnidade(centroDefault) || defaultUnidade || 'cg');
+    }
+  }, [centroCustoId, centrosCusto, defaultUnidade, isOpen]);
 
   const competencia = useMemo(() => competenciaFromVencimento(vencimento), [vencimento]);
   const competenciaLabel = useMemo(() => formatCompetenciaLabel(vencimento), [vencimento]);
@@ -115,15 +127,6 @@ export const NovaContaModal: React.FC<{
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [isOpen]);
-
-  const categoriaOptions = useMemo(
-    () =>
-      categorias.map((c) => ({
-        value: c.id,
-        label: `${c.icone ? `${c.icone} ` : ''}${c.nome}`,
-      })),
-    [categorias]
-  );
 
   const parseBRL = (raw: string) => {
     const cleaned = (raw || '')
@@ -143,12 +146,13 @@ export const NovaContaModal: React.FC<{
     const missing: string[] = [];
     if (!descricao.trim()) missing.push('Descrição');
     if (!(valorNum > 0)) missing.push('Valor');
-    if (!categoriaId) missing.push('Categoria');
+    if (!planoContaId) missing.push('Plano de conta');
+    if (!centroCustoId) missing.push('Centro de custo');
     if (!vencimento) missing.push('Vencimento');
     if (!competencia) missing.push('Competência');
     if (launchType === 'parcelada' && parcelas < 2) missing.push('Parcelas (mín. 2)');
     return missing;
-  }, [descricao, valorNum, categoriaId, vencimento, competencia, launchType, parcelas]);
+  }, [descricao, valorNum, planoContaId, centroCustoId, vencimento, competencia, launchType, parcelas]);
 
   const isFormValid = missingFields.length === 0;
 
@@ -201,7 +205,9 @@ export const NovaContaModal: React.FC<{
 
                   const payload: Partial<ContaPagar> = {
                     descricao: descricao.trim(),
-                    categoria_id: categoriaId,
+                    categoria_id: null,
+                    plano_conta_id: planoContaId,
+                    centro_custo_id: centroCustoId,
                     unidade: unidade as ContaPagar['unidade'],
                     valor: valorNum,
                     data_lancamento: dataLancamentoAuto,
@@ -320,25 +326,28 @@ export const NovaContaModal: React.FC<{
                 <div className="mt-2 text-[10px] text-muted font-bold px-1">{valor ? `Preview: ${valorLabel}` : ''}</div>
               </div>
               <div>
-                <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !categoriaId ? "text-danger" : "text-muted")}>Categoria *</label>
-                <div className={cn(tried && !categoriaId && "ring-1 ring-danger/60 rounded-2xl")}>
-                  <CustomSelect
-                    value={categoriaId}
-                    onValueChange={(v) => setCategoriaId(v)}
-                    placeholder="Selecione..."
-                    options={categoriaOptions}
-                  />
-                </div>
+                <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !planoContaId ? "text-danger" : "text-muted")}>Plano de conta *</label>
+                <PlanoContaTreeSelect
+                  planos={planosConta}
+                  maisUsados={planoContaMaisUsados}
+                  value={planoContaId}
+                  onValueChange={setPlanoContaId}
+                  invalid={tried && !planoContaId}
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+            <div className="grid grid-cols-1 gap-5 md:gap-6">
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Unidade *</label>
-                <CustomSelect
-                  value={unidade}
-                  onValueChange={(v) => setUnidade(v)}
-                  options={UNIDADES_SIMPLES.map((u) => ({ value: u.value, label: u.label }))}
+                <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !centroCustoId ? "text-danger" : "text-muted")}>Centro de custo *</label>
+                <CentroCustoSelect
+                  centros={centrosCusto}
+                  value={centroCustoId}
+                  invalid={tried && !centroCustoId}
+                  onValueChange={(id, unidadeLegada) => {
+                    setCentroCustoId(id);
+                    if (unidadeLegada) setUnidade(unidadeLegada);
+                  }}
                 />
               </div>
             </div>
