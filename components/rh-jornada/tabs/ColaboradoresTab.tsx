@@ -7,6 +7,7 @@ import type { Colaborador } from '../../../types';
 import type { RhCollaboratorAchievement, RhCollaboratorDocument, RhCollaboratorDocumentCategory, RhCollaboratorJourney, RhCollaboratorJourneySummary, RhCollaboratorMilestone, RhCareerLevel, RhCareerMovement, RhPdiBadge, RhPdiPlan } from '../../../types/rh';
 import { RH_COLLAB_DOC_CATEGORIES, RH_MILESTONE_TYPES } from '../../../types/rh';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
+import { RH_KPI_GRID_CLASS, RhKpiCard } from '../RhKpiCard';
 
 const DOC_CATEGORY_OPTIONS = RH_COLLAB_DOC_CATEGORIES.map((value) => ({ value, label: value.replace(/_/g, ' ') }));
 const MILESTONE_OPTIONS = RH_MILESTONE_TYPES.map((value) => ({ value, label: value.replace(/_/g, ' ') }));
@@ -119,11 +120,11 @@ export const ColaboradoresTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Colaboradores</div><div className="mt-2 text-3xl font-black text-primary">{colaboradores.length}</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Jornadas ativas</div><div className="mt-2 text-3xl font-black text-info">{journeys.filter((item) => item.status === 'ativa').length}</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">PDIs ativos</div><div className="mt-2 text-3xl font-black text-accent">{journeys.reduce((sum, item) => sum + Number(item.pdis_ativos || 0), 0)}</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Conquistas</div><div className="mt-2 text-3xl font-black text-success">{journeys.reduce((sum, item) => sum + Number(item.conquistas_total || 0), 0)}</div></Card>
+      <div className={`${RH_KPI_GRID_CLASS} md:grid-cols-4`}>
+        <RhKpiCard label="Colaboradores" value={colaboradores.length} />
+        <RhKpiCard label="Jornadas ativas" value={journeys.filter((item) => item.status === 'ativa').length} valueClassName="text-info" />
+        <RhKpiCard label="PDIs ativos" value={journeys.reduce((sum, item) => sum + Number(item.pdis_ativos || 0), 0)} valueClassName="text-accent" />
+        <RhKpiCard label="Conquistas" value={journeys.reduce((sum, item) => sum + Number(item.conquistas_total || 0), 0)} valueClassName="text-success" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-6">
@@ -150,12 +151,12 @@ export const ColaboradoresTab: React.FC = () => {
                 <button type="button" disabled={!selectedCollaborator || !selectedJourney || saving} onClick={() => setAchievementModalOpen(true)} className={cn('px-4 py-2.5 rounded-2xl font-black', !selectedCollaborator || !selectedJourney || saving ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-success hover:bg-success text-white')}>Conceder badge</button>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-5">
-              <div className="rounded-2xl border border-line bg-surface/30 p-4"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Etapa atual</div><div className="mt-2 text-sm font-black text-primary">{journeySummary?.etapa_atual || 'Sem jornada'}</div></div>
-              <div className="rounded-2xl border border-line bg-surface/30 p-4"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Score</div><div className="mt-2 text-sm font-black text-primary">{Math.round(journeySummary?.score_jornada || 0)} pts</div></div>
-              <div className="rounded-2xl border border-line bg-surface/30 p-4"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Nivel atual</div><div className="mt-2 text-sm font-black text-primary">{currentLevel?.titulo || 'Nao definido'}</div></div>
-              <div className="rounded-2xl border border-line bg-surface/30 p-4"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Proximo checkpoint</div><div className="mt-2 text-sm font-black text-primary">{journeySummary?.proximo_checkpoint ? new Date(`${journeySummary.proximo_checkpoint}T00:00:00`).toLocaleDateString('pt-BR') : 'Nao definido'}</div></div>
-              <div className="rounded-2xl border border-line bg-surface/30 p-4"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">PDIs ativos</div><div className="mt-2 text-sm font-black text-primary">{journeySummary?.pdis_ativos || 0}</div></div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mt-5">
+              <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4"><div className="text-[9px] sm:text-[10px] uppercase tracking-[0.14em] sm:tracking-[0.2em] text-muted font-black leading-tight">Etapa atual</div><div className="mt-2 text-sm font-black text-primary line-clamp-2">{journeySummary?.etapa_atual || 'Sem jornada'}</div></div>
+              <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4"><div className="text-[9px] sm:text-[10px] uppercase tracking-[0.14em] sm:tracking-[0.2em] text-muted font-black leading-tight">Score</div><div className="mt-2 text-sm font-black text-primary">{Math.round(journeySummary?.score_jornada || 0)} pts</div></div>
+              <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4"><div className="text-[9px] sm:text-[10px] uppercase tracking-[0.14em] sm:tracking-[0.2em] text-muted font-black leading-tight">Nivel atual</div><div className="mt-2 text-sm font-black text-primary line-clamp-2">{currentLevel?.titulo || 'Nao definido'}</div></div>
+              <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4"><div className="text-[9px] sm:text-[10px] uppercase tracking-[0.14em] sm:tracking-[0.2em] text-muted font-black leading-tight">Proximo checkpoint</div><div className="mt-2 text-sm font-black text-primary">{journeySummary?.proximo_checkpoint ? new Date(`${journeySummary.proximo_checkpoint}T00:00:00`).toLocaleDateString('pt-BR') : 'Nao definido'}</div></div>
+              <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4"><div className="text-[9px] sm:text-[10px] uppercase tracking-[0.14em] sm:tracking-[0.2em] text-muted font-black leading-tight">PDIs ativos</div><div className="mt-2 text-sm font-black text-primary">{journeySummary?.pdis_ativos || 0}</div></div>
             </div>
           </Card>
 

@@ -9,6 +9,7 @@ import { RhProcessActivityPanel } from '../process/RhProcessActivityPanel';
 import { RhEvaluationPanel } from '../process/RhEvaluationPanel';
 import { RhParticipantsPanel } from '../process/RhParticipantsPanel';
 import { RhStageExecutionPanel } from '../process/RhStageExecutionPanel';
+import { RH_KPI_GRID_CLASS, RhKpiCard } from '../RhKpiCard';
 
 const PROCESS_STATUS_META: Record<string, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' | 'info' | 'purple' }> = {
   rascunho: { label: 'Rascunho', variant: 'default' },
@@ -259,31 +260,15 @@ export const OnboardingTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Ativos</div>
-          <div className="mt-2 text-3xl font-black text-primary">{activeProcessesCount}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Onboardings em andamento</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Etapas</div>
-          <div className="mt-2 text-3xl font-black text-primary">{selectedProcess?.total_etapas || 0}</div>
-          <div className="mt-1 text-xs font-bold text-muted truncate">{selectedProcessContext}</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Concluídas</div>
-          <div className="mt-2 text-3xl font-black text-success">{selectedProcess?.etapas_concluidas || 0}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Etapas fechadas</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Progresso</div>
-          <div className="mt-2 text-3xl font-black text-accent">{Math.round(selectedProcess?.percentual_conclusao || 0)}%</div>
-          <div className="mt-1 text-xs font-bold text-muted">Conclusão estimada</div>
-        </Card>
+      <div className={`${RH_KPI_GRID_CLASS} md:grid-cols-4`}>
+        <RhKpiCard label="Ativos" value={activeProcessesCount} subvalue="Onboardings em andamento" />
+        <RhKpiCard label="Etapas" value={selectedProcess?.total_etapas || 0} subvalue={selectedProcessContext} />
+        <RhKpiCard label="Concluídas" value={selectedProcess?.etapas_concluidas || 0} subvalue="Etapas fechadas" valueClassName="text-success" />
+        <RhKpiCard label="Progresso" value={`${Math.round(selectedProcess?.percentual_conclusao || 0)}%`} subvalue="Conclusão estimada" valueClassName="text-accent" />
       </div>
 
-      <Card className="p-5 border border-line-strong/50">
-        <div className="flex items-center justify-between gap-3">
+      <Card className="p-4 sm:p-5 border border-line-strong/50">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-primary text-lg font-black">Onboardings ativos</div>
             <div className="text-sm font-bold text-muted">Crie a jornada de entrada e acompanhe o avanço por etapa.</div>
@@ -291,7 +276,7 @@ export const OnboardingTab: React.FC = () => {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="px-5 py-3.5 rounded-2xl bg-accent hover:bg-accent text-white font-black flex items-center gap-2 transition-all"
+            className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-accent hover:bg-accent text-white font-black flex items-center justify-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
             Novo onboarding
@@ -361,18 +346,18 @@ export const OnboardingTab: React.FC = () => {
               </div>
 
               {selectedProcess ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-                  <div className="rounded-2xl border border-line bg-surface/30 p-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mt-5">
+                  <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Início</div>
                     <div className="mt-2 text-sm font-black text-primary">{new Date(`${selectedProcess.data_inicio}T00:00:00`).toLocaleDateString('pt-BR')}</div>
                   </div>
-                  <div className="rounded-2xl border border-line bg-surface/30 p-4">
+                  <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Fim previsto</div>
                     <div className="mt-2 text-sm font-black text-primary">
                       {selectedProcess.data_fim_prevista ? new Date(`${selectedProcess.data_fim_prevista}T00:00:00`).toLocaleDateString('pt-BR') : 'Não informado'}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-line bg-surface/30 p-4">
+                  <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Cargo</div>
                     <div className="mt-2 text-sm font-black text-primary">{selectedProcess.cargo || 'Não informado'}</div>
                   </div>

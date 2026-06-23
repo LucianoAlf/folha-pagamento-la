@@ -10,6 +10,7 @@ import { RhEvaluationPanel } from '../process/RhEvaluationPanel';
 import { RhParticipantsPanel } from '../process/RhParticipantsPanel';
 import { RhStageExecutionPanel } from '../process/RhStageExecutionPanel';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
+import { RH_KPI_GRID_CLASS, RhKpiCard } from '../RhKpiCard';
 
 const PROCESS_STATUS_META: Record<string, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' | 'info' | 'purple' }> = {
   rascunho: { label: 'Rascunho', variant: 'default' },
@@ -346,31 +347,15 @@ export const DesligamentosTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Ativos</div>
-          <div className="mt-2 text-3xl font-black text-primary">{activeProcessesCount}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Desligamentos abertos</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Etapas</div>
-          <div className="mt-2 text-3xl font-black text-primary">{selectedProcess?.total_etapas || 0}</div>
-          <div className="mt-1 text-xs font-bold text-muted truncate">{selectedProcessContext}</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Aviso</div>
-          <div className="mt-2 text-xl font-black text-warning">{offboarding?.aviso_previo_tipo || '—'}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Tipo de aviso prévio</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Status doc.</div>
-          <div className="mt-2 text-xl font-black text-accent">{offboarding?.status_documental || 'pendente'}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Controle rescisório</div>
-        </Card>
+      <div className={`${RH_KPI_GRID_CLASS} md:grid-cols-4`}>
+        <RhKpiCard label="Ativos" value={activeProcessesCount} subvalue="Desligamentos abertos" />
+        <RhKpiCard label="Etapas" value={selectedProcess?.total_etapas || 0} subvalue={selectedProcessContext} />
+        <RhKpiCard label="Aviso" value={offboarding?.aviso_previo_tipo || '—'} subvalue="Tipo de aviso prévio" valueClassName="text-xl sm:text-3xl text-warning" />
+        <RhKpiCard label="Status doc." value={offboarding?.status_documental || 'pendente'} subvalue="Controle rescisório" valueClassName="text-xl sm:text-3xl text-accent" />
       </div>
 
-      <Card className="p-5 border border-line-strong/50">
-        <div className="flex items-center justify-between gap-3">
+      <Card className="p-4 sm:p-5 border border-line-strong/50">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-primary text-lg font-black">Desligamentos ativos</div>
             <div className="text-sm font-bold text-muted">Abra a jornada de saída com aviso prévio, checklist e etapas de encerramento.</div>
@@ -378,7 +363,7 @@ export const DesligamentosTab: React.FC = () => {
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
-            className="px-5 py-3.5 rounded-2xl bg-accent hover:bg-accent text-white font-black flex items-center gap-2 transition-all"
+            className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-accent hover:bg-accent text-white font-black flex items-center justify-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" />
             Novo desligamento
@@ -448,18 +433,18 @@ export const DesligamentosTab: React.FC = () => {
               </div>
 
               {selectedProcess ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-                  <div className="rounded-2xl border border-line bg-surface/30 p-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mt-5">
+                  <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Abertura</div>
                     <div className="mt-2 text-sm font-black text-primary">{new Date(`${selectedProcess.data_inicio}T00:00:00`).toLocaleDateString('pt-BR')}</div>
                   </div>
-                  <div className="rounded-2xl border border-line bg-surface/30 p-4">
+                  <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Fim previsto</div>
                     <div className="mt-2 text-sm font-black text-primary">
                       {selectedProcess.data_fim_prevista ? new Date(`${selectedProcess.data_fim_prevista}T00:00:00`).toLocaleDateString('pt-BR') : 'Não informado'}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-line bg-surface/30 p-4">
+                  <div className="rounded-2xl border border-line bg-surface/30 p-3.5 sm:p-4">
                     <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Cargo</div>
                     <div className="mt-2 text-sm font-black text-primary">{selectedProcess.cargo || 'Não informado'}</div>
                   </div>

@@ -5,6 +5,7 @@ import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhParticipantRole, RhPdiTemplate, RhPdiTemplateCheckpoint, RhPdiTemplateCompetence, RhPdiTemplateObjective, RhPdiCycleType, RhProcessType, RhStageCategory, RhTemplate, RhTemplateChecklistItem, RhTemplateDocument, RhTemplateStage } from '../../../types/rh';
 import { RH_PDI_CHECKPOINT_TYPES, RH_PDI_COMPETENCE_CATEGORIES, RH_PDI_OBJECTIVE_TYPES, RH_PDI_CYCLE_TYPES } from '../../../types/rh';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
+import { RH_KPI_GRID_CLASS, RhKpiCard } from '../RhKpiCard';
 
 const PROCESS_OPTIONS: { value: RhProcessType; label: string }[] = [
   { value: 'recrutamento', label: 'Recrutamento' },
@@ -273,27 +274,11 @@ export const TemplatesTab: React.FC = () => {
           </div>
         </div>
       </Card>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Templates ativos</div>
-          <div className="mt-2 text-3xl font-black text-primary">{templates.filter((item) => item.ativo).length}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Base operacional do módulo</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Etapas</div>
-          <div className="mt-2 text-3xl font-black text-primary">{stages.length}</div>
-          <div className="mt-1 text-xs font-bold text-muted truncate">{selectedTemplateContext}</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Documentos</div>
-          <div className="mt-2 text-3xl font-black text-primary">{documents.length}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Materialização documental prevista</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Versão</div>
-          <div className="mt-2 text-3xl font-black text-success">v{selectedTemplate?.versao || 0}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Controle de governança do template</div>
-        </Card>
+      <div className={`${RH_KPI_GRID_CLASS} md:grid-cols-4`}>
+        <RhKpiCard label="Templates ativos" value={templates.filter((item) => item.ativo).length} subvalue="Base operacional do módulo" />
+        <RhKpiCard label="Etapas" value={stages.length} subvalue={selectedTemplateContext} />
+        <RhKpiCard label="Documentos" value={documents.length} subvalue="Materialização documental prevista" />
+        <RhKpiCard label="Versão" value={`v${selectedTemplate?.versao || 0}`} subvalue="Controle de governança do template" valueClassName="text-success" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-6">

@@ -47,6 +47,7 @@ import {
   RH_PDI_OBJECTIVE_TYPES,
   RH_PDI_PLAN_STATUSES,
 } from '../../../types/rh';
+import { RH_KPI_GRID_CLASS, RhKpiCard } from '../RhKpiCard';
 
 type PlanDraft = { templateId: string; title: string; objectiveGeneral: string; cycleId: string; endDate?: string; status: RhPdiPlanStatus; gestorUserId: string; mentorUserId: string };
 type CompetenceDraft = { name: string; category: RhPdiCompetenceCategory; currentLevel: string; targetLevel: string; status: RhPdiCompetenceStatus };
@@ -269,13 +270,13 @@ export const DesenvolvimentoTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">PDIs ativos</div><div className="mt-2 text-3xl font-black text-accent">{developmentCollaboratorsCount}</div><div className="mt-1 text-xs font-bold text-muted">Colaboradores ativos com plano em andamento</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Sem PDI</div><div className="mt-2 text-3xl font-black text-primary">{withoutPlanCount}</div><div className="mt-1 text-xs font-bold text-muted">Base ativa sem plano em andamento</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Checkpoints criticos</div><div className="mt-2 text-3xl font-black text-warning">{health?.checkpoints_criticos || 0}</div><div className="mt-1 text-xs font-bold text-muted">Checkpoints vencidos ou em risco hoje</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Conquistas recentes</div><div className="mt-2 text-3xl font-black text-success">{health?.conquistas_recentes || 0}</div><div className="mt-1 text-xs font-bold text-muted">Reconhecimentos nos ultimos 30 dias</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Prontos p/ promocao</div><div className="mt-2 text-3xl font-black text-info">{health?.prontos_para_promocao || 0}</div><div className="mt-1 text-xs font-bold text-muted">Jornada forte sem bloqueios criticos</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Travados</div><div className="mt-2 text-3xl font-black text-danger">{health?.colaboradores_travados || 0}</div><div className="mt-1 text-xs font-bold text-muted">Com checkpoint critico pendente</div></Card>
+      <div className={`${RH_KPI_GRID_CLASS} lg:grid-cols-3 2xl:grid-cols-6`}>
+        <RhKpiCard label="PDIs ativos" value={developmentCollaboratorsCount} subvalue="Colaboradores ativos com plano em andamento" valueClassName="text-accent" />
+        <RhKpiCard label="Sem PDI" value={withoutPlanCount} subvalue="Base ativa sem plano em andamento" />
+        <RhKpiCard label="Checkpoints criticos" value={health?.checkpoints_criticos || 0} subvalue="Checkpoints vencidos ou em risco hoje" valueClassName="text-warning" />
+        <RhKpiCard label="Conquistas recentes" value={health?.conquistas_recentes || 0} subvalue="Reconhecimentos nos ultimos 30 dias" valueClassName="text-success" />
+        <RhKpiCard label="Prontos p/ promocao" value={health?.prontos_para_promocao || 0} subvalue="Jornada forte sem bloqueios criticos" valueClassName="text-info" />
+        <RhKpiCard label="Travados" value={health?.colaboradores_travados || 0} subvalue="Com checkpoint critico pendente" valueClassName="text-danger" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[340px_minmax(0,1fr)] gap-6">

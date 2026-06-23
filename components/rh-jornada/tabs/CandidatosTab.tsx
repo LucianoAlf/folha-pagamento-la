@@ -10,6 +10,7 @@ import { RhProcessActivityPanel } from '../process/RhProcessActivityPanel';
 import { RhEvaluationPanel } from '../process/RhEvaluationPanel';
 import { RhParticipantsPanel } from '../process/RhParticipantsPanel';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
+import { RH_KPI_GRID_CLASS, RhKpiCard } from '../RhKpiCard';
 
 const STATUS_META: Record<RhCandidateStatus, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' | 'info' | 'purple' }> = {
   novo: { label: 'Novo', variant: 'default' },
@@ -134,27 +135,11 @@ export const CandidatosTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Total</div>
-          <div className="mt-2 text-3xl font-black text-primary">{candidates.length}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Base ativa de candidatos</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Entrevistas</div>
-          <div className="mt-2 text-3xl font-black text-primary">{counts.entrevista || 0}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Aguardando conversa RH</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Aula teste</div>
-          <div className="mt-2 text-3xl font-black text-primary">{counts.aula_teste || 0}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Em avaliação técnica</div>
-        </Card>
-        <Card className="p-5 border border-line-strong/50">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Aprovados</div>
-          <div className="mt-2 text-3xl font-black text-success">{counts.aprovado || 0}</div>
-          <div className="mt-1 text-xs font-bold text-muted">Prontos para onboarding</div>
-        </Card>
+      <div className={`${RH_KPI_GRID_CLASS} md:grid-cols-4`}>
+        <RhKpiCard label="Total" value={candidates.length} subvalue="Base ativa de candidatos" />
+        <RhKpiCard label="Entrevistas" value={counts.entrevista || 0} subvalue="Aguardando conversa RH" />
+        <RhKpiCard label="Aula teste" value={counts.aula_teste || 0} subvalue="Em avaliação técnica" />
+        <RhKpiCard label="Aprovados" value={counts.aprovado || 0} subvalue="Prontos para onboarding" valueClassName="text-success" />
       </div>
 
       <Card className="p-5 border border-line-strong/50">

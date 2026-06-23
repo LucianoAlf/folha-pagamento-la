@@ -7,6 +7,7 @@ import type { UserProfile } from '../../../types';
 import type { RhDocumentInboxItem, RhDocumentStatus } from '../../../types/rh';
 import { canManageDocumentProcess, isAdminOrRh } from '../rhPermissions';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
+import { RH_KPI_GRID_CLASS, RhKpiCard } from '../RhKpiCard';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Todos os status' },
@@ -82,11 +83,11 @@ export const DocumentosTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Pendentes</div><div className="mt-2 text-3xl font-black text-primary">{counts.pendente || 0}</div><div className="mt-1 text-xs font-bold text-muted">Ainda sem upload</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Enviados</div><div className="mt-2 text-3xl font-black text-info">{counts.enviado || 0}</div><div className="mt-1 text-xs font-bold text-muted">Aguardando revisao</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Conferidos</div><div className="mt-2 text-3xl font-black text-success">{counts.conferido || 0}</div><div className="mt-1 text-xs font-bold text-muted">Validados pelo RH</div></Card>
-        <Card className="p-5 border border-line-strong/50"><div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Rejeitados</div><div className="mt-2 text-3xl font-black text-danger">{counts.rejeitado || 0}</div><div className="mt-1 text-xs font-bold text-muted">Com ajuste</div></Card>
+      <div className={`${RH_KPI_GRID_CLASS} md:grid-cols-4`}>
+        <RhKpiCard label="Pendentes" value={counts.pendente || 0} subvalue="Ainda sem upload" />
+        <RhKpiCard label="Enviados" value={counts.enviado || 0} subvalue="Aguardando revisao" valueClassName="text-info" />
+        <RhKpiCard label="Conferidos" value={counts.conferido || 0} subvalue="Validados pelo RH" valueClassName="text-success" />
+        <RhKpiCard label="Rejeitados" value={counts.rejeitado || 0} subvalue="Com ajuste" valueClassName="text-danger" />
       </div>
 
       <Card className="p-5 border border-line-strong/50">
