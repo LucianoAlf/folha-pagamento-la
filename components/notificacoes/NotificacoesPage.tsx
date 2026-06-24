@@ -1,22 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Badge, Button, Card, ConfirmDialog, CustomSelect, Modal, TimeSelect, ToggleSwitch, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
-import { Bell, Calendar, ClipboardCheck, Clock, CreditCard, Loader2, Plus, Save, Send, Smartphone, Sparkles, Trash2, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bell, Calendar, ClipboardCheck, Clock, CreditCard, Loader2, Pencil, Plus, Save, Send, Smartphone, Sparkles, Trash2, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NotificacaoConfig } from '../../types/agenda';
 import type {
   WhatsappDestino,
   WhatsappDestinoFinalidade,
+  WhatsappGrupoDisponivel,
   WhatsappGrupoNotificacao,
   WhatsappGrupoNotificacaoFrequencia,
   WhatsappGrupoNotificacaoTipo,
 } from '../../types';
+import { useToast } from '../../hooks/useToast';
 import { fetchNotificacaoConfig, upsertNotificacaoConfig } from '../../services/agendaService';
 import {
+  createDestino,
   createGrupoNotificacao,
+  deleteDestino,
   deleteGrupoNotificacao,
+  listGruposDisponiveis,
   listDestinos,
   listGrupoNotificacoes,
+  testarVinculo,
   toggleGrupoNotificacao,
+  updateDestino,
   updateGrupoNotificacao,
 } from '../../services/whatsappGruposService';
 import { sendWhatsappMessage } from '../../services/whatsappService';
@@ -60,12 +67,28 @@ const finalidadeLabels: Record<WhatsappDestinoFinalidade, string> = {
   suporte: 'Suporte',
 };
 
+const finalidadeOptions: { value: WhatsappDestinoFinalidade; label: string }[] = [
+  { value: 'contas_diario', label: 'Financeiro Geral (contas do dia)' },
+  { value: 'suporte', label: 'Suporte' },
+  { value: 'conciliacao', label: 'Conciliacao' },
+  { value: 'diretoria', label: 'Diretoria' },
+];
+
 type GrupoDraft = {
   tipo: WhatsappGrupoNotificacaoTipo;
   frequencia: WhatsappGrupoNotificacaoFrequencia;
   horario: string;
   dia_semana: number | null;
   dia_mes: number | null;
+};
+
+type DestinoDraft = {
+  nome: string;
+  finalidade: WhatsappDestinoFinalidade;
+};
+
+type AddGrupoDraft = DestinoDraft & {
+  jid: string;
 };
 
 const defaultFrequenciaPorTipo: Record<WhatsappGrupoNotificacaoTipo, WhatsappGrupoNotificacaoFrequencia> = {
@@ -75,8 +98,10 @@ const defaultFrequenciaPorTipo: Record<WhatsappGrupoNotificacaoTipo, WhatsappGru
 };
 
 const normalizeHHMMDisplay = (value?: string | null) => String(value || '08:00').slice(0, 5);
+const normalizeJid = (value?: string | null) => String(value || '').trim().toLowerCase();
 
 export const NotificacoesPage: React.FC = () => {
+  const { success: toastSuccess, error: toastError } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -92,6 +117,19 @@ export const NotificacoesPage: React.FC = () => {
   const [addingDestinoId, setAddingDestinoId] = useState<string | null>(null);
   const [newGrupoDrafts, setNewGrupoDrafts] = useState<Record<string, GrupoDraft>>({});
   const [deleteGrupoTarget, setDeleteGrupoTarget] = useState<WhatsappGrupoNotificacao | null>(null);
+  const [testingDestinoIds, setTestingDestinoIds] = useState<Record<string, boolean>>({});
+  const [editDestinoTarget, setEditDestinoTarget] = useState<WhatsappDestino | null>(null);
+  const [editDestinoDraft, setEditDestinoDraft] = useState<DestinoDraft>({ nome: '', finalidade: 'contas_diario' });
+  const [deleteDestinoTarget, setDeleteDestinoTarget] = useState<WhatsappDestino | null>(null);
+  const [addGrupoOpen, setAddGrupoOpen] = useState(false);
+  const [addGrupoLoading, setAddGrupoLoading] = useState(false);
+  const [addGrupoSaving, setAddGrupoSaving] = useState(false);
+  const [gruposDisponiveis, setGruposDisponiveis] = useState<WhatsappGrupoDisponivel[]>([]);
+  const [addGrupoDraft, setAddGrupoDraft] = useState<AddGrupoDraft>({
+    jid: '',
+    nome: '',
+    finalidade: 'contas_diario',
+  });
 
   // Mobile detection (reactive)
   const [isMobile, setIsMobile] = useState(false);
@@ -248,8 +286,157 @@ export const NotificacoesPage: React.FC = () => {
     return grouped;
   }, [grupoNotificacoes]);
 
+  const gruposDisponiveisNovos = useMemo(() => {
+    const cadastrados = new Set(destinos.map((destino) => normalizeJid(destino.jid)));
+    return gruposDisponiveis.filter((grupo) => {
+      const jid = normalizeJid(grupo.jid);
+      return jid && !cadastrados.has(jid);
+    });
+  }, [destinos, gruposDisponiveis]);
+
   const setGrupoSaving = (id: string, next: boolean) => {
     setGrupoSavingIds((prev) => ({ ...prev, [id]: next }));
+  };
+
+  const sortDestinosByName = (rows: WhatsappDestino[]) =>
+    [...rows].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  const openAddGrupoModal = async () => {
+    setAddGrupoOpen(true);
+    setAddGrupoLoading(true);
+    setGruposError(null);
+    setAddGrupoDraft({ jid: '', nome: '', finalidade: 'contas_diario' });
+    try {
+      const rows = await listGruposDisponiveis();
+      setGruposDisponiveis(rows);
+      const cadastrados = new Set(destinos.map((destino) => normalizeJid(destino.jid)));
+      const primeiroNovo = rows.find((grupo) => {
+        const jid = normalizeJid(grupo.jid);
+        return jid && !cadastrados.has(jid);
+      });
+      if (primeiroNovo) {
+        setAddGrupoDraft({
+          jid: primeiroNovo.jid,
+          nome: primeiroNovo.nome || primeiroNovo.jid,
+          finalidade: 'contas_diario',
+        });
+      }
+    } catch (e: any) {
+      const message = e?.message || 'Falha ao buscar grupos disponiveis';
+      setGruposError(message);
+      toastError(message);
+    } finally {
+      setAddGrupoLoading(false);
+    }
+  };
+
+  const handleSelectGrupoDisponivel = (jid: string) => {
+    const selected = gruposDisponiveisNovos.find((grupo) => normalizeJid(grupo.jid) === normalizeJid(jid));
+    setAddGrupoDraft((prev) => ({
+      ...prev,
+      jid,
+      nome: selected?.nome || prev.nome || jid,
+    }));
+  };
+
+  const handleCreateDestino = async () => {
+    const jid = String(addGrupoDraft.jid || '').trim();
+    const nome = String(addGrupoDraft.nome || '').trim();
+    if (!jid || !nome) {
+      toastError('Escolha um grupo e informe um nome.');
+      return;
+    }
+
+    setAddGrupoSaving(true);
+    setGruposError(null);
+    try {
+      const created = await createDestino({
+        nome,
+        jid,
+        finalidade: addGrupoDraft.finalidade,
+        tipo: 'grupo',
+        unidade: 'geral',
+        ativo: true,
+      });
+      setDestinos((prev) => sortDestinosByName([...prev, created]));
+      setAddGrupoOpen(false);
+      setGruposDisponiveis([]);
+      toastSuccess('Grupo adicionado.');
+    } catch (e: any) {
+      const message = e?.message || 'Falha ao adicionar grupo';
+      setGruposError(message);
+      toastError(message);
+    } finally {
+      setAddGrupoSaving(false);
+    }
+  };
+
+  const startEditDestino = (destino: WhatsappDestino) => {
+    setEditDestinoTarget(destino);
+    setEditDestinoDraft({
+      nome: destino.nome,
+      finalidade: destino.finalidade,
+    });
+  };
+
+  const handleUpdateDestino = async () => {
+    if (!editDestinoTarget) return;
+    const nome = String(editDestinoDraft.nome || '').trim();
+    if (!nome) {
+      toastError('Informe o nome do grupo.');
+      return;
+    }
+
+    setGrupoSaving(`destino:${editDestinoTarget.id}`, true);
+    setGruposError(null);
+    try {
+      const savedRow = await updateDestino(editDestinoTarget.id, {
+        nome,
+        finalidade: editDestinoDraft.finalidade,
+      });
+      setDestinos((prev) => sortDestinosByName(prev.map((row) => (row.id === savedRow.id ? savedRow : row))));
+      setEditDestinoTarget(null);
+      toastSuccess('Grupo atualizado.');
+    } catch (e: any) {
+      const message = e?.message || 'Falha ao atualizar grupo';
+      setGruposError(message);
+      toastError(message);
+    } finally {
+      setGrupoSaving(`destino:${editDestinoTarget.id}`, false);
+    }
+  };
+
+  const handleDeleteDestino = async (destino: WhatsappDestino) => {
+    setGrupoSaving(`destino:${destino.id}`, true);
+    setGruposError(null);
+    try {
+      await deleteDestino(destino.id);
+      setDestinos((prev) => prev.filter((row) => row.id !== destino.id));
+      setGrupoNotificacoes((prev) => prev.filter((row) => row.destino_id !== destino.id));
+      setDeleteDestinoTarget(null);
+      toastSuccess('Grupo removido.');
+    } catch (e: any) {
+      const message = e?.message || 'Falha ao remover grupo';
+      setGruposError(message);
+      toastError(message);
+    } finally {
+      setGrupoSaving(`destino:${destino.id}`, false);
+    }
+  };
+
+  const handleTestarVinculo = async (destino: WhatsappDestino) => {
+    setTestingDestinoIds((prev) => ({ ...prev, [destino.id]: true }));
+    setGruposError(null);
+    try {
+      await testarVinculo(destino.jid);
+      toastSuccess('Mensagem de teste enviada para o grupo.');
+    } catch (e: any) {
+      const message = e?.message || 'Falha ao enviar teste para o grupo';
+      setGruposError(message);
+      toastError(message);
+    } finally {
+      setTestingDestinoIds((prev) => ({ ...prev, [destino.id]: false }));
+    }
   };
 
   const getUnusedTipos = (destinoId: string) => {
@@ -463,9 +650,26 @@ export const NotificacoesPage: React.FC = () => {
     const addingDraft = addingDestinoId
       ? newGrupoDrafts[addingDestinoId] || (addingUnusedTipos[0] ? buildDefaultGrupoDraft(addingUnusedTipos[0].value) : null)
       : null;
+    const addGrupoOptions = gruposDisponiveisNovos.map((grupo) => ({
+      value: grupo.jid,
+      label: grupo.nome ? `${grupo.nome} - ${grupo.jid}` : grupo.jid,
+    }));
 
     return (
     <div className="w-full max-w-4xl space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-primary font-black text-lg">Grupos vinculados</div>
+          <div className="text-sm text-muted font-bold">
+            Configure em quais grupos a Maria pode enviar avisos automaticos.
+          </div>
+        </div>
+        <Button variant="primary" onClick={() => void openAddGrupoModal()} className="w-full sm:w-auto">
+          <Plus className="w-4 h-4" />
+          Adicionar grupo
+        </Button>
+      </div>
+
       {gruposError ? (
         <Card className={cn('p-4 border-danger/30 bg-danger/10')}>
           <div className="text-danger font-bold">Erro nos grupos</div>
@@ -482,7 +686,7 @@ export const NotificacoesPage: React.FC = () => {
         <Card className={cn('p-6 text-center', cardClass)}>
           <Users className="w-8 h-8 text-muted mx-auto mb-3" />
           <div className="font-black text-primary">Nenhum grupo ativo encontrado</div>
-          <div className="text-sm text-muted mt-1">Cadastre os destinos no Supabase para configurar notificacoes por grupo.</div>
+          <div className="text-sm text-muted mt-1">Adicione um grupo em que a Maria ja esteja pelo WhatsApp.</div>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-5">
@@ -490,6 +694,8 @@ export const NotificacoesPage: React.FC = () => {
             const notificacoes = notificacoesPorDestino.get(destino.id) || [];
             const unusedTipos = getUnusedTipos(destino.id);
             const isAdding = addingDestinoId === destino.id;
+            const isTestingDestino = !!testingDestinoIds[destino.id];
+            const isSavingDestino = !!grupoSavingIds[`destino:${destino.id}`];
 
             return (
               <Card key={destino.id} className={cn('p-5 md:p-6', cardClass)}>
@@ -508,15 +714,52 @@ export const NotificacoesPage: React.FC = () => {
                       <div className="mt-1 text-xs text-muted font-bold truncate">{destino.jid}</div>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleStartAddingGrupo(destino.id)}
-                    disabled={!unusedTipos.length || isAdding}
-                    className="w-full md:w-auto"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Adicionar notificacao
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => void handleTestarVinculo(destino)}
+                      disabled={isTestingDestino || isSavingDestino}
+                      className="flex-1 sm:flex-none"
+                    >
+                      {isTestingDestino ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      Testar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleStartAddingGrupo(destino.id)}
+                      disabled={!unusedTipos.length || isAdding}
+                      className="flex-1 sm:flex-none"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Adicionar notificacao
+                    </Button>
+                    <Tooltip content="Editar grupo">
+                      <button
+                        type="button"
+                        onClick={() => startEditDestino(destino)}
+                        disabled={isSavingDestino}
+                        className={cn(
+                          'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface/40 text-muted transition-all hover:bg-surface-2 hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent/30',
+                          isSavingDestino && 'opacity-50 cursor-not-allowed'
+                        )}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Excluir grupo">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteDestinoTarget(destino)}
+                        disabled={isSavingDestino}
+                        className={cn(
+                          'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface/40 text-muted transition-all hover:bg-danger/10 hover:text-danger focus:outline-none focus:ring-2 focus:ring-danger/30',
+                          isSavingDestino && 'opacity-50 cursor-not-allowed'
+                        )}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </Tooltip>
+                  </div>
                 </div>
 
                 <div className="mt-5 space-y-3">
@@ -634,6 +877,145 @@ export const NotificacoesPage: React.FC = () => {
       )}
 
       <Modal
+        isOpen={addGrupoOpen}
+        onClose={() => {
+          setAddGrupoOpen(false);
+          setGruposDisponiveis([]);
+        }}
+        title="Adicionar grupo"
+        subtitle="Escolha um grupo em que a Maria ja esteja no WhatsApp."
+        size="md"
+        headerIcon={
+          <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+            <Users className="w-5 h-5 text-accent" />
+          </div>
+        }
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAddGrupoOpen(false);
+                setGruposDisponiveis([]);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              disabled={addGrupoLoading || addGrupoSaving || !gruposDisponiveisNovos.length || !addGrupoDraft.jid || !addGrupoDraft.nome.trim()}
+              onClick={() => void handleCreateDestino()}
+            >
+              {addGrupoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Adicionar grupo
+            </Button>
+          </div>
+        }
+      >
+        {addGrupoLoading ? (
+          <div className="flex items-center justify-center gap-3 rounded-2xl border border-line bg-surface/40 px-5 py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-accent" />
+            <span className="text-sm font-black text-secondary">Buscando grupos disponiveis...</span>
+          </div>
+        ) : gruposDisponiveisNovos.length === 0 ? (
+          <div className="rounded-2xl border border-line bg-surface/40 px-5 py-8 text-center">
+            <Users className="w-8 h-8 text-muted mx-auto mb-3" />
+            <div className="font-black text-primary">Todos os grupos ja estao cadastrados</div>
+            <div className="text-sm text-secondary mt-1">
+              A Maria ja esta em todos os grupos cadastrados. Para adicionar um novo, coloque a Maria no grupo pelo WhatsApp primeiro e tente de novo.
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Grupo</div>
+              <CustomSelect
+                value={addGrupoDraft.jid}
+                onValueChange={handleSelectGrupoDisponivel}
+                options={addGrupoOptions}
+              />
+            </div>
+
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Nome no sistema</div>
+              <input
+                value={addGrupoDraft.nome}
+                onChange={(e) => setAddGrupoDraft((prev) => ({ ...prev, nome: e.target.value }))}
+                className="w-full rounded-xl border border-line-strong bg-surface/50 px-4 py-3 text-secondary outline-none transition-all focus:ring-2 focus:ring-accent/50"
+                placeholder="Nome do grupo"
+              />
+            </div>
+
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Finalidade</div>
+              <CustomSelect
+                value={addGrupoDraft.finalidade}
+                onValueChange={(finalidade) =>
+                  setAddGrupoDraft((prev) => ({ ...prev, finalidade: finalidade as WhatsappDestinoFinalidade }))
+                }
+                options={finalidadeOptions}
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!editDestinoTarget}
+        onClose={() => setEditDestinoTarget(null)}
+        title="Editar grupo"
+        subtitle={editDestinoTarget?.jid}
+        size="md"
+        headerIcon={
+          <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+            <Pencil className="w-5 h-5 text-accent" />
+          </div>
+        }
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setEditDestinoTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              disabled={!editDestinoTarget || !!grupoSavingIds[`destino:${editDestinoTarget.id}`] || !editDestinoDraft.nome.trim()}
+              onClick={() => void handleUpdateDestino()}
+            >
+              {editDestinoTarget && grupoSavingIds[`destino:${editDestinoTarget.id}`] ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              Salvar
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Nome</div>
+            <input
+              value={editDestinoDraft.nome}
+              onChange={(e) => setEditDestinoDraft((prev) => ({ ...prev, nome: e.target.value }))}
+              className="w-full rounded-xl border border-line-strong bg-surface/50 px-4 py-3 text-secondary outline-none transition-all focus:ring-2 focus:ring-accent/50"
+              placeholder="Nome do grupo"
+            />
+          </div>
+
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Finalidade</div>
+            <CustomSelect
+              value={editDestinoDraft.finalidade}
+              onValueChange={(finalidade) =>
+                setEditDestinoDraft((prev) => ({ ...prev, finalidade: finalidade as WhatsappDestinoFinalidade }))
+              }
+              options={finalidadeOptions}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
         isOpen={!!addingDestino && !!addingDraft}
         onClose={() => setAddingDestinoId(null)}
         title="Nova notificacao"
@@ -736,6 +1118,22 @@ export const NotificacoesPage: React.FC = () => {
             : 'Remover esta notificacao do grupo?'
         }
         confirmLabel="Remover"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteDestinoTarget}
+        onClose={() => setDeleteDestinoTarget(null)}
+        onConfirm={async () => {
+          if (deleteDestinoTarget) await handleDeleteDestino(deleteDestinoTarget);
+        }}
+        title="Excluir grupo"
+        message={
+          deleteDestinoTarget
+            ? `Excluir "${deleteDestinoTarget.nome}"? As notificacoes configuradas para ele tambem serao removidas.`
+            : 'Excluir este grupo? As notificacoes configuradas para ele tambem serao removidas.'
+        }
+        confirmLabel="Excluir"
         variant="danger"
       />
     </div>

@@ -152,6 +152,26 @@ export interface WhatsappDestino {
   updated_at?: string;
 }
 
+export interface WhatsappDestinoInput {
+  nome: string;
+  tipo: WhatsappDestinoTipo;
+  jid: string;
+  finalidade: WhatsappDestinoFinalidade;
+  unidade?: string | null;
+  ativo?: boolean;
+  observacao?: string | null;
+}
+
+export type WhatsappDestinoPatch = Partial<Pick<
+  WhatsappDestinoInput,
+  'nome' | 'finalidade' | 'unidade' | 'ativo' | 'observacao'
+>>;
+
+export interface WhatsappGrupoDisponivel {
+  jid: string;
+  nome: string;
+}
+
 export interface WhatsappGrupoNotificacao {
   id: string;
   destino_id: string;

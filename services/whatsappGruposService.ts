@@ -1,13 +1,54 @@
 import type {
   WhatsappDestino,
+  WhatsappDestinoInput,
+  WhatsappDestinoPatch,
+  WhatsappGrupoDisponivel,
   WhatsappGrupoNotificacao,
   WhatsappGrupoNotificacaoFrequencia,
   WhatsappGrupoNotificacaoInput,
 } from '../types';
-import { supabase } from './supabase';
+import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from './supabase';
 
 type GrupoNotificacaoPatch = Partial<Omit<WhatsappGrupoNotificacaoInput, 'destino_id' | 'tipo'>> & {
   frequencia?: WhatsappGrupoNotificacaoFrequencia;
+};
+
+type WhatsappFunctionPayload = {
+  success?: boolean;
+  error?: string;
+  message?: string;
+  details?: unknown;
+  grupos?: WhatsappGrupoDisponivel[];
+  [key: string]: unknown;
+};
+
+const TESTE_VINCULO_MENSAGEM =
+  '✅ Teste de vínculo — aqui é a Maria. Se você está vendo isso, o vínculo deste grupo está ok.';
+
+const readJsonResponse = async (response: Response): Promise<WhatsappFunctionPayload> => {
+  const raw = await response.text();
+  if (!raw) return {};
+
+  try {
+    return JSON.parse(raw) as WhatsappFunctionPayload;
+  } catch {
+    return { error: raw.slice(0, 500) };
+  }
+};
+
+const formatFunctionError = (payload: WhatsappFunctionPayload, status?: number) => {
+  const details = payload.details && typeof payload.details === 'object'
+    ? (payload.details as { error?: unknown; message?: unknown })
+    : null;
+  const detail =
+    payload.error ||
+    payload.message ||
+    (typeof details?.error === 'string' ? details.error : null) ||
+    (typeof details?.message === 'string' ? details.message : null) ||
+    (typeof payload.details === 'string' ? payload.details : null) ||
+    'Falha na chamada da funcao';
+
+  return status ? `Erro ${status}: ${detail}` : detail;
 };
 
 function normalizeHorario(horario?: string | null) {
@@ -52,6 +93,104 @@ export async function listDestinos(): Promise<WhatsappDestino[]> {
 
   if (error) throw error;
   return (data || []) as WhatsappDestino[];
+}
+
+export async function listGruposDisponiveis(): Promise<WhatsappGrupoDisponivel[]> {
+  const { data, error } = await supabase.functions.invoke('whatsapp-grupos-disponiveis', {
+    body: {},
+  });
+
+  if (error) throw error;
+  const payload = (data || {}) as WhatsappFunctionPayload;
+  if (!payload.success) {
+    throw new Error(formatFunctionError(payload));
+  }
+
+  return (payload.grupos || [])
+    .filter((grupo) => grupo?.jid)
+    .map((grupo) => ({
+      jid: String(grupo.jid).trim(),
+      nome: String(grupo.nome || grupo.jid).trim(),
+    }));
+}
+
+export async function testarVinculo(jid: string): Promise<WhatsappFunctionPayload> {
+  const destino = String(jid || '').trim();
+  if (!destino) throw new Error('JID do grupo ausente.');
+
+  const { data: currentSession } = await supabase.auth.getSession();
+  let token = currentSession.session?.access_token;
+
+  if (token) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    token = refreshed.session?.access_token || token;
+  }
+
+  if (!token) {
+    throw new Error('Sessao expirada. Faca login novamente para enviar o teste.');
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/whatsapp-send`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      numero: destino,
+      tipo: 'grupo',
+      mensagem: TESTE_VINCULO_MENSAGEM,
+    }),
+  });
+
+  const payload = await readJsonResponse(response);
+  if (!response.ok || !payload.success) {
+    throw new Error(formatFunctionError(payload, response.ok ? undefined : response.status));
+  }
+
+  return payload;
+}
+
+export async function createDestino(input: WhatsappDestinoInput): Promise<WhatsappDestino> {
+  const { data, error } = await supabase
+    .from('whatsapp_destinos')
+    .insert({
+      ...input,
+      tipo: input.tipo,
+      unidade: input.unidade ?? 'geral',
+      ativo: input.ativo ?? true,
+      observacao: input.observacao ?? null,
+    })
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as WhatsappDestino;
+}
+
+export async function updateDestino(
+  id: string,
+  patch: WhatsappDestinoPatch
+): Promise<WhatsappDestino> {
+  const { data, error } = await supabase
+    .from('whatsapp_destinos')
+    .update(patch)
+    .eq('id', id)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data as WhatsappDestino;
+}
+
+export async function deleteDestino(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('whatsapp_destinos')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
 }
 
 export async function listGrupoNotificacoes(): Promise<WhatsappGrupoNotificacao[]> {
