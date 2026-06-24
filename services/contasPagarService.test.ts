@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { buildParcelasContaPagar } from './contasPagarParcelas.ts';
 import { resolveCodigoMesBadge } from './contasPagarCodigoMes.ts';
+
+const serviceSource = () => readFileSync(new URL('./contasPagarService.ts', import.meta.url), 'utf8');
 
 test('buildParcelasContaPagar assigns competencia from each parcela vencimento', () => {
   const parcelas = buildParcelasContaPagar(
@@ -51,6 +54,20 @@ test('buildParcelasContaPagar assigns the same parcelamento_id to sibling parcel
   const ids = parcelas.map((p) => p.parcelamento_id);
   assert.equal(new Set(ids).size, 1);
   assert.match(String(ids[0]), /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+});
+
+test('contasPagarService relies on parcelamento_id instead of legacy descricao/unidade parcelamento matching', () => {
+  const source = serviceSource();
+
+  assert.doesNotMatch(source, /\.like\('descricao'/);
+  assert.doesNotMatch(source, /baseDesc/);
+});
+
+test('createContaPagar assigns parcelamento_id to single-row parcelada inserts', () => {
+  const source = serviceSource();
+
+  assert.match(source, /contaInsert\.tipo_lancamento === 'parcelada'/);
+  assert.match(source, /contaInsert\.parcelamento_id = contaInsert\.parcelamento_id \|\| crypto\.randomUUID\(\)/);
 });
 
 test('resolveCodigoMesBadge treats fixed PIX as collected even when monthly code is unavailable', () => {

@@ -288,9 +288,14 @@ export async function createContaPagar(
     return data[0] as ContaPagar;
   }
 
+  const contaInsert: Partial<ContaPagar> = { ...conta, created_by: user.user?.id };
+  if (contaInsert.tipo_lancamento === 'parcelada') {
+    contaInsert.parcelamento_id = contaInsert.parcelamento_id || crypto.randomUUID();
+  }
+
   const { data, error } = await supabase
     .from('contas_pagar')
-    .insert([{ ...conta, created_by: user.user?.id }])
+    .insert([contaInsert])
     .select(CONTA_PAGAR_SELECT)
     .single();
 
@@ -371,25 +376,14 @@ export async function updateFuturasParceladas(contaOriginal: ContaPagar, patch: 
   if (patch.observacoes !== undefined) fieldsToUpdate.observacoes = patch.observacoes;
 
   if (Object.keys(fieldsToUpdate).length === 0) return;
-
-  if (contaOriginal.parcelamento_id) {
-    const { error } = await supabase
-      .from('contas_pagar')
-      .update(fieldsToUpdate)
-      .eq('parcelamento_id', contaOriginal.parcelamento_id)
-      .eq('tipo_lancamento', 'parcelada')
-      .eq('status', 'pendente')
-      .gte('data_vencimento', contaOriginal.data_vencimento);
-
-    if (error) throw error;
+  if (!contaOriginal.parcelamento_id) {
     return;
   }
 
   const { error } = await supabase
     .from('contas_pagar')
     .update(fieldsToUpdate)
-    .like('descricao', `${contaOriginal.descricao.replace(/\s*\(\d+\/\d+\)\s*$/, '')} (%`)
-    .eq('unidade', contaOriginal.unidade)
+    .eq('parcelamento_id', contaOriginal.parcelamento_id)
     .eq('tipo_lancamento', 'parcelada')
     .eq('status', 'pendente')
     .gte('data_vencimento', contaOriginal.data_vencimento);
@@ -422,71 +416,46 @@ export async function finalizarConta(contaId: string): Promise<void> {
 }
 
 export async function fetchParcelasIrmas(conta: ContaPagar): Promise<ContaPagar[]> {
-  if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas) return [];
-  let query = supabase
+  if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas || !conta.parcelamento_id) return [];
+  const { data, error } = await supabase
     .from('contas_pagar')
     .select(CONTA_PAGAR_SELECT)
-    .eq('tipo_lancamento', 'parcelada');
-
-  if (conta.parcelamento_id) {
-    query = query.eq('parcelamento_id', conta.parcelamento_id);
-  } else {
-    const baseDesc = conta.descricao.replace(/\s*\(\d+\/\d+\)\s*$/, '');
-    query = query.eq('unidade', conta.unidade).like('descricao', `${baseDesc} (%`);
-  }
-
-  const { data, error } = await query.order('parcela_atual', { ascending: true });
+    .eq('parcelamento_id', conta.parcelamento_id)
+    .eq('tipo_lancamento', 'parcelada')
+    .order('parcela_atual', { ascending: true });
   if (error) throw error;
   return (data || []) as ContaPagar[];
 }
 
 export async function deleteParcelamento(conta: ContaPagar): Promise<number> {
-  if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas) {
+  if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas || !conta.parcelamento_id) {
     await deleteConta(conta.id);
     return 1;
   }
 
-  let query = supabase
+  const { data, error } = await supabase
     .from('contas_pagar')
     .delete()
-    .eq('tipo_lancamento', 'parcelada');
-
-  if (conta.parcelamento_id) {
-    query = query.eq('parcelamento_id', conta.parcelamento_id);
-  } else {
-    const baseDesc = conta.descricao.split(' (')[0];
-    query = query.eq('unidade', conta.unidade).like('descricao', `${baseDesc} (%`);
-  }
-
-  const { data, error } = await query.select('id');
+    .eq('parcelamento_id', conta.parcelamento_id)
+    .eq('tipo_lancamento', 'parcelada')
+    .select('id');
 
   if (error) throw error;
   return data?.length || 0;
 }
 
 export async function finalizarParcelamento(conta: ContaPagar): Promise<void> {
-  if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas) {
+  if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas || !conta.parcelamento_id) {
     return finalizarConta(conta.id);
   }
 
-  // Para parcelados, buscamos outras parcelas com a mesma base de descrição e que ainda estejam pendentes
-  // O formato da descrição é "Descrição (1/10)"
-  const baseDesc = conta.descricao.split(' (')[0];
-  
-  let query = supabase
+  const { error } = await supabase
     .from('contas_pagar')
     .update({ status: 'finalizado' })
+    .eq('parcelamento_id', conta.parcelamento_id)
     .eq('tipo_lancamento', 'parcelada')
     .eq('status', 'pendente')
     .gte('data_vencimento', conta.data_vencimento);
-
-  if (conta.parcelamento_id) {
-    query = query.eq('parcelamento_id', conta.parcelamento_id);
-  } else {
-    query = query.eq('unidade', conta.unidade).like('descricao', `${baseDesc} (%`);
-  }
-
-  const { error } = await query;
 
   if (error) throw error;
 }
