@@ -137,7 +137,7 @@ function prevYM(ym: string): string | null {
 type ContaRow = {
   id: string;
   descricao: string;
-  categoria_id: string | null;
+  plano_conta_id: string | null;
   unidade: string | null;
   valor: number;
   data_vencimento: string;
@@ -147,7 +147,7 @@ type ContaRow = {
   tipo_lancamento: "unica" | "recorrente" | "parcelada";
   parcela_atual: number | null;
   total_parcelas: number | null;
-  categoria?: { id: string; nome: string; icone: string; tipo_custo: string | null } | null;
+  plano_conta?: { id: string; codigo: string; nome: string; tipo_custo: string | null } | null;
 };
 
 Deno.serve(async (req: Request) => {
@@ -186,7 +186,7 @@ Deno.serve(async (req: Request) => {
     const payload = await req.json().catch(() => ({}));
     const competenciaYM = String(payload?.competenciaYM || "");
     const unidade = String(payload?.unidade || "todas");
-    const categoriaId = payload?.categoriaId ? String(payload.categoriaId) : "all";
+    const grupoPlano = payload?.grupoPlano ? String(payload.grupoPlano) : "all";
     const comportamento = payload?.comportamento ? String(payload.comportamento) : "all";
     const tipo = payload?.tipo ? String(payload.tipo) : "all";
     const force = !!payload?.force;
@@ -200,6 +200,19 @@ Deno.serve(async (req: Request) => {
     const prevDate = prev ? `${prev}-01` : null;
 
     const apiKey = await getGeminiApiKey(supabase);
+
+    const { data: gruposRaw, error: gruposErr } = await supabase
+      .from("plano_contas")
+      .select("codigo,nome")
+      .eq("nivel", 2);
+    if (gruposErr) return jsonResponse({ error: gruposErr.message }, 400);
+
+    const grupoNome = new Map((gruposRaw || []).map((g: any) => [g.codigo, g.nome]));
+    const grupoDe = (codigo?: string | null) => {
+      if (!codigo) return { cod: "sem_plano", nome: "Sem plano de contas" };
+      const cod = codigo.split(".").slice(0, 2).join(".");
+      return { cod, nome: grupoNome.get(cod) || cod };
+    };
 
   // 1) Notas gerais do mês (memória)
   const [year, month] = competenciaYM.split("-").map(Number);
@@ -221,21 +234,23 @@ Deno.serve(async (req: Request) => {
   // 3) Contas do mês (respeita filtros principais)
   let q = supabase
     .from("contas_pagar")
-    .select("id,descricao,categoria_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,categoria:categorias_despesa(id,nome,icone,tipo_custo)")
+    .select("id,descricao,plano_conta_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,plano_conta:plano_contas(id,codigo,nome,tipo_custo)")
     .neq("status", "cancelado")
     .neq("status", "finalizado")
     .eq("competencia", competenciaDate);
 
   if (unidade !== "todas") q = q.in("unidade", [unidade, "todas"]);
-  if (categoriaId !== "all") q = q.eq("categoria_id", categoriaId);
   if (tipo !== "all") q = q.eq("tipo_lancamento", tipo);
 
   const { data: contasRaw, error: contasErr } = await q;
   if (contasErr) return jsonResponse({ error: contasErr.message }, 400);
 
   let contas = (contasRaw || []) as unknown as ContaRow[];
+  if (grupoPlano !== "all") {
+    contas = contas.filter((c) => c.plano_conta?.codigo?.startsWith(`${grupoPlano}.`));
+  }
   if (comportamento !== "all") {
-    contas = contas.filter((c) => (c.categoria?.tipo_custo || null) === comportamento);
+    contas = contas.filter((c) => (c.plano_conta?.tipo_custo || null) === comportamento);
   }
 
   // 4) Contas do mês anterior (baseline leve para recorrentes)
@@ -243,17 +258,19 @@ Deno.serve(async (req: Request) => {
   if (prevDate) {
     let pq = supabase
       .from("contas_pagar")
-      .select("id,descricao,categoria_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,categoria:categorias_despesa(id,nome,icone,tipo_custo)")
+      .select("id,descricao,plano_conta_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,plano_conta:plano_contas(id,codigo,nome,tipo_custo)")
       .neq("status", "cancelado")
-    .neq("status", "finalizado")
+      .neq("status", "finalizado")
       .eq("competencia", prevDate);
     if (unidade !== "todas") pq = pq.in("unidade", [unidade, "todas"]);
-    if (categoriaId !== "all") pq = pq.eq("categoria_id", categoriaId);
     if (tipo !== "all") pq = pq.eq("tipo_lancamento", tipo);
     const { data: prevRaw } = await pq;
     prevContas = (prevRaw || []) as unknown as ContaRow[];
+    if (grupoPlano !== "all") {
+      prevContas = prevContas.filter((c) => c.plano_conta?.codigo?.startsWith(`${grupoPlano}.`));
+    }
     if (comportamento !== "all") {
-      prevContas = prevContas.filter((c) => (c.categoria?.tipo_custo || null) === comportamento);
+      prevContas = prevContas.filter((c) => (c.plano_conta?.tipo_custo || null) === comportamento);
     }
   }
 
@@ -264,19 +281,20 @@ Deno.serve(async (req: Request) => {
   const totalPago = pagas.reduce((s, c) => s + (Number(c.valor) || 0), 0);
   const totalPendente = pendentes.reduce((s, c) => s + (Number(c.valor) || 0), 0);
 
-  // 6) Distribuição por categoria (top 8)
-  const byCat = new Map<string, { nome: string; icone: string; total: number; count: number }>();
+  // 6) Distribuição por grupo do plano de contas (top 8)
+  const byCat = new Map<string, { nome: string; icone: null; total: number; count: number }>();
   for (const c of contas) {
-    const k = c.categoria_id || "sem_categoria";
-    const nome = c.categoria?.nome || "Sem categoria";
-    const icone = c.categoria?.icone || "📌";
+    const grupo = grupoDe(c.plano_conta?.codigo);
+    const k = grupo.cod;
+    const nome = grupo.nome;
+    const icone = null;
     const prev = byCat.get(k) || { nome, icone, total: 0, count: 0 };
     prev.total += Number(c.valor) || 0;
     prev.count += 1;
     byCat.set(k, prev);
   }
   const topCategorias = Array.from(byCat.entries())
-    .map(([id, v]) => ({ categoria_id: id, ...v }))
+    .map(([id, v]) => ({ grupo_plano: id, ...v }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 8);
 
@@ -292,14 +310,14 @@ Deno.serve(async (req: Request) => {
   };
   const candidates: Candidate[] = [];
 
-  // 7.1) Sem categoria
+  // 7.1) Sem plano de contas
   for (const c of contas) {
-    if (!c.categoria_id) {
+    if (!c.plano_conta_id) {
       candidates.push({
-        key: `sem_categoria:${c.id}`,
+        key: `sem_plano:${c.id}`,
         tipo: "classificacao",
-        titulo_base: "Conta sem categoria",
-        descricao_base: `A conta \"${c.descricao}\" está sem categoria, o que pode distorcer relatórios por categoria.`,
+        titulo_base: "Conta sem plano de contas",
+        descricao_base: `A conta \"${c.descricao}\" está sem plano de contas, o que pode distorcer relatórios por plano.`,
         impacto_financeiro: Number(c.valor) || 0,
         conta_id: c.id,
       });
@@ -333,12 +351,12 @@ Deno.serve(async (req: Request) => {
   const prevRecMap = new Map<string, number>();
   for (const c of prevContas) {
     if (c.tipo_lancamento !== "recorrente") continue;
-    const k = `${normalizeKey(c.descricao)}|${c.categoria_id || "sem_categoria"}|${c.unidade || "todas"}`;
+    const k = `${normalizeKey(c.descricao)}|${c.plano_conta_id || "sem_plano"}|${c.unidade || "todas"}`;
     prevRecMap.set(k, (prevRecMap.get(k) || 0) + (Number(c.valor) || 0));
   }
   for (const c of contas) {
     if (c.tipo_lancamento !== "recorrente") continue;
-    const k = `${normalizeKey(c.descricao)}|${c.categoria_id || "sem_categoria"}|${c.unidade || "todas"}`;
+    const k = `${normalizeKey(c.descricao)}|${c.plano_conta_id || "sem_plano"}|${c.unidade || "todas"}`;
     const prevVal = prevRecMap.get(k) || 0;
     const currVal = Number(c.valor) || 0;
     if (prevVal > 0) {
@@ -387,7 +405,7 @@ Deno.serve(async (req: Request) => {
     v: ANALYSIS_VERSION,
     competenciaYM,
     unidade,
-    filtros: { categoriaId, comportamento, tipo },
+    filtros: { grupoPlano, comportamento, tipo },
     macro: {
       totalPeriodo,
       totalPago,
@@ -416,7 +434,7 @@ Deno.serve(async (req: Request) => {
     if (existing?.length) return jsonResponse({ cached: true, ...existing[0] });
   }
 
-  const prompt = `Você é um Controller Financeiro da LA Music Group.\n\nSua tarefa é AUDITAR o mês ${competenciaYM} (Contas a Pagar) e apontar ANOMALIAS e INCONSISTÊNCIAS dentro do mês.\n\nIMPORTANTE: NÃO faça um comparativo \"mês contra mês\" como relatório principal. Você pode usar o mês anterior apenas como BASELINE de normalidade para recorrentes.\n\nDADOS (JSON):\n${JSON.stringify(inputObject)}\n\nINSTRUÇÕES:\n- Produza uma análise profissional, objetiva e prática para a Ana.\n- Use as anomalias_candidatas (com key estável) para escolher o que merece atenção.\n- Evite redundância: foque em qualidade do mês (duplicidades, falta de categoria, recorrentes fora do padrão, vencidas relevantes, etc.).\n- Se uma anomalia já tem nota na memória, considere isso na explicação.\n\nCONTRATO DE SAÍDA (Responda APENAS JSON puro):\n{\n  \"resumo_executivo\": \"Texto curto e direto (3-6 linhas) sobre o mês.\",\n  \"pontos_de_atencao\": [\"bullet 1\", \"bullet 2\"],\n  \"anomalias\": [\n    {\n      \"key\": \"uma key existente em anomalias_candidatas\",\n      \"severidade\": \"alta|media|baixa\",\n      \"titulo\": \"Título curto\",\n      \"descricao\": \"Descrição clara e concreta (o que é, por que importa)\",\n      \"impacto_financeiro\": 123.45,\n      \"conta_id\": \"uuid ou null\",\n      \"acao_sugerida\": \"O que a Ana deve fazer\",\n      \"pergunta_para_ana\": \"Pergunta para confirmar contexto (se necessário)\"\n    }\n  ],\n  \"recomendacoes_operacionais\": [\"ação 1\", \"ação 2\"]\n}`;
+  const prompt = `Você é um Controller Financeiro da LA Music Group.\n\nSua tarefa é AUDITAR o mês ${competenciaYM} (Contas a Pagar) e apontar ANOMALIAS e INCONSISTÊNCIAS dentro do mês.\n\nIMPORTANTE: NÃO faça um comparativo \"mês contra mês\" como relatório principal. Você pode usar o mês anterior apenas como BASELINE de normalidade para recorrentes.\n\nDADOS (JSON):\n${JSON.stringify(inputObject)}\n\nINSTRUÇÕES:\n- Produza uma análise profissional, objetiva e prática para a Ana.\n- Use as anomalias_candidatas (com key estável) para escolher o que merece atenção.\n- Evite redundância: foque em qualidade do mês (duplicidades, falta de plano de contas, recorrentes fora do padrão, vencidas relevantes, etc.).\n- Se uma anomalia já tem nota na memória, considere isso na explicação.\n\nCONTRATO DE SAÍDA (Responda APENAS JSON puro):\n{\n  \"resumo_executivo\": \"Texto curto e direto (3-6 linhas) sobre o mês.\",\n  \"pontos_de_atencao\": [\"bullet 1\", \"bullet 2\"],\n  \"anomalias\": [\n    {\n      \"key\": \"uma key existente em anomalias_candidatas\",\n      \"severidade\": \"alta|media|baixa\",\n      \"titulo\": \"Título curto\",\n      \"descricao\": \"Descrição clara e concreta (o que é, por que importa)\",\n      \"impacto_financeiro\": 123.45,\n      \"conta_id\": \"uuid ou null\",\n      \"acao_sugerida\": \"O que a Ana deve fazer\",\n      \"pergunta_para_ana\": \"Pergunta para confirmar contexto (se necessário)\"\n    }\n  ],\n  \"recomendacoes_operacionais\": [\"ação 1\", \"ação 2\"]\n}`;
 
   const { text: rawText, modelUsed: model } = await callGeminiWithFallback(prompt, apiKey, {
     generationConfig: { temperature: 0.15, maxOutputTokens: 2048 },
@@ -450,7 +468,7 @@ Deno.serve(async (req: Request) => {
       {
         competencia_ym: competenciaYM,
         unidade,
-        filtros: { categoriaId, comportamento, tipo },
+        filtros: { grupoPlano, comportamento, tipo },
         model,
         input_hash: inputHash,
         summary: parsed.resumo_executivo,

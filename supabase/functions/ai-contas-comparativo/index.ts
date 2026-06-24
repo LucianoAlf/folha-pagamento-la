@@ -104,14 +104,14 @@ function normalizeKey(s: string) {
 type ContaRow = {
   id: string;
   descricao: string;
-  categoria_id: string | null;
+  plano_conta_id: string | null;
   unidade: string | null;
   valor: number;
   data_vencimento: string;
   competencia: string;
   status: "pendente" | "pago" | "cancelado" | "finalizado";
   tipo_lancamento: "unica" | "recorrente" | "parcelada";
-  categoria?: { id: string; nome: string; icone: string; tipo_custo: string | null } | null;
+  plano_conta?: { id: string; codigo: string; nome: string; tipo_custo: string | null } | null;
 };
 
 type Variation = {
@@ -154,7 +154,7 @@ function buildFallbackComparativo(
     `Comparativo ${baseYM} -> ${competenciaYM}: ${direction} de ${Math.abs(totalPerc).toFixed(1)}% no total das contas.`,
     `Total base: R$ ${Math.abs(totalPrev).toFixed(2)} | Total atual: R$ ${Math.abs(totalCurr).toFixed(2)}.`,
     `Variação absoluta: ${totalDiff >= 0 ? "+" : "-"}R$ ${Math.abs(totalDiff).toFixed(2)}.`,
-    `Os maiores drivers estão concentrados em ${top3.map((t) => t.categoria).filter(Boolean).slice(0, 2).join(" e ") || "categorias diversas"}.`,
+    `Os maiores drivers estão concentrados em ${top3.map((t) => t.categoria).filter(Boolean).slice(0, 2).join(" e ") || "grupos diversos"}.`,
   ].join(" ");
 
   const insights = top3.map((t) => {
@@ -175,7 +175,7 @@ function buildFallbackComparativo(
     insights_detalhados: insights,
     recomendacoes: [
       "Validar se as maiores variações possuem justificativa operacional registrada pela Ana.",
-      "Conferir mudanças de contrato/fornecedor nas categorias com maior impacto absoluto.",
+      "Conferir mudanças de contrato/fornecedor nos grupos do plano com maior impacto absoluto.",
       "Manter memória comparativa atualizada para reduzir falsos alertas nos próximos meses.",
     ],
   };
@@ -183,7 +183,7 @@ function buildFallbackComparativo(
 
 function buildKey(c: ContaRow) {
   const unidade = (c.unidade || "todas") as string;
-  const cat = c.categoria_id || "sem_categoria";
+  const cat = c.plano_conta_id || "sem_plano";
   const desc = normalizeKey(c.descricao || "");
   return `${unidade}|${cat}|${desc}`;
 }
@@ -200,13 +200,14 @@ function sumByKey(rows: ContaRow[]) {
   return map;
 }
 
-function byCategoria(rows: ContaRow[]) {
-  const m = new Map<string, { categoria_id: string; nome: string; icone: string; total: number }>();
+function byCategoria(rows: ContaRow[], grupoDe: (codigo?: string | null) => { cod: string; nome: string }) {
+  const m = new Map<string, { grupo_plano: string; nome: string; icone: null; total: number }>();
   for (const c of rows) {
-    const id = c.categoria_id || "sem_categoria";
-    const nome = c.categoria?.nome || "Sem categoria";
-    const icone = c.categoria?.icone || "📌";
-    const prev = m.get(id) || { categoria_id: id, nome, icone, total: 0 };
+    const grupo = grupoDe(c.plano_conta?.codigo);
+    const id = grupo.cod;
+    const nome = grupo.nome;
+    const icone = null;
+    const prev = m.get(id) || { grupo_plano: id, nome, icone, total: 0 };
     prev.total += Number(c.valor) || 0;
     m.set(id, prev);
   }
@@ -247,7 +248,7 @@ Deno.serve(async (req: Request) => {
     const competenciaYM = String(payload?.competenciaYM || "");
     const baseYM = String(payload?.baseYM || payload?.competenciaComparar || "");
     const unidade = String(payload?.unidade || "todas");
-    const categoriaId = payload?.categoriaId ? String(payload.categoriaId) : "all";
+    const grupoPlano = payload?.grupoPlano ? String(payload.grupoPlano) : "all";
     const comportamento = payload?.comportamento ? String(payload.comportamento) : "all";
     const tipo = payload?.tipo ? String(payload.tipo) : "all";
     const force = !!payload?.force;
@@ -276,18 +277,30 @@ Deno.serve(async (req: Request) => {
     const competenciaDate = `${competenciaYM}-01`;
     const baseDate = `${baseYM}-01`;
 
+    const { data: gruposRaw, error: gruposErr } = await supabase
+      .from("plano_contas")
+      .select("codigo,nome")
+      .eq("nivel", 2);
+    if (gruposErr) return jsonResponse({ error: gruposErr.message }, 400);
+
+    const grupoNome = new Map((gruposRaw || []).map((g: any) => [g.codigo, g.nome]));
+    const grupoDe = (codigo?: string | null) => {
+      if (!codigo) return { cod: "sem_plano", nome: "Sem plano de contas" };
+      const cod = codigo.split(".").slice(0, 2).join(".");
+      return { cod, nome: grupoNome.get(cod) || cod };
+    };
+
     const mkQuery = (competencia: string) => {
       let q = supabase
         .from("contas_pagar")
         .select(
-          "id,descricao,categoria_id,unidade,valor,data_vencimento,competencia,status,tipo_lancamento,categoria:categorias_despesa(id,nome,icone,tipo_custo)",
+          "id,descricao,plano_conta_id,unidade,valor,data_vencimento,competencia,status,tipo_lancamento,plano_conta:plano_contas(id,codigo,nome,tipo_custo)",
         )
         .neq("status", "cancelado")
         .neq("status", "finalizado")
         .eq("competencia", competencia);
 
       if (unidade !== "todas") q = q.in("unidade", [unidade, "todas"]);
-      if (categoriaId !== "all") q = q.eq("categoria_id", categoriaId);
       if (tipo !== "all") q = q.eq("tipo_lancamento", tipo);
       return q;
     };
@@ -302,10 +315,15 @@ Deno.serve(async (req: Request) => {
     let baseRows = (baseRowsRaw || []) as unknown as ContaRow[];
     let currRows = (currRowsRaw || []) as unknown as ContaRow[];
 
-    // comportamento (fixo/variavel) depende do join de categoria.tipo_custo
+    if (grupoPlano !== "all") {
+      baseRows = baseRows.filter((c) => c.plano_conta?.codigo?.startsWith(`${grupoPlano}.`));
+      currRows = currRows.filter((c) => c.plano_conta?.codigo?.startsWith(`${grupoPlano}.`));
+    }
+
+    // comportamento (fixo/variavel) depende do join de plano_conta.tipo_custo
     if (comportamento !== "all") {
-      baseRows = baseRows.filter((c) => (c.categoria?.tipo_custo || null) === comportamento);
-      currRows = currRows.filter((c) => (c.categoria?.tipo_custo || null) === comportamento);
+      baseRows = baseRows.filter((c) => (c.plano_conta?.tipo_custo || null) === comportamento);
+      currRows = currRows.filter((c) => (c.plano_conta?.tipo_custo || null) === comportamento);
     }
 
     const baseMap = sumByKey(baseRows);
@@ -322,7 +340,7 @@ Deno.serve(async (req: Request) => {
       return {
         key: k,
         unidade: (sample?.unidade || "todas") as string,
-        categoria: sample?.categoria?.nome || "Sem categoria",
+        categoria: grupoDe(sample?.plano_conta?.codigo).nome,
         descricao: sample?.descricao || "",
         prev,
         curr,
@@ -351,7 +369,7 @@ Deno.serve(async (req: Request) => {
       competenciaYM,
       baseYM,
       unidade,
-      filtros: { categoriaId, comportamento, tipo },
+      filtros: { grupoPlano, comportamento, tipo },
       macro: {
         totalPrev,
         totalCurr,
@@ -361,8 +379,8 @@ Deno.serve(async (req: Request) => {
         countCurr: currRows.length,
       },
       distribuicao: {
-        base: byCategoria(baseRows),
-        atual: byCategoria(currRows),
+        base: byCategoria(baseRows, grupoDe),
+        atual: byCategoria(currRows, grupoDe),
       },
       top_mudancas: topMudancas.map((x) => ({
         key: x.key,
@@ -446,7 +464,7 @@ ${JSON.stringify(inputObject)}`;
           competencia_ym: competenciaYM,
           base_ym: baseYM,
           unidade,
-          filtros: { categoriaId, comportamento, tipo },
+          filtros: { grupoPlano, comportamento, tipo },
           model: modelUsed,
           input_hash: inputHash,
           summary: parsed.analise_executiva || null,
