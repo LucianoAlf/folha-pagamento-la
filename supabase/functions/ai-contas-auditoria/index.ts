@@ -1,7 +1,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { callGeminiOnce, callGeminiWithFallback, getGeminiApiKey } from "../_shared/gemini.ts";
+import { callGeminiWithFallback, getGeminiApiKey } from "../_shared/gemini.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -88,23 +88,6 @@ function safeParseJsonFromText(text: string): any {
   }
 }
 
-async function repairToStrictJson(model: string, apiKey: string, rawText: string, contractHint: string) {
-  const prompt = `Você devolveu uma resposta que NÃO é JSON válido.
-
-Tarefa: reescreva a saída como JSON ESTRITAMENTE válido, sem markdown, sem comentários, sem texto extra.
-
-${contractHint}
-
-ENTRADA (texto original):
-${rawText}
-
-SAÍDA: APENAS JSON válido.`;
-
-  return await callGeminiOnce(prompt, apiKey, model, {
-    generationConfig: { temperature: 0.15, maxOutputTokens: 2048 },
-  });
-}
-
 async function sha256Hex(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
   const hash = await crypto.subtle.digest("SHA-256", data);
@@ -149,6 +132,108 @@ type ContaRow = {
   total_parcelas: number | null;
   plano_conta?: { id: string; codigo: string; nome: string; tipo_custo: string | null } | null;
 };
+
+type AuditCandidate = {
+  key: string;
+  tipo: string;
+  titulo_base: string;
+  descricao_base: string;
+  impacto_financeiro: number;
+  conta_id: string | null;
+  meta?: any;
+};
+
+type AuditMacro = {
+  totalPeriodo: number;
+  totalPago: number;
+  totalPendente: number;
+  count: number;
+  countPago: number;
+  countPendente: number;
+  prevYM: string | null;
+};
+
+function formatMoneyBR(value: number): string {
+  return `R$ ${(Number(value) || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function severityFromImpact(value: number): "alta" | "media" | "baixa" {
+  const abs = Math.abs(Number(value) || 0);
+  if (abs >= 2000) return "alta";
+  if (abs >= 500) return "media";
+  return "baixa";
+}
+
+function labelTipo(tipo: string): string {
+  switch (tipo) {
+    case "duplicidade":
+      return "possiveis duplicidades";
+    case "classificacao":
+      return "contas sem plano de contas";
+    case "recorrente_variacao":
+      return "recorrentes com variacao relevante";
+    case "atraso":
+      return "contas vencidas relevantes";
+    default:
+      return tipo || "pontos de atencao";
+  }
+}
+
+function actionForTipo(tipo: string): string {
+  switch (tipo) {
+    case "duplicidade":
+      return "Conferir os lancamentos semelhantes e cancelar ou remover duplicidades se confirmado.";
+    case "classificacao":
+      return "Classificar a conta no plano correto e validar o centro de custo.";
+    case "recorrente_variacao":
+      return "Validar a variacao contra contrato, reajuste ou consumo do periodo.";
+    case "atraso":
+      return "Priorizar regularizacao ou registrar justificativa operacional para o atraso.";
+    default:
+      return "Revisar o lancamento e registrar a conclusao para manter a memoria operacional.";
+  }
+}
+
+function buildFallbackAuditoria(competenciaYM: string, macro: AuditMacro, topCandidates: AuditCandidate[]) {
+  const countsByTipo = new Map<string, number>();
+  for (const candidate of topCandidates) {
+    countsByTipo.set(candidate.tipo, (countsByTipo.get(candidate.tipo) || 0) + 1);
+  }
+
+  const pontosDeAtencao = Array.from(countsByTipo.entries()).map(
+    ([tipo, count]) => `${count} ocorrencia(s) de ${labelTipo(tipo)}.`
+  );
+
+  if (!pontosDeAtencao.length) {
+    pontosDeAtencao.push("Nenhum ponto de atencao deterministico encontrado para os filtros atuais.");
+  }
+
+  return {
+    resumo_executivo:
+      `Auditoria de ${competenciaYM}: ${macro.count} lancamento(s), total ${formatMoneyBR(macro.totalPeriodo)}. ` +
+      `Pago ${formatMoneyBR(macro.totalPago)}, pendente ${formatMoneyBR(macro.totalPendente)}. ` +
+      `${topCandidates.length} ponto(s) de atencao.`,
+    pontos_de_atencao: pontosDeAtencao,
+    anomalias: topCandidates.slice(0, 8).map((candidate) => ({
+      key: candidate.key,
+      severidade: severityFromImpact(candidate.impacto_financeiro),
+      titulo: candidate.titulo_base,
+      descricao: candidate.descricao_base,
+      impacto_financeiro: candidate.impacto_financeiro,
+      conta_id: candidate.conta_id,
+      acao_sugerida: actionForTipo(candidate.tipo),
+      pergunta_para_ana: "",
+    })),
+    recomendacoes_operacionais: [
+      "Revisar os pontos de atencao em ordem de impacto financeiro.",
+      "Registrar uma nota da Ana nos casos ja justificados para manter memoria operacional.",
+      "Conferir duplicidades, atrasos e contas sem plano diretamente nos lancamentos de origem.",
+    ],
+  };
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
@@ -198,8 +283,6 @@ Deno.serve(async (req: Request) => {
     const competenciaDate = `${competenciaYM}-01`;
     const prev = prevYM(competenciaYM);
     const prevDate = prev ? `${prev}-01` : null;
-
-    const apiKey = await getGeminiApiKey(supabase);
 
     const { data: gruposRaw, error: gruposErr } = await supabase
       .from("plano_contas")
@@ -299,16 +382,7 @@ Deno.serve(async (req: Request) => {
     .slice(0, 8);
 
   // 7) Anomalias candidatas (heurísticas determinísticas + chave estável)
-  type Candidate = {
-    key: string;
-    tipo: string;
-    titulo_base: string;
-    descricao_base: string;
-    impacto_financeiro: number;
-    conta_id: string | null;
-    meta?: any;
-  };
-  const candidates: Candidate[] = [];
+  const candidates: AuditCandidate[] = [];
 
   // 7.1) Sem plano de contas
   for (const c of contas) {
@@ -436,30 +510,41 @@ Deno.serve(async (req: Request) => {
 
   const prompt = `Você é um Controller Financeiro da LA Music Group.\n\nSua tarefa é AUDITAR o mês ${competenciaYM} (Contas a Pagar) e apontar ANOMALIAS e INCONSISTÊNCIAS dentro do mês.\n\nIMPORTANTE: NÃO faça um comparativo \"mês contra mês\" como relatório principal. Você pode usar o mês anterior apenas como BASELINE de normalidade para recorrentes.\n\nDADOS (JSON):\n${JSON.stringify(inputObject)}\n\nINSTRUÇÕES:\n- Produza uma análise profissional, objetiva e prática para a Ana.\n- Use as anomalias_candidatas (com key estável) para escolher o que merece atenção.\n- Evite redundância: foque em qualidade do mês (duplicidades, falta de plano de contas, recorrentes fora do padrão, vencidas relevantes, etc.).\n- Se uma anomalia já tem nota na memória, considere isso na explicação.\n\nCONTRATO DE SAÍDA (Responda APENAS JSON puro):\n{\n  \"resumo_executivo\": \"Texto curto e direto (3-6 linhas) sobre o mês.\",\n  \"pontos_de_atencao\": [\"bullet 1\", \"bullet 2\"],\n  \"anomalias\": [\n    {\n      \"key\": \"uma key existente em anomalias_candidatas\",\n      \"severidade\": \"alta|media|baixa\",\n      \"titulo\": \"Título curto\",\n      \"descricao\": \"Descrição clara e concreta (o que é, por que importa)\",\n      \"impacto_financeiro\": 123.45,\n      \"conta_id\": \"uuid ou null\",\n      \"acao_sugerida\": \"O que a Ana deve fazer\",\n      \"pergunta_para_ana\": \"Pergunta para confirmar contexto (se necessário)\"\n    }\n  ],\n  \"recomendacoes_operacionais\": [\"ação 1\", \"ação 2\"]\n}`;
 
-  const { text: rawText, modelUsed: model } = await callGeminiWithFallback(prompt, apiKey, {
-    generationConfig: { temperature: 0.15, maxOutputTokens: 2048 },
-  });
-  const rawPreview = String(rawText || "").slice(0, 1200);
-  console.log("📝 Resposta raw do Gemini (primeiros 500 chars):", rawPreview.slice(0, 500));
+  let parsed: any = null;
+  let modelUsed = "fallback-heuristic";
 
-  let parsed = safeParseJsonFromText(rawText);
-  console.log("📊 Parsed result (primeira tentativa):", parsed ? "OK" : "FALHOU");
+  try {
+    const apiKey = await getGeminiApiKey(supabase);
+    const { text: rawText, modelUsed: geminiModel } = await callGeminiWithFallback(prompt, apiKey, {
+      timeoutMs: 8_000,
+      generationConfig: { temperature: 0.15, maxOutputTokens: 1200 },
+    });
+    modelUsed = geminiModel;
+    const rawPreview = String(rawText || "").slice(0, 1200);
+    console.log("Resposta raw do Gemini (primeiros 500 chars):", rawPreview.slice(0, 500));
 
-  // Repair step (mesma estratégia que garante estabilidade quando o LLM escapa do contrato)
+    parsed = safeParseJsonFromText(rawText);
+    console.log("Parsed result:", parsed ? "OK" : "FALHOU");
+  } catch (geminiError: any) {
+    console.warn("Gemini indisponivel ou lento; usando fallback deterministico", geminiError?.message || geminiError);
+    parsed = null;
+  }
+
   if (!parsed || !parsed.resumo_executivo) {
-    const contractHint =
-      `CONTRATO DE SAÍDA (JSON): deve conter as chaves: "resumo_executivo" (string), "pontos_de_atencao" (array de strings), "anomalias" (array), "recomendacoes_operacionais" (array de strings).`;
-    const repairedText = await repairToStrictJson(model, apiKey, rawText, contractHint);
-    const repairedPreview = String(repairedText || "").slice(0, 1200);
-    console.log("🛠️ Repair raw (primeiros 500 chars):", repairedPreview.slice(0, 500));
-
-    parsed = safeParseJsonFromText(repairedText);
-    console.log("📊 Parsed result (repair):", parsed ? "OK" : "FALHOU");
-
-    if (!parsed || !parsed.resumo_executivo) {
-      console.error("❌ Resposta inválida mesmo após repair (raw preview):", rawPreview);
-      throw new Error(`Falha ao processar resposta estruturada da IA | raw_preview=${rawPreview.slice(0, 250)}`);
-    }
+    modelUsed = "fallback-heuristic";
+    parsed = buildFallbackAuditoria(
+      competenciaYM,
+      {
+        totalPeriodo,
+        totalPago,
+        totalPendente,
+        count: contas.length,
+        countPago: pagas.length,
+        countPendente: pendentes.length,
+        prevYM: prev,
+      },
+      topCandidates
+    );
   }
 
   const { data: inserted, error: insErr } = await supabase
@@ -469,9 +554,9 @@ Deno.serve(async (req: Request) => {
         competencia_ym: competenciaYM,
         unidade,
         filtros: { grupoPlano, comportamento, tipo },
-        model,
+        model: modelUsed,
         input_hash: inputHash,
-        summary: parsed.resumo_executivo,
+        summary: parsed.resumo_executivo || null,
         response_json: parsed,
       },
       { onConflict: "input_hash" },
@@ -487,9 +572,9 @@ Deno.serve(async (req: Request) => {
       {
         error: error?.message || "Erro interno",
         stack: error?.stack || null,
-        // Ajuda debug no frontend quando o problema é o LLM não respeitar JSON
+        // Fallback cobre falhas do Gemini; erros aqui tendem a ser query/upsert/configuracao.
         hint:
-          "Se o erro envolver 'Falha ao processar resposta estruturada', verifique o campo raw_preview no message e/ou logs '📝 Resposta raw do Gemini'.",
+          "Se o erro persistir, verifique os logs da Edge Function para falhas de query, auth ou upsert.",
       },
       500
     );
