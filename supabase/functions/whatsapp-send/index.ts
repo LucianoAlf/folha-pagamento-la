@@ -64,16 +64,23 @@ Deno.serve(async (req: Request) => {
       return json({ success: false, error: "JWT inválido." }, 401);
     }
 
-    const { numero, mensagem } = await req.json().catch(() => ({}));
+    const { numero, mensagem, tipo, isGroup } = await req.json().catch(() => ({}));
     if (!numero || !mensagem) {
       return json({ success: false, error: "numero e mensagem são obrigatórios." }, 400);
     }
 
+    const numeroTexto = String(numero);
+    const isGrupo =
+      numeroTexto.toLowerCase().includes("@g.us") ||
+      String(tipo).toLowerCase() === "grupo" ||
+      isGroup === true;
+    const alvoFinal = isGrupo ? numeroTexto.trim() : numeroTexto.replace(/\D/g, "");
+    if (!alvoFinal) return json({ success: false, error: isGrupo ? "Grupo invalido." : "Numero invalido." }, 400);
+
     const uazapiUrl = await getSecret(supabaseAdmin, "UAZAPI_URL");
     const uazapiToken = await getSecret(supabaseAdmin, "UAZAPI_TOKEN");
 
-    const numeroLimpo = String(numero).replace(/\D/g, "");
-    if (!numeroLimpo) return json({ success: false, error: "Número inválido." }, 400);
+    console.log("whatsapp-send destino:", isGrupo ? "grupo" : "pessoa", "alvo:", alvoFinal);
 
     const res = await fetch(`${uazapiUrl.replace(/\/$/, "")}/send/text`, {
       method: "POST",
@@ -81,7 +88,7 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/json",
         token: uazapiToken,
       },
-      body: JSON.stringify({ number: numeroLimpo, text: String(mensagem) }),
+      body: JSON.stringify({ number: alvoFinal, text: String(mensagem) }),
     });
 
     const raw = await res.text();
