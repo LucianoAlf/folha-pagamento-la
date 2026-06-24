@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Badge, Card, CustomSelect, TimeSelect, ToggleSwitch, Tooltip } from '../UI';
+import { Badge, Button, Card, ConfirmDialog, CustomSelect, Modal, TimeSelect, ToggleSwitch, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { Bell, Calendar, ClipboardCheck, Clock, CreditCard, Loader2, Plus, Save, Send, Smartphone, Sparkles, Trash2, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NotificacaoConfig } from '../../types/agenda';
@@ -33,7 +33,7 @@ const grupoTipoLabels = Object.fromEntries(grupoTipoOptions.map((opt) => [opt.va
 >;
 
 const frequenciaOptions: { value: WhatsappGrupoNotificacaoFrequencia; label: string }[] = [
-  { value: 'diario', label: 'Diario' },
+  { value: 'diario', label: 'Diário' },
   { value: 'semanal', label: 'Semanal' },
   { value: 'mensal', label: 'Mensal' },
 ];
@@ -41,12 +41,17 @@ const frequenciaOptions: { value: WhatsappGrupoNotificacaoFrequencia; label: str
 const diasSemanaGrupo = [
   { value: '0', label: 'Domingo' },
   { value: '1', label: 'Segunda' },
-  { value: '2', label: 'Terca' },
+  { value: '2', label: 'Terça' },
   { value: '3', label: 'Quarta' },
   { value: '4', label: 'Quinta' },
   { value: '5', label: 'Sexta' },
-  { value: '6', label: 'Sabado' },
+  { value: '6', label: 'Sábado' },
 ];
+
+const diasMesGrupo = Array.from({ length: 31 }, (_, index) => {
+  const value = String(index + 1);
+  return { value, label: value };
+});
 
 const finalidadeLabels: Record<WhatsappDestinoFinalidade, string> = {
   contas_diario: 'Financeiro Geral',
@@ -86,6 +91,7 @@ export const NotificacoesPage: React.FC = () => {
   const [grupoSavingIds, setGrupoSavingIds] = useState<Record<string, boolean>>({});
   const [addingDestinoId, setAddingDestinoId] = useState<string | null>(null);
   const [newGrupoDrafts, setNewGrupoDrafts] = useState<Record<string, GrupoDraft>>({});
+  const [deleteGrupoTarget, setDeleteGrupoTarget] = useState<WhatsappGrupoNotificacao | null>(null);
 
   // Mobile detection (reactive)
   const [isMobile, setIsMobile] = useState(false);
@@ -381,12 +387,12 @@ export const NotificacoesPage: React.FC = () => {
   };
 
   const handleDeleteGrupoNotificacao = async (notificacao: WhatsappGrupoNotificacao) => {
-    if (!window.confirm(`Remover "${grupoTipoLabels[notificacao.tipo]}" deste grupo?`)) return;
     setGrupoSaving(notificacao.id, true);
     setGruposError(null);
     try {
       await deleteGrupoNotificacao(notificacao.id);
       setGrupoNotificacoes((prev) => prev.filter((row) => row.id !== notificacao.id));
+      setDeleteGrupoTarget(null);
     } catch (e: any) {
       setGruposError(e?.message || 'Falha ao remover notificacao');
     } finally {
@@ -451,8 +457,15 @@ export const NotificacoesPage: React.FC = () => {
     }
   };
 
-  const renderGruposTab = () => (
-    <div className="space-y-6">
+  const renderGruposTab = () => {
+    const addingDestino = addingDestinoId ? destinos.find((destino) => destino.id === addingDestinoId) || null : null;
+    const addingUnusedTipos = addingDestinoId ? getUnusedTipos(addingDestinoId) : [];
+    const addingDraft = addingDestinoId
+      ? newGrupoDrafts[addingDestinoId] || (addingUnusedTipos[0] ? buildDefaultGrupoDraft(addingUnusedTipos[0].value) : null)
+      : null;
+
+    return (
+    <div className="w-full max-w-4xl space-y-6">
       {gruposError ? (
         <Card className={cn('p-4 border-danger/30 bg-danger/10')}>
           <div className="text-danger font-bold">Erro nos grupos</div>
@@ -476,47 +489,42 @@ export const NotificacoesPage: React.FC = () => {
           {destinos.map((destino) => {
             const notificacoes = notificacoesPorDestino.get(destino.id) || [];
             const unusedTipos = getUnusedTipos(destino.id);
-            const newDraft = newGrupoDrafts[destino.id] || (unusedTipos[0] ? buildDefaultGrupoDraft(unusedTipos[0].value) : null);
             const isAdding = addingDestinoId === destino.id;
 
             return (
-              <Card key={destino.id} className={cn('p-0 overflow-hidden', cardClass)}>
-                <div className="px-5 py-4 border-b border-line/70 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-                        <Users className="w-5 h-5 text-accent" />
+              <Card key={destino.id} className={cn('p-5 md:p-6', cardClass)}>
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                      <Users className="w-5 h-5 text-accent" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-primary font-black text-lg leading-tight truncate">{destino.nome}</div>
+                        <Badge variant="purple" className="font-black">
+                          {finalidadeLabels[destino.finalidade] || destino.finalidade}
+                        </Badge>
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-primary font-black text-lg truncate">{destino.nome}</div>
-                        <div className="text-xs text-muted font-bold truncate">{destino.jid}</div>
-                      </div>
-                      <span className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-black text-secondary">
-                        {finalidadeLabels[destino.finalidade] || destino.finalidade}
-                      </span>
+                      <div className="mt-1 text-xs text-muted font-bold truncate">{destino.jid}</div>
                     </div>
                   </div>
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
                     onClick={() => handleStartAddingGrupo(destino.id)}
                     disabled={!unusedTipos.length || isAdding}
-                    className={cn(
-                      'inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-black transition-all',
-                      'bg-accent/10 border-accent/25 text-accent hover:bg-accent/15',
-                      (!unusedTipos.length || isAdding) && 'opacity-50 cursor-not-allowed'
-                    )}
+                    className="w-full md:w-auto"
                   >
                     <Plus className="w-4 h-4" />
                     Adicionar notificacao
-                  </button>
+                  </Button>
                 </div>
 
-                <div className="divide-y divide-line/60">
+                <div className="mt-5 space-y-3">
                   {notificacoes.length === 0 && !isAdding ? (
-                    <div className="px-5 py-8 text-center">
+                    <div className="rounded-2xl border border-line bg-surface/40 px-5 py-8 text-center">
                       <Clock className="w-8 h-8 text-muted mx-auto mb-3" />
                       <div className="font-black text-primary">Nenhuma notificacao configurada</div>
-                      <div className="text-sm text-muted mt-1">Adicione um tipo de aviso para este grupo. Ele nasce desligado.</div>
+                      <div className="text-sm text-secondary mt-1">Adicione um tipo de aviso para este grupo. Ele nasce desligado.</div>
                     </div>
                   ) : null}
 
@@ -526,7 +534,7 @@ export const NotificacoesPage: React.FC = () => {
                     const hasChanges = !!grupoDrafts[notificacao.id];
 
                     return (
-                      <div key={notificacao.id} className="px-5 py-4 space-y-4">
+                      <div key={notificacao.id} className="rounded-2xl border border-line bg-surface/40 p-4 space-y-4">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                           <div className="min-w-0">
                             <div className="text-primary font-black">{grupoTipoLabels[notificacao.tipo]}</div>
@@ -547,7 +555,7 @@ export const NotificacoesPage: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(130px,160px)_minmax(160px,1fr)_minmax(130px,160px)_auto_auto] md:items-end">
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(150px,170px)_minmax(180px,1fr)_minmax(130px,160px)_auto_auto] md:items-end">
                           <div>
                             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Horario</div>
                             <TimeSelect
@@ -581,40 +589,33 @@ export const NotificacoesPage: React.FC = () => {
                           ) : draft.frequencia === 'mensal' ? (
                             <div>
                               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Dia</div>
-                              <input
-                                type="number"
-                                min={1}
-                                max={31}
-                                value={Number(draft.dia_mes ?? 1)}
-                                onChange={(e) => handleGrupoDraftChange(notificacao, { dia_mes: Number(e.target.value || 1) })}
-                                className="w-full px-4 py-3 rounded-xl bg-surface/50 border border-line text-secondary outline-none focus:ring-2 focus:ring-accent"
+                              <CustomSelect
+                                value={String(draft.dia_mes ?? 1)}
+                                onValueChange={(dia) => handleGrupoDraftChange(notificacao, { dia_mes: Number(dia) })}
+                                options={diasMesGrupo}
                               />
                             </div>
                           ) : (
                             <div className="hidden md:block" />
                           )}
 
-                          <button
-                            type="button"
+                          <Button
+                            variant="primary"
                             onClick={() => void handleSaveGrupoNotificacao(notificacao)}
                             disabled={!hasChanges || isSavingRow}
-                            className={cn(
-                              'inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-black transition-all',
-                              'bg-accent/90 hover:bg-accent border-accent/40 text-white',
-                              (!hasChanges || isSavingRow) && 'opacity-50 cursor-not-allowed'
-                            )}
+                            className="h-[46px]"
                           >
                             {isSavingRow ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             Salvar
-                          </button>
+                          </Button>
 
                           <Tooltip content="Remover notificacao">
                             <button
                               type="button"
-                              onClick={() => void handleDeleteGrupoNotificacao(notificacao)}
+                              onClick={() => setDeleteGrupoTarget(notificacao)}
                               disabled={isSavingRow}
                               className={cn(
-                                'inline-flex items-center justify-center w-11 h-11 rounded-xl border border-line bg-surface/50 text-muted hover:text-danger hover:border-danger/30 transition-all',
+                                'inline-flex items-center justify-center w-11 h-11 rounded-xl text-muted hover:text-danger hover:bg-danger/10 transition-all focus:outline-none focus:ring-2 focus:ring-danger/30',
                                 isSavingRow && 'opacity-50 cursor-not-allowed'
                               )}
                             >
@@ -625,103 +626,121 @@ export const NotificacoesPage: React.FC = () => {
                       </div>
                     );
                   })}
-
-                  {isAdding && newDraft ? (
-                    <div className="px-5 py-4 bg-surface/30 space-y-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-primary font-black">Nova notificacao</div>
-                          <div className="text-xs text-muted font-bold">Configuracao nasce desligada.</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setAddingDestinoId(null)}
-                          className="text-sm font-black text-muted hover:text-primary"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(220px,1fr)_minmax(130px,160px)_minmax(160px,1fr)_minmax(130px,160px)_auto] md:items-end">
-                        <div>
-                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Tipo</div>
-                          <CustomSelect
-                            value={newDraft.tipo}
-                            onValueChange={(tipo) => handleNewGrupoDraftChange(destino.id, { tipo: tipo as WhatsappGrupoNotificacaoTipo })}
-                            options={unusedTipos}
-                          />
-                        </div>
-
-                        <div>
-                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Horario</div>
-                          <TimeSelect
-                            value={newDraft.horario}
-                            onValueChange={(horario) => handleNewGrupoDraftChange(destino.id, { horario })}
-                            stepMinutes={15}
-                            className="min-w-0"
-                          />
-                        </div>
-
-                        <div>
-                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Frequencia</div>
-                          <CustomSelect
-                            value={newDraft.frequencia}
-                            onValueChange={(frequencia) =>
-                              handleNewGrupoDraftChange(destino.id, { frequencia: frequencia as WhatsappGrupoNotificacaoFrequencia })
-                            }
-                            options={frequenciaOptions}
-                          />
-                        </div>
-
-                        {newDraft.frequencia === 'semanal' ? (
-                          <div>
-                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Dia</div>
-                            <CustomSelect
-                              value={String(newDraft.dia_semana ?? 1)}
-                              onValueChange={(dia) => handleNewGrupoDraftChange(destino.id, { dia_semana: Number(dia) })}
-                              options={diasSemanaGrupo}
-                            />
-                          </div>
-                        ) : newDraft.frequencia === 'mensal' ? (
-                          <div>
-                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Dia</div>
-                            <input
-                              type="number"
-                              min={1}
-                              max={31}
-                              value={Number(newDraft.dia_mes ?? 1)}
-                              onChange={(e) => handleNewGrupoDraftChange(destino.id, { dia_mes: Number(e.target.value || 1) })}
-                              className="w-full px-4 py-3 rounded-xl bg-surface/50 border border-line text-secondary outline-none focus:ring-2 focus:ring-accent"
-                            />
-                          </div>
-                        ) : (
-                          <div className="hidden md:block" />
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => void handleCreateGrupoNotificacao(destino.id)}
-                          disabled={!!grupoSavingIds[`new:${destino.id}`]}
-                          className={cn(
-                            'inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-black transition-all',
-                            'bg-accent/90 hover:bg-accent border-accent/40 text-white',
-                            grupoSavingIds[`new:${destino.id}`] && 'opacity-50 cursor-not-allowed'
-                          )}
-                        >
-                          {grupoSavingIds[`new:${destino.id}`] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                          Adicionar
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
               </Card>
             );
           })}
         </div>
       )}
+
+      <Modal
+        isOpen={!!addingDestino && !!addingDraft}
+        onClose={() => setAddingDestinoId(null)}
+        title="Nova notificacao"
+        subtitle={addingDestino ? `Grupo: ${addingDestino.nome}` : undefined}
+        size="md"
+        headerIcon={
+          <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+            <Plus className="w-5 h-5 text-accent" />
+          </div>
+        }
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setAddingDestinoId(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              disabled={!addingDestinoId || !addingDraft || !!grupoSavingIds[`new:${addingDestinoId}`]}
+              onClick={() => addingDestinoId && void handleCreateGrupoNotificacao(addingDestinoId)}
+            >
+              {addingDestinoId && grupoSavingIds[`new:${addingDestinoId}`] ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4" />
+              )}
+              Adicionar
+            </Button>
+          </div>
+        }
+      >
+        {addingDestinoId && addingDraft ? (
+          <div className="space-y-4">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Tipo</div>
+              <CustomSelect
+                value={addingDraft.tipo}
+                onValueChange={(tipo) => handleNewGrupoDraftChange(addingDestinoId, { tipo: tipo as WhatsappGrupoNotificacaoTipo })}
+                options={addingUnusedTipos}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Horario</div>
+                <TimeSelect
+                  value={addingDraft.horario}
+                  onValueChange={(horario) => handleNewGrupoDraftChange(addingDestinoId, { horario })}
+                  stepMinutes={15}
+                  className="min-w-0"
+                />
+              </div>
+
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Frequencia</div>
+                <CustomSelect
+                  value={addingDraft.frequencia}
+                  onValueChange={(frequencia) =>
+                    handleNewGrupoDraftChange(addingDestinoId, { frequencia: frequencia as WhatsappGrupoNotificacaoFrequencia })
+                  }
+                  options={frequenciaOptions}
+                />
+              </div>
+            </div>
+
+            {addingDraft.frequencia === 'semanal' ? (
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Dia da semana</div>
+                <CustomSelect
+                  value={String(addingDraft.dia_semana ?? 1)}
+                  onValueChange={(dia) => handleNewGrupoDraftChange(addingDestinoId, { dia_semana: Number(dia) })}
+                  options={diasSemanaGrupo}
+                />
+              </div>
+            ) : addingDraft.frequencia === 'mensal' ? (
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Dia do mes</div>
+                <CustomSelect
+                  value={String(addingDraft.dia_mes ?? 1)}
+                  onValueChange={(dia) => handleNewGrupoDraftChange(addingDestinoId, { dia_mes: Number(dia) })}
+                  options={diasMesGrupo}
+                />
+              </div>
+            ) : null}
+
+            <div className="rounded-2xl border border-line bg-surface/40 p-4 text-sm text-secondary font-bold">
+              A nova configuracao nasce desligada. Ligue o envio automatico na linha depois de criar.
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={!!deleteGrupoTarget}
+        onClose={() => setDeleteGrupoTarget(null)}
+        onConfirm={() => deleteGrupoTarget && void handleDeleteGrupoNotificacao(deleteGrupoTarget)}
+        title="Remover notificacao"
+        message={
+          deleteGrupoTarget
+            ? `Remover "${grupoTipoLabels[deleteGrupoTarget.tipo]}" deste grupo?`
+            : 'Remover esta notificacao do grupo?'
+        }
+        confirmLabel="Remover"
+        variant="danger"
+      />
     </div>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -791,7 +810,7 @@ export const NotificacoesPage: React.FC = () => {
                 type="button"
                 onClick={() => setActiveTab(tab.key as 'individual' | 'grupos')}
                 className={cn(
-                  'flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black transition-all',
+                  'flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black transition-all focus:outline-none focus:ring-2 focus:ring-accent/30',
                   selected ? 'bg-bg text-accent shadow-sm border border-line' : 'text-secondary hover:text-primary'
                 )}
               >
