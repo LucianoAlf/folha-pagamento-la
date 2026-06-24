@@ -9,6 +9,7 @@ export function buildParcelasContaPagar(
   const parcelaInicial = conta.parcela_atual || 1;
   const totalParcelas = conta.total_parcelas || valoresParcela.length;
   const dataBase = new Date(`${conta.data_vencimento!}T00:00:00`);
+  const parcelamentoId = crypto.randomUUID();
 
   return valoresParcela.map((valor, i) => {
     const dataVenc = new Date(dataBase);
@@ -25,6 +26,7 @@ export function buildParcelasContaPagar(
       valor,
       data_vencimento: dataVencimento,
       competencia: competenciaFromVencimento(dataVencimento),
+      parcelamento_id: parcelamentoId,
       parcela_atual: parcelaInicial + i,
       total_parcelas: totalParcelas,
       created_by: createdBy,

@@ -31,6 +31,28 @@ test('buildParcelasContaPagar assigns competencia from each parcela vencimento',
   );
 });
 
+test('buildParcelasContaPagar assigns the same parcelamento_id to sibling parcelas', () => {
+  const parcelas = buildParcelasContaPagar(
+    {
+      descricao: 'Teste Parcelamento',
+      valor: 50,
+      data_vencimento: '2026-07-10',
+      competencia: '2026-07-01',
+      tipo_lancamento: 'parcelada',
+      parcela_atual: 1,
+      total_parcelas: 3,
+      status: 'pendente',
+      unidade: 'rec',
+    },
+    [50, 50, 50],
+    'user-1'
+  );
+
+  const ids = parcelas.map((p) => p.parcelamento_id);
+  assert.equal(new Set(ids).size, 1);
+  assert.match(String(ids[0]), /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+});
+
 test('resolveCodigoMesBadge treats fixed PIX as collected even when monthly code is unavailable', () => {
   assert.equal(
     resolveCodigoMesBadge(

@@ -367,20 +367,28 @@ export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch:
 export async function updateFuturasParceladas(contaOriginal: ContaPagar, patch: Partial<ContaPagar>): Promise<void> {
   const fieldsToUpdate: any = {};
   if (patch.valor !== undefined) fieldsToUpdate.valor = patch.valor;
-  if (patch.plano_conta_id) fieldsToUpdate.plano_conta_id = patch.plano_conta_id;
-  if (patch.centro_custo_id) fieldsToUpdate.centro_custo_id = patch.centro_custo_id;
-  if (patch.unidade) fieldsToUpdate.unidade = patch.unidade;
+  if (patch.plano_conta_id !== undefined) fieldsToUpdate.plano_conta_id = patch.plano_conta_id;
   if (patch.observacoes !== undefined) fieldsToUpdate.observacoes = patch.observacoes;
 
   if (Object.keys(fieldsToUpdate).length === 0) return;
 
-  // Extract base description without "(X/Y)" suffix
-  const baseDesc = contaOriginal.descricao.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+  if (contaOriginal.parcelamento_id) {
+    const { error } = await supabase
+      .from('contas_pagar')
+      .update(fieldsToUpdate)
+      .eq('parcelamento_id', contaOriginal.parcelamento_id)
+      .eq('tipo_lancamento', 'parcelada')
+      .eq('status', 'pendente')
+      .gte('data_vencimento', contaOriginal.data_vencimento);
+
+    if (error) throw error;
+    return;
+  }
 
   const { error } = await supabase
     .from('contas_pagar')
     .update(fieldsToUpdate)
-    .like('descricao', `${baseDesc} (%`)
+    .like('descricao', `${contaOriginal.descricao.replace(/\s*\(\d+\/\d+\)\s*$/, '')} (%`)
     .eq('unidade', contaOriginal.unidade)
     .eq('tipo_lancamento', 'parcelada')
     .eq('status', 'pendente')
@@ -415,14 +423,19 @@ export async function finalizarConta(contaId: string): Promise<void> {
 
 export async function fetchParcelasIrmas(conta: ContaPagar): Promise<ContaPagar[]> {
   if (conta.tipo_lancamento !== 'parcelada' || !conta.total_parcelas) return [];
-  const baseDesc = conta.descricao.replace(/\s*\(\d+\/\d+\)\s*$/, '');
-  const { data, error } = await supabase
+  let query = supabase
     .from('contas_pagar')
     .select(CONTA_PAGAR_SELECT)
-    .eq('tipo_lancamento', 'parcelada')
-    .eq('unidade', conta.unidade)
-    .like('descricao', `${baseDesc} (%`)
-    .order('parcela_atual', { ascending: true });
+    .eq('tipo_lancamento', 'parcelada');
+
+  if (conta.parcelamento_id) {
+    query = query.eq('parcelamento_id', conta.parcelamento_id);
+  } else {
+    const baseDesc = conta.descricao.replace(/\s*\(\d+\/\d+\)\s*$/, '');
+    query = query.eq('unidade', conta.unidade).like('descricao', `${baseDesc} (%`);
+  }
+
+  const { data, error } = await query.order('parcela_atual', { ascending: true });
   if (error) throw error;
   return (data || []) as ContaPagar[];
 }
@@ -433,15 +446,19 @@ export async function deleteParcelamento(conta: ContaPagar): Promise<number> {
     return 1;
   }
 
-  const baseDesc = conta.descricao.split(' (')[0];
-
-  const { data, error } = await supabase
+  let query = supabase
     .from('contas_pagar')
     .delete()
-    .eq('unidade', conta.unidade)
-    .like('descricao', `${baseDesc} (%`)
-    .eq('tipo_lancamento', 'parcelada')
-    .select('id');
+    .eq('tipo_lancamento', 'parcelada');
+
+  if (conta.parcelamento_id) {
+    query = query.eq('parcelamento_id', conta.parcelamento_id);
+  } else {
+    const baseDesc = conta.descricao.split(' (')[0];
+    query = query.eq('unidade', conta.unidade).like('descricao', `${baseDesc} (%`);
+  }
+
+  const { data, error } = await query.select('id');
 
   if (error) throw error;
   return data?.length || 0;
@@ -456,14 +473,20 @@ export async function finalizarParcelamento(conta: ContaPagar): Promise<void> {
   // O formato da descrição é "Descrição (1/10)"
   const baseDesc = conta.descricao.split(' (')[0];
   
-  const { error } = await supabase
+  let query = supabase
     .from('contas_pagar')
     .update({ status: 'finalizado' })
-    .eq('unidade', conta.unidade)
-    .like('descricao', `${baseDesc} (%`)
     .eq('tipo_lancamento', 'parcelada')
     .eq('status', 'pendente')
     .gte('data_vencimento', conta.data_vencimento);
+
+  if (conta.parcelamento_id) {
+    query = query.eq('parcelamento_id', conta.parcelamento_id);
+  } else {
+    query = query.eq('unidade', conta.unidade).like('descricao', `${baseDesc} (%`);
+  }
+
+  const { error } = await query;
 
   if (error) throw error;
 }

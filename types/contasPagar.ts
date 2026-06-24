@@ -92,6 +92,7 @@ export interface ContaPagar {
   data_pagamento: string | null;
   metodo_pagamento: string | null;
   tipo_lancamento: 'unica' | 'recorrente' | 'parcelada';
+  parcelamento_id?: string | null;
   parcela_atual: number | null;
   total_parcelas: number | null;
   observacoes: string | null;
