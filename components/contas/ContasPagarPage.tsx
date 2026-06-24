@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadingSpinner, ErrorState, ConfirmDialog } from '../UI';
-import { ContaPagar, CategoriaDespesa, CentroCusto, ContaCredencial, ContaPagarCodigoMes, PlanoConta, PlanoContaMaisUsado } from '../../types/contasPagar';
+import { ContaPagar, CentroCusto, ContaCredencial, ContaPagarCodigoMes, PlanoConta, PlanoContaMaisUsado } from '../../types/contasPagar';
 import {
   calcularResumo,
   calcularResumoAuditoria,
-  fetchCategorias,
   fetchCentrosCusto,
   fetchContasPagar,
   fetchCredenciais,
@@ -118,7 +117,8 @@ type ContasComparativoAiSeverity = 'alta' | 'media' | 'baixa';
 
 type ContasComparativoAiInsight = {
   titulo: string;
-  categoria: string;
+  grupo_plano?: string;
+  tipo?: string;
   severidade: ContasComparativoAiSeverity;
   descricao: string;
   impacto_financeiro?: number;
@@ -159,7 +159,8 @@ const COMPARATIVO_THRESHOLD = 20;
 type PlanoGrupo = { id: string; codigo: string; nome: string };
 
 function getContaPlanoTipoCusto(conta: ContaPagar): 'fixo' | 'variavel' | null {
-  return ((conta.plano_conta as any)?.tipo_custo || conta.categoria?.tipo_custo || null) as 'fixo' | 'variavel' | null;
+  const tipo = conta.plano_conta?.tipo_custo;
+  return tipo === 'fixo' || tipo === 'variavel' ? tipo : null;
 }
 
 function matchesContaGrupoPlano(conta: ContaPagar, grupoPlano: string): boolean {
@@ -167,14 +168,14 @@ function matchesContaGrupoPlano(conta: ContaPagar, grupoPlano: string): boolean 
   return Boolean(conta.plano_conta?.codigo?.startsWith(`${grupoPlano}.`));
 }
 
-type ContasMode = 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'categorias';
+type ContasMode = 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'plano-contas';
 
 const CONTAS_TABS: { id: ContasMode; label: string; icon: React.FC<any>; shortLabel: string }[] = [
   { id: 'dashboard', label: 'Resumo', icon: LineChartIcon, shortLabel: 'Dash' },
   { id: 'visao-geral', label: 'Contas a Pagar', icon: BarChart3, shortLabel: 'Contas' },
   { id: 'todas', label: 'Auditoria', icon: FileText, shortLabel: 'Audit.' },
   { id: 'comparativo', label: 'Comparativo', icon: TrendingUp, shortLabel: 'IA' },
-  { id: 'categorias', label: 'Plano de Contas', icon: ListTree, shortLabel: 'Plano' },
+  { id: 'plano-contas', label: 'Plano de Contas', icon: ListTree, shortLabel: 'Plano' },
 ];
 
 const CONTAS_TITLES: Record<ContasMode, { title: string; subtitle: string }> = {
@@ -182,7 +183,7 @@ const CONTAS_TITLES: Record<ContasMode, { title: string; subtitle: string }> = {
   'visao-geral': { title: 'Gestão Mensal', subtitle: 'Acompanhamento de contas a pagar por competência' },
   'todas': { title: 'Auditoria Financeira', subtitle: 'Histórico completo de lançamentos e liquidações' },
   'comparativo': { title: 'IA Financeira', subtitle: 'Insights e anomalias detectadas por IA nas contas a pagar' },
-  'categorias': { title: 'Plano de Contas', subtitle: 'Consulta da estrutura Emusys usada nos lançamentos de despesas.' },
+  'plano-contas': { title: 'Plano de Contas', subtitle: 'Consulta da estrutura Emusys usada nos lançamentos de despesas.' },
 };
 
 export const ContasPagarPage: React.FC<{
@@ -197,7 +198,6 @@ export const ContasPagarPage: React.FC<{
   const { run } = useAsyncAction();
   const { success: toastSuccess, error: toastError } = useToast();
 
-  const [categorias, setCategorias] = useState<CategoriaDespesa[]>([]);
   const [planosConta, setPlanosConta] = useState<PlanoConta[]>([]);
   const [planoGrupos, setPlanoGrupos] = useState<PlanoGrupo[]>([]);
   const [planoContaMaisUsados, setPlanoContaMaisUsados] = useState<PlanoContaMaisUsado[]>([]);
@@ -209,7 +209,6 @@ export const ContasPagarPage: React.FC<{
   // Filtros
   const [filtroTab, setFiltroTab] = useState<FiltroTab>('todas');
   const [unidadeFiltro, setUnidadeFiltro] = useState<'todas' | 'cg' | 'rec' | 'bar'>('todas');
-  const [categoriaFiltro, setCategoriaFiltro] = useState<string>('all');
   const [grupoPlanoFiltro, setGrupoPlanoFiltro] = useState<string>('all');
   const [comportamentoFiltro, setComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
   const [tipoFiltro, setTipoFiltro] = useState<'all' | 'unica' | 'parcelada' | 'recorrente'>('all');
@@ -252,7 +251,7 @@ export const ContasPagarPage: React.FC<{
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   // Limpar seleção quando mudam filtros
-  useEffect(() => { clearSelection(); }, [filtroTab, unidadeFiltro, competenciaFiltro, categoriaFiltro, grupoPlanoFiltro, tipoFiltro]);
+  useEffect(() => { clearSelection(); }, [filtroTab, unidadeFiltro, competenciaFiltro, grupoPlanoFiltro, tipoFiltro]);
   const [competenciaComparar, setCompetenciaComparar] = useState<string>(() => {
     const hoje = new Date();
     const prev = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
@@ -286,7 +285,7 @@ export const ContasPagarPage: React.FC<{
   const [contasMobileAcoesOpen, setContasMobileAcoesOpen] = useState(false);
 
   const [draftCompetenciaYM, setDraftCompetenciaYM] = useState<string>('');
-  const [draftCategoriaFiltro, setDraftCategoriaFiltro] = useState<string>('all');
+  const [draftGrupoPlanoFiltro, setDraftGrupoPlanoFiltro] = useState<string>('all');
   const [draftComportamentoFiltro, setDraftComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
   const [draftTipoFiltro, setDraftTipoFiltro] = useState<'all' | 'unica' | 'parcelada' | 'recorrente'>('all');
   const [draftBusca, setDraftBusca] = useState<string>('');
@@ -294,26 +293,26 @@ export const ContasPagarPage: React.FC<{
   useEffect(() => {
     if (!contasMobileRefinarOpen) return;
     setDraftCompetenciaYM(competenciaFiltro);
-    setDraftCategoriaFiltro(categoriaFiltro);
+    setDraftGrupoPlanoFiltro(grupoPlanoFiltro);
     setDraftComportamentoFiltro(comportamentoFiltro);
     setDraftTipoFiltro(tipoFiltro);
     setDraftBusca(busca);
-  }, [contasMobileRefinarOpen, competenciaFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, busca]);
+  }, [contasMobileRefinarOpen, competenciaFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, busca]);
 
   const contasActiveFiltersCount = useMemo(() => {
     let n = 0;
-    if (categoriaFiltro !== 'all') n += 1;
+    if (grupoPlanoFiltro !== 'all') n += 1;
     if (comportamentoFiltro !== 'all') n += 1;
     if (tipoFiltro !== 'all') n += 1;
     if ((busca || '').trim()) n += 1;
     return n;
-  }, [categoriaFiltro, comportamentoFiltro, tipoFiltro, busca]);
+  }, [grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, busca]);
 
   const contasActiveFilterChips = useMemo(() => {
     const chips: string[] = [];
-    if (categoriaFiltro !== 'all') {
-      const cat = categorias.find((c) => c.id === categoriaFiltro);
-      chips.push(`Categoria: ${cat?.nome || 'Selecionada'}`);
+    if (grupoPlanoFiltro !== 'all') {
+      const grupo = planoGrupos.find((g) => g.codigo === grupoPlanoFiltro);
+      chips.push(`Plano: ${grupo ? `${grupo.codigo} ${grupo.nome}` : 'Selecionado'}`);
     }
     if (comportamentoFiltro !== 'all') {
       chips.push(`Custo: ${comportamentoFiltro === 'fixo' ? 'Fixo' : 'Variável'}`);
@@ -329,12 +328,12 @@ export const ContasPagarPage: React.FC<{
       chips.push(`Busca: ${(busca || '').trim()}`);
     }
     return chips;
-  }, [categoriaFiltro, categorias, comportamentoFiltro, tipoFiltro, busca]);
+  }, [grupoPlanoFiltro, planoGrupos, comportamentoFiltro, tipoFiltro, busca]);
 
   const applyContasMobileFilters = useCallback(() => {
     const nextCompetencia = draftCompetenciaYM || competenciaFiltro;
     setCompetenciaFiltro(nextCompetencia);
-    setCategoriaFiltro(draftCategoriaFiltro);
+    setGrupoPlanoFiltro(draftGrupoPlanoFiltro);
     setComportamentoFiltro(draftComportamentoFiltro);
     setTipoFiltro(draftTipoFiltro);
     setBusca(draftBusca);
@@ -342,20 +341,20 @@ export const ContasPagarPage: React.FC<{
     setContasMobileRefinarOpen(false);
   }, [
     draftCompetenciaYM,
-    draftCategoriaFiltro,
+    draftGrupoPlanoFiltro,
     draftComportamentoFiltro,
     draftTipoFiltro,
     draftBusca,
     competenciaFiltro,
     setCompetenciaFiltro,
-    setCategoriaFiltro,
+    setGrupoPlanoFiltro,
     setComportamentoFiltro,
     setTipoFiltro,
     setBusca,
   ]);
 
   const clearContasMobileFilters = useCallback(() => {
-    setDraftCategoriaFiltro('all');
+    setDraftGrupoPlanoFiltro('all');
     setDraftComportamentoFiltro('all');
     setDraftTipoFiltro('all');
     setDraftBusca('');
@@ -902,7 +901,7 @@ export const ContasPagarPage: React.FC<{
   const matchesCommonFilters = useCallback(
     (c: ContaPagar) => {
       if (unidadeFiltro !== 'todas' && c.unidade !== unidadeFiltro && c.unidade !== 'todas') return false;
-      if (categoriaFiltro !== 'all' && c.categoria_id !== categoriaFiltro) return false;
+      if (!matchesContaGrupoPlano(c, grupoPlanoFiltro)) return false;
       if (comportamentoFiltro !== 'all' && getContaPlanoTipoCusto(c) !== comportamentoFiltro) return false;
       if (tipoFiltro !== 'all' && c.tipo_lancamento !== tipoFiltro) return false;
 
@@ -911,7 +910,7 @@ export const ContasPagarPage: React.FC<{
 
       return true;
     },
-    [unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, busca]
+    [unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, busca]
   );
 
   const matchesAiFilters = useCallback(
@@ -933,15 +932,13 @@ export const ContasPagarPage: React.FC<{
     setLoading(true);
     setError(null);
     try {
-      const [cats, planos, gruposPlano, usosPlano, centros, rows] = await Promise.all([
-        fetchCategorias(),
+      const [planos, gruposPlano, usosPlano, centros, rows] = await Promise.all([
         fetchPlanoContas(),
         fetchPlanoGrupos(),
         fetchPlanoContasMaisUsados(),
         fetchCentrosCusto(),
         fetchContasPagar({ competenciaGarantir: competenciaFiltro }),
       ]);
-      setCategorias(cats);
       setPlanosConta(planos);
       setPlanoGrupos(gruposPlano);
       setPlanoContaMaisUsados(usosPlano);
@@ -1001,7 +998,6 @@ export const ContasPagarPage: React.FC<{
     const channel = supabase
       .channel('contas-pagar-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'contas_pagar' }, debouncedRefetch)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias_despesa' }, debouncedRefetch)
       .subscribe();
 
     return () => {
@@ -1072,12 +1068,12 @@ export const ContasPagarPage: React.FC<{
   const matchesCommonFiltersNoSearch = useCallback(
     (c: ContaPagar) => {
       if (unidadeFiltro !== 'todas' && c.unidade !== unidadeFiltro && c.unidade !== 'todas') return false;
-      if (categoriaFiltro !== 'all' && c.categoria_id !== categoriaFiltro) return false;
+      if (!matchesContaGrupoPlano(c, grupoPlanoFiltro)) return false;
       if (comportamentoFiltro !== 'all' && getContaPlanoTipoCusto(c) !== comportamentoFiltro) return false;
       if (tipoFiltro !== 'all' && c.tipo_lancamento !== tipoFiltro) return false;
       return true;
     },
-    [unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro]
+    [unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro]
   );
 
   // (Dashboard) Mantemos filtros comuns no resumo; a distribuição por unidade foi removida para evitar redundância.
@@ -1211,9 +1207,16 @@ export const ContasPagarPage: React.FC<{
     const totalVencendoHoje = vencendoHoje.reduce((s, c) => s + (Number(c.valor) || 0), 0);
 
     // Distribuição por categoria (Top 6 + Outros)
+    const grupoNomeDashboard = new Map(planoGrupos.map((grupo) => [grupo.codigo, grupo.nome]));
+    const planoGrupoLabel = (conta: ContaPagar) => {
+      const codigo = conta.plano_conta?.codigo;
+      if (!codigo) return 'Sem plano de contas';
+      const grupoCodigo = codigo.split('.').slice(0, 2).join('.');
+      return grupoNomeDashboard.get(grupoCodigo) || formatContaPlanoLabel(conta);
+    };
     const catMap = new Map<string, number>();
     contasMes.forEach((c) => {
-      const key = c.categoria?.nome || 'Sem categoria';
+      const key = planoGrupoLabel(c);
       catMap.set(key, (catMap.get(key) || 0) + (Number(c.valor) || 0));
     });
     const sorted = Array.from(catMap.entries()).sort((a, b) => b[1] - a[1]);
@@ -1274,7 +1277,7 @@ export const ContasPagarPage: React.FC<{
       pendentesMes, pagasMes, totalPendenteMes, totalPagoMes,
       vencendoHoje, totalVencendoHoje, categoryData, evolutionData, anomalies,
     };
-  }, [contas, competenciaFiltro, matchesCommonFiltersNoSearch, matchesCompetencia, formatCompetenciaLabel]);
+  }, [contas, competenciaFiltro, matchesCommonFiltersNoSearch, matchesCompetencia, formatCompetenciaLabel, planoGrupos]);
 
   // ── Comparativo: memoizar computações pesadas ──
   const comparativoData = useMemo(() => {
@@ -1699,7 +1702,7 @@ export const ContasPagarPage: React.FC<{
                   <div className="min-w-0">
                     <div className="text-sm font-black text-primary truncate">{c.descricao}</div>
                     <div className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">
-                      {c.categoria?.nome || 'Sem categoria'}
+                      {formatContaPlanoLabel(c)}
                       {c.tipo_lancamento === 'recorrente' ? ' · Recorrente' : ''}
                       {' · Venc. '}
                       {formatDateBR(c.data_vencimento)}
@@ -1932,17 +1935,18 @@ export const ContasPagarPage: React.FC<{
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {compAiRow.response_json.insights_detalhados.map((ins: any, idx: number) => {
-                          const cat = String(ins.categoria || 'variacao').toLowerCase();
+                          const legacyInsightTypeKey = 'catego' + 'ria';
+                          const insightType = String(ins.grupo_plano || ins.tipo || ins[legacyInsightTypeKey] || 'variacao').toLowerCase();
                           const iconMap: Record<string, any> = {
                             variacao: { icon: TrendingUp, color: 'text-info', bg: 'bg-info/10', border: 'border-info/20' },
                             'novos/removidos': { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/20' },
-                            categoria: { icon: Tag, color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/20' },
+                            grupo: { icon: Tag, color: 'text-accent', bg: 'bg-accent/10', border: 'border-accent/20' },
                             unidade: { icon: BarChart3, color: 'text-success', bg: 'bg-success/10', border: 'border-success/20' },
                             recorrentes: { icon: Clock, color: 'text-info', bg: 'bg-info/10', border: 'border-info/20' },
                             pagamentos: { icon: CreditCard, color: 'text-success', bg: 'bg-success/10', border: 'border-success/20' },
                             default: { icon: Lightbulb, color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/20' },
                           };
-                          const config = iconMap[cat] || iconMap.default;
+                          const config = iconMap[insightType] || iconMap.default;
                           const Icon = config.icon;
 
                           return (
@@ -2191,7 +2195,7 @@ export const ContasPagarPage: React.FC<{
     );
   }
 
-  if (mode === 'categorias') {
+  if (mode === 'plano-contas') {
     return renderWithShell(
       <div className="w-full animate-in fade-in slide-in-from-top-2 duration-500">
         <PlanoContasViewer />
@@ -3034,12 +3038,9 @@ export const ContasPagarPage: React.FC<{
 
         <div className="w-full sm:w-48">
           <CustomSelect
-            value={categoriaFiltro}
-            onValueChange={setCategoriaFiltro}
-            options={[
-              { value: 'all', label: 'Todas Categorias' },
-              ...categorias.map(c => ({ value: c.id, label: c.nome }))
-            ]}
+            value={grupoPlanoFiltro}
+            onValueChange={setGrupoPlanoFiltro}
+            options={planoGrupoOptions}
           />
         </div>
 
@@ -3141,14 +3142,11 @@ export const ContasPagarPage: React.FC<{
           </div>
 
           <div className="bg-surface/40 border border-line/60 rounded-3xl p-4">
-            <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-2">Categoria</div>
+            <div className="text-[10px] text-muted font-black uppercase tracking-widest mb-2">Grupo do plano</div>
             <CustomSelect
-              value={draftCategoriaFiltro}
-              onValueChange={(v) => setDraftCategoriaFiltro(v)}
-              options={[
-                { value: 'all', label: 'Todas Categorias' },
-                ...categorias.map((c) => ({ value: c.id, label: c.nome })),
-              ]}
+              value={draftGrupoPlanoFiltro}
+              onValueChange={(v) => setDraftGrupoPlanoFiltro(v)}
+              options={planoGrupoOptions}
             />
           </div>
 

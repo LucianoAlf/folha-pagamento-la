@@ -5,6 +5,7 @@ import { ContaPagar } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
 import { cn } from '../CollaboratorComponents';
+import { formatContaCentroCustoLabel, formatContaPlanoLabel } from './planoContasSelectors';
 
 function formatDateTitleBR(iso: string) {
   const [yyyy, mm, dd] = iso.split('-').map(Number);
@@ -86,7 +87,10 @@ export const ContasDoDiaModal: React.FC<{
                 <div className="min-w-0">
                   <div className="text-primary font-black truncate">{c.descricao}</div>
                   <div className="mt-1 flex items-center gap-2">
-                    <div className="text-secondary text-xs font-bold truncate">{c.categoria?.nome || 'Sem categoria'}</div>
+                    <div className="min-w-0">
+                      <div className="text-secondary text-xs font-bold truncate">{formatContaPlanoLabel(c)}</div>
+                      <div className="text-muted text-[10px] font-bold truncate">{formatContaCentroCustoLabel(c)}</div>
+                    </div>
                     {badgeFor(c)}
                   </div>
                 </div>

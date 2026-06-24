@@ -1313,7 +1313,7 @@ export default function App() {
         'visao-geral': 'Contas',
         'todas': 'Audit.',
         'comparativo': 'IA',
-        'categorias': 'Categ.',
+        'plano-contas': 'Plano',
       };
       return contasMap[id] || id;
     }

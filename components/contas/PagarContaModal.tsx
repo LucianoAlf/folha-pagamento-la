@@ -4,6 +4,7 @@ import { Card, CustomSelect, DatePicker, Modal } from '../UI';
 import { ContaPagar, METODOS_PAGAMENTO } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
+import { formatContaPlanoLabel } from './planoContasSelectors';
 
 const formatDateBR = (isoDate: string) => {
   if (!isoDate) return '—';
@@ -72,8 +73,8 @@ export const PagarContaModal: React.FC<{
         <Card className="p-6 mb-6 bg-surface/40 border-line">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Categoria</div>
-              <div className="text-primary font-black mt-1">{(conta.categoria?.nome || '—').toUpperCase()}</div>
+              <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Plano de conta</div>
+              <div className="text-primary font-black mt-1">{formatContaPlanoLabel(conta).toUpperCase()}</div>
               <div className="mt-4 text-[10px] text-muted font-black uppercase tracking-[0.2em]">Descrição</div>
               <div className="text-secondary font-bold mt-1">{conta.descricao}</div>
             </div>

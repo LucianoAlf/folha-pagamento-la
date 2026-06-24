@@ -1,6 +1,5 @@
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 import {
-  CategoriaDespesa,
   CentroCusto,
   CodigoMesBadge,
   ContaCredencial,
@@ -15,7 +14,7 @@ import { competenciaFromVencimento, toDateOnly } from '../utils/dateOnly';
 import { buildParcelasContaPagar } from './contasPagarParcelas';
 
 const CONTA_PAGAR_SELECT =
-  '*, categoria:categorias_despesa(*), plano_conta:plano_contas(*), centro_custo:centros_custo(*)';
+  '*, plano_conta:plano_contas(*), centro_custo:centros_custo(*)';
 
 function normalizeContaDates(conta: Partial<ContaPagar>): Partial<ContaPagar> {
   const next = { ...conta };
@@ -27,17 +26,6 @@ function normalizeContaDates(conta: Partial<ContaPagar>): Partial<ContaPagar> {
     next.competencia = competenciaFromVencimento(next.competencia) || toDateOnly(next.competencia);
   }
   return next;
-}
-
-export async function fetchCategorias(): Promise<CategoriaDespesa[]> {
-  const { data, error } = await supabase
-    .from('categorias_despesa')
-    .select('*')
-    .eq('ativo', true)
-    .order('ordem');
-
-  if (error) throw error;
-  return (data || []) as CategoriaDespesa[];
 }
 
 export async function fetchPlanoContas(): Promise<PlanoConta[]> {
@@ -95,26 +83,6 @@ export async function fetchPlanoContasMaisUsados(limit = 8): Promise<PlanoContaM
   return Array.from(counts, ([plano_conta_id, total]) => ({ plano_conta_id, total }))
     .sort((a, b) => b.total - a.total)
     .slice(0, limit);
-}
-
-export async function upsertCategoria(categoria: Partial<CategoriaDespesa>): Promise<CategoriaDespesa> {
-  const { data, error } = await supabase
-    .from('categorias_despesa')
-    .upsert([categoria])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as CategoriaDespesa;
-}
-
-export async function deleteCategoria(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('categorias_despesa')
-    .update({ ativo: false }) // Soft delete
-    .eq('id', id);
-
-  if (error) throw error;
 }
 
 function dedupeRecorrentesVisao(contas: ContaPagar[]): ContaPagar[] {
@@ -367,7 +335,6 @@ export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch:
   const fieldsToUpdate: any = {};
   if (patch.descricao) fieldsToUpdate.descricao = patch.descricao;
   if (patch.valor) fieldsToUpdate.valor = patch.valor;
-  if (patch.categoria_id) fieldsToUpdate.categoria_id = patch.categoria_id;
   if (patch.plano_conta_id) fieldsToUpdate.plano_conta_id = patch.plano_conta_id;
   if (patch.centro_custo_id) fieldsToUpdate.centro_custo_id = patch.centro_custo_id;
   if (patch.unidade) fieldsToUpdate.unidade = patch.unidade;
@@ -399,7 +366,6 @@ export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch:
 export async function updateFuturasParceladas(contaOriginal: ContaPagar, patch: Partial<ContaPagar>): Promise<void> {
   const fieldsToUpdate: any = {};
   if (patch.valor !== undefined) fieldsToUpdate.valor = patch.valor;
-  if (patch.categoria_id) fieldsToUpdate.categoria_id = patch.categoria_id;
   if (patch.plano_conta_id) fieldsToUpdate.plano_conta_id = patch.plano_conta_id;
   if (patch.centro_custo_id) fieldsToUpdate.centro_custo_id = patch.centro_custo_id;
   if (patch.unidade) fieldsToUpdate.unidade = patch.unidade;
@@ -832,6 +798,10 @@ function blocoContaRelatorio(
   const comp = formatCompetenciaMY(conta.competencia, conta.data_vencimento);
   const valor = formatMoneyWhatsApp(Number(conta.valor) || 0);
   const linhas = [`*PG ${titulo} ${comp} ${valor}*`];
+  const plano = conta.plano_conta ? `${conta.plano_conta.codigo} ${conta.plano_conta.nome}` : '';
+  const centro = conta.centro_custo?.nome || (conta.unidade ? String(conta.unidade).toUpperCase() : '');
+  const classificacao = [plano, centro].filter(Boolean).join(' · ');
+  if (classificacao) linhas.push(classificacao);
   const cod = linhaCodigoPagamento(conta, codigo);
   if (cod) linhas.push(cod);
   return linhas.join('\n');

@@ -106,7 +106,6 @@ export const EditarContaModal: React.FC<{
     const patch: Partial<ContaPagar> = {
       descricao: descricao.trim(),
       valor: valorNum,
-      categoria_id: conta.categoria_id || null,
       plano_conta_id: planoContaId,
       centro_custo_id: centroCustoId,
       unidade: unidade as any,

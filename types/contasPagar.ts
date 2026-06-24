@@ -1,14 +1,3 @@
-export interface CategoriaDespesa {
-  id: string;
-  nome: string;
-  icone: string;
-  cor: string;
-  tipo_fluxo: 'receita' | 'despesa';
-  tipo_custo: 'fixo' | 'variavel' | null;
-  ativo: boolean;
-  ordem: number;
-}
-
 export interface PlanoConta {
   id: string;
   codigo: string;
@@ -89,8 +78,6 @@ export interface ContaPagarRelatorioDia {
 export interface ContaPagar {
   id: string;
   descricao: string;
-  categoria_id: string | null;
-  categoria?: CategoriaDespesa;
   plano_conta_id?: string | null;
   plano_conta?: PlanoConta | null;
   centro_custo_id?: string | null;

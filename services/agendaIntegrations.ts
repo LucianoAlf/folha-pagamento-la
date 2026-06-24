@@ -15,7 +15,8 @@ type ContaPagarRow = {
   status: 'pendente' | 'pago' | 'cancelado' | string;
   data_pagamento: string | null;
   metodo_pagamento: string | null;
-  categoria?: { nome?: string | null } | null;
+  plano_conta?: { codigo?: string | null; nome?: string | null } | null;
+  centro_custo?: { nome?: string | null } | null;
 };
 
 type FolhaRow = {
@@ -271,7 +272,7 @@ async function syncContasAsAgendaTasks(input: { listaFinanceiroId: string; cfg: 
 
   const { data, error } = await supabase
     .from('contas_pagar')
-    .select('id,descricao,unidade,valor,data_vencimento,status,data_pagamento,metodo_pagamento,categoria:categorias_despesa(nome)')
+    .select('id,descricao,unidade,valor,data_vencimento,status,data_pagamento,metodo_pagamento,plano_conta:plano_contas(codigo,nome),centro_custo:centros_custo(nome)')
     .neq('status', 'cancelado')
     .gte('data_vencimento', startYmd)
     .lte('data_vencimento', endYmd)
@@ -309,10 +310,11 @@ async function syncContasAsAgendaTasks(input: { listaFinanceiroId: string; cfg: 
     const dataConclusao = c.status === 'pago' ? (c.data_pagamento ? toDueISO(c.data_pagamento.slice(0, 10), '12:00') : new Date().toISOString()) : null;
 
     const titulo = `Pagar: ${c.descricao}`;
+    const planoLabel = c.plano_conta?.codigo && c.plano_conta?.nome ? `${c.plano_conta.codigo} ${c.plano_conta.nome}` : null;
     const descParts = [
-      c.categoria?.nome ? `Categoria: ${c.categoria.nome}` : null,
+      planoLabel ? `Plano: ${planoLabel}` : null,
       `Valor: ${brl(Number(c.valor) || 0)}`,
-      c.unidade ? `Unidade: ${String(c.unidade).toUpperCase()}` : null,
+      c.centro_custo?.nome ? `Centro de custo: ${c.centro_custo.nome}` : c.unidade ? `Centro de custo: ${String(c.unidade).toUpperCase()}` : null,
       c.metodo_pagamento ? `Metodo: ${c.metodo_pagamento}` : null,
       '',
       'Origem: Contas a Pagar (tarefa automatica)',

@@ -205,7 +205,6 @@ export const NovaContaModal: React.FC<{
 
                   const payload: Partial<ContaPagar> = {
                     descricao: descricao.trim(),
-                    categoria_id: null,
                     plano_conta_id: planoContaId,
                     centro_custo_id: centroCustoId,
                     unidade: unidade as ContaPagar['unidade'],

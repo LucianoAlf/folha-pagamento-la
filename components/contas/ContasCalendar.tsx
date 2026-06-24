@@ -7,6 +7,7 @@ import { formatCurrency } from '../../services/api';
 import { ContaPagar } from '../../types/contasPagar';
 import { getStatusVisual } from '../../services/contasPagarService';
 import { Tooltip } from '../UI';
+import { formatContaCentroCustoLabel, formatContaPlanoLabel } from './planoContasSelectors';
 
 type Props = {
   year: number;
@@ -144,9 +145,9 @@ export function ContasCalendar({ year, month, contas, selectedDate, onSelectDate
                 <div className="min-w-0">
                   <div className="text-[11px] text-secondary font-bold truncate">{c.descricao}</div>
                   <div className="text-[10px] text-muted font-bold truncate">
-                    {(c.categoria?.nome || 'Sem categoria')}{' '}
+                    {formatContaPlanoLabel(c)}{' '}
                     <span className="text-muted">•</span>{' '}
-                    {(c.unidade || 'todas').toUpperCase()}
+                    {formatContaCentroCustoLabel(c)}
                   </div>
                 </div>
                 <div className="text-[11px] font-black text-secondary whitespace-nowrap">

@@ -213,11 +213,10 @@ test('resolvePlanosMaisUsados preserves usage order and ignores non-selectable i
   );
 });
 
-test('formatContaPlanoLabel renders plano codigo and nome with category fallback', () => {
+test('formatContaPlanoLabel renders plano codigo and nome with defensive fallback', () => {
   assert.equal(
     formatContaPlanoLabel({
       plano_conta: { id: 'energia', codigo: '5.2.3', nome: 'Energia Eletrica', nivel: 3, natureza: 'saida', ativo: true, ordem: 3 },
-      categoria: { id: 'cat', nome: 'Energia antiga', icone: '', cor: '', tipo_fluxo: 'despesa', tipo_custo: 'fixo', ativo: true, ordem: 1 },
     }),
     '5.2.3 Energia Eletrica'
   );
@@ -225,9 +224,8 @@ test('formatContaPlanoLabel renders plano codigo and nome with category fallback
   assert.equal(
     formatContaPlanoLabel({
       plano_conta: null,
-      categoria: { id: 'cat', nome: 'Energia antiga', icone: '', cor: '', tipo_fluxo: 'despesa', tipo_custo: 'fixo', ativo: true, ordem: 1 },
     }),
-    'Energia antiga'
+    'Sem plano'
   );
 });
 
@@ -242,9 +240,8 @@ test('formatContaPlanoCodigo and formatContaCentroCustoLabel use defensive fallb
   assert.equal(
     formatContaPlanoCodigo({
       plano_conta: null,
-      categoria: { id: 'cat', nome: 'Energia antiga', icone: '', cor: '', tipo_fluxo: 'despesa', tipo_custo: 'fixo', ativo: true, ordem: 1 },
     }),
-    'Energia antiga'
+    'Sem plano'
   );
 
   assert.equal(
@@ -263,7 +260,6 @@ test('matchesContaPlanoCentroSearch finds descricao, plano and centro without ac
     descricao: 'Light loja 171',
     plano_conta: { id: 'energia', codigo: '5.2.3', nome: 'Energia Eletrica', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 3 },
     centro_custo: { id: 'cg', codigo: 'cg', nome: 'Campo Grande', tipo: 'unidade', ativo: true, ordem: 1 },
-    categoria: { id: 'cat', nome: 'Conta de luz', icone: '', cor: '', tipo_fluxo: 'despesa' as const, tipo_custo: 'fixo' as const, ativo: true, ordem: 1 },
     unidade: 'cg' as const,
   };
 

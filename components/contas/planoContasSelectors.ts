@@ -1,4 +1,4 @@
-import type { CategoriaDespesa, CentroCusto, PlanoConta } from '../../types/contasPagar.ts';
+import type { CentroCusto, PlanoConta } from '../../types/contasPagar.ts';
 
 export type UnidadeContaLegada = 'cg' | 'rec' | 'bar';
 type PlanoContaSelecionavelInput = Pick<PlanoConta, 'ativo' | 'natureza' | 'nivel'> & Partial<PlanoConta>;
@@ -9,7 +9,6 @@ type PlanoContaParentInput = Pick<PlanoConta, 'id' | 'nome' | 'nivel'> & Partial
 type ContaPlanoDisplayInput = {
   descricao?: string | null;
   unidade?: string | null;
-  categoria?: (Partial<CategoriaDespesa> & { nome?: string | null }) | null;
   plano_conta?: PlanoContaLabelInput | null;
   centro_custo?: (Partial<CentroCusto> & { nome?: string | null }) | null;
 };
@@ -64,11 +63,11 @@ export function formatPlanoContaLabel(plano: PlanoContaLabelInput): string {
 
 export function formatContaPlanoLabel(conta: ContaPlanoDisplayInput): string {
   if (conta.plano_conta) return formatPlanoContaLabel(conta.plano_conta);
-  return conta.categoria?.nome || 'Sem plano';
+  return 'Sem plano';
 }
 
 export function formatContaPlanoCodigo(conta: ContaPlanoDisplayInput): string {
-  return conta.plano_conta?.codigo || conta.categoria?.nome || 'Sem plano';
+  return conta.plano_conta?.codigo || 'Sem plano';
 }
 
 export function formatContaCentroCustoLabel(conta: ContaPlanoDisplayInput): string {
@@ -94,7 +93,6 @@ export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, que
     return normalizeSearch(
       [
         conta.descricao || '',
-        conta.categoria?.nome || '',
         conta.plano_conta?.nome || '',
         conta.centro_custo?.nome || '',
         conta.unidade || '',
@@ -105,7 +103,6 @@ export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, que
   return normalizeSearch(
     [
       conta.descricao || '',
-      conta.categoria?.nome || '',
       conta.plano_conta?.codigo || '',
       conta.plano_conta?.nome || '',
       conta.centro_custo?.nome || '',
