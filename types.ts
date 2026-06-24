@@ -126,6 +126,59 @@ export interface Alerta {
 }
 
 // =====================================================
+// WHATSAPP - DESTINOS E NOTIFICACOES POR GRUPO
+// =====================================================
+
+export type WhatsappDestinoTipo = 'grupo' | 'pessoa';
+export type WhatsappDestinoFinalidade = 'contas_diario' | 'suporte' | 'conciliacao' | 'diretoria';
+
+export type WhatsappGrupoNotificacaoTipo =
+  | 'contas_a_pagar_dia'
+  | 'resumo_financeiro_semanal'
+  | 'resumo_financeiro_mensal';
+
+export type WhatsappGrupoNotificacaoFrequencia = 'diario' | 'semanal' | 'mensal';
+
+export interface WhatsappDestino {
+  id: string;
+  nome: string;
+  tipo: WhatsappDestinoTipo;
+  jid: string;
+  finalidade: WhatsappDestinoFinalidade;
+  unidade: string | null;
+  ativo: boolean;
+  observacao: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface WhatsappGrupoNotificacao {
+  id: string;
+  destino_id: string;
+  tipo: WhatsappGrupoNotificacaoTipo;
+  frequencia: WhatsappGrupoNotificacaoFrequencia;
+  horario: string;
+  dia_semana: number | null;
+  dia_mes: number | null;
+  ativo: boolean;
+  ultima_execucao: string | null;
+  observacao: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface WhatsappGrupoNotificacaoInput {
+  destino_id: string;
+  tipo: WhatsappGrupoNotificacaoTipo;
+  frequencia: WhatsappGrupoNotificacaoFrequencia;
+  horario: string;
+  dia_semana?: number | null;
+  dia_mes?: number | null;
+  ativo?: boolean;
+  observacao?: string | null;
+}
+
+// =====================================================
 // FÉRIAS CLT
 // =====================================================
 export * from './types/ferias';

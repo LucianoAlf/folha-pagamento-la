@@ -1,16 +1,91 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Badge, Card, CustomSelect, TimeSelect, ToggleSwitch, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
-import { Bell, Calendar, ClipboardCheck, CreditCard, Send, Loader2, Save, Smartphone, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bell, Calendar, ClipboardCheck, Clock, CreditCard, Loader2, Plus, Save, Send, Smartphone, Sparkles, Trash2, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NotificacaoConfig } from '../../types/agenda';
+import type {
+  WhatsappDestino,
+  WhatsappDestinoFinalidade,
+  WhatsappGrupoNotificacao,
+  WhatsappGrupoNotificacaoFrequencia,
+  WhatsappGrupoNotificacaoTipo,
+} from '../../types';
 import { fetchNotificacaoConfig, upsertNotificacaoConfig } from '../../services/agendaService';
+import {
+  createGrupoNotificacao,
+  deleteGrupoNotificacao,
+  listDestinos,
+  listGrupoNotificacoes,
+  toggleGrupoNotificacao,
+  updateGrupoNotificacao,
+} from '../../services/whatsappGruposService';
 import { sendWhatsappMessage } from '../../services/whatsappService';
+
+const grupoTipoOptions: { value: WhatsappGrupoNotificacaoTipo; label: string }[] = [
+  { value: 'contas_a_pagar_dia', label: 'Contas a pagar do dia' },
+  { value: 'resumo_financeiro_semanal', label: 'Resumo financeiro semanal' },
+  { value: 'resumo_financeiro_mensal', label: 'Resumo financeiro mensal' },
+];
+
+const grupoTipoLabels = Object.fromEntries(grupoTipoOptions.map((opt) => [opt.value, opt.label])) as Record<
+  WhatsappGrupoNotificacaoTipo,
+  string
+>;
+
+const frequenciaOptions: { value: WhatsappGrupoNotificacaoFrequencia; label: string }[] = [
+  { value: 'diario', label: 'Diario' },
+  { value: 'semanal', label: 'Semanal' },
+  { value: 'mensal', label: 'Mensal' },
+];
+
+const diasSemanaGrupo = [
+  { value: '0', label: 'Domingo' },
+  { value: '1', label: 'Segunda' },
+  { value: '2', label: 'Terca' },
+  { value: '3', label: 'Quarta' },
+  { value: '4', label: 'Quinta' },
+  { value: '5', label: 'Sexta' },
+  { value: '6', label: 'Sabado' },
+];
+
+const finalidadeLabels: Record<WhatsappDestinoFinalidade, string> = {
+  contas_diario: 'Financeiro Geral',
+  diretoria: 'Diretoria',
+  conciliacao: 'Conciliação',
+  suporte: 'Suporte',
+};
+
+type GrupoDraft = {
+  tipo: WhatsappGrupoNotificacaoTipo;
+  frequencia: WhatsappGrupoNotificacaoFrequencia;
+  horario: string;
+  dia_semana: number | null;
+  dia_mes: number | null;
+};
+
+const defaultFrequenciaPorTipo: Record<WhatsappGrupoNotificacaoTipo, WhatsappGrupoNotificacaoFrequencia> = {
+  contas_a_pagar_dia: 'diario',
+  resumo_financeiro_semanal: 'semanal',
+  resumo_financeiro_mensal: 'mensal',
+};
+
+const normalizeHHMMDisplay = (value?: string | null) => String(value || '08:00').slice(0, 5);
 
 export const NotificacoesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'individual' | 'grupos'>('individual');
+  const [gruposLoading, setGruposLoading] = useState(false);
+  const [gruposLoaded, setGruposLoaded] = useState(false);
+  const [gruposError, setGruposError] = useState<string | null>(null);
+  const [destinos, setDestinos] = useState<WhatsappDestino[]>([]);
+  const [grupoNotificacoes, setGrupoNotificacoes] = useState<WhatsappGrupoNotificacao[]>([]);
+  const [grupoDrafts, setGrupoDrafts] = useState<Record<string, Partial<WhatsappGrupoNotificacao>>>({});
+  const [grupoSavingIds, setGrupoSavingIds] = useState<Record<string, boolean>>({});
+  const [addingDestinoId, setAddingDestinoId] = useState<string | null>(null);
+  const [newGrupoDrafts, setNewGrupoDrafts] = useState<Record<string, GrupoDraft>>({});
 
   // Mobile detection (reactive)
   const [isMobile, setIsMobile] = useState(false);
@@ -131,6 +206,194 @@ export const NotificacoesPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const loadGrupoConfig = async () => {
+    setGruposLoading(true);
+    setGruposError(null);
+    try {
+      const [destinosRows, notificacoesRows] = await Promise.all([
+        listDestinos(),
+        listGrupoNotificacoes(),
+      ]);
+      setDestinos(destinosRows);
+      setGrupoNotificacoes(notificacoesRows);
+      setGruposLoaded(true);
+    } catch (e: any) {
+      setGruposError(e?.message || 'Falha ao carregar grupos de WhatsApp');
+    } finally {
+      setGruposLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'grupos' || gruposLoaded || gruposLoading) return;
+    void loadGrupoConfig();
+  }, [activeTab, gruposLoaded, gruposLoading]);
+
+  const notificacoesPorDestino = useMemo(() => {
+    const grouped = new Map<string, WhatsappGrupoNotificacao[]>();
+    for (const notificacao of grupoNotificacoes) {
+      const rows = grouped.get(notificacao.destino_id) || [];
+      rows.push(notificacao);
+      grouped.set(notificacao.destino_id, rows);
+    }
+    for (const rows of grouped.values()) {
+      rows.sort((a, b) => grupoTipoLabels[a.tipo].localeCompare(grupoTipoLabels[b.tipo]));
+    }
+    return grouped;
+  }, [grupoNotificacoes]);
+
+  const setGrupoSaving = (id: string, next: boolean) => {
+    setGrupoSavingIds((prev) => ({ ...prev, [id]: next }));
+  };
+
+  const getUnusedTipos = (destinoId: string) => {
+    const usados = new Set((notificacoesPorDestino.get(destinoId) || []).map((notificacao) => notificacao.tipo));
+    return grupoTipoOptions.filter((opt) => !usados.has(opt.value));
+  };
+
+  const buildDefaultGrupoDraft = (tipo: WhatsappGrupoNotificacaoTipo): GrupoDraft => {
+    const frequencia = defaultFrequenciaPorTipo[tipo];
+    return {
+      tipo,
+      frequencia,
+      horario: '08:00',
+      dia_semana: frequencia === 'semanal' ? 1 : null,
+      dia_mes: frequencia === 'mensal' ? 1 : null,
+    };
+  };
+
+  const applyFrequenciaRules = (draft: GrupoDraft): GrupoDraft => ({
+    ...draft,
+    horario: normalizeHHMMDisplay(draft.horario),
+    dia_semana: draft.frequencia === 'semanal' ? Number(draft.dia_semana ?? 1) : null,
+    dia_mes: draft.frequencia === 'mensal' ? Number(draft.dia_mes ?? 1) : null,
+  });
+
+  const resolveGrupoDraft = (notificacao: WhatsappGrupoNotificacao): GrupoDraft => {
+    const draft = grupoDrafts[notificacao.id] || {};
+    return applyFrequenciaRules({
+      tipo: notificacao.tipo,
+      frequencia: (draft.frequencia || notificacao.frequencia) as WhatsappGrupoNotificacaoFrequencia,
+      horario: normalizeHHMMDisplay(draft.horario ?? notificacao.horario),
+      dia_semana: draft.dia_semana ?? notificacao.dia_semana ?? 1,
+      dia_mes: draft.dia_mes ?? notificacao.dia_mes ?? 1,
+    });
+  };
+
+  const handleGrupoDraftChange = (
+    notificacao: WhatsappGrupoNotificacao,
+    patch: Partial<GrupoDraft>
+  ) => {
+    setGrupoDrafts((prev) => {
+      const current = resolveGrupoDraft(notificacao);
+      const next = applyFrequenciaRules({ ...current, ...patch });
+      return { ...prev, [notificacao.id]: next };
+    });
+  };
+
+  const handleSaveGrupoNotificacao = async (notificacao: WhatsappGrupoNotificacao) => {
+    const draft = resolveGrupoDraft(notificacao);
+    setGrupoSaving(notificacao.id, true);
+    setGruposError(null);
+    try {
+      const savedRow = await updateGrupoNotificacao(notificacao.id, {
+        frequencia: draft.frequencia,
+        horario: draft.horario,
+        dia_semana: draft.dia_semana,
+        dia_mes: draft.dia_mes,
+      });
+      setGrupoNotificacoes((prev) => prev.map((row) => (row.id === savedRow.id ? savedRow : row)));
+      setGrupoDrafts((prev) => {
+        const next = { ...prev };
+        delete next[notificacao.id];
+        return next;
+      });
+    } catch (e: any) {
+      setGruposError(e?.message || 'Falha ao salvar notificacao do grupo');
+    } finally {
+      setGrupoSaving(notificacao.id, false);
+    }
+  };
+
+  const handleToggleGrupoNotificacao = async (notificacao: WhatsappGrupoNotificacao, ativo: boolean) => {
+    const previous = notificacao;
+    setGrupoSaving(notificacao.id, true);
+    setGruposError(null);
+    setGrupoNotificacoes((prev) => prev.map((row) => (row.id === notificacao.id ? { ...row, ativo } : row)));
+    try {
+      const savedRow = await toggleGrupoNotificacao(notificacao.id, ativo);
+      setGrupoNotificacoes((prev) => prev.map((row) => (row.id === savedRow.id ? savedRow : row)));
+    } catch (e: any) {
+      setGrupoNotificacoes((prev) => prev.map((row) => (row.id === previous.id ? previous : row)));
+      setGruposError(e?.message || 'Falha ao alterar status da notificacao');
+    } finally {
+      setGrupoSaving(notificacao.id, false);
+    }
+  };
+
+  const handleStartAddingGrupo = (destinoId: string) => {
+    const unused = getUnusedTipos(destinoId);
+    if (!unused.length) return;
+    setAddingDestinoId(destinoId);
+    setNewGrupoDrafts((prev) => ({
+      ...prev,
+      [destinoId]: prev[destinoId] || buildDefaultGrupoDraft(unused[0].value),
+    }));
+  };
+
+  const handleNewGrupoDraftChange = (destinoId: string, patch: Partial<GrupoDraft>) => {
+    setNewGrupoDrafts((prev) => {
+      const current = prev[destinoId] || buildDefaultGrupoDraft(getUnusedTipos(destinoId)[0]?.value || 'contas_a_pagar_dia');
+      const patched = { ...current, ...patch };
+      if (patch.tipo) {
+        patched.frequencia = defaultFrequenciaPorTipo[patch.tipo];
+      }
+      return { ...prev, [destinoId]: applyFrequenciaRules(patched) };
+    });
+  };
+
+  const handleCreateGrupoNotificacao = async (destinoId: string) => {
+    const draft = applyFrequenciaRules(newGrupoDrafts[destinoId] || buildDefaultGrupoDraft(getUnusedTipos(destinoId)[0]?.value || 'contas_a_pagar_dia'));
+    setGrupoSaving(`new:${destinoId}`, true);
+    setGruposError(null);
+    try {
+      const savedRow = await createGrupoNotificacao({
+        destino_id: destinoId,
+        tipo: draft.tipo,
+        frequencia: draft.frequencia,
+        horario: draft.horario,
+        dia_semana: draft.dia_semana,
+        dia_mes: draft.dia_mes,
+        ativo: false,
+      });
+      setGrupoNotificacoes((prev) => [...prev, savedRow]);
+      setAddingDestinoId(null);
+      setNewGrupoDrafts((prev) => {
+        const next = { ...prev };
+        delete next[destinoId];
+        return next;
+      });
+    } catch (e: any) {
+      setGruposError(e?.message || 'Falha ao adicionar notificacao');
+    } finally {
+      setGrupoSaving(`new:${destinoId}`, false);
+    }
+  };
+
+  const handleDeleteGrupoNotificacao = async (notificacao: WhatsappGrupoNotificacao) => {
+    if (!window.confirm(`Remover "${grupoTipoLabels[notificacao.tipo]}" deste grupo?`)) return;
+    setGrupoSaving(notificacao.id, true);
+    setGruposError(null);
+    try {
+      await deleteGrupoNotificacao(notificacao.id);
+      setGrupoNotificacoes((prev) => prev.filter((row) => row.id !== notificacao.id));
+    } catch (e: any) {
+      setGruposError(e?.message || 'Falha ao remover notificacao');
+    } finally {
+      setGrupoSaving(notificacao.id, false);
+    }
+  };
+
   const save = async () => {
     setSaving(true);
     setSaved(false);
@@ -188,6 +451,278 @@ export const NotificacoesPage: React.FC = () => {
     }
   };
 
+  const renderGruposTab = () => (
+    <div className="space-y-6">
+      {gruposError ? (
+        <Card className={cn('p-4 border-danger/30 bg-danger/10')}>
+          <div className="text-danger font-bold">Erro nos grupos</div>
+          <div className="text-danger/80 text-sm mt-1">{gruposError}</div>
+        </Card>
+      ) : null}
+
+      {gruposLoading ? (
+        <Card className={cn('p-6 flex items-center justify-center gap-3', cardClass)}>
+          <Loader2 className="w-5 h-5 animate-spin text-accent" />
+          <span className="text-sm font-bold text-secondary">Carregando grupos...</span>
+        </Card>
+      ) : destinos.length === 0 ? (
+        <Card className={cn('p-6 text-center', cardClass)}>
+          <Users className="w-8 h-8 text-muted mx-auto mb-3" />
+          <div className="font-black text-primary">Nenhum grupo ativo encontrado</div>
+          <div className="text-sm text-muted mt-1">Cadastre os destinos no Supabase para configurar notificacoes por grupo.</div>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-5">
+          {destinos.map((destino) => {
+            const notificacoes = notificacoesPorDestino.get(destino.id) || [];
+            const unusedTipos = getUnusedTipos(destino.id);
+            const newDraft = newGrupoDrafts[destino.id] || (unusedTipos[0] ? buildDefaultGrupoDraft(unusedTipos[0].value) : null);
+            const isAdding = addingDestinoId === destino.id;
+
+            return (
+              <Card key={destino.id} className={cn('p-0 overflow-hidden', cardClass)}>
+                <div className="px-5 py-4 border-b border-line/70 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+                        <Users className="w-5 h-5 text-accent" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-primary font-black text-lg truncate">{destino.nome}</div>
+                        <div className="text-xs text-muted font-bold truncate">{destino.jid}</div>
+                      </div>
+                      <span className="inline-flex items-center rounded-full border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-black text-secondary">
+                        {finalidadeLabels[destino.finalidade] || destino.finalidade}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleStartAddingGrupo(destino.id)}
+                    disabled={!unusedTipos.length || isAdding}
+                    className={cn(
+                      'inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-black transition-all',
+                      'bg-accent/10 border-accent/25 text-accent hover:bg-accent/15',
+                      (!unusedTipos.length || isAdding) && 'opacity-50 cursor-not-allowed'
+                    )}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Adicionar notificacao
+                  </button>
+                </div>
+
+                <div className="divide-y divide-line/60">
+                  {notificacoes.length === 0 && !isAdding ? (
+                    <div className="px-5 py-8 text-center">
+                      <Clock className="w-8 h-8 text-muted mx-auto mb-3" />
+                      <div className="font-black text-primary">Nenhuma notificacao configurada</div>
+                      <div className="text-sm text-muted mt-1">Adicione um tipo de aviso para este grupo. Ele nasce desligado.</div>
+                    </div>
+                  ) : null}
+
+                  {notificacoes.map((notificacao) => {
+                    const draft = resolveGrupoDraft(notificacao);
+                    const isSavingRow = !!grupoSavingIds[notificacao.id];
+                    const hasChanges = !!grupoDrafts[notificacao.id];
+
+                    return (
+                      <div key={notificacao.id} className="px-5 py-4 space-y-4">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="text-primary font-black">{grupoTipoLabels[notificacao.tipo]}</div>
+                            <div className="text-xs text-muted font-bold mt-1">
+                              {notificacao.ativo ? 'Envio automatico ligado' : 'Envio automatico desligado'}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">Ativo</span>
+                            <ToggleSwitch
+                              checked={!!notificacao.ativo}
+                              onCheckedChange={(next) => void handleToggleGrupoNotificacao(notificacao, next)}
+                              disabled={isSavingRow}
+                              variant="emerald"
+                              size="sm"
+                              ariaLabel={`Ativar ${grupoTipoLabels[notificacao.tipo]}`}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(130px,160px)_minmax(160px,1fr)_minmax(130px,160px)_auto_auto] md:items-end">
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Horario</div>
+                            <TimeSelect
+                              value={draft.horario}
+                              onValueChange={(horario) => handleGrupoDraftChange(notificacao, { horario })}
+                              stepMinutes={15}
+                              className="min-w-0"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Frequencia</div>
+                            <CustomSelect
+                              value={draft.frequencia}
+                              onValueChange={(frequencia) =>
+                                handleGrupoDraftChange(notificacao, { frequencia: frequencia as WhatsappGrupoNotificacaoFrequencia })
+                              }
+                              options={frequenciaOptions}
+                            />
+                          </div>
+
+                          {draft.frequencia === 'semanal' ? (
+                            <div>
+                              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Dia</div>
+                              <CustomSelect
+                                value={String(draft.dia_semana ?? 1)}
+                                onValueChange={(dia) => handleGrupoDraftChange(notificacao, { dia_semana: Number(dia) })}
+                                options={diasSemanaGrupo}
+                              />
+                            </div>
+                          ) : draft.frequencia === 'mensal' ? (
+                            <div>
+                              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Dia</div>
+                              <input
+                                type="number"
+                                min={1}
+                                max={31}
+                                value={Number(draft.dia_mes ?? 1)}
+                                onChange={(e) => handleGrupoDraftChange(notificacao, { dia_mes: Number(e.target.value || 1) })}
+                                className="w-full px-4 py-3 rounded-xl bg-surface/50 border border-line text-secondary outline-none focus:ring-2 focus:ring-accent"
+                              />
+                            </div>
+                          ) : (
+                            <div className="hidden md:block" />
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => void handleSaveGrupoNotificacao(notificacao)}
+                            disabled={!hasChanges || isSavingRow}
+                            className={cn(
+                              'inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-black transition-all',
+                              'bg-accent/90 hover:bg-accent border-accent/40 text-white',
+                              (!hasChanges || isSavingRow) && 'opacity-50 cursor-not-allowed'
+                            )}
+                          >
+                            {isSavingRow ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Salvar
+                          </button>
+
+                          <Tooltip content="Remover notificacao">
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteGrupoNotificacao(notificacao)}
+                              disabled={isSavingRow}
+                              className={cn(
+                                'inline-flex items-center justify-center w-11 h-11 rounded-xl border border-line bg-surface/50 text-muted hover:text-danger hover:border-danger/30 transition-all',
+                                isSavingRow && 'opacity-50 cursor-not-allowed'
+                              )}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {isAdding && newDraft ? (
+                    <div className="px-5 py-4 bg-surface/30 space-y-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-primary font-black">Nova notificacao</div>
+                          <div className="text-xs text-muted font-bold">Configuracao nasce desligada.</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAddingDestinoId(null)}
+                          className="text-sm font-black text-muted hover:text-primary"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(220px,1fr)_minmax(130px,160px)_minmax(160px,1fr)_minmax(130px,160px)_auto] md:items-end">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Tipo</div>
+                          <CustomSelect
+                            value={newDraft.tipo}
+                            onValueChange={(tipo) => handleNewGrupoDraftChange(destino.id, { tipo: tipo as WhatsappGrupoNotificacaoTipo })}
+                            options={unusedTipos}
+                          />
+                        </div>
+
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Horario</div>
+                          <TimeSelect
+                            value={newDraft.horario}
+                            onValueChange={(horario) => handleNewGrupoDraftChange(destino.id, { horario })}
+                            stepMinutes={15}
+                            className="min-w-0"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Frequencia</div>
+                          <CustomSelect
+                            value={newDraft.frequencia}
+                            onValueChange={(frequencia) =>
+                              handleNewGrupoDraftChange(destino.id, { frequencia: frequencia as WhatsappGrupoNotificacaoFrequencia })
+                            }
+                            options={frequenciaOptions}
+                          />
+                        </div>
+
+                        {newDraft.frequencia === 'semanal' ? (
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Dia</div>
+                            <CustomSelect
+                              value={String(newDraft.dia_semana ?? 1)}
+                              onValueChange={(dia) => handleNewGrupoDraftChange(destino.id, { dia_semana: Number(dia) })}
+                              options={diasSemanaGrupo}
+                            />
+                          </div>
+                        ) : newDraft.frequencia === 'mensal' ? (
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Dia</div>
+                            <input
+                              type="number"
+                              min={1}
+                              max={31}
+                              value={Number(newDraft.dia_mes ?? 1)}
+                              onChange={(e) => handleNewGrupoDraftChange(destino.id, { dia_mes: Number(e.target.value || 1) })}
+                              className="w-full px-4 py-3 rounded-xl bg-surface/50 border border-line text-secondary outline-none focus:ring-2 focus:ring-accent"
+                            />
+                          </div>
+                        ) : (
+                          <div className="hidden md:block" />
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => void handleCreateGrupoNotificacao(destino.id)}
+                          disabled={!!grupoSavingIds[`new:${destino.id}`]}
+                          className={cn(
+                            'inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border text-sm font-black transition-all',
+                            'bg-accent/90 hover:bg-accent border-accent/40 text-white',
+                            grupoSavingIds[`new:${destino.id}`] && 'opacity-50 cursor-not-allowed'
+                          )}
+                        >
+                          {grupoSavingIds[`new:${destino.id}`] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                          Adicionar
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -223,7 +758,7 @@ export const NotificacoesPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className={cn('flex items-center gap-2', activeTab !== 'individual' && 'hidden')}>
             {saved ? <Badge variant="success">Salvo</Badge> : null}
             <button
               type="button"
@@ -242,6 +777,32 @@ export const NotificacoesPage: React.FC = () => {
         </div>
       )}
 
+      <div className="mb-6">
+        <div className="inline-flex w-full sm:w-auto items-center gap-1 rounded-2xl border border-line bg-surface/70 p-1">
+          {[
+            { key: 'individual', label: 'Individual', icon: Bell },
+            { key: 'grupos', label: 'Grupos', icon: Users },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const selected = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key as 'individual' | 'grupos')}
+                className={cn(
+                  'flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black transition-all',
+                  selected ? 'bg-bg text-accent shadow-sm border border-line' : 'text-secondary hover:text-primary'
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {error ? (
         <div className="mb-6">
           <Card className={cn('p-4 border-danger/30 bg-danger/10')}>
@@ -251,6 +812,7 @@ export const NotificacoesPage: React.FC = () => {
         </div>
       ) : null}
 
+      {activeTab === 'individual' ? (
       <div className="grid grid-cols-1 gap-6">
         {/* WhatsApp */}
         <Card className={cn('p-0 overflow-hidden', cardClass, 'bg-bg/95')}>
@@ -899,9 +1461,12 @@ export const NotificacoesPage: React.FC = () => {
           )}
         </Card>
       </div>
+      ) : (
+        renderGruposTab()
+      )}
 
       {/* Sticky Save Bar (Mobile) */}
-      {isMobile && (
+      {isMobile && activeTab === 'individual' && (
         <div 
           className="fixed left-0 right-0 z-[10400] bg-bg/95 backdrop-blur-xl border-t border-line/70 p-4 animate-in slide-in-from-bottom-2 duration-300"
           style={{ bottom: 'calc(88px + env(safe-area-inset-bottom))' }}
