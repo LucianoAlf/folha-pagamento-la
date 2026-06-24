@@ -11,6 +11,7 @@ import {
   fetchCodigosMes,
   fetchPlanoContasMaisUsados,
   fetchPlanoContas,
+  fetchPlanoGrupos,
   registrarPagamento,
   createContaPagar,
   updateContaPagar,
@@ -157,6 +158,17 @@ type ContasAnomaliaNotaRow = {
 
 const COMPARATIVO_THRESHOLD = 20;
 
+type PlanoGrupo = { id: string; codigo: string; nome: string };
+
+function getContaPlanoTipoCusto(conta: ContaPagar): 'fixo' | 'variavel' | null {
+  return ((conta.plano_conta as any)?.tipo_custo || conta.categoria?.tipo_custo || null) as 'fixo' | 'variavel' | null;
+}
+
+function matchesContaGrupoPlano(conta: ContaPagar, grupoPlano: string): boolean {
+  if (grupoPlano === 'all') return true;
+  return Boolean(conta.plano_conta?.codigo?.startsWith(`${grupoPlano}.`));
+}
+
 type ContasMode = 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'categorias';
 
 const CONTAS_TABS: { id: ContasMode; label: string; icon: React.FC<any>; shortLabel: string }[] = [
@@ -189,6 +201,7 @@ export const ContasPagarPage: React.FC<{
 
   const [categorias, setCategorias] = useState<CategoriaDespesa[]>([]);
   const [planosConta, setPlanosConta] = useState<PlanoConta[]>([]);
+  const [planoGrupos, setPlanoGrupos] = useState<PlanoGrupo[]>([]);
   const [planoContaMaisUsados, setPlanoContaMaisUsados] = useState<PlanoContaMaisUsado[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
@@ -199,6 +212,7 @@ export const ContasPagarPage: React.FC<{
   const [filtroTab, setFiltroTab] = useState<FiltroTab>('todas');
   const [unidadeFiltro, setUnidadeFiltro] = useState<'todas' | 'cg' | 'rec' | 'bar'>('todas');
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>('all');
+  const [grupoPlanoFiltro, setGrupoPlanoFiltro] = useState<string>('all');
   const [comportamentoFiltro, setComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
   const [tipoFiltro, setTipoFiltro] = useState<'all' | 'unica' | 'parcelada' | 'recorrente'>('all');
   
@@ -242,7 +256,7 @@ export const ContasPagarPage: React.FC<{
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   // Limpar seleção quando mudam filtros
-  useEffect(() => { clearSelection(); }, [filtroTab, unidadeFiltro, competenciaFiltro, categoriaFiltro, tipoFiltro]);
+  useEffect(() => { clearSelection(); }, [filtroTab, unidadeFiltro, competenciaFiltro, categoriaFiltro, grupoPlanoFiltro, tipoFiltro]);
   const [competenciaComparar, setCompetenciaComparar] = useState<string>(() => {
     const hoje = new Date();
     const prev = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
@@ -261,6 +275,17 @@ export const ContasPagarPage: React.FC<{
   );
 
   // Mobile premium: bottom sheets (Refinar / Ações) com draft state
+  const planoGrupoOptions = useMemo(
+    () => [
+      { value: 'all', label: 'Todas' },
+      ...planoGrupos.map((grupo) => ({
+        value: grupo.codigo,
+        label: `${grupo.codigo} ${grupo.nome}`,
+      })),
+    ],
+    [planoGrupos]
+  );
+
   const [contasMobileRefinarOpen, setContasMobileRefinarOpen] = useState(false);
   const [contasMobileAcoesOpen, setContasMobileAcoesOpen] = useState(false);
 
@@ -737,7 +762,7 @@ export const ContasPagarPage: React.FC<{
   const loadAuditAi = useCallback(
     async (force = false) => {
       if (mode !== 'todas' || !auditAiOpen) return;
-      const key = `${competenciaFiltro}|${unidadeFiltro}|${categoriaFiltro}|${comportamentoFiltro}|${tipoFiltro}`;
+      const key = `${competenciaFiltro}|${unidadeFiltro}|${grupoPlanoFiltro}|${comportamentoFiltro}|${tipoFiltro}`;
       if (!force && auditAiKeyRef.current === key) return;
       setAuditAiLoading(true);
       setAuditAiError(null);
@@ -752,7 +777,7 @@ export const ContasPagarPage: React.FC<{
         const params = {
           competenciaYM: competenciaFiltro,
           unidade: unidadeFiltro,
-          categoriaId: categoriaFiltro,
+          grupoPlano: grupoPlanoFiltro,
           comportamento: comportamentoFiltro,
           tipo: tipoFiltro,
           force,
@@ -772,13 +797,13 @@ export const ContasPagarPage: React.FC<{
         setAuditAiLoading(false);
       }
     },
-    [mode, auditAiOpen, competenciaFiltro, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro]
+    [mode, auditAiOpen, competenciaFiltro, unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro]
   );
 
   const loadComparativoAi = useCallback(
     async (force = false) => {
       if (mode !== 'comparativo' || !compAiOpen) return;
-      const key = `${competenciaFiltro}|${competenciaComparar}|${unidadeFiltro}|${categoriaFiltro}|${comportamentoFiltro}|${tipoFiltro}`;
+      const key = `${competenciaFiltro}|${competenciaComparar}|${unidadeFiltro}|${grupoPlanoFiltro}|${comportamentoFiltro}|${tipoFiltro}`;
       if (!force && compAiKeyRef.current === key) return;
       setCompAiLoading(true);
       setCompAiError(null);
@@ -787,7 +812,7 @@ export const ContasPagarPage: React.FC<{
           competenciaYM: competenciaFiltro,
           baseYM: competenciaComparar,
           unidade: unidadeFiltro,
-          categoriaId: categoriaFiltro,
+          grupoPlano: grupoPlanoFiltro,
           comportamento: comportamentoFiltro,
           tipo: tipoFiltro,
           force,
@@ -806,7 +831,7 @@ export const ContasPagarPage: React.FC<{
         setCompAiLoading(false);
       }
     },
-    [mode, compAiOpen, competenciaFiltro, competenciaComparar, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro]
+    [mode, compAiOpen, competenciaFiltro, competenciaComparar, unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro]
   );
 
   useEffect(() => {
@@ -815,13 +840,13 @@ export const ContasPagarPage: React.FC<{
       void loadComparativoAi(false);
     }, 220);
     return () => clearTimeout(timer);
-  }, [mode, compAiOpen, competenciaFiltro, competenciaComparar, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, loadComparativoAi]);
+  }, [mode, compAiOpen, competenciaFiltro, competenciaComparar, unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, loadComparativoAi]);
 
   useEffect(() => {
     if (mode !== 'todas' || !auditAiOpen) return;
     void loadAuditAi(false);
     void loadAnomaliaNotas();
-  }, [mode, auditAiOpen, competenciaFiltro, unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, loadAuditAi, loadAnomaliaNotas]);
+  }, [mode, auditAiOpen, competenciaFiltro, unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, loadAuditAi, loadAnomaliaNotas]);
 
   const openAnotar = useCallback(
     (a: ContasAuditoriaAiAnomalia) => {
@@ -884,7 +909,7 @@ export const ContasPagarPage: React.FC<{
     (c: ContaPagar) => {
       if (unidadeFiltro !== 'todas' && c.unidade !== unidadeFiltro && c.unidade !== 'todas') return false;
       if (categoriaFiltro !== 'all' && c.categoria_id !== categoriaFiltro) return false;
-      if (comportamentoFiltro !== 'all' && c.categoria?.tipo_custo !== comportamentoFiltro) return false;
+      if (comportamentoFiltro !== 'all' && getContaPlanoTipoCusto(c) !== comportamentoFiltro) return false;
       if (tipoFiltro !== 'all' && c.tipo_lancamento !== tipoFiltro) return false;
 
       const q = (busca || '').trim();
@@ -895,19 +920,36 @@ export const ContasPagarPage: React.FC<{
     [unidadeFiltro, categoriaFiltro, comportamentoFiltro, tipoFiltro, busca]
   );
 
+  const matchesAiFilters = useCallback(
+    (c: ContaPagar, includeBusca = false) => {
+      if (unidadeFiltro !== 'todas' && c.unidade !== unidadeFiltro && c.unidade !== 'todas') return false;
+      if (!matchesContaGrupoPlano(c, grupoPlanoFiltro)) return false;
+      if (comportamentoFiltro !== 'all' && getContaPlanoTipoCusto(c) !== comportamentoFiltro) return false;
+      if (tipoFiltro !== 'all' && c.tipo_lancamento !== tipoFiltro) return false;
+
+      const q = includeBusca ? (busca || '').trim() : '';
+      if (q && !matchesContaPlanoCentroSearch(c, q)) return false;
+
+      return true;
+    },
+    [unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, busca]
+  );
+
   const refetch = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [cats, planos, usosPlano, centros, rows] = await Promise.all([
+      const [cats, planos, gruposPlano, usosPlano, centros, rows] = await Promise.all([
         fetchCategorias(),
         fetchPlanoContas(),
+        fetchPlanoGrupos(),
         fetchPlanoContasMaisUsados(),
         fetchCentrosCusto(),
         fetchContasPagar({ competenciaGarantir: competenciaFiltro }),
       ]);
       setCategorias(cats);
       setPlanosConta(planos);
+      setPlanoGrupos(gruposPlano);
       setPlanoContaMaisUsados(usosPlano);
       setCentrosCusto(centros);
       setContas(rows);
@@ -1037,7 +1079,7 @@ export const ContasPagarPage: React.FC<{
     (c: ContaPagar) => {
       if (unidadeFiltro !== 'todas' && c.unidade !== unidadeFiltro && c.unidade !== 'todas') return false;
       if (categoriaFiltro !== 'all' && c.categoria_id !== categoriaFiltro) return false;
-      if (comportamentoFiltro !== 'all' && c.categoria?.tipo_custo !== comportamentoFiltro) return false;
+      if (comportamentoFiltro !== 'all' && getContaPlanoTipoCusto(c) !== comportamentoFiltro) return false;
       if (tipoFiltro !== 'all' && c.tipo_lancamento !== tipoFiltro) return false;
       return true;
     },
@@ -1049,10 +1091,10 @@ export const ContasPagarPage: React.FC<{
   // Filtro para "Todas as Contas" (Auditoria) - Respeita estritamente o mês
   const contasAudit = useMemo(() => {
     return contas.filter(c => {
-      if (!matchesCommonFilters(c)) return false;
+      if (!matchesAiFilters(c, true)) return false;
       return matchesCompetencia(c);
     });
-  }, [contas, matchesCommonFilters, matchesCompetencia]);
+  }, [contas, matchesAiFilters, matchesCompetencia]);
 
   // Filtro para "Visão Geral" (Urgência) - Respeita o mês selecionado, mas SEMPRE mostra contas VENCIDAS
   // e também mostra o que vence nos próximos 30 dias (independente do mês) para evitar surpresas.
@@ -1080,6 +1122,29 @@ export const ContasPagarPage: React.FC<{
 
   const resumoFiltrado = useMemo(() => calcularResumo(contasVisaoGeral), [contasVisaoGeral]);
   const resumoAuditoriaFiltrado = useMemo(() => calcularResumoAuditoria(contasAudit), [contasAudit]);
+
+  const auditoriaDistribuicaoGrupoPlano = useMemo(() => {
+    const grupoNome = new Map(planoGrupos.map((grupo) => [grupo.codigo, grupo.nome]));
+    const grupoDe = (conta: ContaPagar) => {
+      const codigo = conta.plano_conta?.codigo;
+      if (!codigo) return { codigo: 'sem_plano', nome: 'Sem plano de contas' };
+      const grupoCodigo = codigo.split('.').slice(0, 2).join('.');
+      return { codigo: grupoCodigo, nome: grupoNome.get(grupoCodigo) || grupoCodigo };
+    };
+
+    const totals = new Map<string, { codigo: string; nome: string; total: number; count: number }>();
+    contasAudit
+      .filter((conta) => conta.status !== 'cancelado' && conta.status !== 'finalizado')
+      .forEach((conta) => {
+        const grupo = grupoDe(conta);
+        const prev = totals.get(grupo.codigo) || { ...grupo, total: 0, count: 0 };
+        prev.total += Number(conta.valor) || 0;
+        prev.count += 1;
+        totals.set(grupo.codigo, prev);
+      });
+
+    return Array.from(totals.values()).sort((a, b) => b.total - a.total).slice(0, 6);
+  }, [contasAudit, planoGrupos]);
 
   // Tabela da Visão Geral:
   // - "Todas" => somente contas do mês selecionado
@@ -1182,7 +1247,7 @@ export const ContasPagarPage: React.FC<{
     // Anomalias (Alertas)
     const THRESHOLD = COMPARATIVO_THRESHOLD;
     const normalizeKey = (s: string) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
-    const keyFor = (c: ContaPagar) => `${c.unidade || 'todas'}|${c.categoria_id || 'sem_categoria'}|${normalizeKey(c.descricao || '')}`;
+    const keyFor = (c: ContaPagar) => `${c.unidade || 'todas'}|${c.plano_conta_id || 'sem_plano'}|${normalizeKey(c.descricao || '')}`;
 
     const prevMap = new Map<string, number>();
     contasPrev.forEach(c => prevMap.set(keyFor(c), (prevMap.get(keyFor(c)) || 0) + (Number(c.valor) || 0)));
@@ -1224,12 +1289,12 @@ export const ContasPagarPage: React.FC<{
 
     const keyFor = (c: ContaPagar) => {
       const unidade = (c.unidade || 'todas') as string;
-      const cat = c.categoria_id || 'sem_categoria';
+      const plano = c.plano_conta_id || 'sem_plano';
       const desc = normalizeKey(c.descricao || '');
-      return `${unidade}|${cat}|${desc}`;
+      return `${unidade}|${plano}|${desc}`;
     };
 
-    const base = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesCommonFiltersNoSearch(c));
+    const base = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesAiFilters(c));
     const prevRows = base.filter(matchesCompetenciaComparar);
     const currRows = base.filter(matchesCompetencia);
 
@@ -1260,7 +1325,7 @@ export const ContasPagarPage: React.FC<{
         key: k,
         unidade: (sample?.unidade || 'todas') as string,
         centro: sample ? formatContaCentroCustoLabel(sample) : 'TODAS',
-        categoria: sample?.categoria?.nome || 'Sem categoria',
+        categoria: sample ? formatContaPlanoLabel(sample) : 'Sem plano de contas',
         plano: sample ? formatContaPlanoLabel(sample) : 'Sem plano',
         descricao: sample?.descricao || '',
         prev,
@@ -1281,7 +1346,7 @@ export const ContasPagarPage: React.FC<{
       .sort((a, b) => Math.abs(b.perc) - Math.abs(a.perc));
 
     return { variations, totalPrev, totalCurr, totalDiff, totalPerc, anomalies };
-  }, [contas, matchesCommonFiltersNoSearch, matchesCompetenciaComparar, matchesCompetencia]);
+  }, [contas, matchesAiFilters, matchesCompetenciaComparar, matchesCompetencia]);
 
   // ── Shell: header + tab bar (renderizado UMA vez, sem re-render do App.tsx) ──
   const { title: tabTitle, subtitle: tabSubtitle } = CONTAS_TITLES[mode];
@@ -1704,6 +1769,65 @@ export const ContasPagarPage: React.FC<{
               <div className="text-[10px] font-bold text-muted uppercase tracking-widest">Base comparativa</div>
               <CustomSelect value={competenciaComparar} onValueChange={setCompetenciaComparar} className="min-w-[180px]" options={competenciaOptions} />
             </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4 mb-8 bg-surface/20 p-4 rounded-3xl border border-line/60">
+          <div className="flex items-center gap-2 text-muted mr-2">
+            <Filter size={14} />
+            <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
+          </div>
+
+          <div className="w-full sm:w-72">
+            <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-muted">Grupo do plano</div>
+            <CustomSelect
+              value={grupoPlanoFiltro}
+              onValueChange={setGrupoPlanoFiltro}
+              options={planoGrupoOptions}
+            />
+          </div>
+
+          <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-xl p-1">
+            {[
+              { id: 'all', label: 'Todos' },
+              { id: 'fixo', label: 'Fixo' },
+              { id: 'variavel', label: 'Variável' },
+            ].map(b => (
+              <button
+                key={b.id}
+                onClick={() => setComportamentoFiltro(b.id as any)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                  comportamentoFiltro === b.id
+                    ? "bg-surface-2 text-primary"
+                    : "text-muted hover:text-secondary"
+                )}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-xl p-1">
+            {[
+              { id: 'all', label: 'Tipos' },
+              { id: 'unica', label: 'Única' },
+              { id: 'parcelada', label: 'Parc.' },
+              { id: 'recorrente', label: 'Recorr.' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTipoFiltro(t.id as any)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                  tipoFiltro === t.id
+                    ? "bg-surface-2 text-primary"
+                    : "text-muted hover:text-secondary"
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -2346,14 +2470,12 @@ export const ContasPagarPage: React.FC<{
             <span className="text-[10px] font-black uppercase tracking-wider">Refinar</span>
           </div>
 
-          <div className="w-full sm:w-48">
+          <div className="w-full sm:w-72">
+            <div className="mb-1 text-[10px] font-black uppercase tracking-widest text-muted">Grupo do plano</div>
             <CustomSelect
-              value={categoriaFiltro}
-              onValueChange={setCategoriaFiltro}
-              options={[
-                { value: 'all', label: 'Todas Categorias' },
-                ...categorias.map(c => ({ value: c.id, label: c.nome }))
-              ]}
+              value={grupoPlanoFiltro}
+              onValueChange={setGrupoPlanoFiltro}
+              options={planoGrupoOptions}
             />
           </div>
 
@@ -2455,6 +2577,36 @@ export const ContasPagarPage: React.FC<{
         </div>
 
         {/* Lançamentos do Período (itens) */}
+        <div className="mb-8">
+          <Card className="p-5">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted">Distribuição por grupo do plano</div>
+                <div className="text-xs text-secondary font-bold mt-1">Top grupos das contas filtradas</div>
+              </div>
+              <BarChart3 size={18} className="text-accent" />
+            </div>
+
+            {auditoriaDistribuicaoGrupoPlano.length ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {auditoriaDistribuicaoGrupoPlano.map((grupo) => (
+                  <div key={grupo.codigo} className="flex items-center justify-between gap-4 rounded-2xl border border-line/60 bg-bg/30 px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-black text-primary truncate">
+                        {grupo.codigo === 'sem_plano' ? grupo.nome : `${grupo.codigo} ${grupo.nome}`}
+                      </div>
+                      <div className="text-[10px] font-bold text-muted uppercase tracking-widest">{grupo.count} contas</div>
+                    </div>
+                    <div className="shrink-0 text-sm font-black text-primary">{formatCurrency(grupo.total)}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted font-bold py-4">Nenhum grupo do plano nos filtros atuais.</div>
+            )}
+          </Card>
+        </div>
+
         <div className="flex items-end justify-between mb-4">
           <div>
             <div className="text-xl font-black text-primary">Lançamentos do Período</div>

@@ -52,6 +52,19 @@ export async function fetchPlanoContas(): Promise<PlanoConta[]> {
   return (data || []) as PlanoConta[];
 }
 
+export async function fetchPlanoGrupos(): Promise<{ id: string; codigo: string; nome: string }[]> {
+  const { data, error } = await supabase
+    .from('plano_contas')
+    .select('id,codigo,nome')
+    .eq('nivel', 2)
+    .eq('natureza', 'saida')
+    .eq('ativo', true)
+    .order('codigo', { ascending: true });
+
+  if (error) throw error;
+  return (data || []) as any;
+}
+
 export async function fetchCentrosCusto(): Promise<CentroCusto[]> {
   const { data, error } = await supabase
     .from('centros_custo')
