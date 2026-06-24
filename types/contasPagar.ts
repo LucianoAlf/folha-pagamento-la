@@ -18,6 +18,7 @@ export interface PlanoConta {
   nivel: 1 | 2 | 3;
   grupo_plano?: string | null;
   natureza: 'entrada' | 'saida';
+  tipo_custo?: string | null;
   ativo: boolean;
   ordem: number;
 }

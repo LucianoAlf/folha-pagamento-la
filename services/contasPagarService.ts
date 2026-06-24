@@ -43,7 +43,7 @@ export async function fetchCategorias(): Promise<CategoriaDespesa[]> {
 export async function fetchPlanoContas(): Promise<PlanoConta[]> {
   const { data, error } = await supabase
     .from('plano_contas')
-    .select('id,codigo,nome,nome_completo,parent_id,nivel,grupo_plano,natureza,ativo,ordem')
+    .select('id,codigo,nome,nome_completo,parent_id,nivel,grupo_plano,natureza,tipo_custo,ativo,ordem')
     .eq('ativo', true)
     .order('ordem', { ascending: true })
     .order('codigo', { ascending: true });

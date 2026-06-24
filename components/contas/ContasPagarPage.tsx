@@ -16,8 +16,6 @@ import {
   createContaPagar,
   updateContaPagar,
   upsertCodigoMes,
-  upsertCategoria,
-  deleteCategoria,
   deleteConta,
   deleteContasBatch,
   deleteParcelamento,
@@ -32,13 +30,13 @@ import { ContasSummaryCards } from './ContasSummaryCards';
 import { ContasTable } from './ContasTable';
 import { NovaContaModal, NovaContaOptions } from './NovaContaModal';
 import { PagarContaModal } from './PagarContaModal';
-import { CategoriaModal } from './CategoriaModal';
 import { EditarContaModal } from './EditarContaModal';
 import { ContaAuditCard } from './ContaAuditCard';
 import { ContasCalendar } from './ContasCalendar';
 import { ContasDoDiaModal } from './ContasDoDiaModal';
 import { CredenciaisModal } from './CredenciaisModal';
 import { RelatorioDoDiaPanel } from './RelatorioDoDiaPanel';
+import { PlanoContasViewer } from './PlanoContasViewer';
 import { Badge, Card, CustomSelect, Tooltip, Modal } from '../UI';
 import { formatCurrency } from '../../services/api';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
@@ -53,7 +51,6 @@ import {
   Loader2,
   Plus,
   Filter,
-  Edit2,
   Trash2,
   AlertTriangle,
   Percent,
@@ -74,7 +71,8 @@ import {
   CheckSquare,
   X,
   KeyRound,
-  FileText
+  FileText,
+  ListTree
 } from 'lucide-react';
 import { cn } from '../CollaboratorComponents';
 import { KPICard, DistributionChart, EvolutionChart } from '../DashboardWidgets';
@@ -176,7 +174,7 @@ const CONTAS_TABS: { id: ContasMode; label: string; icon: React.FC<any>; shortLa
   { id: 'visao-geral', label: 'Contas a Pagar', icon: BarChart3, shortLabel: 'Contas' },
   { id: 'todas', label: 'Auditoria', icon: FileText, shortLabel: 'Audit.' },
   { id: 'comparativo', label: 'Comparativo', icon: TrendingUp, shortLabel: 'IA' },
-  { id: 'categorias', label: 'Categorias', icon: Calendar, shortLabel: 'Categ.' },
+  { id: 'categorias', label: 'Plano de Contas', icon: ListTree, shortLabel: 'Plano' },
 ];
 
 const CONTAS_TITLES: Record<ContasMode, { title: string; subtitle: string }> = {
@@ -184,7 +182,7 @@ const CONTAS_TITLES: Record<ContasMode, { title: string; subtitle: string }> = {
   'visao-geral': { title: 'Gestão Mensal', subtitle: 'Acompanhamento de contas a pagar por competência' },
   'todas': { title: 'Auditoria Financeira', subtitle: 'Histórico completo de lançamentos e liquidações' },
   'comparativo': { title: 'IA Financeira', subtitle: 'Insights e anomalias detectadas por IA nas contas a pagar' },
-  'categorias': { title: 'Categorias Financeiras', subtitle: 'Gerencie as classificações as categorias para o fluxo de caixa.' },
+  'categorias': { title: 'Plano de Contas', subtitle: 'Consulta da estrutura Emusys usada nos lançamentos de despesas.' },
 };
 
 export const ContasPagarPage: React.FC<{
@@ -230,8 +228,6 @@ export const ContasPagarPage: React.FC<{
   const [contaParaExcluir, setContaParaExcluir] = useState<ContaPagar | null>(null);
   const [contaParaFinalizar, setContaParaFinalizar] = useState<ContaPagar | null>(null);
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
-  const [categoriaModalOpen, setCategoriaModalOpen] = useState(false);
-  const [editingCategoria, setEditingCategoria] = useState<CategoriaDespesa | null>(null);
 
   const [busca, setBusca] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -463,8 +459,6 @@ export const ContasPagarPage: React.FC<{
   useEffect(() => {
     setCalendarioDiaSelecionado(undefined);
   }, [competenciaFiltro]);
-
-  const [confirmDeleteCategoria, setConfirmDeleteCategoria] = useState<{ id: string; nome: string } | null>(null);
 
   const [credenciais, setCredenciais] = useState<ContaCredencial[]>([]);
   const [credenciaisOpen, setCredenciaisOpen] = useState(false);
@@ -2199,156 +2193,8 @@ export const ContasPagarPage: React.FC<{
 
   if (mode === 'categorias') {
     return renderWithShell(
-      <div className="w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-          <button
-            type="button"
-            onClick={() => {
-              setEditingCategoria(null);
-              setCategoriaModalOpen(true);
-            }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-4 sm:py-3 rounded-2xl bg-danger hover:bg-danger/80 text-white font-black shadow-lg shadow-danger/20 transition-all active:scale-[0.98]"
-          >
-            <Plus size={16} />
-            Nova Categoria
-          </button>
-        </div>
-
-        {/* Desktop Grid */}
-        <div className="hidden md:grid grid-cols-2 xl:grid-cols-3 gap-4">
-          {categorias.map((c) => (
-            <div
-              key={c.id}
-              className="group relative rounded-2xl border border-line bg-surface/20 p-5 flex items-center justify-between hover:border-danger/30 hover:bg-danger/5 hover:shadow-[var(--shadow-card)] transition-all"
-            >
-              <div className="flex items-center gap-4 min-w-0">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-line group-hover:border-danger/30 transition-colors"
-                  style={{ backgroundColor: `${c.cor}10` }}
-                >
-                  <span className="text-2xl">{c.icone}</span>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-primary font-black truncate">{c.nome}</div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <div className="text-[10px] text-muted font-black uppercase tracking-wider">
-                      {c.tipo_custo || 'VARIÁVEL'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ações: Lápis e Lixeira */}
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Tooltip content="Editar Categoria">
-                  <button
-                    onClick={() => {
-                      setEditingCategoria(c);
-                      setCategoriaModalOpen(true);
-                    }}
-                    className="p-2 rounded-lg hover:bg-surface-3 text-secondary hover:text-primary transition-all"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                </Tooltip>
-                <Tooltip content="Excluir Categoria">
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      setConfirmDeleteCategoria({ id: c.id, nome: c.nome });
-                    }}
-                    className="p-2 rounded-lg hover:bg-danger/20 text-muted hover:text-danger transition-all"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </Tooltip>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Mobile Premium List */}
-        <div className="md:hidden flex flex-col bg-surface/10 rounded-3xl border border-line/50 overflow-hidden">
-          {categorias.map((c, idx) => (
-            <div
-              key={c.id}
-              onClick={() => {
-                setEditingCategoria(c);
-                setCategoriaModalOpen(true);
-              }}
-              className={cn(
-                "flex items-center justify-between p-4 active:bg-surface-2/40 transition-colors cursor-pointer",
-                idx !== categorias.length - 1 && "border-b border-line/40"
-              )}
-            >
-              <div className="flex items-center gap-4">
-                {/* Ícone Estilo Banco Digital */}
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0 shadow-inner"
-                  style={{ backgroundColor: `${c.cor}15`, border: `1px solid ${c.cor}25` }}
-                >
-                  {c.icone}
-                </div>
-                
-                <div className="min-w-0">
-                  <div className="text-sm font-black text-primary">{c.nome}</div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className={cn(
-                      "text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider",
-                      c.tipo_custo === 'fixo' ? "bg-info/10 text-info" : "bg-warning/10 text-warning"
-                    )}>
-                      {c.tipo_custo || 'VARIÁVEL'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <ChevronRight size={18} className="text-muted" />
-            </div>
-          ))}
-        </div>
-
-        <CategoriaModal
-          isOpen={categoriaModalOpen}
-          initialData={editingCategoria}
-          onClose={() => setCategoriaModalOpen(false)}
-          onConfirm={(payload) =>
-            run(
-              async () => {
-                await upsertCategoria(payload);
-                await refetch();
-              },
-              { success: 'Categoria salva.', error: 'Não foi possível salvar a categoria.' }
-            )
-          }
-          onDelete={async (id) => {
-            const cat = categorias.find((c) => c.id === id);
-            setConfirmDeleteCategoria({ id, nome: cat?.nome || 'Categoria' });
-          }}
-        />
-
-        {confirmDeleteCategoria && (
-          <ConfirmDialog
-            isOpen={!!confirmDeleteCategoria}
-            onClose={() => setConfirmDeleteCategoria(null)}
-            onConfirm={() => {
-              const target = confirmDeleteCategoria;
-              if (!target) return;
-              setConfirmDeleteCategoria(null);
-              return run(
-                async () => {
-                  await deleteCategoria(target.id);
-                  await refetch();
-                },
-                { success: 'Categoria excluída.', error: 'Não foi possível excluir a categoria.' }
-              );
-            }}
-            title="Confirmar Exclusão"
-            message={`Tem certeza que deseja excluir a categoria \"${confirmDeleteCategoria.nome}\"?`}
-            confirmLabel="Excluir"
-            variant="danger"
-          />
-        )}
+      <div className="w-full animate-in fade-in slide-in-from-top-2 duration-500">
+        <PlanoContasViewer />
       </div>
     );
   }

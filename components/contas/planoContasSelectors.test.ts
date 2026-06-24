@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  buildPlanoContaViewerTree,
   centroCustoToUnidade,
   filterSelectablePlanos,
   formatPlanoContaLabel,
@@ -283,4 +284,42 @@ test('matchesContaPlanoCentroSearch does not match sibling account codes by subs
 
   assert.equal(matchesContaPlanoCentroSearch(conta, '5.2.1'), false);
   assert.equal(matchesContaPlanoCentroSearch(conta, '5.2.11'), true);
+});
+
+test('buildPlanoContaViewerTree builds an outgoing read-only tree with defensive roots', () => {
+  const planos = [
+    { id: 'entrada', codigo: '3', nome: 'Receitas', nivel: 1 as const, natureza: 'entrada' as const, ativo: true, ordem: 0 },
+    { id: 'despesas', codigo: '5', nome: 'Despesas Fixas', nivel: 1 as const, natureza: 'saida' as const, ativo: true, ordem: 2 },
+    { id: 'variaveis', codigo: '4', nome: 'Custos Variaveis', nivel: 1 as const, natureza: 'saida' as const, ativo: true, ordem: 1 },
+    { id: 'admin', codigo: '5.2', nome: 'Despesas Administrativas', parent_id: 'despesas', nivel: 2 as const, natureza: 'saida' as const, ativo: true, ordem: 2 },
+    { id: 'energia', codigo: '5.2.3', nome: 'Energia Eletrica', parent_id: 'admin', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 3, tipo_custo: 'fixo' },
+    { id: 'software', codigo: '5.2.11', nome: 'Softwares e plataformas', parent_id: 'admin', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 11, tipo_custo: 'fixo' },
+    { id: 'orfao', codigo: '7.2', nome: 'Financeiras', parent_id: 'pai-inexistente', nivel: 2 as const, natureza: 'saida' as const, ativo: true, ordem: 7 },
+  ];
+
+  const tree = buildPlanoContaViewerTree(planos);
+
+  assert.deepEqual(tree.roots.map((node) => node.plano.codigo), ['4', '5', '7.2']);
+  assert.deepEqual(tree.roots[1].children.map((node) => node.plano.codigo), ['5.2']);
+  assert.deepEqual(tree.roots[1].children[0].children.map((node) => node.plano.codigo), ['5.2.3', '5.2.11']);
+  assert.equal(tree.roots.some((node) => node.plano.codigo === '3'), false);
+  assert.equal(tree.defaultExpandedIds.has('despesas'), true);
+  assert.equal(tree.defaultExpandedIds.has('admin'), true);
+  assert.equal(tree.defaultExpandedIds.has('energia'), false);
+});
+
+test('buildPlanoContaViewerTree filters by text and expands matching branches', () => {
+  const planos = [
+    { id: 'despesas', codigo: '5', nome: 'Despesas Fixas', nivel: 1 as const, natureza: 'saida' as const, ativo: true, ordem: 1 },
+    { id: 'admin', codigo: '5.2', nome: 'Despesas Administrativas', parent_id: 'despesas', nivel: 2 as const, natureza: 'saida' as const, ativo: true, ordem: 2 },
+    { id: 'energia', codigo: '5.2.3', nome: 'Energia Eletrica', parent_id: 'admin', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 3, tipo_custo: 'fixo' },
+    { id: 'software', codigo: '5.2.11', nome: 'Softwares e plataformas', parent_id: 'admin', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 11, tipo_custo: 'fixo' },
+  ];
+
+  const tree = buildPlanoContaViewerTree(planos, 'energia');
+
+  assert.deepEqual(tree.roots.map((node) => node.plano.codigo), ['5']);
+  assert.deepEqual(tree.roots[0].children[0].children.map((node) => node.plano.codigo), ['5.2.3']);
+  assert.equal(tree.defaultExpandedIds.has('despesas'), true);
+  assert.equal(tree.defaultExpandedIds.has('admin'), true);
 });

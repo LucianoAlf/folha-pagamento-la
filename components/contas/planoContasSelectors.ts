@@ -24,6 +24,16 @@ export type PlanoContaMaisUsadoResolved<T extends PlanoContaSelecionavelInput & 
   total: number;
 };
 
+export type PlanoContaViewerTreeNode<T extends PlanoConta = PlanoConta> = {
+  plano: T;
+  children: PlanoContaViewerTreeNode<T>[];
+};
+
+export type PlanoContaViewerTree<T extends PlanoConta = PlanoConta> = {
+  roots: PlanoContaViewerTreeNode<T>[];
+  defaultExpandedIds: Set<string>;
+};
+
 function normalizeSearch(value: string): string {
   return value
     .normalize('NFD')
@@ -106,6 +116,77 @@ export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, que
 
 export function comparePlanoContaCodigo<T extends Pick<PlanoConta, 'codigo'>>(a: T, b: T): number {
   return a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true, sensitivity: 'base' });
+}
+
+function comparePlanoContaTreeOrder<T extends Pick<PlanoConta, 'codigo' | 'ordem'>>(a: T, b: T): number {
+  const orderDiff = (a.ordem ?? 0) - (b.ordem ?? 0);
+  if (orderDiff !== 0) return orderDiff;
+  return comparePlanoContaCodigo(a, b);
+}
+
+function clonePlanoContaNode<T extends PlanoConta>(node: PlanoContaViewerTreeNode<T>): PlanoContaViewerTreeNode<T> {
+  return {
+    plano: node.plano,
+    children: node.children.map(clonePlanoContaNode),
+  };
+}
+
+export function buildPlanoContaViewerTree<T extends PlanoConta>(
+  planos: T[],
+  query = ''
+): PlanoContaViewerTree<T> {
+  const nodes = planos
+    .filter((plano) => plano.natureza === 'saida')
+    .map((plano) => ({ plano, children: [] as PlanoContaViewerTreeNode<T>[] }));
+
+  const byId = new Map(nodes.map((node) => [node.plano.id, node]));
+  const roots: PlanoContaViewerTreeNode<T>[] = [];
+
+  for (const node of nodes) {
+    const parent = node.plano.parent_id ? byId.get(node.plano.parent_id) : undefined;
+    if (parent) parent.children.push(node);
+    else roots.push(node);
+  }
+
+  const sortTree = (items: PlanoContaViewerTreeNode<T>[]) => {
+    items.sort((a, b) => comparePlanoContaTreeOrder(a.plano, b.plano));
+    items.forEach((item) => sortTree(item.children));
+  };
+  sortTree(roots);
+
+  const trimmedQuery = query.trim();
+  const hasQuery = trimmedQuery.length > 0;
+
+  const filterNode = (node: PlanoContaViewerTreeNode<T>): PlanoContaViewerTreeNode<T> | null => {
+    const matchesSelf = matchesPlanoContaSearch(node.plano, trimmedQuery);
+    if (matchesSelf) return clonePlanoContaNode(node);
+
+    const children = node.children
+      .map(filterNode)
+      .filter((child): child is PlanoContaViewerTreeNode<T> => Boolean(child));
+
+    if (!children.length) return null;
+    return { plano: node.plano, children };
+  };
+
+  const visibleRoots = hasQuery
+    ? roots
+        .map(filterNode)
+        .filter((node): node is PlanoContaViewerTreeNode<T> => Boolean(node))
+    : roots.map(clonePlanoContaNode);
+
+  const defaultExpandedIds = new Set<string>();
+  const collectExpanded = (node: PlanoContaViewerTreeNode<T>) => {
+    if (hasQuery) {
+      if (node.children.length > 0) defaultExpandedIds.add(node.plano.id);
+    } else if (node.plano.nivel <= 2) {
+      defaultExpandedIds.add(node.plano.id);
+    }
+    node.children.forEach(collectExpanded);
+  };
+  visibleRoots.forEach(collectExpanded);
+
+  return { roots: visibleRoots, defaultExpandedIds };
 }
 
 export function filterSelectablePlanos<T extends PlanoContaSelecionavelInput & PlanoContaSearchInput>(
