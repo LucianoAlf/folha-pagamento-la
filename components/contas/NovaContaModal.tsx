@@ -227,15 +227,16 @@ export const NovaContaModal: React.FC<{
                   };
 
                   const temCodigo = codigoBarras.trim() || chavePix.trim() || qrPixPayload.trim();
+                  const registrarCodigoMes = temCodigo || codigoStatus === 'indisponivel';
                   const options: NovaContaOptions = {
                     ...(launchType === 'parcelada' ? { valorPorParcela: valorMode === 'por_parcela' } : {}),
-                    ...(temCodigo
+                    ...(registrarCodigoMes
                       ? {
                           codigo: {
                             codigo_barras: codigoBarras,
                             chave_pix: chavePix,
                             qr_pix_payload: qrPixPayload,
-                            status_coleta: codigoStatus,
+                            status_coleta: temCodigo ? 'coletado' : 'indisponivel',
                           },
                         }
                       : {}),

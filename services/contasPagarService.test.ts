@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { buildParcelasContaPagar } from './contasPagarParcelas.ts';
+import { resolveCodigoMesBadge } from './contasPagarCodigoMes.ts';
 
 test('buildParcelasContaPagar assigns competencia from each parcela vencimento', () => {
   const parcelas = buildParcelasContaPagar(
@@ -27,5 +28,23 @@ test('buildParcelasContaPagar assigns competencia from each parcela vencimento',
   assert.deepEqual(
     parcelas.map((p) => p.competencia),
     ['2026-07-01', '2026-08-01', '2026-09-01', '2026-10-01', '2026-11-01']
+  );
+});
+
+test('resolveCodigoMesBadge treats fixed PIX as collected even when monthly code is unavailable', () => {
+  assert.equal(
+    resolveCodigoMesBadge(
+      {
+        status: 'pendente',
+        pix_chave_fixa: 'pix-fixo-da-conta',
+      },
+      {
+        codigo_barras: null,
+        chave_pix: null,
+        qr_pix_payload: null,
+        status_coleta: 'indisponivel',
+      }
+    ),
+    'coletado'
   );
 });

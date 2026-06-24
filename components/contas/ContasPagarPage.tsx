@@ -962,16 +962,17 @@ export const ContasPagarPage: React.FC<{
           }
           const codigo = options?.codigo;
           const temCodigo = codigo && (codigo.codigo_barras.trim() || codigo.chave_pix.trim() || codigo.qr_pix_payload.trim());
-          if (temCodigo && created.competencia) {
+          const deveRegistrarCodigo = codigo && (temCodigo || codigo.status_coleta === 'indisponivel');
+          if (deveRegistrarCodigo && created.competencia) {
             await upsertCodigoMes({
               conta_pagar_id: created.id,
               competencia: created.competencia.slice(0, 7) + '-01',
               codigo_barras: codigo.codigo_barras.trim() || null,
               chave_pix: codigo.chave_pix.trim() || null,
               qr_pix_payload: codigo.qr_pix_payload.trim() || null,
-              status_coleta: codigo.status_coleta === 'pendente' ? 'coletado' : codigo.status_coleta,
+              status_coleta: temCodigo ? 'coletado' : 'indisponivel',
               coletado_por: operadorNome,
-              coletado_em: new Date().toISOString(),
+              coletado_em: temCodigo ? new Date().toISOString() : null,
             });
             await reloadCodigos();
           }

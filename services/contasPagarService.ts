@@ -11,6 +11,7 @@ import {
   StatusVisual,
 } from '../types/contasPagar';
 import { competenciaFromVencimento, toDateOnly } from '../utils/dateOnly';
+import { resolveCodigoMesBadge } from './contasPagarCodigoMes';
 import { buildParcelasContaPagar } from './contasPagarParcelas';
 
 const CONTA_PAGAR_SELECT =
@@ -685,13 +686,7 @@ export async function upsertCodigoMes(
 }
 
 export function getCodigoMesBadge(conta: ContaPagar, codigo?: ContaPagarCodigoMes | null): CodigoMesBadge {
-  if (codigo?.status_coleta === 'coletado') return 'coletado';
-  if (codigo?.status_coleta === 'indisponivel') return 'indisponivel';
-  if (conta.status === 'pendente') {
-    const sv = getStatusVisual(conta);
-    if (sv === 'vencida' || sv === 'hoje' || sv === 'urgente') return 'atualizar';
-  }
-  return 'sem_codigo';
+  return resolveCodigoMesBadge(conta, codigo, getStatusVisual(conta));
 }
 
 // =============================================

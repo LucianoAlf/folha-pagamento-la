@@ -4,6 +4,7 @@ import { Modal, DatePicker, CustomSelect, ConfirmDialog } from '../UI';
 import { CentroCusto, ContaCredencial, ContaPagar, ContaPagarCodigoMes, FONTE_TIPOS, FonteTipo, PlanoConta, PlanoContaMaisUsado, StatusColetaCodigo } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { upsertCodigoMes } from '../../services/contasPagarService';
+import { hasCodigoPagamento } from '../../services/contasPagarCodigoMes';
 import { cn } from '../CollaboratorComponents';
 import { competenciaFromVencimento, formatCompetenciaLabel, toDateOnly } from '../../utils/dateOnly';
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
@@ -159,7 +160,10 @@ export const EditarContaModal: React.FC<{
       await onConfirm(patch, aplicarAFuturos);
 
       const comp = competencia || conta.competencia;
-      const temCodigo = codigoBarras.trim() || chavePix.trim() || qrPixPayload.trim();
+      const temCodigo = hasCodigoPagamento(
+        { pix_chave_fixa: pixChaveFixa },
+        { codigo_barras: codigoBarras, chave_pix: chavePix, qr_pix_payload: qrPixPayload }
+      );
       if (comp && (temCodigo || codigoMes)) {
         await upsertCodigoMes({
           conta_pagar_id: conta.id,
@@ -167,7 +171,7 @@ export const EditarContaModal: React.FC<{
           codigo_barras: codigoBarras.trim() || null,
           chave_pix: chavePix.trim() || null,
           qr_pix_payload: qrPixPayload.trim() || null,
-          status_coleta: temCodigo ? (codigoStatus === 'pendente' ? 'coletado' : codigoStatus) : 'indisponivel',
+          status_coleta: temCodigo ? 'coletado' : 'indisponivel',
           coletado_por: operadorNome,
           coletado_em: temCodigo ? new Date().toISOString() : null,
         });
