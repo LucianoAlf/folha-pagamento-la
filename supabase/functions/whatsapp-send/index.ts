@@ -52,16 +52,28 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false },
     });
 
+    const cronSecretHeader = (req.headers.get("x-cron-secret") || "").trim();
+    let chamadaServico = false;
+    if (cronSecretHeader) {
+      const cronSecret = await getSecret(supabaseAdmin, "WHATSAPP_CRON_SECRET");
+      if (cronSecretHeader !== cronSecret) {
+        return json({ success: false, error: "cron secret inválido." }, 401);
+      }
+      chamadaServico = true;
+    }
+
     // Auth manual (verify_jwt=false no gateway)
-    const authHeader = req.headers.get("authorization") || "";
-    if (!authHeader) return json({ success: false, error: "Authorization ausente." }, 401);
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false },
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await supabaseAuth.auth.getUser();
-    if (userErr || !userData?.user) {
-      return json({ success: false, error: "JWT inválido." }, 401);
+    if (!chamadaServico) {
+      const authHeader = req.headers.get("authorization") || "";
+      if (!authHeader) return json({ success: false, error: "Authorization ausente." }, 401);
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { persistSession: false },
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData, error: userErr } = await supabaseAuth.auth.getUser();
+      if (userErr || !userData?.user) {
+        return json({ success: false, error: "JWT inválido." }, 401);
+      }
     }
 
     const { numero, mensagem, tipo, isGroup } = await req.json().catch(() => ({}));
