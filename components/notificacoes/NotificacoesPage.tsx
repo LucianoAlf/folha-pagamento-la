@@ -208,7 +208,8 @@ export const NotificacoesPage: React.FC = () => {
 
   // Padrão do sistema: Card “dark” com borda (como usamos no resto do app)
   // OBS: quando usamos bg-slate-* o componente Card não aplica borda padrão automaticamente.
-  const cardClass = 'bg-bg/85 border border-line/70 backdrop-blur-none';
+  const cardClass = 'bg-surface/90 border border-line-strong/60 shadow-[var(--shadow-card)] backdrop-blur-none';
+  const insetPanelClass = 'rounded-2xl border border-line-strong/60 bg-surface/75 shadow-[var(--shadow-card)]';
 
   const diasSemana = useMemo(
     () => [
@@ -764,7 +765,7 @@ export const NotificacoesPage: React.FC = () => {
 
                 <div className="mt-5 space-y-3">
                   {notificacoes.length === 0 && !isAdding ? (
-                    <div className="rounded-2xl border border-line bg-surface/40 px-5 py-8 text-center">
+                    <div className={cn(insetPanelClass, 'px-5 py-8 text-center')}>
                       <Clock className="w-8 h-8 text-muted mx-auto mb-3" />
                       <div className="font-black text-primary">Nenhuma notificacao configurada</div>
                       <div className="text-sm text-secondary mt-1">Adicione um tipo de aviso para este grupo. Ele nasce desligado.</div>
@@ -777,7 +778,7 @@ export const NotificacoesPage: React.FC = () => {
                     const hasChanges = !!grupoDrafts[notificacao.id];
 
                     return (
-                      <div key={notificacao.id} className="rounded-2xl border border-line bg-surface/40 p-4 space-y-4">
+                      <div key={notificacao.id} className={cn(insetPanelClass, 'p-4 space-y-4')}>
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                           <div className="min-w-0">
                             <div className="text-primary font-black">{grupoTipoLabels[notificacao.tipo]}</div>
@@ -913,12 +914,12 @@ export const NotificacoesPage: React.FC = () => {
         }
       >
         {addGrupoLoading ? (
-          <div className="flex items-center justify-center gap-3 rounded-2xl border border-line bg-surface/40 px-5 py-8">
+          <div className={cn(insetPanelClass, 'flex items-center justify-center gap-3 px-5 py-8')}>
             <Loader2 className="w-5 h-5 animate-spin text-accent" />
             <span className="text-sm font-black text-secondary">Buscando grupos disponiveis...</span>
           </div>
         ) : gruposDisponiveisNovos.length === 0 ? (
-          <div className="rounded-2xl border border-line bg-surface/40 px-5 py-8 text-center">
+          <div className={cn(insetPanelClass, 'px-5 py-8 text-center')}>
             <Users className="w-8 h-8 text-muted mx-auto mb-3" />
             <div className="font-black text-primary">Todos os grupos ja estao cadastrados</div>
             <div className="text-sm text-secondary mt-1">
@@ -1100,7 +1101,7 @@ export const NotificacoesPage: React.FC = () => {
               </div>
             ) : null}
 
-            <div className="rounded-2xl border border-line bg-surface/40 p-4 text-sm text-secondary font-bold">
+            <div className={cn(insetPanelClass, 'p-4 text-sm text-secondary font-bold')}>
               A nova configuracao nasce desligada. Ligue o envio automatico na linha depois de criar.
             </div>
           </div>
@@ -1153,7 +1154,7 @@ export const NotificacoesPage: React.FC = () => {
       {/* Mobile Premium Header Card */}
       {isMobile ? (
         <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-500">
-          <Card className="p-4 bg-surface/40 border border-line/60">
+          <Card className="p-4 bg-surface/90 border border-line-strong/60 shadow-[var(--shadow-card)]">
             <div className="flex items-center gap-3 mb-1">
               <Bell className="w-5 h-5 text-accent" />
               <h2 className="text-xl font-black text-primary leading-tight">Central de Notificações</h2>
@@ -1232,7 +1233,7 @@ export const NotificacoesPage: React.FC = () => {
       {activeTab === 'individual' ? (
       <div className="grid grid-cols-1 gap-6">
         {/* WhatsApp */}
-        <Card className={cn('p-0 overflow-hidden', cardClass, 'bg-bg/95')}>
+        <Card className={cn('p-0 overflow-hidden', cardClass)}>
           <div
             role={isMobile ? 'button' : undefined}
             tabIndex={isMobile ? 0 : -1}
