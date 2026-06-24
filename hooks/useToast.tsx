@@ -13,8 +13,9 @@ import React, {
   useState,
 } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { getToastPresentation, type ToastVariant } from './toastStyles';
 
-export type ToastVariant = 'success' | 'error' | 'info';
+export type { ToastVariant } from './toastStyles';
 
 export interface ToastItem {
   id: number;
@@ -97,25 +98,10 @@ export function useToast(): ToastContextValue {
 // Apresentação
 // ----------------------------------------------------
 
-const VARIANT_STYLE: Record<
-  ToastVariant,
-  { ring: string; iconColor: string; Icon: typeof CheckCircle2 }
-> = {
-  success: {
-    ring: 'border-emerald-500/30 bg-emerald-500/10',
-    iconColor: 'text-emerald-400',
-    Icon: CheckCircle2,
-  },
-  error: {
-    ring: 'border-rose-500/30 bg-rose-500/10',
-    iconColor: 'text-rose-400',
-    Icon: AlertCircle,
-  },
-  info: {
-    ring: 'border-violet-500/30 bg-violet-500/10',
-    iconColor: 'text-violet-400',
-    Icon: Info,
-  },
+const VARIANT_ICON: Record<ToastVariant, typeof CheckCircle2> = {
+  success: CheckCircle2,
+  error: AlertCircle,
+  info: Info,
 };
 
 const ToastViewport: React.FC<{
@@ -126,28 +112,33 @@ const ToastViewport: React.FC<{
 
   return (
     <div
-      className="fixed top-4 right-4 z-[100] flex flex-col gap-2 w-[min(92vw,380px)] pointer-events-none"
+      className="fixed top-4 right-4 flex flex-col gap-2 w-[min(92vw,380px)] pointer-events-none"
+      style={{ zIndex: 'var(--z-toast)' }}
       aria-label="Notificações"
     >
       {toasts.map((t) => {
-        const { ring, iconColor, Icon } = VARIANT_STYLE[t.variant];
+        const style = getToastPresentation(t.variant);
+        const Icon = VARIANT_ICON[t.variant];
         const isError = t.variant === 'error';
         return (
           <div
             key={t.id}
             role={isError ? 'alert' : 'status'}
             aria-live={isError ? 'assertive' : 'polite'}
-            className={`toast-in pointer-events-auto flex items-start gap-3 rounded-xl border ${ring} backdrop-blur-md px-4 py-3 shadow-lg shadow-black/30`}
+            className={style.container}
           >
-            <Icon size={18} className={`shrink-0 mt-0.5 ${iconColor}`} />
-            <p className="flex-1 text-sm font-medium text-slate-100 break-words">
+            <span className={`absolute inset-y-2 left-0 w-1 rounded-r-full ${style.accent}`} aria-hidden="true" />
+            <span className={style.iconWrap} aria-hidden="true">
+              <Icon className={style.icon} />
+            </span>
+            <p className={style.message}>
               {t.message}
             </p>
             <button
               type="button"
               onClick={() => onDismiss(t.id)}
               aria-label="Fechar notificação"
-              className="shrink-0 text-slate-400 hover:text-slate-200 transition-colors"
+              className={style.close}
             >
               <X size={16} />
             </button>
