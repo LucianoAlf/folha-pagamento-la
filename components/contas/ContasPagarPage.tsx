@@ -777,7 +777,7 @@ export const ContasPagarPage: React.FC<{
         };
 
         // Usar helper robusto que tenta 2 métodos
-        const data = await invokeEdgeFunction('ai-contas-auditoria', params, 20_000);
+        const data = await invokeEdgeFunction('ai-contas-auditoria', params, 10_000);
         const auditData = data as ContasAuditoriaAiRow & { cached?: boolean };
         setAuditAiCached(!!auditData?.cached);
         setAuditAiRow(auditData);

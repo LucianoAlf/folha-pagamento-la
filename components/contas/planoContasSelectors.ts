@@ -115,12 +115,6 @@ export function comparePlanoContaCodigo<T extends Pick<PlanoConta, 'codigo'>>(a:
   return a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true, sensitivity: 'base' });
 }
 
-function comparePlanoContaTreeOrder<T extends Pick<PlanoConta, 'codigo' | 'ordem'>>(a: T, b: T): number {
-  const orderDiff = (a.ordem ?? 0) - (b.ordem ?? 0);
-  if (orderDiff !== 0) return orderDiff;
-  return comparePlanoContaCodigo(a, b);
-}
-
 function clonePlanoContaNode<T extends PlanoConta>(node: PlanoContaViewerTreeNode<T>): PlanoContaViewerTreeNode<T> {
   return {
     plano: node.plano,
@@ -146,7 +140,7 @@ export function buildPlanoContaViewerTree<T extends PlanoConta>(
   }
 
   const sortTree = (items: PlanoContaViewerTreeNode<T>[]) => {
-    items.sort((a, b) => comparePlanoContaTreeOrder(a.plano, b.plano));
+    items.sort((a, b) => comparePlanoContaCodigo(a.plano, b.plano));
     items.forEach((item) => sortTree(item.children));
   };
   sortTree(roots);
