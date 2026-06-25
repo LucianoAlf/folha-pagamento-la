@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { gerarRelatorioContasDia } from "../_shared/relatorioContasDia.ts";
+import { ensureRecorrentesInstancias } from "../_shared/recorrentesMes.ts";
 import { avaliarAgendamentoGrupo, nowSaoPaulo } from "../_shared/whatsappGrupoDispatcher.ts";
 
 // Este dispatcher le contas existentes; recorrentes do mes sao materializadas quando o time
@@ -238,6 +239,11 @@ Deno.serve(async (req: Request) => {
       }
 
       try {
+        if (!dryRun) {
+          const mat = await ensureRecorrentesInstancias(supabaseAdmin, nowSP.date.slice(0, 7));
+          console.log("dispatcher: recorrentes materializadas", mat.criadas);
+        }
+
         const relatorio = await gerarRelatorioContasDia(supabaseAdmin, {
           dataRef: nowSP.date,
           unidadeFiltro: "todas",
