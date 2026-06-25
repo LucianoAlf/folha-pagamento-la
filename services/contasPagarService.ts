@@ -101,6 +101,8 @@ function dedupeRecorrentesVisao(contas: ContaPagar[]): ContaPagar[] {
 }
 
 function competenciaPrimeiroDia(ymOrDate: string): string {
+  const ym = String(ymOrDate || '').trim().match(/^(\d{4})-(\d{2})$/);
+  if (ym) return `${ym[1]}-${ym[2]}-01`;
   const d = toDateOnly(ymOrDate);
   if (!d) return '';
   return `${d.slice(0, 7)}-01`;
