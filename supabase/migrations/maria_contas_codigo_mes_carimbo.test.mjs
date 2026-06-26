@@ -15,7 +15,6 @@ test('Maria code-month stamp migration adds visible metadata and sanitized statu
 test('Maria register RPC returns sanitized payload without raw payment code fields', () => {
   const returnBlock = sql.match(/return jsonb_build_object\([\s\S]*?\n  \);\nend;\n\$\$;/)?.[0] || '';
 
-  assert.match(returnBlock, /'documento_status', 'registrado'/);
   assert.match(returnBlock, /'registrado_por'/);
   assert.match(returnBlock, /'confirmado_por'/);
   assert.doesNotMatch(returnBlock, /codigo_barras|chave_pix|qr_pix_payload|to_jsonb\(v_after\)/);

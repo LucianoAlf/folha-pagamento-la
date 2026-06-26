@@ -61,7 +61,33 @@ Todas rodam como `SECURITY DEFINER`, validam input, escrevem audit log e sao exe
 
 | RPC | Escopo |
 | --- | --- |
-| `maria_contas_documento_status` | Retorna somente se ha documento registrado para conta/competencia, tipo (`boleto`, `pix`, `ambos`, `desconhecido`) e carimbo Maria. Nao retorna linha digitavel, codigo de barras, chave PIX nem payload PIX. |
+| `maria_contas_documento_status` | Retorna `status_coleta` com a nomenclatura do Contas a Pagar (`COLETADO`, `COLETAR`, `SEM CÓDIGO`), tipo (`boleto`, `pix`, `ambos`, `desconhecido`) e carimbo Maria. Nao retorna linha digitavel, codigo de barras, chave PIX nem payload PIX. |
+
+## Nomenclatura obrigatoria para WhatsApp
+
+A Maria deve usar exatamente os mesmos rótulos do Contas a Pagar:
+
+- `COLETADO`: documento/codigo/PIX ja coletado ou vinculado.
+- `COLETAR`: vencimento proximo, hoje ou vencido sem codigo/documento coletado.
+- `SEM CÓDIGO`: codigo/documento indisponivel ou ainda nao informado fora da janela de coleta.
+
+Resposta esperada no WhatsApp:
+
+```text
+🔎 Status: COLETADO
+```
+
+ou:
+
+```text
+🔎 Status: COLETAR
+```
+
+ou:
+
+```text
+🔎 Status: SEM CÓDIGO
+```
 
 Se a Maria precisar de uma mutacao que nao esteja nesta lista, a resposta deve ser:
 
