@@ -48,6 +48,8 @@ export interface Colaborador {
   
   created_at?: string;
   updated_at?: string;
+  arquivado_em?: string | null;
+  arquivado_por?: string | null;
 }
 
 export interface FolhaMensal {

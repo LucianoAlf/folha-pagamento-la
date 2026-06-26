@@ -647,13 +647,13 @@ export default function App() {
     setConfirmState({
       isOpen: true,
       title: 'Excluir Colaborador',
-      message: `Deseja remover ${c.nome} permanentemente?`,
+      message: `Deseja remover ${c.nome} da lista? O histórico de folha e férias será preservado.`,
       variant: 'danger',
       onConfirm: async () => {
         try {
           await api.deleteColaborador(c.id);
           await fetchMetadata();
-          setAlertState({ isOpen: true, title: 'Sucesso', message: 'Colaborador removido.', variant: 'primary' });
+          setAlertState({ isOpen: true, title: 'Sucesso', message: 'Colaborador removido da lista.', variant: 'primary' });
         } catch (err: any) {
           setAlertState({ isOpen: true, title: 'Erro', message: err.message, variant: 'danger' });
         }

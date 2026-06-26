@@ -102,7 +102,7 @@ export const api = {
 
   async fetchColaboradores(): Promise<Colaborador[]> {
     const headers = await getAuthHeaders();
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/colaboradores?select=*&order=nome`, { headers });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/colaboradores?select=*&arquivado_em=is.null&order=nome`, { headers });
     if (!res.ok) throw new Error('Erro ao buscar colaboradores');
     return res.json();
   },
@@ -137,11 +137,23 @@ export const api = {
 
   async deleteColaborador(id: number): Promise<void> {
     const headers = await getAuthHeaders();
+    const { data } = await supabase.auth.getUser();
+    const userId = data.user?.id;
     const res = await fetch(`${SUPABASE_URL}/rest/v1/colaboradores?id=eq.${id}`, {
-      method: 'DELETE',
+      method: 'PATCH',
       headers,
+      body: JSON.stringify({
+        ativo: false,
+        status: 'inactive',
+        arquivado_em: new Date().toISOString(),
+        ...(userId ? { arquivado_por: userId } : {}),
+        updated_at: new Date().toISOString(),
+      }),
     });
-    if (!res.ok) throw new Error('Erro ao excluir colaborador');
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Erro ao excluir colaborador${text ? `: ${text}` : ''}`);
+    }
   },
 
   async fetchFolhasMensais(): Promise<FolhaMensal[]> {
