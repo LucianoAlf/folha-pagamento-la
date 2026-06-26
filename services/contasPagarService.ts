@@ -670,9 +670,23 @@ export async function fetchCodigosMes(competencia: string): Promise<ContaPagarCo
 export async function upsertCodigoMes(
   input: Partial<ContaPagarCodigoMes> & { conta_pagar_id: string; competencia: string }
 ): Promise<ContaPagarCodigoMes> {
+  const humanInput: Partial<ContaPagarCodigoMes> & { conta_pagar_id: string; competencia: string } = {
+    registrado_por_agente: false,
+    agente_nome: null,
+    agente_actor: null,
+    confirmado_por_nome: null,
+    confirmado_por_actor: null,
+    canal_origem: null,
+    mensagem_origem_id: null,
+    registrado_via: null,
+    registrado_em: null,
+    observacao_operacional: null,
+    ...input,
+  };
+
   const { data, error } = await supabase
     .from('contas_pagar_codigo_mes')
-    .upsert([input], { onConflict: 'conta_pagar_id,competencia' })
+    .upsert([humanInput], { onConflict: 'conta_pagar_id,competencia' })
     .select('*')
     .single();
   if (error) throw error;

@@ -54,8 +54,14 @@ Todas rodam como `SECURITY DEFINER`, validam input, escrevem audit log e sao exe
 | `maria_contas_registrar_observacao` | Substitui somente `observacoes`. |
 | `maria_contas_definir_plano_conta` | Atualiza somente `plano_conta_id`, validando folha ativa de saida. |
 | `maria_contas_definir_centro_custo` | Atualiza `centro_custo_id` e sincroniza `unidade` pelo codigo da unidade ativa. |
-| `maria_contas_codigo_mes_registrar` | Registra codigo/chave/payload de pagamento mensal. Nao paga. |
+| `maria_contas_codigo_mes_registrar` | Registra codigo/chave/payload de pagamento mensal, grava carimbo operacional visivel e retorna payload sanitizado. Nao paga. |
 | `maria_contas_codigo_mes_marcar_indisponivel` | Marca o codigo mensal como indisponivel. |
+
+## RPCs de leitura sanitizada
+
+| RPC | Escopo |
+| --- | --- |
+| `maria_contas_documento_status` | Retorna somente se ha documento registrado para conta/competencia, tipo (`boleto`, `pix`, `ambos`, `desconhecido`) e carimbo Maria. Nao retorna linha digitavel, codigo de barras, chave PIX nem payload PIX. |
 
 Se a Maria precisar de uma mutacao que nao esteja nesta lista, a resposta deve ser:
 
@@ -68,12 +74,14 @@ Se a Maria precisar de uma mutacao que nao esteja nesta lista, a resposta deve s
 - `USAGE` em schema `public`.
 - `SELECT` nas tabelas operacionais necessarias.
 - `EXECUTE` somente nas RPCs listadas acima.
+- Sem `SELECT` direto em `contas_pagar_codigo_mes`; status de documento deve passar por `maria_contas_documento_status`.
 - Sem `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES` ou `TRIGGER` direto nas tabelas.
 
 `maria_leitura`:
 
 - `USAGE` em schema `public`.
 - `SELECT` nas tabelas operacionais necessarias.
+- Sem `SELECT` direto em `contas_pagar_codigo_mes`; status de documento deve passar por `maria_contas_documento_status`.
 - Sem `EXECUTE` nas RPCs de escrita.
 - Sem escrita direta.
 

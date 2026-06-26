@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, DollarSign, Edit2, Bell, CheckCircle2, Trash2, CheckSquare } from 'lucide-react';
+import { Search, DollarSign, Edit2, Bell, CheckCircle2, Trash2, CheckSquare, Bot } from 'lucide-react';
 import { Badge, Card, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { ContaPagar, ContaPagarCodigoMes } from '../../types/contasPagar';
@@ -83,14 +83,45 @@ export const ContasTable: React.FC<{
   const codigoBadgeFor = (c: ContaPagar) => {
     const codigo = codigosPorConta?.[c.id];
     const badge = getCodigoMesBadge(c, codigo);
+    const mariaBadge = codigo?.registrado_por_agente ? (() => {
+      const agente = codigo.agente_nome || 'Maria';
+      const confirmadoPor = codigo.confirmado_por_nome || codigo.coletado_por || 'confirmacao humana';
+      const quando = codigo.registrado_em
+        ? new Date(codigo.registrado_em).toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : null;
+      const tooltip = quando
+        ? `Registrado por ${agente} apos confirmacao de ${confirmadoPor} em ${quando}.`
+        : `Registrado por ${agente} apos confirmacao de ${confirmadoPor}.`;
+
+      return (
+        <Tooltip content={tooltip}>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-accent/20 bg-accent/10 text-accent text-[9px] font-black uppercase">
+            <Bot size={10} />
+            Maria
+          </span>
+        </Tooltip>
+      );
+    })() : null;
+    const wrap = (node: React.ReactNode) => (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {node}
+        {mariaBadge}
+      </div>
+    );
+
     if (badge === 'coletado') {
-      return <span className="inline-flex px-2 py-0.5 rounded-lg bg-success/10 text-success text-[9px] font-black uppercase">Coletado</span>;
+      return wrap(<span className="inline-flex px-2 py-0.5 rounded-lg bg-success/10 text-success text-[9px] font-black uppercase">Coletado</span>);
     }
     if (badge === 'indisponivel') {
-      return <span className="inline-flex px-2 py-0.5 rounded-lg bg-warning/10 text-warning text-[9px] font-black uppercase">Indisponível</span>;
+      return wrap(<span className="inline-flex px-2 py-0.5 rounded-lg bg-warning/10 text-warning text-[9px] font-black uppercase">Indisponível</span>);
     }
     if (badge === 'atualizar') {
-      return (
+      return wrap(
         <Tooltip content="Vence em até 7 dias e ainda não tem código/PIX do mês.">
           <span className="inline-flex px-2 py-0.5 rounded-lg bg-danger/10 text-danger text-[9px] font-black uppercase">
             Coletar
@@ -98,7 +129,7 @@ export const ContasTable: React.FC<{
         </Tooltip>
       );
     }
-    return <span className="inline-flex px-2 py-0.5 rounded-lg bg-surface-2 text-muted text-[9px] font-black uppercase">Sem código</span>;
+    return wrap(<span className="inline-flex px-2 py-0.5 rounded-lg bg-surface-2 text-muted text-[9px] font-black uppercase">Sem código</span>);
   };
 
   return (
@@ -368,6 +399,7 @@ export const ContasTable: React.FC<{
                                   </span>
                                 </div>
                               )}
+                              {codigosPorConta && <div className="mt-1">{codigoBadgeFor(c)}</div>}
                             </div>
                             <div className="shrink-0 flex flex-col items-end gap-1">
                               <span className="text-[10px] font-bold text-muted">

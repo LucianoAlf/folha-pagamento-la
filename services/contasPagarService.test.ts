@@ -87,3 +87,14 @@ test('resolveCodigoMesBadge treats fixed PIX as collected even when monthly code
     'coletado'
   );
 });
+
+test('upsertCodigoMes clears Maria stamp by default for human edits', () => {
+  const source = serviceSource();
+
+  assert.match(source, /const humanInput/);
+  assert.match(source, /registrado_por_agente:\s*false/);
+  assert.match(source, /agente_nome:\s*null/);
+  assert.match(source, /confirmado_por_nome:\s*null/);
+  assert.match(source, /observacao_operacional:\s*null/);
+  assert.match(source, /\.upsert\(\[humanInput\]/);
+});

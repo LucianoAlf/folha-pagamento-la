@@ -6,6 +6,13 @@ const source = readFileSync(new URL('./ContasTable.tsx', import.meta.url), 'utf8
 
 test('urgent missing payment code badge explains the action instead of saying atualizar', () => {
   assert.match(source, /Coletar/);
-  assert.match(source, /c[oó]digo\/PIX do m[eê]s/);
+  assert.match(source, /codigo\/PIX do mes|c[oó]digo\/PIX do m[eê]s/);
   assert.doesNotMatch(source, />Atualizar<\/span>/);
+});
+
+test('payment code badge shows a visible Maria stamp without exposing payment codes', () => {
+  assert.match(source, /registrado_por_agente/);
+  assert.match(source, />\s*Maria\s*</);
+  assert.match(source, /Registrado por \$\{agente\}/);
+  assert.doesNotMatch(source, /codigo_barras.*<|chave_pix.*<|qr_pix_payload.*</);
 });

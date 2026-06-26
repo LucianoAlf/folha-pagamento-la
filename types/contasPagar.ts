@@ -55,6 +55,16 @@ export interface ContaPagarCodigoMes {
   coletado_em: string | null;
   coletado_por: string | null;
   status_coleta: StatusColetaCodigo;
+  registrado_por_agente: boolean;
+  agente_nome: string | null;
+  agente_actor: string | null;
+  confirmado_por_nome: string | null;
+  confirmado_por_actor: string | null;
+  canal_origem: string | null;
+  mensagem_origem_id: string | null;
+  registrado_via: string | null;
+  registrado_em: string | null;
+  observacao_operacional: string | null;
   created_at: string;
   updated_at: string;
 }
