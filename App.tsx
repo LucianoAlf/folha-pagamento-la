@@ -21,6 +21,7 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
   CONTRACT_LABELS,
+  getEffectiveCollaboratorStatus,
   cn
 } from './components/CollaboratorComponents';
 import { Sidebar } from './components/Sidebar';
@@ -574,7 +575,7 @@ export default function App() {
                            c.email?.toLowerCase().includes(collabSearch.toLowerCase()) ||
                            c.funcao?.toLowerCase().includes(collabSearch.toLowerCase());
       const matchesDept = collabDeptFilter === 'all' || c.departamento === collabDeptFilter;
-      const matchesStatus = collabStatusFilter === 'all' || c.status === collabStatusFilter;
+      const matchesStatus = collabStatusFilter === 'all' || getEffectiveCollaboratorStatus(c) === collabStatusFilter;
       return matchesSearch && matchesDept && matchesStatus;
     });
   }, [colaboradores, collabSearch, collabDeptFilter, collabStatusFilter]);
@@ -621,7 +622,7 @@ export default function App() {
   };
 
   const handleToggleInactiveCollab = async (c: Colaborador) => {
-    const isActive = c.status === 'active';
+    const isActive = getEffectiveCollaboratorStatus(c) === 'active';
     setConfirmState({
       isOpen: true,
       title: isActive ? 'Inativar Colaborador' : 'Reativar Colaborador',
@@ -2727,25 +2728,25 @@ export default function App() {
                   <KPICard 
                     icon={Users} 
                     label="Total Ativos" 
-                    value={colaboradores.filter(c => c.status === 'active').length} 
+                    value={colaboradores.filter(c => getEffectiveCollaboratorStatus(c) === 'active').length} 
                     variant="violet" 
                   />
                   <KPICard 
                     icon={Building} 
                     label="Staff Ativo" 
-                    value={colaboradores.filter(c => c.departamento === 'staff_rateado' && c.status === 'active').length} 
+                    value={colaboradores.filter(c => c.departamento === 'staff_rateado' && getEffectiveCollaboratorStatus(c) === 'active').length} 
                     variant="violet" 
                   />
                   <KPICard 
                     icon={Music} 
                     label="Professores Ativos" 
-                    value={colaboradores.filter(c => c.departamento === 'professores' && c.status === 'active').length} 
+                    value={colaboradores.filter(c => c.departamento === 'professores' && getEffectiveCollaboratorStatus(c) === 'active').length} 
                     variant="emerald" 
                   />
                   <KPICard 
                     icon={DollarSign} 
                     label="Folha Base (Ativos)" 
-                    value={formatCurrency(colaboradores.filter(c => c.status === 'active').reduce((acc, c) => acc + getEffectiveBaseSalary(c), 0))} 
+                    value={formatCurrency(colaboradores.filter(c => getEffectiveCollaboratorStatus(c) === 'active').reduce((acc, c) => acc + getEffectiveBaseSalary(c), 0))} 
                     variant="rose" 
                   />
                 </div>
@@ -2943,7 +2944,7 @@ export default function App() {
                               <td className="px-6 py-4 text-xs font-bold text-secondary uppercase">{c.funcao}</td>
                               <td className="px-6 py-4 text-xs font-bold text-secondary uppercase">{CONTRACT_LABELS[c.tipo]}</td>
                               <td className="px-6 py-4">
-                                <Badge variant={STATUS_COLORS[c.status]}>{STATUS_LABELS[c.status]}</Badge>
+                                <Badge variant={STATUS_COLORS[getEffectiveCollaboratorStatus(c)]}>{STATUS_LABELS[getEffectiveCollaboratorStatus(c)]}</Badge>
                               </td>
                               <td className="px-6 py-4">
                                 <div className="flex gap-1">
@@ -2964,7 +2965,7 @@ export default function App() {
                           <Edit2 size={14} />
                         </button>
                       </Tooltip>
-                      <Tooltip content={c.status === 'active' ? 'Inativar' : 'Reativar'}>
+                      <Tooltip content={getEffectiveCollaboratorStatus(c) === 'active' ? 'Inativar' : 'Reativar'}>
                         <button onClick={() => handleToggleInactiveCollab(c)} className="p-2 text-secondary hover:text-warning transition-colors">
                           <UserX size={14} />
                         </button>
@@ -4448,7 +4449,7 @@ export default function App() {
                           }}
                           className="flex-1 px-6 py-3.5 rounded-2xl bg-warning hover:bg-warning text-white font-black transition-all shadow-lg shadow-warning/20 active:scale-95"
                         >
-                          {mobileCollabDetail.status === 'active' ? 'Inativar' : 'Reativar'}
+                          {getEffectiveCollaboratorStatus(mobileCollabDetail) === 'active' ? 'Inativar' : 'Reativar'}
                         </button>
                         <button
                           type="button"

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { User, Edit2, UserX, Trash2 } from 'lucide-react';
 import { Badge } from '../UI';
-import { cn, DEPARTMENT_COLORS, DEPARTMENT_LABELS, STATUS_COLORS, STATUS_LABELS } from '../CollaboratorComponents';
+import { cn, DEPARTMENT_COLORS, DEPARTMENT_LABELS, getEffectiveCollaboratorStatus } from '../CollaboratorComponents';
 import type { Colaborador } from '../../types';
 import { formatCurrency } from '../../services/api';
 
@@ -55,6 +55,7 @@ export const MobileCollaboratorList: React.FC<{
         {visibleItems.map((c) => {
           const deptColor = DEPARTMENT_COLORS[c.departamento];
           const deptLabel = DEPARTMENT_LABELS[c.departamento];
+          const effectiveStatus = getEffectiveCollaboratorStatus(c);
 
           const unidadeLabel = c.is_rateado
             ? 'RATEADO'
@@ -86,7 +87,7 @@ export const MobileCollaboratorList: React.FC<{
                     <div className="min-w-0">
                       <div className="font-black text-primary text-sm truncate">{c.nome}</div>
                       <div className="text-xs text-muted font-bold truncate mt-0.5 flex items-center gap-1.5">
-                        {c.status === 'active' ? (
+                        {effectiveStatus === 'active' ? (
                           <span className="relative flex h-1.5 w-1.5 shrink-0">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success"></span>
@@ -94,7 +95,7 @@ export const MobileCollaboratorList: React.FC<{
                         ) : (
                           <span className={cn(
                             "h-1.5 w-1.5 rounded-full shrink-0",
-                            c.status === 'inactive' ? "bg-danger" : "bg-warning"
+                            effectiveStatus === 'inactive' ? "bg-danger" : "bg-warning"
                           )} />
                         )}
                         {c.funcao || 'Colaborador'}
@@ -138,7 +139,7 @@ export const MobileCollaboratorList: React.FC<{
                         type="button"
                         onClick={() => onToggleInactive(c)}
                         className="w-6 h-6 flex items-center justify-center bg-surface-2/60 border border-line-strong/50 rounded-lg text-secondary active:text-warning active:bg-surface-2 transition-all active:scale-90 touch-manipulation"
-                        aria-label={c.status === 'active' ? 'Inativar' : 'Reativar'}
+                        aria-label={effectiveStatus === 'active' ? 'Inativar' : 'Reativar'}
                       >
                         <UserX size={11} />
                       </button>

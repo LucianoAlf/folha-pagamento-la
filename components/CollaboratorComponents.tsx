@@ -50,6 +50,16 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 export const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
 
+export const getEffectiveCollaboratorStatus = (
+  collaborator: Pick<Colaborador, 'ativo' | 'status'>
+): CollaboratorStatus => {
+  if (collaborator.ativo === false) return 'inactive';
+  if (collaborator.status === 'on_leave') return 'on_leave';
+  return 'active';
+};
+
+const statusToAtivo = (status: CollaboratorStatus) => status !== 'inactive';
+
 // --- Hook: useIsMobile ---
 const useIsMobile = (breakpoint = 1024) => {
   const [isMobile, setIsMobile] = useState(() => 
@@ -77,7 +87,8 @@ interface CollaboratorCardProps {
 
 export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator, onEdit, onDelete, onToggleInactive, isMobile }) => {
   const deptColor = DEPARTMENT_COLORS[collaborator.departamento];
-  const statusColor = STATUS_COLORS[collaborator.status];
+  const effectiveStatus = getEffectiveCollaboratorStatus(collaborator);
+  const statusColor = STATUS_COLORS[effectiveStatus];
 
   return (
     <Card className="bg-surface/40 border border-line/50 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
@@ -129,7 +140,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
             </button>
           </Tooltip>
 
-          <Tooltip content={collaborator.status === 'active' ? 'Inativar' : 'Reativar'}>
+          <Tooltip content={effectiveStatus === 'active' ? 'Inativar' : 'Reativar'}>
             <button
               onClick={() => onToggleInactive(collaborator)}
               className="w-8 h-8 flex items-center justify-center bg-surface-2/60 border border-line-strong/50 rounded-xl text-secondary hover:text-warning shadow-sm transition-all active:scale-90"
@@ -152,7 +163,7 @@ export const CollaboratorCard: React.FC<CollaboratorCardProps> = ({ collaborator
       <div className="p-4 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={statusColor} className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-            {STATUS_LABELS[collaborator.status]}
+            {STATUS_LABELS[effectiveStatus]}
           </Badge>
           <span className="text-[10px] font-black text-muted bg-surface-2/40 px-3 py-1 rounded-full uppercase border border-line-strong/50">
             {CONTRACT_LABELS[collaborator.tipo]}
@@ -615,7 +626,10 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
                 <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Status</label>
                 <CustomSelect
                   value={form.status || ''}
-                  onValueChange={(v) => updateForm({ status: v as any })}
+                  onValueChange={(v) => {
+                    const status = v as CollaboratorStatus;
+                    updateForm({ status, ativo: statusToAtivo(status) });
+                  }}
                   options={Object.entries(STATUS_LABELS).map(([k, v]) => ({ value: k, label: v }))}
                 />
               </div>
@@ -1150,7 +1164,10 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
                     <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Status</label>
                     <CustomSelect
                       value={form.status || ''}
-                      onValueChange={(v) => updateForm({ status: v as any })}
+                      onValueChange={(v) => {
+                        const status = v as CollaboratorStatus;
+                        updateForm({ status, ativo: statusToAtivo(status) });
+                      }}
                       options={Object.entries(STATUS_LABELS).map(([k, v]) => ({ value: k, label: v }))}
                     />
                   </div>
