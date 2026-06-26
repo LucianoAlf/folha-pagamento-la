@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Info, Save } from 'lucide-react';
+import { Bot, Info, Save } from 'lucide-react';
 import { Modal, DatePicker, CustomSelect, ConfirmDialog } from '../UI';
 import { CentroCusto, ContaCredencial, ContaPagar, ContaPagarCodigoMes, FONTE_TIPOS, FonteTipo, PlanoConta, PlanoContaMaisUsado, StatusColetaCodigo } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
@@ -100,6 +100,24 @@ export const EditarContaModal: React.FC<{
 
   const competencia = useMemo(() => competenciaFromVencimento(vencimento), [vencimento]);
   const competenciaLabel = useMemo(() => formatCompetenciaLabel(vencimento), [vencimento]);
+  const registroMaria = useMemo(() => {
+    if (!codigoMes?.registrado_por_agente) return null;
+
+    const agente = codigoMes.agente_nome || 'Maria';
+    const confirmadoPor = codigoMes.confirmado_por_nome || codigoMes.coletado_por || 'confirmacao humana';
+    const canal = codigoMes.canal_origem || 'WhatsApp';
+    const registradoEm = codigoMes.registrado_em || codigoMes.coletado_em;
+    const registradoEmLabel = registradoEm
+      ? new Date(registradoEm).toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : null;
+
+    return { agente, confirmadoPor, canal, registradoEmLabel };
+  }, [codigoMes]);
 
   const handleSave = async (aplicarAFuturos?: boolean) => {
     if (!conta) return;
@@ -485,6 +503,30 @@ export const EditarContaModal: React.FC<{
             <p className="text-xs text-muted font-bold mb-5 leading-relaxed">
               Boleto ou PIX desta competência — entra no relatório do dia quando a conta vence na data de referência.
             </p>
+            {registroMaria && (
+              <div className="mb-5 rounded-2xl border border-accent/20 bg-accent/10 p-4 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-2xl border border-accent/25 bg-accent/15 text-accent flex items-center justify-center shrink-0">
+                  <Bot size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center rounded-lg border border-accent/20 bg-accent/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-accent">
+                      Maria
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-accent">
+                      Registro auditado
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs font-bold leading-relaxed text-primary">
+                    Registrado por {registroMaria.agente} apos confirmacao de {registroMaria.confirmadoPor}
+                    {registroMaria.registradoEmLabel ? ` em ${registroMaria.registradoEmLabel}` : ''}.
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold leading-relaxed text-secondary">
+                    Canal: {registroMaria.canal}. Sem pagamento real executado.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-5">
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Código de barras / linha digitável</label>
