@@ -462,34 +462,51 @@ export const ContasPagarPage: React.FC<{
   const [credenciais, setCredenciais] = useState<ContaCredencial[]>([]);
   const [credenciaisOpen, setCredenciaisOpen] = useState(false);
   const [codigosPorConta, setCodigosPorConta] = useState<Record<string, ContaPagarCodigoMes>>({});
+  const [codigosCarregados, setCodigosCarregados] = useState(false);
   const [operadorNome, setOperadorNome] = useState('operador');
 
   useEffect(() => {
-    async function loadFatiaC() {
-      try {
-        const [creds, codigos] = await Promise.all([
-          fetchCredenciais(),
-          fetchCodigosMes(`${competenciaFiltro}-01`),
-        ]);
-        setCredenciais(creds);
+    let cancelled = false;
+    setCodigosCarregados(false);
+
+    fetchCredenciais()
+      .then((creds) => {
+        if (!cancelled) setCredenciais(creds);
+      })
+      .catch(() => {
+        // schema novo — falha silenciosa até migration aplicada
+      });
+
+    fetchCodigosMes(`${competenciaFiltro}-01`)
+      .then((codigos) => {
+        if (cancelled) return;
         const map: Record<string, ContaPagarCodigoMes> = {};
         codigos.forEach((c) => { map[c.conta_pagar_id] = c; });
         setCodigosPorConta(map);
-      } catch {
-        // schema novo — falha silenciosa até migration aplicada
-      }
-    }
-    loadFatiaC();
+      })
+      .catch(() => {
+        if (!cancelled) setCodigosPorConta({});
+      })
+      .finally(() => {
+        if (!cancelled) setCodigosCarregados(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [competenciaFiltro]);
 
   const reloadCodigos = useCallback(async () => {
+    setCodigosCarregados(false);
     try {
       const codigos = await fetchCodigosMes(`${competenciaFiltro}-01`);
       const map: Record<string, ContaPagarCodigoMes> = {};
       codigos.forEach((c) => { map[c.conta_pagar_id] = c; });
       setCodigosPorConta(map);
     } catch {
-      // ignore
+      setCodigosPorConta({});
+    } finally {
+      setCodigosCarregados(true);
     }
   }, [competenciaFiltro]);
 
@@ -2499,7 +2516,7 @@ export const ContasPagarPage: React.FC<{
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onToggleSelectAll={toggleSelectAll}
-            codigosPorConta={codigosPorConta}
+            codigosPorConta={codigosCarregados ? codigosPorConta : undefined}
           />
         )}
 
@@ -3098,7 +3115,7 @@ export const ContasPagarPage: React.FC<{
 
       <RelatorioDoDiaPanel
         contas={contas}
-        codigosPorConta={codigosPorConta}
+        codigosPorConta={codigosCarregados ? codigosPorConta : undefined}
         unidade={unidadeFiltro}
         unidadeLabel={unidadeLabelAtual}
         geradoPor={operadorNome}
@@ -3315,7 +3332,7 @@ export const ContasPagarPage: React.FC<{
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onToggleSelectAll={toggleSelectAll}
-            codigosPorConta={codigosPorConta}
+            codigosPorConta={codigosCarregados ? codigosPorConta : undefined}
           />
         </div>
       )}

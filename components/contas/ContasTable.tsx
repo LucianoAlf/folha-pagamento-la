@@ -90,7 +90,13 @@ export const ContasTable: React.FC<{
       return <span className="inline-flex px-2 py-0.5 rounded-lg bg-warning/10 text-warning text-[9px] font-black uppercase">Indisponível</span>;
     }
     if (badge === 'atualizar') {
-      return <span className="inline-flex px-2 py-0.5 rounded-lg bg-danger/10 text-danger text-[9px] font-black uppercase">Atualizar</span>;
+      return (
+        <Tooltip content="Vence em até 7 dias e ainda não tem código/PIX do mês.">
+          <span className="inline-flex px-2 py-0.5 rounded-lg bg-danger/10 text-danger text-[9px] font-black uppercase">
+            Coletar
+          </span>
+        </Tooltip>
+      );
     }
     return <span className="inline-flex px-2 py-0.5 rounded-lg bg-surface-2 text-muted text-[9px] font-black uppercase">Sem código</span>;
   };
