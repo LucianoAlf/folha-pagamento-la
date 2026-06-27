@@ -12,7 +12,8 @@ test('migration creates Maria cash-flow ledger and RPCs', () => {
 });
 
 test('ledger has idempotency and WhatsApp evidence fields', () => {
-  assert.match(sql, /unique \(chat_id, message_id, tipo_evento/i);
+  assert.match(sql, /event_fingerprint text not null/i);
+  assert.match(sql, /unique \(chat_id, message_id, event_fingerprint\)/i);
   assert.match(sql, /message_id text not null/i);
   assert.match(sql, /quoted_id text null/i);
   assert.match(sql, /evidencia_texto text null/i);

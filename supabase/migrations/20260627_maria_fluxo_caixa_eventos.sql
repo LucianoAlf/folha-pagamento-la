@@ -56,10 +56,11 @@ create table if not exists public.maria_fluxo_caixa_eventos (
   conta_pagar_id uuid null references public.contas_pagar(id) on delete set null,
   raw_payload_sanitizado jsonb null,
   observacoes text null,
+  event_fingerprint text not null default '',
   criado_por text not null default 'maria-observadora',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (chat_id, message_id, tipo_evento, coalesce(descricao, ''), coalesce(valor_centavos, -1))
+  unique (chat_id, message_id, event_fingerprint)
 );
 
 create index if not exists maria_fluxo_caixa_eventos_data_idx
@@ -174,7 +175,8 @@ begin
     media_ref,
     conta_pagar_id,
     raw_payload_sanitizado,
-    observacoes
+    observacoes,
+    event_fingerprint
   ) values (
     p_data_operacional,
     trim(p_chat_id),
@@ -194,9 +196,10 @@ begin
     nullif(trim(p_media_ref), ''),
     p_conta_pagar_id,
     p_raw_payload_sanitizado,
-    nullif(trim(p_observacoes), '')
+    nullif(trim(p_observacoes), ''),
+    md5(concat_ws('|', trim(p_chat_id), trim(p_message_id), lower(trim(p_tipo_evento)), trim(p_descricao), coalesce(v_valor_centavos::text, '')))
   )
-  on conflict (chat_id, message_id, tipo_evento, coalesce(descricao, ''), coalesce(valor_centavos, -1))
+  on conflict (chat_id, message_id, event_fingerprint)
   do update set
     data_operacional = excluded.data_operacional,
     quoted_id = coalesce(excluded.quoted_id, public.maria_fluxo_caixa_eventos.quoted_id),
@@ -339,14 +342,14 @@ $$;
 revoke all on table public.maria_fluxo_caixa_eventos from public, anon, authenticated;
 revoke all on function public.maria_fluxo_valor_para_centavos(numeric) from public, anon, authenticated;
 revoke all on function public.maria_fluxo_evento_registrar(
-  date, text, text, text, text, text, numeric, text, text, text, text, text, text, text, uuid, jsonb, text, text, text, text
+  date, text, text, text, text, text, numeric, text, text, text, text, text, text, uuid, jsonb, text, text, text, text
 ) from public, anon, authenticated, maria_leitura;
 revoke all on function public.maria_fluxo_eventos_dia(date, text) from public, anon, authenticated;
 revoke all on function public.maria_fluxo_resumo_periodo(date, date, text) from public, anon, authenticated;
 
 grant execute on function public.maria_fluxo_valor_para_centavos(numeric) to maria_operacional, maria_leitura, service_role;
 grant execute on function public.maria_fluxo_evento_registrar(
-  date, text, text, text, text, text, numeric, text, text, text, text, text, text, text, uuid, jsonb, text, text, text, text
+  date, text, text, text, text, text, numeric, text, text, text, text, text, text, uuid, jsonb, text, text, text, text
 ) to maria_operacional, service_role;
 grant execute on function public.maria_fluxo_eventos_dia(date, text) to maria_operacional, maria_leitura, service_role;
 grant execute on function public.maria_fluxo_resumo_periodo(date, date, text) to maria_operacional, maria_leitura, service_role;
@@ -354,7 +357,7 @@ grant execute on function public.maria_fluxo_resumo_periodo(date, date, text) to
 grant select on public.maria_fluxo_caixa_eventos to maria_operacional, maria_leitura, service_role;
 
 comment on function public.maria_fluxo_evento_registrar(
-  date, text, text, text, text, text, numeric, text, text, text, text, text, text, text, uuid, jsonb, text, text, text, text
+  date, text, text, text, text, text, numeric, text, text, text, text, text, text, uuid, jsonb, text, text, text, text
 ) is 'Maria observadora: registra evento de fluxo de caixa observado no WhatsApp. Não executa pagamento, baixa ou transferência.';
 
 comment on function public.maria_fluxo_eventos_dia(date, text) is
