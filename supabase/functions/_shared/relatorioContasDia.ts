@@ -38,12 +38,19 @@ export type RelatorioSaldos = {
 };
 
 type GrupoRelatorioId = 'emla_cg' | 'kids_cg' | 'bar' | 'rec';
+type UnidadeRelatorioId = 'rec' | 'bar' | 'cg';
 
 export const GRUPOS_RELATORIO: { id: GrupoRelatorioId; saldoLabel: string }[] = [
-  { id: 'emla_cg', saldoLabel: 'EMLA CG' },
-  { id: 'kids_cg', saldoLabel: 'Kids CG' },
-  { id: 'bar', saldoLabel: 'Barra' },
   { id: 'rec', saldoLabel: 'Recreio' },
+  { id: 'bar', saldoLabel: 'Barra' },
+  { id: 'kids_cg', saldoLabel: 'Kids CG' },
+  { id: 'emla_cg', saldoLabel: 'EMLA CG' },
+];
+
+const UNIDADES_RELATORIO: { id: UnidadeRelatorioId; titulo: string; resumoLabel: string; grupos: GrupoRelatorioId[] }[] = [
+  { id: 'rec', titulo: 'RECREIO', resumoLabel: 'Recreio', grupos: ['rec'] },
+  { id: 'bar', titulo: 'BARRA', resumoLabel: 'Barra', grupos: ['bar'] },
+  { id: 'cg', titulo: 'CAMPO GRANDE', resumoLabel: 'Campo Grande', grupos: ['emla_cg', 'kids_cg'] },
 ];
 
 const CONTA_PAGAR_SELECT = '*, plano_conta:plano_contas(*), centro_custo:centros_custo(*)';
@@ -85,12 +92,12 @@ export function formatCompetenciaMY(competencia: string | null | undefined, fall
   return `${mm}/${yyyy}`;
 }
 
-/** R$1.674,33 - sem espaco apos R$ (padrao WhatsApp) */
+/** R$ 1.674,33 - padrão WhatsApp aprovado para o financeiro */
 export function formatMoneyWhatsApp(value: number): string {
   const n = Math.round((Number(value) || 0) * 100) / 100;
   const [intPart, decPart] = n.toFixed(2).split('.');
   const intFmt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `R$${intFmt},${decPart}`;
+  return `R$ ${intFmt},${decPart}`;
 }
 
 export function linhaSaldo(label: string, valor?: number | null): string {
@@ -102,6 +109,7 @@ export function limparTituloPG(descricao: string): string {
   let d = descricao.trim();
   // Remove prefixo legado "1 - PG " sem cortar a unidade no final, ex.: "Light Loja 170 - (Recreio)"
   d = d.replace(/^\d+\s*-\s*PG\s*/i, '');
+  d = d.replace(/^PG\s+/i, '');
   return d.trim();
 }
 
@@ -117,6 +125,33 @@ export function compararContasRelatorio(a: ContaPagar, b: ContaPagar): number {
   const ob = ordemContaRelatorio(b);
   if (oa !== ob) return oa - ob;
   return a.descricao.localeCompare(b.descricao, 'pt-BR');
+}
+
+function somarValores(contas: ContaPagar[]): number {
+  return contas.reduce((acc, c) => acc + (Number(c.valor) || 0), 0);
+}
+
+function totalUnidadePorGrupos(porGrupo: Map<GrupoRelatorioId, ContaPagar[]>, unidade: UnidadeRelatorioId): number {
+  const config = UNIDADES_RELATORIO.find((u) => u.id === unidade);
+  if (!config) return 0;
+  return config.grupos.reduce((acc, grupo) => acc + somarValores(porGrupo.get(grupo) || []), 0);
+}
+
+export function temPossivelNecessidadeRateio(
+  porGrupo: Map<GrupoRelatorioId, ContaPagar[]>,
+  saldos: RelatorioSaldos
+): boolean {
+  const totalRec = totalUnidadePorGrupos(porGrupo, 'rec');
+  const totalBar = totalUnidadePorGrupos(porGrupo, 'bar');
+  const totalCg = totalUnidadePorGrupos(porGrupo, 'cg');
+
+  if (saldos.rec != null && totalRec > Number(saldos.rec)) return true;
+  if (saldos.bar != null && totalBar > Number(saldos.bar)) return true;
+  // Regra operacional: Campo Grande paga primeiro pela EMLA CG; se EMLA não cobre,
+  // pode precisar de transferência interna Kids CG -> EMLA CG ou apoio de outra unidade.
+  if (saldos.emla_cg != null && totalCg > Number(saldos.emla_cg)) return true;
+
+  return false;
 }
 
 export function classificarGrupoRelatorio(conta: ContaPagar): GrupoRelatorioId {
@@ -156,10 +191,6 @@ export function blocoContaRelatorio(
   const comp = formatCompetenciaMY(conta.competencia, conta.data_vencimento);
   const valor = formatMoneyWhatsApp(Number(conta.valor) || 0);
   const linhas = [`*PG ${titulo} ${comp} ${valor}*`];
-  const plano = conta.plano_conta ? `${conta.plano_conta.codigo} ${conta.plano_conta.nome}` : '';
-  const centro = conta.centro_custo?.nome || (conta.unidade ? String(conta.unidade).toUpperCase() : '');
-  const classificacao = [plano, centro].filter(Boolean).join(' \u00B7 ');
-  if (classificacao) linhas.push(classificacao);
   const cod = linhaCodigoPagamento(conta, codigo);
   if (cod) linhas.push(cod);
   return linhas.join('\n');
@@ -168,9 +199,11 @@ export function blocoContaRelatorio(
 /**
  * Monta mensagem no molde operacional das meninas (WhatsApp):
  * - Cabecalho *CONTAS A PAGAR HOJE DD/MM* receipt emoji
- * - Blocos EMLA CG -> Kids CG -> Barra -> Recreio separados por _________
+ * - Total geral + resumo por unidade
+ * - Blocos Recreio -> Barra -> Campo Grande separados por _________
  * - Cada conta: *PG ... MM/AAAA R$...* + linha de codigo (barras/PIX quando houver)
  * - Rodape *SALDO EM CONTAS* (Pluggy preenche na Fatia D)
+ * - Alerta curto de rateio quando houver possivel insuficiencia de saldo
  */
 export function montarRelatorioMensagem(
   contas: ContaPagar[],
@@ -196,22 +229,32 @@ export function montarRelatorioMensagem(
     porGrupo.get(g.id)!.sort(compararContasRelatorio);
   }
 
+  const totalGeral = Array.from(porGrupo.values()).reduce((acc, lista) => acc + somarValores(lista), 0);
   const partes: string[] = [`*CONTAS A PAGAR HOJE ${formatDateDDMM(dataRef)}* \u{1F9FE}`, ''];
+  partes.push(`\u{1F4B8} *Total Geral:* ${formatMoneyWhatsApp(totalGeral)}`);
+  partes.push('');
+  partes.push('*Resumo por unidade*');
+  for (const unidade of UNIDADES_RELATORIO) {
+    const total = totalUnidadePorGrupos(porGrupo, unidade.id);
+    if (total > 0) partes.push(`• ${unidade.resumoLabel}: ${formatMoneyWhatsApp(total)}`);
+  }
 
-  const gruposComContas = GRUPOS_RELATORIO.filter((g) => (porGrupo.get(g.id)?.length || 0) > 0);
+  const unidadesComContas = UNIDADES_RELATORIO.filter((u) => u.grupos.some((g) => (porGrupo.get(g)?.length || 0) > 0));
 
-  if (gruposComContas.length === 0) {
+  if (unidadesComContas.length === 0) {
+    partes.push('');
     partes.push('_Nenhuma conta pendente para esta data._');
   } else {
-    gruposComContas.forEach((grupo, idxGrupo) => {
-      const lista = porGrupo.get(grupo.id) || [];
+    unidadesComContas.forEach((unidade) => {
+      const lista = unidade.grupos.flatMap((grupo) => porGrupo.get(grupo) || []).sort(compararContasRelatorio);
+      partes.push('');
+      partes.push('_______________');
+      partes.push(`*${unidade.titulo}*`);
+      partes.push('');
       lista.forEach((c, idxConta) => {
         partes.push(blocoContaRelatorio(c, codigosPorConta[c.id]));
         if (idxConta < lista.length - 1) partes.push('');
       });
-      if (idxGrupo < gruposComContas.length - 1) {
-        partes.push('_________');
-      }
     });
   }
 
@@ -221,6 +264,12 @@ export function montarRelatorioMensagem(
   partes.push(linhaSaldo('Barra', saldos.bar));
   partes.push(linhaSaldo('Kids CG', saldos.kids_cg));
   partes.push(linhaSaldo('EMLA CG', saldos.emla_cg));
+
+  if (temPossivelNecessidadeRateio(porGrupo, saldos)) {
+    partes.push('');
+    partes.push('\u26A0\uFE0F Há possível necessidade de rateio hoje.');
+    partes.push('Se quiserem, peçam: “Maria, calcular rateio.”');
+  }
 
   return partes.join('\n').trimEnd();
 }
