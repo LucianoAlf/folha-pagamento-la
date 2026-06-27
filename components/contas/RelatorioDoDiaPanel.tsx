@@ -97,9 +97,9 @@ export const RelatorioDoDiaPanel: React.FC<{
             Relatório do dia
           </h3>
           <p className="text-sm text-secondary font-medium mt-2 max-w-2xl leading-relaxed">
-            Monta a mensagem no molde das meninas: blocos EMLA CG → Kids CG → Barra → Recreio, com código de barras ou PIX
-            quando cadastrado. Inclui apenas contas que vencem na <strong className="text-primary font-bold">data de referência</strong>.
-            Rose gera, revisa e copia — saldos entram na Fatia D (Pluggy).
+            Monta a mensagem no novo modelo aprovado: total geral, resumo por unidade e blocos na ordem Recreio → Barra → Campo Grande,
+            com código de barras ou PIX quando cadastrado. Inclui apenas contas que vencem na <strong className="text-primary font-bold">data de referência</strong>.
+            Rose gera, revisa e copia — saldos entram na Fatia D (Pluggy) e o alerta curto de rateio aparece só quando necessário.
           </p>
         </div>
         {ultimoStatus && (
