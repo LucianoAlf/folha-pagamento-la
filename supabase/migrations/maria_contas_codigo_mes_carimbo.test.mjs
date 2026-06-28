@@ -13,7 +13,10 @@ test('Maria code-month stamp migration adds visible metadata and sanitized statu
 });
 
 test('Maria register RPC returns sanitized payload without raw payment code fields', () => {
-  const returnBlock = sql.match(/return jsonb_build_object\([\s\S]*?\n  \);\nend;\n\$\$;/)?.[0] || '';
+  const registerFunction = sql.match(
+    /create or replace function public\.maria_contas_codigo_mes_registrar[\s\S]*?\n\$\$;/i,
+  )?.[0] || '';
+  const returnBlock = registerFunction.match(/return jsonb_build_object\([\s\S]*?\n\s*\);/i)?.[0] || '';
 
   assert.match(returnBlock, /'registrado_por'/);
   assert.match(returnBlock, /'confirmado_por'/);
