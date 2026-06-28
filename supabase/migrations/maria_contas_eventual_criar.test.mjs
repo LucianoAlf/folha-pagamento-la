@@ -22,6 +22,11 @@ test('eventual RPC enforces actor, confirmation and required classification', ()
   assert.match(sql, /centro_custo_id nao e uma unidade ativa/i);
 });
 
+test('eventual RPC requires the center to match the paying account company unit', () => {
+  assert.match(sql, /v_empresa\.unidade_id\s*<>\s*p_centro_custo_id/i);
+  assert.match(sql, /centro_custo_id nao corresponde/i);
+});
+
 test('eventual RPC inserts an eventual conta_pagar from WhatsApp with fiscal inference', () => {
   assert.match(sql, /tipo_lancamento[\s\S]*'eventual'/i);
   assert.match(sql, /fonte_tipo[\s\S]*'whatsapp'/i);

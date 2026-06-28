@@ -134,6 +134,10 @@ begin
     raise exception 'empresa da conta pagadora nao encontrada ou inativa.';
   end if;
 
+  if v_empresa.unidade_id <> p_centro_custo_id then
+    raise exception 'centro_custo_id nao corresponde a unidade da conta pagadora.';
+  end if;
+
   v_status := lower(coalesce(nullif(trim(p_status), ''), 'pago'));
   if v_status not in ('pendente', 'pago') then
     raise exception 'status permitido para eventual: pendente ou pago.';
