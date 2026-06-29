@@ -6,6 +6,8 @@ import {
   ContaPagar,
   ContaPagarCodigoMes,
   ContaPagarRelatorioDia,
+  FinanceiroContaBancaria,
+  FinanceiroEmpresa,
   PlanoConta,
   PlanoContaMaisUsado,
   StatusVisual,
@@ -15,7 +17,7 @@ import { resolveCodigoMesBadge } from './contasPagarCodigoMes';
 import { buildParcelasContaPagar } from './contasPagarParcelas';
 
 const CONTA_PAGAR_SELECT =
-  '*, plano_conta:plano_contas(*), centro_custo:centros_custo(*)';
+  '*, plano_conta:plano_contas(*), centro_custo:centros_custo(*), empresa:financeiro_empresas(*), conta_pagadora:financeiro_contas_bancarias(*, empresa:financeiro_empresas(*))';
 
 function normalizeContaDates(conta: Partial<ContaPagar>): Partial<ContaPagar> {
   const next = { ...conta };
@@ -64,6 +66,28 @@ export async function fetchCentrosCusto(): Promise<CentroCusto[]> {
 
   if (error) throw error;
   return (data || []) as CentroCusto[];
+}
+
+export async function fetchFinanceiroEmpresas(): Promise<FinanceiroEmpresa[]> {
+  const { data, error } = await supabase
+    .from('financeiro_empresas')
+    .select('id,razao_social,nome_fantasia,cnpj,label_operacional,unidade_id,ativo,observacoes,unidade:centros_custo(id,codigo,nome,tipo,ativo,ordem)')
+    .eq('ativo', true)
+    .order('label_operacional', { ascending: true });
+
+  if (error) throw error;
+  return (data || []) as any;
+}
+
+export async function fetchFinanceiroContasBancarias(): Promise<FinanceiroContaBancaria[]> {
+  const { data, error } = await supabase
+    .from('financeiro_contas_bancarias')
+    .select('id,empresa_id,banco,banco_codigo,agencia,conta,apelido,tipo,ativo,observacoes,empresa:financeiro_empresas(id,razao_social,nome_fantasia,cnpj,label_operacional,unidade_id,ativo,observacoes,unidade:centros_custo(id,codigo,nome,tipo,ativo,ordem))')
+    .eq('ativo', true)
+    .order('conta', { ascending: true });
+
+  if (error) throw error;
+  return (data || []) as any;
 }
 
 export async function fetchPlanoContasMaisUsados(limit = 8): Promise<PlanoContaMaisUsado[]> {

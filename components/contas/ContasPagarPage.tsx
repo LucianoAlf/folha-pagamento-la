@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadingSpinner, ErrorState, ConfirmDialog } from '../UI';
-import { ContaPagar, CentroCusto, ContaCredencial, ContaPagarCodigoMes, PlanoConta, PlanoContaMaisUsado } from '../../types/contasPagar';
+import { ContaPagar, CentroCusto, ContaCredencial, ContaPagarCodigoMes, FinanceiroContaBancaria, FinanceiroEmpresa, PlanoConta, PlanoContaMaisUsado } from '../../types/contasPagar';
 import {
   calcularResumo,
   calcularResumoAuditoria,
   fetchCentrosCusto,
   fetchContasPagar,
   fetchCredenciais,
+  fetchFinanceiroContasBancarias,
+  fetchFinanceiroEmpresas,
   fetchCodigosMes,
   fetchPlanoContasMaisUsados,
   fetchPlanoContas,
@@ -168,13 +170,14 @@ function matchesContaGrupoPlano(conta: ContaPagar, grupoPlano: string): boolean 
   return Boolean(conta.plano_conta?.codigo?.startsWith(`${grupoPlano}.`));
 }
 
-type ContasMode = 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'plano-contas';
+type ContasMode = 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'financeiro-fiscal' | 'plano-contas';
 
 const CONTAS_TABS: { id: ContasMode; label: string; icon: React.FC<any>; shortLabel: string }[] = [
   { id: 'dashboard', label: 'Resumo', icon: LineChartIcon, shortLabel: 'Dash' },
   { id: 'visao-geral', label: 'Contas a Pagar', icon: BarChart3, shortLabel: 'Contas' },
   { id: 'todas', label: 'Auditoria', icon: FileText, shortLabel: 'Audit.' },
   { id: 'comparativo', label: 'Comparativo', icon: TrendingUp, shortLabel: 'IA' },
+  { id: 'financeiro-fiscal', label: 'Empresas e Contas', icon: CreditCard, shortLabel: 'Fiscal' },
   { id: 'plano-contas', label: 'Plano de Contas', icon: ListTree, shortLabel: 'Plano' },
 ];
 
@@ -183,6 +186,7 @@ const CONTAS_TITLES: Record<ContasMode, { title: string; subtitle: string }> = {
   'visao-geral': { title: 'Gestão Mensal', subtitle: 'Acompanhamento de contas a pagar por competência' },
   'todas': { title: 'Auditoria Financeira', subtitle: 'Histórico completo de lançamentos e liquidações' },
   'comparativo': { title: 'IA Financeira', subtitle: 'Insights e anomalias detectadas por IA nas contas a pagar' },
+  'financeiro-fiscal': { title: 'Empresas e Contas', subtitle: 'Consulta das empresas operacionais e contas pagadoras das despesas eventuais.' },
   'plano-contas': { title: 'Plano de Contas', subtitle: 'Consulta da estrutura Emusys usada nos lançamentos de despesas.' },
 };
 
@@ -202,6 +206,8 @@ export const ContasPagarPage: React.FC<{
   const [planoGrupos, setPlanoGrupos] = useState<PlanoGrupo[]>([]);
   const [planoContaMaisUsados, setPlanoContaMaisUsados] = useState<PlanoContaMaisUsado[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
+  const [empresasFinanceiras, setEmpresasFinanceiras] = useState<FinanceiroEmpresa[]>([]);
+  const [contasBancarias, setContasBancarias] = useState<FinanceiroContaBancaria[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -211,7 +217,7 @@ export const ContasPagarPage: React.FC<{
   const [unidadeFiltro, setUnidadeFiltro] = useState<'todas' | 'cg' | 'rec' | 'bar'>('todas');
   const [grupoPlanoFiltro, setGrupoPlanoFiltro] = useState<string>('all');
   const [comportamentoFiltro, setComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
-  const [tipoFiltro, setTipoFiltro] = useState<'all' | 'unica' | 'parcelada' | 'recorrente'>('all');
+  const [tipoFiltro, setTipoFiltro] = useState<'all' | 'eventual' | 'unica' | 'parcelada' | 'recorrente'>('all');
   
   // Define o mês atual como padrão para evitar poluição visual de meses futuros
   const [competenciaFiltroInternal, setCompetenciaFiltroInternal] = useState<string>(() => {
@@ -287,7 +293,7 @@ export const ContasPagarPage: React.FC<{
   const [draftCompetenciaYM, setDraftCompetenciaYM] = useState<string>('');
   const [draftGrupoPlanoFiltro, setDraftGrupoPlanoFiltro] = useState<string>('all');
   const [draftComportamentoFiltro, setDraftComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
-  const [draftTipoFiltro, setDraftTipoFiltro] = useState<'all' | 'unica' | 'parcelada' | 'recorrente'>('all');
+  const [draftTipoFiltro, setDraftTipoFiltro] = useState<'all' | 'eventual' | 'unica' | 'parcelada' | 'recorrente'>('all');
   const [draftBusca, setDraftBusca] = useState<string>('');
 
   useEffect(() => {
@@ -320,7 +326,7 @@ export const ContasPagarPage: React.FC<{
     if (tipoFiltro !== 'all') {
       chips.push(
         `Tipo: ${
-          tipoFiltro === 'unica' ? 'Única' : tipoFiltro === 'parcelada' ? 'Parc.' : 'Recorr.'
+          tipoFiltro === 'eventual' ? 'Eventual' : tipoFiltro === 'unica' ? 'Única' : tipoFiltro === 'parcelada' ? 'Parc.' : 'Recorr.'
         }`
       );
     }
@@ -949,17 +955,21 @@ export const ContasPagarPage: React.FC<{
     setLoading(true);
     setError(null);
     try {
-      const [planos, gruposPlano, usosPlano, centros, rows] = await Promise.all([
+      const [planos, gruposPlano, usosPlano, centros, empresas, contasBanco, rows] = await Promise.all([
         fetchPlanoContas(),
         fetchPlanoGrupos(),
         fetchPlanoContasMaisUsados(),
         fetchCentrosCusto(),
+        fetchFinanceiroEmpresas(),
+        fetchFinanceiroContasBancarias(),
         fetchContasPagar({ competenciaGarantir: competenciaFiltro }),
       ]);
       setPlanosConta(planos);
       setPlanoGrupos(gruposPlano);
       setPlanoContaMaisUsados(usosPlano);
       setCentrosCusto(centros);
+      setEmpresasFinanceiras(empresas);
+      setContasBancarias(contasBanco);
       setContas(rows);
     } catch (e: any) {
       setError(e?.message || 'Falha ao carregar contas');
@@ -1721,6 +1731,7 @@ export const ContasPagarPage: React.FC<{
                     <div className="text-sm font-black text-primary truncate">{c.descricao}</div>
                     <div className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">
                       {formatContaPlanoLabel(c)}
+                      {c.tipo_lancamento === 'eventual' ? ' · Eventual' : ''}
                       {c.tipo_lancamento === 'recorrente' ? ' · Recorrente' : ''}
                       {' · Venc. '}
                       {formatDateBR(c.data_vencimento)}
@@ -1743,6 +1754,7 @@ export const ContasPagarPage: React.FC<{
           planosConta={planosConta}
           planoContaMaisUsados={planoContaMaisUsados}
           centrosCusto={centrosCusto}
+          contasBancarias={contasBancarias}
           credenciais={credenciais}
           onOpenCredenciais={() => setCredenciaisOpen(true)}
           onClose={() => setNovaOpen(false)}
@@ -1826,6 +1838,7 @@ export const ContasPagarPage: React.FC<{
           <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-xl p-1">
             {[
               { id: 'all', label: 'Tipos' },
+              { id: 'eventual', label: 'Eventual' },
               { id: 'unica', label: 'Única' },
               { id: 'parcelada', label: 'Parc.' },
               { id: 'recorrente', label: 'Recorr.' },
@@ -2213,6 +2226,78 @@ export const ContasPagarPage: React.FC<{
     );
   }
 
+  if (mode === 'financeiro-fiscal') {
+    return renderWithShell(
+      <div className="w-full animate-in fade-in slide-in-from-top-2 duration-500 space-y-6">
+        <Card className="p-5 md:p-6">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.25em] text-muted">Empresas</div>
+              <h3 className="text-xl font-black text-primary mt-1">Empresas operacionais</h3>
+            </div>
+            <Badge variant="info">{empresasFinanceiras.length} ativas</Badge>
+          </div>
+          {empresasFinanceiras.length === 0 ? (
+            <div className="text-sm font-bold text-muted py-6">Nenhuma empresa financeira cadastrada.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              {empresasFinanceiras.map((empresa) => (
+                <div key={empresa.id} className="rounded-2xl border border-line bg-surface/30 p-4">
+                  <div className="text-base font-black text-primary">{empresa.label_operacional || empresa.nome_fantasia || empresa.razao_social || 'Empresa'}</div>
+                  <div className="mt-1 text-xs font-bold text-secondary">{empresa.nome_fantasia || empresa.razao_social || 'Sem razão social'}</div>
+                  <div className="mt-3 inline-flex rounded-xl border border-line bg-surface-2 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-muted">
+                    {empresa.unidade?.nome || empresa.unidade?.codigo || 'Sem unidade'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-5 md:p-6">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.25em] text-muted">Contas pagadoras</div>
+              <h3 className="text-xl font-black text-primary mt-1">Contas bancárias por empresa</h3>
+            </div>
+            <Badge variant="purple">{contasBancarias.length} ativas</Badge>
+          </div>
+          {contasBancarias.length === 0 ? (
+            <div className="text-sm font-bold text-muted py-6">Nenhuma conta pagadora cadastrada.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {contasBancarias.map((conta) => {
+                const empresaLabel = conta.empresa?.label_operacional || conta.empresa?.nome_fantasia || conta.empresa?.razao_social || 'Empresa';
+                return (
+                  <div key={conta.id} className="rounded-2xl border border-line bg-surface/30 p-4 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-base font-black text-primary truncate">{empresaLabel}</div>
+                        <div className="text-xs font-bold text-secondary mt-1">{conta.banco}{conta.banco_codigo ? ` (${conta.banco_codigo})` : ''}</div>
+                      </div>
+                      <Badge variant="info">{conta.empresa?.unidade?.codigo?.toUpperCase() || 'UNID.'}</Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-bold text-secondary">
+                      <div className="rounded-xl bg-surface-2 border border-line px-3 py-2">
+                        <span className="block text-[9px] font-black uppercase tracking-widest text-muted mb-1">Agência</span>
+                        {conta.agencia}
+                      </div>
+                      <div className="rounded-xl bg-surface-2 border border-line px-3 py-2">
+                        <span className="block text-[9px] font-black uppercase tracking-widest text-muted mb-1">Conta</span>
+                        {conta.conta}
+                      </div>
+                    </div>
+                    {conta.apelido && <div className="text-[11px] font-bold text-muted">{conta.apelido}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
   if (mode === 'plano-contas') {
     return renderWithShell(
       <div className="w-full animate-in fade-in slide-in-from-top-2 duration-500">
@@ -2371,6 +2456,7 @@ export const ContasPagarPage: React.FC<{
           <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-xl p-1">
             {[
               { id: 'all', label: 'Tipos' },
+              { id: 'eventual', label: 'Eventual' },
               { id: 'unica', label: 'Única' },
               { id: 'parcelada', label: 'Parc.' },
               { id: 'recorrente', label: 'Recorr.' },
@@ -2728,6 +2814,7 @@ export const ContasPagarPage: React.FC<{
           planosConta={planosConta}
           planoContaMaisUsados={planoContaMaisUsados}
           centrosCusto={centrosCusto}
+          contasBancarias={contasBancarias}
           credenciais={credenciais}
           onOpenCredenciais={() => setCredenciaisOpen(true)}
           onClose={() => setNovaOpen(false)}
@@ -3086,6 +3173,7 @@ export const ContasPagarPage: React.FC<{
         <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-xl p-1">
           {[
             { id: 'all', label: 'Tipos' },
+            { id: 'eventual', label: 'Eventual' },
             { id: 'unica', label: 'Única' },
             { id: 'parcelada', label: 'Parc.' },
             { id: 'recorrente', label: 'Recorr.' },
@@ -3196,6 +3284,7 @@ export const ContasPagarPage: React.FC<{
             <div className="flex items-center gap-1 bg-bg/40 border border-line rounded-2xl p-1">
               {[
                 { id: 'all', label: 'Todos' },
+                { id: 'eventual', label: 'Eventual' },
                 { id: 'unica', label: 'Única' },
                 { id: 'parcelada', label: 'Parc.' },
                 { id: 'recorrente', label: 'Recorr.' },
@@ -3342,6 +3431,7 @@ export const ContasPagarPage: React.FC<{
         planosConta={planosConta}
         planoContaMaisUsados={planoContaMaisUsados}
         centrosCusto={centrosCusto}
+        contasBancarias={contasBancarias}
         credenciais={credenciais}
         onOpenCredenciais={() => setCredenciaisOpen(true)}
         onClose={() => setNovaOpen(false)}

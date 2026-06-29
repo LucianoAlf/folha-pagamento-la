@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Info, Plus } from 'lucide-react';
+import { AlertCircle, CreditCard, Info, Plus } from 'lucide-react';
 import { CustomSelect, DatePicker, Modal } from '../UI';
-import { CentroCusto, ContaCredencial, ContaPagar, FONTE_TIPOS, FonteTipo, PlanoConta, PlanoContaMaisUsado, StatusColetaCodigo } from '../../types/contasPagar';
+import { CentroCusto, ContaCredencial, ContaPagar, FinanceiroContaBancaria, FONTE_TIPOS, FonteTipo, METODOS_PAGAMENTO, PlanoConta, PlanoContaMaisUsado, StatusColetaCodigo } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { cn } from '../CollaboratorComponents';
 import { competenciaFromVencimento, formatCompetenciaLabel, toDateOnly } from '../../utils/dateOnly';
 import { CentroCustoSelect, PlanoContaTreeSelect } from './PlanoContaTreeSelect';
 import { centroCustoToUnidade } from './planoContasSelectors';
+import { deriveContaPagadoraFiscal } from '../../services/financeiroFiscal';
 
-type LaunchType = 'unica' | 'recorrente' | 'parcelada';
+type LaunchType = 'unica' | 'recorrente' | 'parcelada' | 'eventual';
 type PaymentStatus = 'pendente' | 'pago';
 
 export type NovaContaCodigoInput = {
@@ -28,6 +29,7 @@ export const NovaContaModal: React.FC<{
   planosConta: PlanoConta[];
   planoContaMaisUsados?: PlanoContaMaisUsado[];
   centrosCusto: CentroCusto[];
+  contasBancarias?: FinanceiroContaBancaria[];
   credenciais?: ContaCredencial[];
   onOpenCredenciais?: () => void;
   onClose: () => void;
@@ -35,7 +37,7 @@ export const NovaContaModal: React.FC<{
   defaultVencimento?: string; // yyyy-mm-dd
   defaultCompetenciaYM?: string; // yyyy-mm
   defaultUnidade?: 'cg' | 'rec' | 'bar';
-}> = ({ isOpen, planosConta, planoContaMaisUsados = [], centrosCusto, credenciais = [], onOpenCredenciais, onClose, onConfirm, defaultVencimento, defaultCompetenciaYM, defaultUnidade }) => {
+}> = ({ isOpen, planosConta, planoContaMaisUsados = [], centrosCusto, contasBancarias = [], credenciais = [], onOpenCredenciais, onClose, onConfirm, defaultVencimento, defaultCompetenciaYM, defaultUnidade }) => {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth < 768;
@@ -45,6 +47,7 @@ export const NovaContaModal: React.FC<{
   const [valor, setValor] = useState<string>('');
   const [planoContaId, setPlanoContaId] = useState<string>('');
   const [centroCustoId, setCentroCustoId] = useState<string>('');
+  const [contaPagadoraId, setContaPagadoraId] = useState<string>('');
   const [unidade, setUnidade] = useState<string>('cg');
 
   const [launchType, setLaunchType] = useState<LaunchType>('unica');
@@ -55,6 +58,8 @@ export const NovaContaModal: React.FC<{
   const [vencimento, setVencimento] = useState<string>('');
 
   const [status, setStatus] = useState<PaymentStatus>('pendente');
+  const [dataPagamento, setDataPagamento] = useState<string>('');
+  const [metodoPagamento, setMetodoPagamento] = useState<string>('');
   const [observacoes, setObservacoes] = useState('');
   const [fonteTipo, setFonteTipo] = useState<FonteTipo | ''>('');
   const [fonteUrl, setFonteUrl] = useState('');
@@ -83,6 +88,7 @@ export const NovaContaModal: React.FC<{
     setValor('');
     setPlanoContaId('');
     setCentroCustoId(centroDefault?.id || '');
+    setContaPagadoraId('');
     setUnidade(unidadeDefault);
     setLaunchType('unica');
     setParcelas(2);
@@ -90,6 +96,8 @@ export const NovaContaModal: React.FC<{
     setValorMode('por_parcela');
     setVencimento(defaultVencimento || '');
     setStatus('pendente');
+    setDataPagamento('');
+    setMetodoPagamento('');
     setObservacoes('');
     setFonteTipo('');
     setFonteUrl('');
@@ -120,6 +128,51 @@ export const NovaContaModal: React.FC<{
 
   const competencia = useMemo(() => competenciaFromVencimento(vencimento), [vencimento]);
   const competenciaLabel = useMemo(() => formatCompetenciaLabel(vencimento), [vencimento]);
+  const contaPagadoraSelecionada = useMemo(
+    () => contasBancarias.find((conta) => conta.id === contaPagadoraId) || null,
+    [contasBancarias, contaPagadoraId]
+  );
+  const fiscalEventual = useMemo(() => {
+    if (launchType !== 'eventual' || !contaPagadoraSelecionada) return null;
+    try {
+      return deriveContaPagadoraFiscal(contaPagadoraSelecionada);
+    } catch (err: any) {
+      return { error: err?.message || 'Conta pagadora sem configuração fiscal.' };
+    }
+  }, [contaPagadoraSelecionada, launchType]);
+  const fiscalEventualOk = fiscalEventual && !('error' in fiscalEventual) ? fiscalEventual : null;
+  const dataHoje = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+  const dataPagamentoFutura = Boolean(dataPagamento && dataPagamento > dataHoje);
+
+  useEffect(() => {
+    if (launchType !== 'eventual') {
+      setContaPagadoraId('');
+      setDataPagamento('');
+      setMetodoPagamento('');
+      return;
+    }
+    setFonteTipo('manual');
+    setFonteUrl('');
+    setFonteInstrucoes('');
+    setFonteIdentificador('');
+    setCredencialId('');
+    setPixChaveFixa('');
+    setEmailPagamento('');
+    setCodigoBarras('');
+    setChavePix('');
+    setQrPixPayload('');
+    setCodigoStatus('pendente');
+  }, [launchType]);
+
+  useEffect(() => {
+    if (status !== 'pago') {
+      setDataPagamento('');
+      setMetodoPagamento('');
+    }
+  }, [status]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -147,12 +200,22 @@ export const NovaContaModal: React.FC<{
     if (!descricao.trim()) missing.push('Descrição');
     if (!(valorNum > 0)) missing.push('Valor');
     if (!planoContaId) missing.push('Plano de conta');
-    if (!centroCustoId) missing.push('Centro de custo');
+    if (launchType === 'eventual') {
+      if (!contaPagadoraId) missing.push('Conta pagadora');
+      if (fiscalEventual && 'error' in fiscalEventual) missing.push('Conta pagadora configurada');
+      if (status === 'pago') {
+        if (!dataPagamento) missing.push('Data de pagamento');
+        if (dataPagamentoFutura) missing.push('Data de pagamento sem futuro');
+        if (!metodoPagamento) missing.push('Método de pagamento');
+      }
+    } else if (!centroCustoId) {
+      missing.push('Centro de custo');
+    }
     if (!vencimento) missing.push('Vencimento');
     if (!competencia) missing.push('Competência');
     if (launchType === 'parcelada' && parcelas < 2) missing.push('Parcelas (mín. 2)');
     return missing;
-  }, [descricao, valorNum, planoContaId, centroCustoId, vencimento, competencia, launchType, parcelas]);
+  }, [descricao, valorNum, planoContaId, launchType, contaPagadoraId, fiscalEventual, status, dataPagamento, dataPagamentoFutura, metodoPagamento, centroCustoId, vencimento, competencia, parcelas]);
 
   const isFormValid = missingFields.length === 0;
 
@@ -202,12 +265,16 @@ export const NovaContaModal: React.FC<{
                   // Data de lançamento automática (hoje)
                   const d = new Date();
                   const dataLancamentoAuto = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                  const isEventual = launchType === 'eventual';
+                  const fiscalDerivado = fiscalEventualOk;
 
                   const payload: Partial<ContaPagar> = {
                     descricao: descricao.trim(),
                     plano_conta_id: planoContaId,
-                    centro_custo_id: centroCustoId,
-                    unidade: unidade as ContaPagar['unidade'],
+                    centro_custo_id: isEventual ? fiscalDerivado?.centro_custo_id : centroCustoId,
+                    unidade: (isEventual ? fiscalDerivado?.unidade : unidade) as ContaPagar['unidade'],
+                    empresa_id: isEventual ? fiscalDerivado?.empresa_id : null,
+                    conta_pagadora_id: isEventual ? contaPagadoraId : null,
                     valor: valorNum,
                     data_lancamento: dataLancamentoAuto,
                     data_vencimento: toDateOnly(vencimento),
@@ -216,14 +283,16 @@ export const NovaContaModal: React.FC<{
                     tipo_lancamento: launchType,
                     total_parcelas: launchType === 'parcelada' ? parcelas : null,
                     parcela_atual: launchType === 'parcelada' ? parcelaInicial : null,
+                    data_pagamento: isEventual && status === 'pago' ? toDateOnly(dataPagamento) : null,
+                    metodo_pagamento: isEventual && status === 'pago' ? metodoPagamento : null,
                     observacoes: observacoes.trim() || null,
-                    fonte_tipo: fonteTipo || null,
-                    fonte_url: fonteUrl.trim() || null,
-                    fonte_instrucoes: fonteInstrucoes.trim() || null,
-                    fonte_identificador: fonteIdentificador.trim() || null,
-                    credencial_id: credencialId || null,
-                    pix_chave_fixa: pixChaveFixa.trim() || null,
-                    email_pagamento: emailPagamento.trim() || null,
+                    fonte_tipo: isEventual ? 'manual' : fonteTipo || null,
+                    fonte_url: isEventual ? null : fonteUrl.trim() || null,
+                    fonte_instrucoes: isEventual ? null : fonteInstrucoes.trim() || null,
+                    fonte_identificador: isEventual ? null : fonteIdentificador.trim() || null,
+                    credencial_id: isEventual ? null : credencialId || null,
+                    pix_chave_fixa: isEventual ? null : pixChaveFixa.trim() || null,
+                    email_pagamento: isEventual ? null : emailPagamento.trim() || null,
                   };
 
                   const temCodigo = codigoBarras.trim() || chavePix.trim() || qrPixPayload.trim();
@@ -261,6 +330,31 @@ export const NovaContaModal: React.FC<{
               Confirmar Lançamento
             </button>
           </div>
+
+          {launchType === 'eventual' && status === 'pago' && (
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div>
+                <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && (!dataPagamento || dataPagamentoFutura) ? "text-danger" : "text-muted")}>Data do pagamento *</label>
+                <div className={cn(tried && (!dataPagamento || dataPagamentoFutura) && "ring-1 ring-danger/60 rounded-2xl")}>
+                  <DatePicker value={dataPagamento} onChange={(v) => setDataPagamento(v || '')} />
+                </div>
+                {dataPagamentoFutura && (
+                  <div className="mt-2 text-[10px] text-danger font-bold px-1">A data de pagamento não pode ser futura.</div>
+                )}
+              </div>
+              <div>
+                <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !metodoPagamento ? "text-danger" : "text-muted")}>Método de pagamento *</label>
+                <CustomSelect
+                  value={metodoPagamento}
+                  onValueChange={setMetodoPagamento}
+                  options={[
+                    { value: '', label: 'Selecione o método' },
+                    ...METODOS_PAGAMENTO.map((metodo) => ({ value: metodo, label: metodo })),
+                  ]}
+                />
+              </div>
+            </div>
+          )}
         </div>
       }
     >
@@ -338,18 +432,56 @@ export const NovaContaModal: React.FC<{
             </div>
 
             <div className="grid grid-cols-1 gap-5 md:gap-6">
-              <div>
-                <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !centroCustoId ? "text-danger" : "text-muted")}>Centro de custo *</label>
-                <CentroCustoSelect
-                  centros={centrosCusto}
-                  value={centroCustoId}
-                  invalid={tried && !centroCustoId}
-                  onValueChange={(id, unidadeLegada) => {
-                    setCentroCustoId(id);
-                    if (unidadeLegada) setUnidade(unidadeLegada);
-                  }}
-                />
-              </div>
+              {launchType === 'eventual' ? (
+                <div className="rounded-3xl border border-line/70 bg-surface/20 p-5">
+                  <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && (!contaPagadoraId || (fiscalEventual && 'error' in fiscalEventual)) ? "text-danger" : "text-muted")}>
+                    Conta pagadora *
+                  </label>
+                  <CustomSelect
+                    value={contaPagadoraId}
+                    onValueChange={setContaPagadoraId}
+                    options={[
+                      { value: '', label: 'Selecione a conta pagadora' },
+                      ...contasBancarias.map((conta) => {
+                        const empresaLabel = conta.empresa?.label_operacional || conta.empresa?.nome_fantasia || conta.empresa?.razao_social || 'Empresa';
+                        const apelido = conta.apelido ? ` · ${conta.apelido}` : '';
+                        return {
+                          value: conta.id,
+                          label: `${empresaLabel} · ${conta.banco} ${conta.agencia}/${conta.conta}${apelido}`,
+                        };
+                      }),
+                    ]}
+                  />
+                  <div className="mt-4 rounded-2xl border border-line bg-bg px-4 py-3">
+                    {fiscalEventual && 'error' in fiscalEventual ? (
+                      <div className="text-xs font-bold text-danger">{fiscalEventual.error}</div>
+                    ) : fiscalEventualOk ? (
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-secondary">
+                        <span className="inline-flex items-center gap-2 rounded-xl bg-surface-2 border border-line px-3 py-1.5 text-primary">
+                          <CreditCard size={14} className="text-accent" />
+                          {fiscalEventualOk.label_operacional}
+                        </span>
+                        <span>Centro e unidade serão preenchidos automaticamente.</span>
+                      </div>
+                    ) : (
+                      <div className="text-xs font-bold text-muted">A empresa e o centro de custo serão derivados da conta pagadora.</div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !centroCustoId ? "text-danger" : "text-muted")}>Centro de custo *</label>
+                  <CentroCustoSelect
+                    centros={centrosCusto}
+                    value={centroCustoId}
+                    invalid={tried && !centroCustoId}
+                    onValueChange={(id, unidadeLegada) => {
+                      setCentroCustoId(id);
+                      if (unidadeLegada) setUnidade(unidadeLegada);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -361,10 +493,11 @@ export const NovaContaModal: React.FC<{
             Tipo de Lançamento
           </div>
 
-          <div className="flex items-center gap-2 bg-surface/40 border border-line rounded-2xl p-1 w-full md:w-[520px]">
+          <div className="grid grid-cols-2 md:flex md:items-center gap-2 bg-surface/40 border border-line rounded-2xl p-1 w-full md:w-[680px]">
             {(
               [
                 { id: 'unica', label: 'Única' },
+                { id: 'eventual', label: 'Eventual' },
                 { id: 'recorrente', label: 'Recorrente' },
                 { id: 'parcelada', label: 'Parcelada' },
               ] as const
@@ -478,6 +611,7 @@ export const NovaContaModal: React.FC<{
         </div>
 
         {/* D) Origem / Fonte */}
+        {launchType !== 'eventual' && (
         <div className="rounded-3xl border border-line/70 bg-surface/20 p-6 md:p-8">
           <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-2">
             <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">D</span>
@@ -576,6 +710,7 @@ export const NovaContaModal: React.FC<{
             </div>
           </div>
         </div>
+        )}
 
         {/* E) Código do mês */}
         <div className="rounded-3xl border border-line/70 bg-surface/20 p-6 md:p-8">

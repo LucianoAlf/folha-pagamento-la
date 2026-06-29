@@ -6,6 +6,7 @@ import { formatCurrency } from '../../services/api';
 import { getStatusVisual } from '../../services/contasPagarService';
 import { cn } from '../CollaboratorComponents';
 import { formatContaCentroCustoLabel, formatContaPlanoLabel } from './planoContasSelectors';
+import { formatDateBR } from '../../utils/dateOnly';
 
 interface Props {
   conta: ContaPagar;
@@ -22,12 +23,8 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
   const centroLabel = formatContaCentroCustoLabel(conta);
 
   const formatDateShortBR = (iso: string) => {
-    // iso can be YYYY-MM-DD (preferred) or a full ISO string; we only need dd/MM
-    if (!iso) return '';
-    const d = new Date(iso.includes('T') ? iso : `${iso}T00:00:00`);
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    return `${dd}/${mm}`;
+    const formatted = formatDateBR(iso);
+    return formatted === '—' ? '' : formatted.slice(0, 5);
   };
   
   const getRelativeDate = (dateStr: string) => {
@@ -100,6 +97,12 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
                 Parcela {conta.parcela_atual}/{conta.total_parcelas}
               </Badge>
             )}
+            {conta.tipo_lancamento === 'eventual' && (
+              <Badge variant="info" className="text-[9px] h-4 px-1.5 flex items-center gap-1">
+                <Tag size={10} />
+                Eventual
+              </Badge>
+            )}
             {/* Centro de custo como mini-chip */}
             <div className="text-[9px] h-4 px-1.5 rounded-md bg-surface-2/40 border border-line-strong/50 text-secondary font-black flex items-center">
               {centroLabel}
@@ -131,7 +134,7 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
             <div className="flex items-center gap-1.5">
               <CheckCircle2 size={12} />
               <span className="lg:hidden">Liquidado em {formatDateShortBR(conta.data_pagamento!)}</span>
-              <span className="hidden lg:inline">Liquidado em {new Date(conta.data_pagamento!).toLocaleDateString('pt-BR')}</span>
+              <span className="hidden lg:inline">Liquidado em {formatDateBR(conta.data_pagamento!)}</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5">

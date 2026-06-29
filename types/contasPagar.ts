@@ -26,6 +26,32 @@ export interface CentroCusto {
   ordem: number;
 }
 
+export interface FinanceiroEmpresa {
+  id: string;
+  razao_social?: string | null;
+  nome_fantasia?: string | null;
+  cnpj?: string | null;
+  label_operacional?: string | null;
+  unidade_id: string;
+  unidade?: CentroCusto | null;
+  ativo?: boolean;
+  observacoes?: string | null;
+}
+
+export interface FinanceiroContaBancaria {
+  id: string;
+  empresa_id: string;
+  empresa?: FinanceiroEmpresa | null;
+  banco: string;
+  banco_codigo?: string | null;
+  agencia: string;
+  conta: string;
+  apelido?: string | null;
+  tipo?: string | null;
+  ativo: boolean;
+  observacoes?: string | null;
+}
+
 export type FonteTipo = 'site' | 'email' | 'pix_fixo' | 'banco' | 'whatsapp' | 'manual';
 
 export type StatusColetaCodigo = 'pendente' | 'coletado' | 'indisponivel';
@@ -92,6 +118,10 @@ export interface ContaPagar {
   plano_conta?: PlanoConta | null;
   centro_custo_id?: string | null;
   centro_custo?: CentroCusto | null;
+  empresa_id?: string | null;
+  empresa?: FinanceiroEmpresa | null;
+  conta_pagadora_id?: string | null;
+  conta_pagadora?: FinanceiroContaBancaria | null;
   emusys_lancamento_id?: string | null;
   unidade: 'cg' | 'rec' | 'bar' | 'todas' | null;
   valor: number;
@@ -101,7 +131,7 @@ export interface ContaPagar {
   status: 'pendente' | 'pago' | 'cancelado' | 'finalizado';
   data_pagamento: string | null;
   metodo_pagamento: string | null;
-  tipo_lancamento: 'unica' | 'recorrente' | 'parcelada';
+  tipo_lancamento: 'unica' | 'recorrente' | 'parcelada' | 'eventual';
   parcelamento_id?: string | null;
   parcela_atual: number | null;
   total_parcelas: number | null;
@@ -132,6 +162,7 @@ export const METODOS_PAGAMENTO = [
   'Débito Automático',
   'Boleto',
   'Dinheiro',
+  'Comprovante',
 ] as const;
 
 export const UNIDADES_CONTA = [

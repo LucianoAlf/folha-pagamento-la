@@ -41,7 +41,7 @@ export const EditarContaModal: React.FC<{
   const [centroCustoId, setCentroCustoId] = useState<string>('');
   const [unidade, setUnidade] = useState<string>('');
   const [vencimento, setVencimento] = useState<string>('');
-  const [launchType, setLaunchType] = useState<'unica' | 'recorrente' | 'parcelada'>('unica');
+  const [launchType, setLaunchType] = useState<'unica' | 'recorrente' | 'parcelada' | 'eventual'>('unica');
   const [observacoes, setObservacoes] = useState('');
   const [fonteTipo, setFonteTipo] = useState<FonteTipo | ''>('');
   const [fonteUrl, setFonteUrl] = useState('');
@@ -126,11 +126,11 @@ export const EditarContaModal: React.FC<{
       descricao: descricao.trim(),
       valor: valorNum,
       plano_conta_id: planoContaId,
-      centro_custo_id: centroCustoId,
-      unidade: unidade as any,
+      centro_custo_id: conta.tipo_lancamento === 'eventual' ? conta.centro_custo_id : centroCustoId,
+      unidade: conta.tipo_lancamento === 'eventual' ? conta.unidade : unidade as any,
       data_vencimento: toDateOnly(vencimento),
       competencia,
-      tipo_lancamento: launchType,
+      tipo_lancamento: conta.tipo_lancamento === 'eventual' ? 'eventual' : launchType,
       observacoes: observacoes.trim() || null,
       fonte_tipo: fonteTipo || null,
       fonte_url: fonteUrl.trim() || null,
@@ -308,20 +308,29 @@ export const EditarContaModal: React.FC<{
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Centro de custo *</label>
-                  <CentroCustoSelect
-                    centros={centrosCusto}
-                    value={centroCustoId}
-                    invalid={!centroCustoId}
-                    onValueChange={(id, unidadeLegada) => {
-                      setCentroCustoId(id);
-                      if (unidadeLegada) setUnidade(unidadeLegada);
-                    }}
-                  />
+                  {conta.tipo_lancamento === 'eventual' ? (
+                    <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
+                      {conta.empresa?.label_operacional || conta.centro_custo?.nome || unidade?.toUpperCase() || 'Centro derivado da conta pagadora'}
+                      <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">
+                        Derivado da conta pagadora
+                      </div>
+                    </div>
+                  ) : (
+                    <CentroCustoSelect
+                      centros={centrosCusto}
+                      value={centroCustoId}
+                      invalid={!centroCustoId}
+                      onValueChange={(id, unidadeLegada) => {
+                        setCentroCustoId(id);
+                        if (unidadeLegada) setUnidade(unidadeLegada);
+                      }}
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Tipo de Lançamento</label>
                   <div className="flex items-center gap-2 bg-surface/40 border border-line rounded-2xl p-1">
-                    {(['unica', 'recorrente', 'parcelada'] as const).map((t) => (
+                    {(conta.tipo_lancamento === 'eventual' ? (['eventual'] as const) : (['unica', 'recorrente', 'parcelada'] as const)).map((t) => (
                       <button
                         key={t}
                         type="button"
@@ -331,7 +340,7 @@ export const EditarContaModal: React.FC<{
                           launchType === t ? 'bg-surface-2 text-accent shadow-sm' : 'text-muted hover:text-secondary'
                         )}
                       >
-                        {t === 'unica' ? 'Única' : t === 'recorrente' ? 'Recorr.' : 'Parc.'}
+                        {t === 'eventual' ? 'Eventual' : t === 'unica' ? 'Única' : t === 'recorrente' ? 'Recorr.' : 'Parc.'}
                       </button>
                     ))}
                   </div>
