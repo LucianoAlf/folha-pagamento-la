@@ -326,7 +326,7 @@ export const ContasPagarPage: React.FC<{
     if (tipoFiltro !== 'all') {
       chips.push(
         `Tipo: ${
-          tipoFiltro === 'eventual' ? 'Eventual' : tipoFiltro === 'unica' ? 'Eventual / Única' : tipoFiltro === 'parcelada' ? 'Parc.' : 'Recorr.'
+          tipoFiltro === 'eventual' ? 'Eventual' : tipoFiltro === 'unica' ? 'Única' : tipoFiltro === 'parcelada' ? 'Parc.' : 'Recorr.'
         }`
       );
     }
