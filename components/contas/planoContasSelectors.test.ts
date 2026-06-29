@@ -255,6 +255,20 @@ test('formatContaPlanoCodigo and formatContaCentroCustoLabel use defensive fallb
   assert.equal(formatContaCentroCustoLabel({ centro_custo: null, unidade: 'rec' }), 'REC');
 });
 
+test('formatContaCentroCustoLabel and search use operational company label for eventual accounts', () => {
+  const conta = {
+    descricao: 'TESTE CODEX EVENTUAL - bonus',
+    tipo_lancamento: 'eventual',
+    plano_conta: { id: 'bonus', codigo: '5.3.3', nome: 'Bonus', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 3 },
+    centro_custo: { id: 'cg', codigo: 'cg', nome: 'Campo Grande', tipo: 'unidade', ativo: true, ordem: 1 },
+    empresa: { id: 'kids', label_operacional: 'Kids CG', unidade_id: 'cg' },
+    unidade: 'cg' as const,
+  };
+
+  assert.equal(formatContaCentroCustoLabel(conta), 'Kids CG');
+  assert.equal(matchesContaPlanoCentroSearch(conta, 'kids cg'), true);
+});
+
 test('matchesContaPlanoCentroSearch finds descricao, plano and centro without accents', () => {
   const conta = {
     descricao: 'Light loja 171',

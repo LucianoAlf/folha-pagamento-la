@@ -1,4 +1,4 @@
-import type { CentroCusto, PlanoConta } from '../../types/contasPagar.ts';
+import type { CentroCusto, FinanceiroEmpresa, PlanoConta } from '../../types/contasPagar.ts';
 
 export type UnidadeContaLegada = 'cg' | 'rec' | 'bar';
 type PlanoContaSelecionavelInput = Pick<PlanoConta, 'ativo' | 'natureza' | 'nivel'> & Partial<PlanoConta>;
@@ -11,6 +11,8 @@ type ContaPlanoDisplayInput = {
   unidade?: string | null;
   plano_conta?: PlanoContaLabelInput | null;
   centro_custo?: (Partial<CentroCusto> & { nome?: string | null }) | null;
+  empresa?: (Partial<FinanceiroEmpresa> & { label_operacional?: string | null }) | null;
+  tipo_lancamento?: string | null;
 };
 
 export type PlanoContaMaisUsadoInput = {
@@ -71,6 +73,7 @@ export function formatContaPlanoCodigo(conta: ContaPlanoDisplayInput): string {
 }
 
 export function formatContaCentroCustoLabel(conta: ContaPlanoDisplayInput): string {
+  if (conta.tipo_lancamento === 'eventual' && conta.empresa?.label_operacional) return conta.empresa.label_operacional;
   if (conta.centro_custo?.nome) return conta.centro_custo.nome;
   return (conta.unidade || 'todas').toUpperCase();
 }
@@ -94,6 +97,7 @@ export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, que
       [
         conta.descricao || '',
         conta.plano_conta?.nome || '',
+        conta.empresa?.label_operacional || '',
         conta.centro_custo?.nome || '',
         conta.unidade || '',
       ].join(' ')
@@ -105,6 +109,7 @@ export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, que
       conta.descricao || '',
       conta.plano_conta?.codigo || '',
       conta.plano_conta?.nome || '',
+      conta.empresa?.label_operacional || '',
       conta.centro_custo?.nome || '',
       conta.unidade || '',
     ].join(' ')

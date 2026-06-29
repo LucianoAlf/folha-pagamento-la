@@ -100,6 +100,12 @@ export const ContaAuditCard: React.FC<Props> = ({ conta, onPagar, onEditar, onDe
                 Parcela {conta.parcela_atual}/{conta.total_parcelas}
               </Badge>
             )}
+            {conta.tipo_lancamento === 'eventual' && (
+              <Badge variant="info" className="text-[9px] h-4 px-1.5 flex items-center gap-1">
+                <Tag size={10} />
+                Eventual
+              </Badge>
+            )}
             {/* Centro de custo como mini-chip */}
             <div className="text-[9px] h-4 px-1.5 rounded-md bg-surface-2/40 border border-line-strong/50 text-secondary font-black flex items-center">
               {centroLabel}

@@ -258,6 +258,11 @@ export const ContasTable: React.FC<{
                             Parcela {c.parcela_atual} de {c.total_parcelas}
                           </span>
                         )}
+                        {c.tipo_lancamento === 'eventual' && (
+                          <span className="shrink-0 text-[10px] text-info bg-info/10 px-1.5 py-0.5 rounded-md">
+                            Eventual
+                          </span>
+                        )}
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-bold text-secondary leading-snug">
                         {hasPlanoConta ? (
@@ -396,6 +401,13 @@ export const ContasTable: React.FC<{
                                 <div className="mt-1">
                                   <span className="inline-flex text-[10px] font-black text-accent bg-accent/10 px-1.5 py-0.5 rounded-md">
                                     Parcela {c.parcela_atual} de {c.total_parcelas}
+                                  </span>
+                                </div>
+                              )}
+                              {c.tipo_lancamento === 'eventual' && (
+                                <div className="mt-1">
+                                  <span className="inline-flex text-[10px] font-black text-info bg-info/10 px-1.5 py-0.5 rounded-md">
+                                    Eventual
                                   </span>
                                 </div>
                               )}

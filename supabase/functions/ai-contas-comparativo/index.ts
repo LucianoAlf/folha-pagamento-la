@@ -110,7 +110,7 @@ type ContaRow = {
   data_vencimento: string;
   competencia: string;
   status: "pendente" | "pago" | "cancelado" | "finalizado";
-  tipo_lancamento: "unica" | "recorrente" | "parcelada";
+  tipo_lancamento: "unica" | "recorrente" | "parcelada" | "eventual";
   plano_conta?: { id: string; codigo: string; nome: string; tipo_custo: string | null } | null;
 };
 
