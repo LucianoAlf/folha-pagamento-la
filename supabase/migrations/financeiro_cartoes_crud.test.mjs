@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const sql = readFileSync(new URL('./20260630_18_financeiro_cartao_crud.sql', import.meta.url), 'utf8');
+const m19 = readFileSync(new URL('./20260630_19_financeiro_cartao_salvar_ativo_guard.sql', import.meta.url), 'utf8');
 
 test('M18 creates card save and archive RPCs as secure definer functions', () => {
   assert.match(sql, /create or replace function public\.financeiro_cartao_salvar\(p_payload jsonb, p_ator jsonb/i);
@@ -60,4 +61,15 @@ test('M18 grants only RPC execute to authenticated and service_role', () => {
   assert.match(sql, /revoke all on function public\.financeiro_cartao_arquivar\(jsonb, jsonb\) from public, anon, authenticated, maria_operacional, maria_leitura/i);
   assert.match(sql, /grant execute on function public\.financeiro_cartao_arquivar\(jsonb, jsonb\) to authenticated, service_role/i);
   assert.doesNotMatch(sql, /grant\s+(insert|update|delete|all)\s+on\s+public\.financeiro_cartoes\s+to\s+authenticated/i);
+});
+
+test('M19 makes salvar ignore ativo and keeps archive as the only active-state writer', () => {
+  assert.match(m19, /create or replace function public\.financeiro_cartao_salvar\(p_payload jsonb, p_ator jsonb/i);
+  assert.match(m19, /security definer\s+set search_path = public, pg_temp/i);
+  assert.match(m19, /insert into public\.financeiro_cartoes[\s\S]*ativo[\s\S]*values[\s\S]*true/i);
+  assert.match(m19, /set apelido = v_apelido[\s\S]*ativo = v_before\.ativo/i);
+  assert.doesNotMatch(m19, /p_payload\s*\?\s*'ativo'/i);
+  assert.doesNotMatch(m19, /p_payload->>'ativo'/i);
+  assert.doesNotMatch(m19, /v_ativo boolean/i);
+  assert.doesNotMatch(m19, /create or replace function public\.financeiro_cartao_arquivar/i);
 });
