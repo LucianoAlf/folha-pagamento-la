@@ -110,7 +110,7 @@ type ContaRow = {
   data_vencimento: string;
   competencia: string;
   status: "pendente" | "pago" | "cancelado" | "finalizado";
-  tipo_lancamento: "unica" | "recorrente" | "parcelada" | "eventual";
+  tipo_lancamento: "unica" | "recorrente" | "parcelada" | "eventual" | "fatura_cartao";
   plano_conta?: { id: string; codigo: string; nome: string; tipo_custo: string | null } | null;
 };
 
@@ -138,6 +138,10 @@ type ComparativoJson = {
   }>;
   recomendacoes: string[];
 };
+
+function isPlanoAggregationConta(c: ContaRow): boolean {
+  return c.tipo_lancamento !== "fatura_cartao";
+}
 
 function buildFallbackComparativo(
   competenciaYM: string,
@@ -326,8 +330,11 @@ Deno.serve(async (req: Request) => {
       currRows = currRows.filter((c) => (c.plano_conta?.tipo_custo || null) === comportamento);
     }
 
-    const baseMap = sumByKey(baseRows);
-    const currMap = sumByKey(currRows);
+    const basePlanoRows = baseRows.filter(isPlanoAggregationConta);
+    const currPlanoRows = currRows.filter(isPlanoAggregationConta);
+
+    const baseMap = sumByKey(basePlanoRows);
+    const currMap = sumByKey(currPlanoRows);
     const keys = new Set<string>([...Array.from(baseMap.keys()), ...Array.from(currMap.keys())]);
 
     const variations: Variation[] = Array.from(keys).map((k) => {
@@ -377,10 +384,12 @@ Deno.serve(async (req: Request) => {
         totalPerc,
         countPrev: baseRows.length,
         countCurr: currRows.length,
+        countPlanoPrev: basePlanoRows.length,
+        countPlanoCurr: currPlanoRows.length,
       },
       distribuicao: {
-        base: byCategoria(baseRows, grupoDe),
-        atual: byCategoria(currRows, grupoDe),
+        base: byCategoria(basePlanoRows, grupoDe),
+        atual: byCategoria(currPlanoRows, grupoDe),
       },
       top_mudancas: topMudancas.map((x) => ({
         key: x.key,

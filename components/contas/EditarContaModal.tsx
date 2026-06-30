@@ -11,6 +11,13 @@ import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
 import { CentroCustoSelect, PlanoContaTreeSelect } from './PlanoContaTreeSelect';
 import { centroCustoToUnidade } from './planoContasSelectors';
 
+type EditableLaunchType = 'unica' | 'recorrente' | 'parcelada' | 'eventual';
+
+const toEditableLaunchType = (tipo?: ContaPagar['tipo_lancamento'] | null): EditableLaunchType => {
+  if (tipo === 'recorrente' || tipo === 'parcelada' || tipo === 'eventual') return tipo;
+  return 'unica';
+};
+
 const parseBRL = (raw: string) => {
   const cleaned = (raw || '')
     .replace(/\s/g, '')
@@ -41,7 +48,7 @@ export const EditarContaModal: React.FC<{
   const [centroCustoId, setCentroCustoId] = useState<string>('');
   const [unidade, setUnidade] = useState<string>('');
   const [vencimento, setVencimento] = useState<string>('');
-  const [launchType, setLaunchType] = useState<'unica' | 'recorrente' | 'parcelada' | 'eventual'>('unica');
+  const [launchType, setLaunchType] = useState<EditableLaunchType>('unica');
   const [observacoes, setObservacoes] = useState('');
   const [fonteTipo, setFonteTipo] = useState<FonteTipo | ''>('');
   const [fonteUrl, setFonteUrl] = useState('');
@@ -76,7 +83,7 @@ export const EditarContaModal: React.FC<{
     setCentroCustoId(centroDefault?.id || '');
     setUnidade(unidadeDefault);
     setVencimento(toDateOnly(conta.data_vencimento));
-    setLaunchType(conta.tipo_lancamento || 'unica');
+    setLaunchType(toEditableLaunchType(conta.tipo_lancamento));
     setObservacoes(conta.observacoes || '');
     setFonteTipo((conta.fonte_tipo as FonteTipo) || '');
     setFonteUrl(conta.fonte_url || '');
@@ -130,7 +137,7 @@ export const EditarContaModal: React.FC<{
       unidade: conta.tipo_lancamento === 'eventual' ? conta.unidade : unidade as any,
       data_vencimento: toDateOnly(vencimento),
       competencia,
-      tipo_lancamento: conta.tipo_lancamento === 'eventual' ? 'eventual' : launchType,
+      tipo_lancamento: conta.tipo_lancamento === 'eventual' || conta.tipo_lancamento === 'fatura_cartao' ? conta.tipo_lancamento : launchType,
       observacoes: observacoes.trim() || null,
       fonte_tipo: fonteTipo || null,
       fonte_url: fonteUrl.trim() || null,

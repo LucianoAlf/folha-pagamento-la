@@ -170,6 +170,10 @@ function matchesContaGrupoPlano(conta: ContaPagar, grupoPlano: string): boolean 
   return Boolean(conta.plano_conta?.codigo?.startsWith(`${grupoPlano}.`));
 }
 
+function isPlanoAggregationConta(conta: ContaPagar): boolean {
+  return conta.tipo_lancamento !== 'fatura_cartao';
+}
+
 type ContasMode = 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'financeiro-fiscal' | 'plano-contas';
 
 const CONTAS_TABS: { id: ContasMode; label: string; icon: React.FC<any>; shortLabel: string }[] = [
@@ -1212,6 +1216,8 @@ export const ContasPagarPage: React.FC<{
       const [y, m] = c.competencia.split('-');
       return `${y}-${m}` === prevYM;
     });
+    const contasPlanoMes = contasMes.filter(isPlanoAggregationConta);
+    const contasPlanoPrev = contasPrev.filter(isPlanoAggregationConta);
 
     const totalMes = contasMes.reduce((s, c) => s + (Number(c.valor) || 0), 0);
     const totalPrev = contasPrev.reduce((s, c) => s + (Number(c.valor) || 0), 0);
@@ -1243,7 +1249,7 @@ export const ContasPagarPage: React.FC<{
       return grupoNomeDashboard.get(grupoCodigo) || formatContaPlanoLabel(conta);
     };
     const catMap = new Map<string, number>();
-    contasMes.forEach((c) => {
+    contasPlanoMes.forEach((c) => {
       const key = planoGrupoLabel(c);
       catMap.set(key, (catMap.get(key) || 0) + (Number(c.valor) || 0));
     });
@@ -1275,10 +1281,10 @@ export const ContasPagarPage: React.FC<{
     const keyFor = (c: ContaPagar) => `${c.unidade || 'todas'}|${c.plano_conta_id || 'sem_plano'}|${normalizeKey(c.descricao || '')}`;
 
     const prevMap = new Map<string, number>();
-    contasPrev.forEach(c => prevMap.set(keyFor(c), (prevMap.get(keyFor(c)) || 0) + (Number(c.valor) || 0)));
+    contasPlanoPrev.forEach(c => prevMap.set(keyFor(c), (prevMap.get(keyFor(c)) || 0) + (Number(c.valor) || 0)));
 
     const currMap = new Map<string, { total: number, sample: ContaPagar }>();
-    contasMes.forEach(c => {
+    contasPlanoMes.forEach(c => {
       const k = keyFor(c);
       const v = (currMap.get(k)?.total || 0) + (Number(c.valor) || 0);
       currMap.set(k, { total: v, sample: c });
@@ -1319,7 +1325,7 @@ export const ContasPagarPage: React.FC<{
       return `${unidade}|${plano}|${desc}`;
     };
 
-    const base = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesAiFilters(c));
+    const base = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesAiFilters(c) && isPlanoAggregationConta(c));
     const prevRows = base.filter(matchesCompetenciaComparar);
     const currRows = base.filter(matchesCompetencia);
 
