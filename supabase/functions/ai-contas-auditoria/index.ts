@@ -127,7 +127,7 @@ type ContaRow = {
   competencia: string;
   status: "pendente" | "pago" | "cancelado" | "finalizado";
   data_pagamento: string | null;
-  tipo_lancamento: "unica" | "recorrente" | "parcelada" | "eventual";
+  tipo_lancamento: "unica" | "recorrente" | "parcelada" | "eventual" | "fatura_cartao";
   parcela_atual: number | null;
   total_parcelas: number | null;
   plano_conta?: { id: string; codigo: string; nome: string; tipo_custo: string | null } | null;
@@ -152,6 +152,10 @@ type AuditMacro = {
   countPendente: number;
   prevYM: string | null;
 };
+
+function isPlanoAggregationConta(c: ContaRow): boolean {
+  return c.tipo_lancamento !== "fatura_cartao";
+}
 
 function formatMoneyBR(value: number): string {
   return `R$ ${(Number(value) || 0).toLocaleString("pt-BR", {
@@ -365,8 +369,9 @@ Deno.serve(async (req: Request) => {
   const totalPendente = pendentes.reduce((s, c) => s + (Number(c.valor) || 0), 0);
 
   // 6) Distribuição por grupo do plano de contas (top 8)
+  const contasPlano = contas.filter(isPlanoAggregationConta);
   const byCat = new Map<string, { nome: string; icone: null; total: number; count: number }>();
-  for (const c of contas) {
+  for (const c of contasPlano) {
     const grupo = grupoDe(c.plano_conta?.codigo);
     const k = grupo.cod;
     const nome = grupo.nome;
@@ -385,7 +390,7 @@ Deno.serve(async (req: Request) => {
   const candidates: AuditCandidate[] = [];
 
   // 7.1) Sem plano de contas
-  for (const c of contas) {
+  for (const c of contas.filter(isPlanoAggregationConta)) {
     if (!c.plano_conta_id) {
       candidates.push({
         key: `sem_plano:${c.id}`,
