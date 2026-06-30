@@ -13,6 +13,7 @@ const m4Comparativo = readFileSync(new URL('../functions/ai-contas-comparativo/i
 const m5 = read('20260629_5_financeiro_cartoes_rpcs.sql');
 const m6 = read('20260629_6_financeiro_cartoes_triggers_fechamento.sql');
 const m7 = read('20260629_7_financeiro_cartoes_seed.sql');
+const m8 = read('20260629_8_financeiro_cartoes_classificacao_empresa_centro.sql');
 
 test('M1 creates card, invoice, import and transaction tables with least-privilege grants', () => {
   for (const table of ['financeiro_cartoes', 'financeiro_cartao_faturas', 'financeiro_cartao_importacoes', 'financeiro_cartao_transacoes']) {
@@ -100,4 +101,18 @@ test('M7 seeds the six cards including Mercado Pago as PF paid by Barra', () => 
   assert.match(m7, /03b21560-69db-4488-a413-a9e6e56fc71e/i);
   assert.match(m7, /2670b337-3711-4ce7-9ce0-c25b4ae855c8/i);
   assert.match(m7, /on conflict \(apelido\) do update/i);
+});
+
+test('M8 requires empresa coherence only for confirmed card-transaction classification', () => {
+  assert.match(m8, /create or replace function public\.financeiro_cartao_transacoes_valida_classificacao/i);
+
+  const confirmedBlock = m8.match(/if new\.classificacao_status = 'confirmada' then([\s\S]*?)return new;/i)?.[1] || '';
+  assert.match(confirmedBlock, /if new\.empresa_id is null then[\s\S]*empresa_id obrigatorio para classificacao confirmada/i);
+  assert.match(confirmedBlock, /select unidade_id into v_unidade_empresa[\s\S]*from public\.financeiro_empresas/i);
+  assert.match(confirmedBlock, /if v_unidade_empresa is null or v_unidade_empresa <> new\.centro_custo_id then[\s\S]*centro_custo_id incoerente com a empresa para classificacao confirmada/i);
+  assert.match(confirmedBlock, /p\.nivel\s*=\s*3/i);
+  assert.match(confirmedBlock, /p\.natureza\s*=\s*'saida'/i);
+  assert.match(confirmedBlock, /new\.centro_custo_id is null/i);
+
+  assert.doesNotMatch(m8, /classificacao_status\s+in\s+\('pendente','sugerida'\)[\s\S]*empresa_id obrigatorio/i);
 });
