@@ -35,6 +35,9 @@ const ContasPagarPage = lazy(() =>
 const CartoesPage = lazy(() =>
   import('./components/cartoes/CartoesPage').then((m) => ({ default: m.CartoesPage }))
 );
+const FaturasCartaoPage = lazy(() =>
+  import('./components/cartoes/FaturasCartaoPage').then((m) => ({ default: m.FaturasCartaoPage }))
+);
 const AgendaPage = lazy(() =>
   import('./components/agenda/AgendaPage').then((m) => ({ default: m.AgendaPage }))
 );
@@ -206,8 +209,8 @@ export default function App() {
     return null;
   };
 
-  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh'>(() =>
-    window.location.pathname === '/cartoes' ? 'cartoes' : 'folha'
+  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'cartoes' | 'faturas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh'>(() =>
+    window.location.pathname === '/cartoes' ? 'cartoes' : window.location.pathname === '/faturas' ? 'faturas' : 'folha'
   );
   const [activeTab, setActiveTab] = useState('dashboard');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
@@ -292,6 +295,12 @@ export default function App() {
       icon: WalletCards,
       tabs: []
     },
+    faturas: {
+      title: 'Faturas',
+      subtitle: 'CARTOES E COMPETENCIAS',
+      icon: FileText,
+      tabs: []
+    },
     agenda: {
       title: 'Agenda',
       subtitle: 'COMPROMISSOS E TAREFAS',
@@ -333,7 +342,7 @@ export default function App() {
       const detail = (e as CustomEvent).detail as { module?: string; page?: string } | undefined;
       if (!detail?.module) return;
 
-      const mod = detail.module as 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
+      const mod = detail.module as 'folha' | 'contas' | 'cartoes' | 'faturas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
       setCurrentModule(mod);
 
       if (detail.page) {
@@ -342,6 +351,7 @@ export default function App() {
         if (mod === 'folha') setActiveTab('dashboard');
         if (mod === 'contas') setActiveTab('dashboard');
         if (mod === 'cartoes') setActiveTab('cartoes');
+        if (mod === 'faturas') setActiveTab('faturas');
         if (mod === 'agenda') setActiveTab('agenda');
         if (mod === 'notificacoes') setActiveTab('notificacoes');
         if (mod === 'ferias') setActiveTab('ferias');
@@ -356,7 +366,7 @@ export default function App() {
   }, []);
 
   const handleNavigate = (module: string, page?: string) => {
-    const mod = module as 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
+    const mod = module as 'folha' | 'contas' | 'cartoes' | 'faturas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
     setCurrentModule(mod);
     
     if (page) {
@@ -365,6 +375,7 @@ export default function App() {
       if (mod === 'folha') setActiveTab('dashboard');
       if (mod === 'contas') setActiveTab('dashboard');
       if (mod === 'cartoes') setActiveTab('cartoes');
+      if (mod === 'faturas') setActiveTab('faturas');
       if (mod === 'agenda') setActiveTab('agenda');
       if (mod === 'notificacoes') setActiveTab('notificacoes');
       if (mod === 'ferias') setActiveTab('ferias');
@@ -374,7 +385,7 @@ export default function App() {
     if (mod === 'folha') setUnidadeFiltro('todos');
 
     try {
-      const targetPath = mod === 'cartoes' ? '/cartoes' : '/';
+      const targetPath = mod === 'cartoes' ? '/cartoes' : mod === 'faturas' ? '/faturas' : '/';
       if (window.location.pathname !== targetPath) {
         window.history.pushState({}, '', `${targetPath}${window.location.search || ''}${window.location.hash || ''}`);
       }
@@ -390,12 +401,16 @@ export default function App() {
         handleNavigate('cartoes');
         return;
       }
+      if (window.location.pathname === '/faturas') {
+        handleNavigate('faturas');
+        return;
+      }
 
       const params = new URLSearchParams(window.location.search || '');
       const moduleParam = (params.get('module') || '').toLowerCase();
       const pageParam = (params.get('page') || '').toLowerCase();
 
-      if (moduleParam === 'folha' || moduleParam === 'contas' || moduleParam === 'cartoes' || moduleParam === 'agenda' || moduleParam === 'notificacoes' || moduleParam === 'ferias' || moduleParam === 'rh') {
+      if (moduleParam === 'folha' || moduleParam === 'contas' || moduleParam === 'cartoes' || moduleParam === 'faturas' || moduleParam === 'agenda' || moduleParam === 'notificacoes' || moduleParam === 'ferias' || moduleParam === 'rh') {
         handleNavigate(moduleParam, pageParam || undefined);
 
         // Keep URL clean (remove only module/page)
@@ -1889,7 +1904,7 @@ export default function App() {
           // No desktop, mantemos um respiro no fundo para não “cortar” a última seção.
           currentModule === 'agenda'
             ? "p-0 pb-28 lg:pb-10"
-            : currentModule === 'contas' || currentModule === 'cartoes' || currentModule === 'folha' || currentModule === 'notificacoes' || currentModule === 'rh'
+            : currentModule === 'contas' || currentModule === 'cartoes' || currentModule === 'faturas' || currentModule === 'folha' || currentModule === 'notificacoes' || currentModule === 'rh'
               ? "px-4 py-8 pb-28 lg:p-8 lg:pb-10"
               : "p-8 pb-28 lg:pb-10"
         )}
@@ -2075,6 +2090,10 @@ export default function App() {
           ) : currentModule === 'cartoes' ? (
             <Suspense fallback={<LoadingSpinner />}>
               <CartoesPage />
+            </Suspense>
+          ) : currentModule === 'faturas' ? (
+            <Suspense fallback={<LoadingSpinner />}>
+              <FaturasCartaoPage />
             </Suspense>
           ) : currentModule === 'agenda' ? (
             <Suspense fallback={<LoadingSpinner />}>
@@ -4558,11 +4577,12 @@ export default function App() {
         aria-label="Navegação inferior"
       >
         <div className="px-4 pt-2">
-          <div className="grid grid-cols-6 gap-1">
+          <div className="grid grid-cols-7 gap-1">
             {([
               { id: 'folha', label: 'Folha', icon: Users },
               { id: 'contas', label: 'Contas', icon: CreditCard },
               { id: 'cartoes', label: 'Cartões', icon: WalletCards },
+              { id: 'faturas', label: 'Faturas', icon: FileText },
               { id: 'agenda', label: 'Agenda', icon: Calendar },
               { id: 'notificacoes', label: 'Notif.', icon: Bell },
               { id: 'rh', label: 'RH', icon: UserCheck },

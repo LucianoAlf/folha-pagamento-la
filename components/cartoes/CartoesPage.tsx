@@ -5,6 +5,7 @@ import {
   Building2,
   CreditCard,
   Edit2,
+  FileText,
   Landmark,
   Loader2,
   MoreVertical,
@@ -406,7 +407,8 @@ const CartaoCard: React.FC<{
   onEdit: (cartao: FinanceiroCartao) => void;
   onArchive: (cartao: FinanceiroCartao) => void;
   onLaunch: (cartao: FinanceiroCartao) => void;
-}> = ({ cartao, toneClass, onEdit, onArchive, onLaunch }) => {
+  onOpenFaturas: (cartao: FinanceiroCartao) => void;
+}> = ({ cartao, toneClass, onEdit, onArchive, onLaunch, onOpenFaturas }) => {
   const limite = cartao.limite == null ? null : Number(cartao.limite || 0);
   const usado = Number(cartao.valor_usado || 0);
   const usage = limite && limite > 0 ? Math.min(100, Math.max(0, (usado / limite) * 100)) : 0;
@@ -454,6 +456,14 @@ const CartaoCard: React.FC<{
                   Lançar compra
                 </button>
               ) : null}
+              <button
+                type="button"
+                onClick={() => onOpenFaturas(cartao)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-secondary hover:bg-surface-2 hover:text-primary transition-all"
+              >
+                <FileText className="w-4 h-4" />
+                Ver faturas
+              </button>
               <button
                 type="button"
                 onClick={() => onEdit(cartao)}
@@ -617,6 +627,16 @@ export const CartoesPage: React.FC = () => {
     setCompraOpen(true);
   };
 
+  const openFaturas = (cartao?: FinanceiroCartao | null) => {
+    const path = cartao?.id ? `/faturas?cartaoId=${encodeURIComponent(cartao.id)}` : '/faturas';
+    try {
+      window.history.pushState({}, '', path);
+    } catch {
+      // ignore URL sync errors
+    }
+    window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'faturas' } }));
+  };
+
   const handleCompraSuccess = async (_result: FinanceiroCartaoLancamentoResponse) => {
     await load();
   };
@@ -730,6 +750,7 @@ export const CartoesPage: React.FC = () => {
               onEdit={openEdit}
               onArchive={setConfirming}
               onLaunch={openCompra}
+              onOpenFaturas={openFaturas}
             />
           ))}
         </div>

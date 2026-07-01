@@ -55,7 +55,7 @@ const getFeriasBadgeCounts = async (): Promise<{ vencidos: number; proximos: num
   }
 };
 
-type ModuleId = 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
+type ModuleId = 'folha' | 'contas' | 'cartoes' | 'faturas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
 type FolhaPageId = 'dashboard' | 'colaboradores' | 'lancamentos' | 'comparativo';
 
 export interface SidebarNavigate {
@@ -137,6 +137,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         id: 'cartoes' as const,
         label: 'Cartões',
         icon: WalletCards,
+        disabled: false,
+      },
+      {
+        id: 'faturas' as const,
+        label: 'Faturas',
+        icon: FileText,
         disabled: false,
       },
       {
