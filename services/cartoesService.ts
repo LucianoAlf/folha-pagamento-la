@@ -3,8 +3,11 @@ import {
   fetchCentrosCusto,
   fetchFinanceiroContasBancarias,
   fetchFinanceiroEmpresas,
+  fetchPlanoContas,
 } from './contasPagarService';
 import type {
+  FinanceiroCartaoClassificacaoPayload,
+  FinanceiroCartaoClassificacaoResponse,
   CartaoRpcResponse,
   CartoesDashboardData,
   CartoesFaturasData,
@@ -140,6 +143,18 @@ function friendlyRpcError(error: any): Error {
   if (/final.*4|4 digitos|4 dígitos/i.test(message)) {
     return new Error('O final do cartão precisa ter exatamente 4 dígitos.');
   }
+  if (/fatura cancelada nao permite reclassificacao|status = cancelada/i.test(message)) {
+    return new Error('Fatura cancelada nao permite classificacao.');
+  }
+  if (/obrigatorio para classificacao confirmada/i.test(message)) {
+    return new Error('Preencha empresa, centro de custo e plano antes de confirmar.');
+  }
+  if (/centro_custo_id incoerente com a empresa/i.test(message)) {
+    return new Error('Centro de custo nao corresponde a empresa escolhida.');
+  }
+  if (/folha de saida ativa/i.test(message)) {
+    return new Error('Escolha uma folha ativa de saida no plano de contas.');
+  }
   return new Error(message || 'Não foi possível salvar o cartão.');
 }
 
@@ -184,7 +199,7 @@ export async function fetchCartoesDashboard(): Promise<CartoesDashboardData> {
 }
 
 export async function fetchCartoesFaturas(): Promise<CartoesFaturasData> {
-  const [cartoesResult, faturasResult, empresas, contasBancarias, centrosCusto] = await Promise.all([
+  const [cartoesResult, faturasResult, empresas, contasBancarias, centrosCusto, planos] = await Promise.all([
     supabase
       .from('financeiro_cartoes')
       .select(CARTAO_SELECT)
@@ -197,6 +212,7 @@ export async function fetchCartoesFaturas(): Promise<CartoesFaturasData> {
     fetchFinanceiroEmpresas(),
     fetchFinanceiroContasBancarias(),
     fetchCentrosCusto(),
+    fetchPlanoContas(),
   ]);
 
   if (cartoesResult.error) throw cartoesResult.error;
@@ -225,6 +241,7 @@ export async function fetchCartoesFaturas(): Promise<CartoesFaturasData> {
     empresas,
     contasBancarias,
     centrosCusto,
+    planos,
   };
 }
 
@@ -291,4 +308,28 @@ export async function registrarLancamentoCartao(
 
   if (error) throw friendlyRpcError(error);
   return data as FinanceiroCartaoLancamentoResponse;
+}
+
+export async function classificarTransacaoCartao(
+  payload: FinanceiroCartaoClassificacaoPayload
+): Promise<FinanceiroCartaoClassificacaoResponse> {
+  const cleanPayload: FinanceiroCartaoClassificacaoPayload = {
+    transacao_id: payload.transacao_id,
+    classificacao_status: payload.classificacao_status,
+    motivo: payload.motivo?.trim() || null,
+  };
+
+  if (payload.classificacao_status === 'confirmada') {
+    cleanPayload.plano_conta_id = payload.plano_conta_id || null;
+    cleanPayload.centro_custo_id = payload.centro_custo_id || null;
+    cleanPayload.empresa_id = payload.empresa_id || null;
+  }
+
+  const { data, error } = await supabase.rpc('financeiro_cartao_transacao_classificar', {
+    payload: cleanPayload,
+    ator: {},
+  });
+
+  if (error) throw friendlyRpcError(error);
+  return data as FinanceiroCartaoClassificacaoResponse;
 }

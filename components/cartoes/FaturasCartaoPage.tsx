@@ -7,27 +7,36 @@ import {
   CreditCard,
   FileText,
   Filter,
+  Loader2,
   ReceiptText,
+  RotateCcw,
+  ShieldCheck,
   WalletCards,
 } from 'lucide-react';
 import { Badge, Button, Card, CustomSelect, ErrorState, LoadingSpinner, Modal } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { formatCurrency } from '../../services/api';
-import { fetchCartoesFaturas } from '../../services/cartoesService';
+import { classificarTransacaoCartao, fetchCartoesFaturas } from '../../services/cartoesService';
+import { PlanoContaTreeSelect } from '../contas/PlanoContaTreeSelect';
+import { MariaActionBadge } from '../MariaActionBadge';
+import { useAsyncAction } from '../../hooks/useAsyncAction';
 import {
   attachClassificacaoResumo,
   buildFaturasResumo,
   filterAndSortFaturas,
+  getCentroCustoIdDaEmpresa,
   getCompetenciasOptions,
   getTransacoesDaFatura,
+  hasAutoriaMaria,
+  isFaturaClassificacaoBloqueada,
 } from './cartoesFaturasSelectors';
 import type {
-  CartaoClassificacaoStatus,
+  FinanceiroCartaoClassificacaoPayload,
   FinanceiroCartao,
   FinanceiroCartaoFatura,
   FinanceiroCartaoTransacao,
 } from '../../types/cartoes';
-import type { FinanceiroEmpresa } from '../../types/contasPagar';
+import type { FinanceiroEmpresa, PlanoConta } from '../../types/contasPagar';
 
 const MONTHS = [
   'Janeiro',
@@ -115,6 +124,14 @@ const planoLabel = (transacao: FinanceiroCartaoTransacao) => {
   return `${transacao.plano_conta.codigo} ${transacao.plano_conta.nome}`;
 };
 
+const grupoPlanoLabel = (grupo?: string | null) => {
+  if (grupo === 'custo_variavel') return 'Custo variavel';
+  if (grupo === 'despesa_fixa') return 'Despesa fixa';
+  if (grupo === 'investimento') return 'Investimento';
+  if (grupo === 'nao_operacional') return 'Nao operacional';
+  return 'Plano de saida';
+};
+
 const getInitialCartaoId = (explicit?: string | null) => {
   if (explicit) return explicit;
   try {
@@ -123,6 +140,23 @@ const getInitialCartaoId = (explicit?: string | null) => {
     return 'all';
   }
 };
+
+const FieldLabel: React.FC<{ children: React.ReactNode; required?: boolean }> = ({ children, required }) => (
+  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2 px-1">
+    {children}{required ? ' *' : ''}
+  </label>
+);
+
+const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = ({ className, ...props }) => (
+  <textarea
+    {...props}
+    className={cn(
+      'w-full rounded-2xl border border-line bg-bg px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted resize-none',
+      'focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-60 disabled:cursor-not-allowed',
+      className
+    )}
+  />
+);
 
 const StatCard: React.FC<{
   title: string;
@@ -233,7 +267,38 @@ const FaturaCard: React.FC<{
   );
 };
 
-const TransacaoRow: React.FC<{ transacao: FinanceiroCartaoTransacao }> = ({ transacao }) => {
+type TransacaoClassificacaoForm = {
+  empresa_id: string;
+  centro_custo_id: string;
+  plano_conta_id: string;
+  motivo: string;
+};
+
+function buildInitialClassificacaoForm(
+  transacao: FinanceiroCartaoTransacao,
+  fatura: FinanceiroCartaoFatura,
+  empresas: FinanceiroEmpresa[]
+): TransacaoClassificacaoForm {
+  const empresaId = transacao.empresa_id || fatura.cartao?.empresa_id || '';
+  return {
+    empresa_id: empresaId,
+    centro_custo_id: transacao.centro_custo_id || getCentroCustoIdDaEmpresa(empresas, empresaId),
+    plano_conta_id: transacao.plano_conta_id || '',
+    motivo: '',
+  };
+}
+
+const TransacaoRow: React.FC<{
+  transacao: FinanceiroCartaoTransacao;
+  fatura: FinanceiroCartaoFatura;
+  empresas: FinanceiroEmpresa[];
+  planos: PlanoConta[];
+  saving: boolean;
+  onClassificar: (payload: FinanceiroCartaoClassificacaoPayload) => Promise<void>;
+}> = ({ transacao, fatura, empresas, planos, saving, onClassificar }) => {
+  const [form, setForm] = useState<TransacaoClassificacaoForm>(() =>
+    buildInitialClassificacaoForm(transacao, fatura, empresas)
+  );
   const valor = Number(transacao.valor || 0);
   const isCredit = valor < 0 || transacao.tipo_transacao === 'estorno';
   const parcela =
@@ -243,6 +308,30 @@ const TransacaoRow: React.FC<{ transacao: FinanceiroCartaoTransacao }> = ({ tran
   const hasTriad =
     transacao.classificacao_status === 'confirmada' &&
     (transacao.plano_conta || transacao.empresa || transacao.centro_custo);
+  const bloqueada = isFaturaClassificacaoBloqueada(fatura);
+  const reclassificacaoGerencial = fatura.status === 'fechada' || fatura.status === 'paga';
+  const selectedEmpresa = empresas.find((empresa) => empresa.id === form.empresa_id) || null;
+  const selectedCentroNome = selectedEmpresa?.unidade?.nome || transacao.centro_custo?.nome || 'Centro fixado pela empresa';
+  const confirmDisabled = bloqueada || saving || !form.empresa_id || !form.centro_custo_id || !form.plano_conta_id;
+  const empresaOptions = [
+    { value: '', label: 'Escolha a empresa' },
+    ...empresas
+      .filter((empresa) => empresa.ativo !== false)
+      .map((empresa) => ({ value: empresa.id, label: empresaLabel(empresa) })),
+  ];
+  const selectedPlano = planos.find((plano) => plano.id === form.plano_conta_id) || transacao.plano_conta || null;
+
+  useEffect(() => {
+    setForm(buildInitialClassificacaoForm(transacao, fatura, empresas));
+  }, [empresas, fatura, transacao]);
+
+  const setEmpresa = (empresaId: string) => {
+    setForm((current) => ({
+      ...current,
+      empresa_id: empresaId,
+      centro_custo_id: getCentroCustoIdDaEmpresa(empresas, empresaId),
+    }));
+  };
 
   return (
     <div className="rounded-2xl border border-line bg-bg/45 p-4">
@@ -252,8 +341,14 @@ const TransacaoRow: React.FC<{ transacao: FinanceiroCartaoTransacao }> = ({ tran
             <Badge variant={classificacaoVariant(transacao.classificacao_status)}>
               {classificacaoLabel(transacao.classificacao_status)}
             </Badge>
+            {hasAutoriaMaria(transacao, 'classificacao') ? (
+              <MariaActionBadge tooltip="Classificacao registrada pela Maria via WhatsApp." />
+            ) : null}
             <Badge variant="default">{tipoLabel(transacao.tipo_transacao)}</Badge>
             {parcela ? <Badge variant="purple">Parcela {parcela}</Badge> : null}
+            {hasAutoriaMaria(transacao, 'lancamento') ? (
+              <MariaActionBadge tooltip="Lancamento registrado pela Maria via WhatsApp." />
+            ) : null}
           </div>
           <div className="mt-3 text-base font-black text-primary truncate">{transacao.descricao}</div>
           <div className="mt-1 text-sm font-bold text-secondary">
@@ -286,6 +381,97 @@ const TransacaoRow: React.FC<{ transacao: FinanceiroCartaoTransacao }> = ({ tran
       {transacao.observacoes ? (
         <div className="mt-4 text-xs font-bold text-muted">{transacao.observacoes}</div>
       ) : null}
+
+      <div className="mt-4 rounded-2xl border border-line bg-surface/65 p-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">Classificacao fiscal</div>
+            <div className="mt-1 text-sm font-bold text-secondary">
+              {bloqueada
+                ? 'Fatura cancelada nao permite classificacao.'
+                : reclassificacaoGerencial
+                  ? 'Reclassificacao gerencial permitida pelo backend.'
+                  : 'Confirme plano, empresa e centro para alimentar o DRE.'}
+            </div>
+          </div>
+          {selectedPlano ? (
+            <Badge variant="info">{grupoPlanoLabel(selectedPlano.grupo_plano)}</Badge>
+          ) : null}
+        </div>
+
+        <div className={cn('mt-4 grid grid-cols-1 lg:grid-cols-[minmax(180px,0.65fr)_minmax(0,1fr)] gap-3', bloqueada && 'opacity-60')}>
+          <div>
+            <FieldLabel required>Empresa</FieldLabel>
+            <CustomSelect
+              value={form.empresa_id}
+              onValueChange={setEmpresa}
+              options={empresaOptions}
+              icon={Building2}
+              disabled={bloqueada || saving}
+            />
+            <div className="mt-2 rounded-xl border border-line bg-surface-2/50 px-3 py-2">
+              <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted">Centro fixado</div>
+              <div className="mt-1 text-xs font-black text-secondary">{selectedCentroNome}</div>
+            </div>
+          </div>
+
+          <div>
+            <FieldLabel required>Plano de contas</FieldLabel>
+            <PlanoContaTreeSelect
+              planos={planos}
+              value={form.plano_conta_id}
+              onValueChange={(planoId) => setForm((current) => ({ ...current, plano_conta_id: planoId }))}
+              placeholder="Buscar folha de saida por codigo ou nome..."
+              disabled={bloqueada || saving}
+            />
+          </div>
+
+          <div className="lg:col-span-2">
+            <FieldLabel>Motivo</FieldLabel>
+            <TextArea
+              rows={2}
+              value={form.motivo}
+              onChange={(event) => setForm((current) => ({ ...current, motivo: event.target.value }))}
+              placeholder="Ex.: classificacao conferida pela Rose."
+              disabled={bloqueada || saving}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col sm:flex-row sm:justify-end gap-2">
+          <Button
+            variant="outline"
+            disabled={bloqueada || saving || transacao.classificacao_status === 'pendente'}
+            onClick={() =>
+              onClassificar({
+                transacao_id: transacao.id,
+                classificacao_status: 'pendente',
+                motivo: form.motivo || 'Reaberta pelo app web.',
+              })
+            }
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+            Voltar para pendente
+          </Button>
+          <Button
+            variant="primary"
+            disabled={confirmDisabled}
+            onClick={() =>
+              onClassificar({
+                transacao_id: transacao.id,
+                classificacao_status: 'confirmada',
+                empresa_id: form.empresa_id,
+                centro_custo_id: form.centro_custo_id,
+                plano_conta_id: form.plano_conta_id,
+                motivo: form.motivo || 'Classificacao confirmada pelo app web.',
+              })
+            }
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+            Confirmar classificacao
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -296,10 +482,12 @@ type FaturasCartaoPageProps = {
 };
 
 export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded = false, initialCartaoId }) => {
+  const { run } = useAsyncAction();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cartoes, setCartoes] = useState<FinanceiroCartao[]>([]);
   const [empresas, setEmpresas] = useState<FinanceiroEmpresa[]>([]);
+  const [planos, setPlanos] = useState<PlanoConta[]>([]);
   const [faturas, setFaturas] = useState<FinanceiroCartaoFatura[]>([]);
   const [transacoes, setTransacoes] = useState<FinanceiroCartaoTransacao[]>([]);
   const [cartaoFiltro, setCartaoFiltro] = useState(() => getInitialCartaoId(initialCartaoId));
@@ -307,6 +495,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
   const [statusFiltro, setStatusFiltro] = useState('all');
   const [competenciaFiltro, setCompetenciaFiltro] = useState('all');
   const [selectedFaturaId, setSelectedFaturaId] = useState<string | null>(null);
+  const [savingTransacaoId, setSavingTransacaoId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -315,6 +504,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
       const data = await fetchCartoesFaturas();
       setCartoes(data.cartoes);
       setEmpresas(data.empresas);
+      setPlanos(data.planos);
       setFaturas(data.faturas);
       setTransacoes(data.transacoes);
     } catch (err: any) {
@@ -389,6 +579,24 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
     })),
   ];
 
+  const handleClassificar = async (payload: FinanceiroCartaoClassificacaoPayload) => {
+    setSavingTransacaoId(payload.transacao_id);
+    await run(
+      async () => {
+        await classificarTransacaoCartao(payload);
+        await load();
+      },
+      {
+        success:
+          payload.classificacao_status === 'confirmada'
+            ? 'Classificacao confirmada.'
+            : 'Transacao voltou para pendente.',
+        error: 'Nao foi possivel atualizar a classificacao.',
+      }
+    );
+    setSavingTransacaoId(null);
+  };
+
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={load} />;
 
@@ -403,10 +611,10 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
             </div>
             <h2 className="mt-2 text-3xl font-black text-primary tracking-tight">Faturas</h2>
             <p className="mt-2 text-sm font-bold text-secondary max-w-2xl">
-              Visao read-only das faturas e das transacoes que ja nasceram no modulo de cartoes.
+              Visao das faturas e classificacao fiscal das transacoes que ja nasceram no modulo de cartoes.
             </p>
           </div>
-          <Badge variant="purple" className="w-fit">Somente leitura</Badge>
+          <Badge variant="purple" className="w-fit">Lista read-only · detalhe classifica</Badge>
         </div>
       ) : null}
 
@@ -534,7 +742,15 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
               ) : (
                 <div className="space-y-3">
                   {transacoesSelecionadas.map((transacao) => (
-                    <TransacaoRow key={transacao.id} transacao={transacao} />
+                    <TransacaoRow
+                      key={transacao.id}
+                      transacao={transacao}
+                      fatura={selectedFatura}
+                      empresas={empresas}
+                      planos={planos}
+                      saving={savingTransacaoId === transacao.id}
+                      onClassificar={handleClassificar}
+                    />
                   ))}
                 </div>
               )}

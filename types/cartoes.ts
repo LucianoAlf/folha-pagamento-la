@@ -97,6 +97,7 @@ export interface CartoesFaturasData extends CartoesLookups {
   cartoes: FinanceiroCartao[];
   faturas: FinanceiroCartaoFatura[];
   transacoes: FinanceiroCartaoTransacao[];
+  planos: PlanoConta[];
 }
 
 export interface CartoesLookups {
@@ -166,4 +167,19 @@ export interface FinanceiroCartaoLancamentoResponse {
   total_parcelas: number;
   valor_total: number;
   parcelas: FinanceiroCartaoLancamentoParcela[];
+}
+
+export interface FinanceiroCartaoClassificacaoPayload {
+  transacao_id: string;
+  classificacao_status: 'confirmada' | 'pendente';
+  plano_conta_id?: string | null;
+  centro_custo_id?: string | null;
+  empresa_id?: string | null;
+  motivo?: string | null;
+}
+
+export interface FinanceiroCartaoClassificacaoResponse {
+  success: boolean;
+  transacao_id: string;
+  classificacao_status: CartaoClassificacaoStatus | string;
 }

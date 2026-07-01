@@ -3,6 +3,7 @@ import type {
   FinanceiroCartaoFatura,
   FinanceiroCartaoTransacao,
 } from '../../types/cartoes';
+import type { FinanceiroEmpresa } from '../../types/contasPagar';
 
 export type FaturasFiltro = {
   cartaoId: string;
@@ -112,4 +113,30 @@ export function getTransacoesDaFatura(
       if (data !== 0) return data;
       return String(a.descricao || '').localeCompare(String(b.descricao || ''));
     });
+}
+
+export function isFaturaClassificacaoBloqueada(
+  fatura: Pick<FinanceiroCartaoFatura, 'status'>
+): boolean {
+  return fatura.status === 'cancelada';
+}
+
+export function getCentroCustoIdDaEmpresa(
+  empresas: Pick<FinanceiroEmpresa, 'id' | 'unidade_id'>[],
+  empresaId: string | null | undefined
+): string {
+  if (!empresaId) return '';
+  return empresas.find((empresa) => empresa.id === empresaId)?.unidade_id || '';
+}
+
+function isMariaValue(value: string | null | undefined): boolean {
+  return String(value || '').trim().toLowerCase() === 'maria';
+}
+
+export function hasAutoriaMaria(
+  transacao: Pick<FinanceiroCartaoTransacao, 'ator_tipo' | 'fonte_tipo' | 'classificado_por'>,
+  escopo: 'lancamento' | 'classificacao'
+): boolean {
+  if (escopo === 'classificacao') return isMariaValue(transacao.classificado_por);
+  return isMariaValue(transacao.ator_tipo) || isMariaValue(transacao.fonte_tipo);
 }
