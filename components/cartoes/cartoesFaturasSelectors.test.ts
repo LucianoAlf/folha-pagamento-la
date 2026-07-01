@@ -4,6 +4,9 @@ import test from 'node:test';
 import {
   attachClassificacaoResumo,
   buildFaturasResumo,
+  getCentroCustoIdDaEmpresa,
+  hasAutoriaMaria,
+  isFaturaClassificacaoBloqueada,
   filterAndSortFaturas,
 } from './cartoesFaturasSelectors.ts';
 
@@ -121,4 +124,28 @@ test('buildFaturasResumo sums open invoices and identifies the next open due dat
     paga: 0,
     cancelada: 0,
   });
+});
+
+test('classification is blocked only for canceled invoices', () => {
+  assert.equal(isFaturaClassificacaoBloqueada({ status: 'cancelada' } as any), true);
+  assert.equal(isFaturaClassificacaoBloqueada({ status: 'aberta' } as any), false);
+  assert.equal(isFaturaClassificacaoBloqueada({ status: 'fechada' } as any), false);
+  assert.equal(isFaturaClassificacaoBloqueada({ status: 'paga' } as any), false);
+});
+
+test('empresa fixes the fiscal centro de custo by unidade_id', () => {
+  const empresas = [
+    { id: 'empresa-emla', unidade_id: 'centro-cg' },
+    { id: 'empresa-barra', unidade_id: 'centro-barra' },
+  ] as any[];
+
+  assert.equal(getCentroCustoIdDaEmpresa(empresas, 'empresa-emla'), 'centro-cg');
+  assert.equal(getCentroCustoIdDaEmpresa(empresas, 'empresa-nao-existe'), '');
+});
+
+test('Maria stamp is detected from launch and classification authorship fields', () => {
+  assert.equal(hasAutoriaMaria({ ator_tipo: 'maria' } as any, 'lancamento'), true);
+  assert.equal(hasAutoriaMaria({ fonte_tipo: 'maria' } as any, 'lancamento'), true);
+  assert.equal(hasAutoriaMaria({ classificado_por: 'maria' } as any, 'classificacao'), true);
+  assert.equal(hasAutoriaMaria({ ator_tipo: 'web', classificado_por: 'web' } as any, 'classificacao'), false);
 });
