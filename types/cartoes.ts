@@ -1,6 +1,7 @@
 import type { CentroCusto, FinanceiroContaBancaria, FinanceiroEmpresa } from './contasPagar';
 
 export type CartaoTitularidadeTipo = 'pf' | 'pj';
+export type CartaoTipoTransacao = 'compra' | 'estorno' | 'tarifa' | 'anuidade' | 'ajuste';
 
 export interface FinanceiroCartao {
   id: string;
@@ -62,4 +63,40 @@ export interface CartaoRpcResponse {
   cartao_id: string;
   operacao?: 'INSERT' | 'UPDATE' | string;
   ativo?: boolean;
+}
+
+export interface FinanceiroCartaoCiclo {
+  competencia: string;
+  data_fechamento: string;
+  data_vencimento: string;
+}
+
+export interface FinanceiroCartaoLancamentoPayload {
+  cartao_id: string;
+  data_compra: string;
+  descricao: string;
+  estabelecimento?: string | null;
+  tipo_transacao: CartaoTipoTransacao;
+  total_parcelas: number;
+  valor_total?: number | null;
+  valor_parcela?: number | null;
+  client_token: string;
+  observacoes?: string | null;
+}
+
+export interface FinanceiroCartaoLancamentoParcela {
+  parcela: number;
+  fatura_id: string;
+  competencia: string;
+  valor: number;
+  transacao_id: string;
+  idempotent: boolean;
+}
+
+export interface FinanceiroCartaoLancamentoResponse {
+  success: boolean;
+  compra_parcelada_id: string | null;
+  total_parcelas: number;
+  valor_total: number;
+  parcelas: FinanceiroCartaoLancamentoParcela[];
 }

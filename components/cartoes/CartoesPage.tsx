@@ -9,6 +9,7 @@ import {
   Loader2,
   MoreVertical,
   Plus,
+  ReceiptText,
   RotateCcw,
   ShieldCheck,
   WalletCards,
@@ -18,8 +19,9 @@ import { cn } from '../CollaboratorComponents';
 import { formatCurrency } from '../../services/api';
 import { arquivarCartao, fetchCartoesDashboard, salvarCartao } from '../../services/cartoesService';
 import type { CentroCusto, FinanceiroContaBancaria, FinanceiroEmpresa } from '../../types/contasPagar';
-import type { CartaoTitularidadeTipo, FinanceiroCartao, FinanceiroCartaoPayload } from '../../types/cartoes';
+import type { CartaoTitularidadeTipo, FinanceiroCartao, FinanceiroCartaoLancamentoResponse, FinanceiroCartaoPayload } from '../../types/cartoes';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
+import { NovaCompraCartaoModal } from './NovaCompraCartaoModal';
 
 type CartaoFormState = {
   cartao_id?: string;
@@ -403,7 +405,8 @@ const CartaoCard: React.FC<{
   toneClass: string;
   onEdit: (cartao: FinanceiroCartao) => void;
   onArchive: (cartao: FinanceiroCartao) => void;
-}> = ({ cartao, toneClass, onEdit, onArchive }) => {
+  onLaunch: (cartao: FinanceiroCartao) => void;
+}> = ({ cartao, toneClass, onEdit, onArchive, onLaunch }) => {
   const limite = cartao.limite == null ? null : Number(cartao.limite || 0);
   const usado = Number(cartao.valor_usado || 0);
   const usage = limite && limite > 0 ? Math.min(100, Math.max(0, (usado / limite) * 100)) : 0;
@@ -441,6 +444,16 @@ const CartaoCard: React.FC<{
               sideOffset={8}
               className="la-popover-content z-[99999] min-w-48 rounded-2xl border border-line bg-surface p-2 shadow-2xl"
             >
+              {cartao.ativo ? (
+                <button
+                  type="button"
+                  onClick={() => onLaunch(cartao)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-secondary hover:bg-surface-2 hover:text-primary transition-all"
+                >
+                  <ReceiptText className="w-4 h-4" />
+                  Lançar compra
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => onEdit(cartao)}
@@ -525,6 +538,8 @@ export const CartoesPage: React.FC = () => {
   const [form, setForm] = useState<CartaoFormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [confirming, setConfirming] = useState<FinanceiroCartao | null>(null);
+  const [compraOpen, setCompraOpen] = useState(false);
+  const [compraCartaoId, setCompraCartaoId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -597,6 +612,15 @@ export const CartoesPage: React.FC = () => {
     setDialogOpen(true);
   };
 
+  const openCompra = (cartao?: FinanceiroCartao | null) => {
+    setCompraCartaoId(cartao?.id || null);
+    setCompraOpen(true);
+  };
+
+  const handleCompraSuccess = async (_result: FinanceiroCartaoLancamentoResponse) => {
+    await load();
+  };
+
   const submit = async () => {
     const payload = formToPayload(form);
     if (!payload.apelido || payload.final.length !== 4 || !payload.titularidade_tipo) return;
@@ -647,10 +671,16 @@ export const CartoesPage: React.FC = () => {
             Cadastre cartões por empresa e mantenha o caminho fiscal pronto para faturas e compras nas próximas fatias.
           </p>
         </div>
-        <Button variant="primary" onClick={openCreate} className="self-start lg:self-auto px-5">
-          <Plus className="w-4 h-4" />
-          Novo cartão
-        </Button>
+        <div className="flex flex-wrap gap-3 self-start lg:self-auto">
+          <Button variant="outline" onClick={() => openCompra()} className="px-5">
+            <ReceiptText className="w-4 h-4" />
+            Nova compra
+          </Button>
+          <Button variant="primary" onClick={openCreate} className="px-5">
+            <Plus className="w-4 h-4" />
+            Novo cartão
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -699,6 +729,7 @@ export const CartoesPage: React.FC = () => {
               toneClass={cartao.empresa_id ? toneByEmpresa.get(cartao.empresa_id) || TONE_CLASSES[0] : 'bg-surface-2 text-secondary border-line'}
               onEdit={openEdit}
               onArchive={setConfirming}
+              onLaunch={openCompra}
             />
           ))}
         </div>
@@ -714,6 +745,14 @@ export const CartoesPage: React.FC = () => {
         onClose={() => setDialogOpen(false)}
         onChange={setForm}
         onSubmit={submit}
+      />
+
+      <NovaCompraCartaoModal
+        open={compraOpen}
+        cartoes={cartoes}
+        selectedCartaoId={compraCartaoId}
+        onClose={() => setCompraOpen(false)}
+        onSuccess={handleCompraSuccess}
       />
 
       <ConfirmDialog
