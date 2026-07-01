@@ -7,8 +7,11 @@ import {
 import type {
   CartaoRpcResponse,
   CartoesDashboardData,
+  FinanceiroCartaoCiclo,
   FinanceiroCartao,
   FinanceiroCartaoFaturaResumo,
+  FinanceiroCartaoLancamentoPayload,
+  FinanceiroCartaoLancamentoResponse,
   FinanceiroCartaoPayload,
 } from '../types/cartoes';
 
@@ -153,4 +156,41 @@ export async function arquivarCartao(input: {
 
   if (error) throw friendlyRpcError(error);
   return data as CartaoRpcResponse;
+}
+
+export async function previewCicloCartao(cartaoId: string, dataCompra: string): Promise<FinanceiroCartaoCiclo> {
+  const { data, error } = await supabase.rpc('financeiro_cartao_ciclo', {
+    p_cartao_id: cartaoId,
+    p_data: dataCompra,
+  });
+
+  if (error) throw friendlyRpcError(error);
+  const row = Array.isArray(data) ? data[0] : data;
+  return row as FinanceiroCartaoCiclo;
+}
+
+export async function registrarLancamentoCartao(
+  payload: FinanceiroCartaoLancamentoPayload
+): Promise<FinanceiroCartaoLancamentoResponse> {
+  const cleanPayload: FinanceiroCartaoLancamentoPayload = {
+    cartao_id: payload.cartao_id,
+    data_compra: payload.data_compra,
+    descricao: payload.descricao.trim(),
+    estabelecimento: payload.estabelecimento?.trim() || null,
+    tipo_transacao: payload.tipo_transacao,
+    total_parcelas: payload.total_parcelas,
+    client_token: payload.client_token,
+    observacoes: payload.observacoes?.trim() || null,
+  };
+
+  if (payload.valor_total != null) cleanPayload.valor_total = payload.valor_total;
+  if (payload.valor_parcela != null) cleanPayload.valor_parcela = payload.valor_parcela;
+
+  const { data, error } = await supabase.rpc('financeiro_cartao_lancamento_registrar', {
+    payload: cleanPayload,
+    ator: {},
+  });
+
+  if (error) throw friendlyRpcError(error);
+  return data as FinanceiroCartaoLancamentoResponse;
 }
