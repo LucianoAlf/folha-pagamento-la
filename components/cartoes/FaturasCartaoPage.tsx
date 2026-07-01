@@ -115,7 +115,8 @@ const planoLabel = (transacao: FinanceiroCartaoTransacao) => {
   return `${transacao.plano_conta.codigo} ${transacao.plano_conta.nome}`;
 };
 
-const getInitialCartaoId = () => {
+const getInitialCartaoId = (explicit?: string | null) => {
+  if (explicit) return explicit;
   try {
     return new URLSearchParams(window.location.search || '').get('cartaoId') || 'all';
   } catch {
@@ -289,14 +290,19 @@ const TransacaoRow: React.FC<{ transacao: FinanceiroCartaoTransacao }> = ({ tran
   );
 };
 
-export const FaturasCartaoPage: React.FC = () => {
+type FaturasCartaoPageProps = {
+  embedded?: boolean;
+  initialCartaoId?: string | null;
+};
+
+export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded = false, initialCartaoId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cartoes, setCartoes] = useState<FinanceiroCartao[]>([]);
   const [empresas, setEmpresas] = useState<FinanceiroEmpresa[]>([]);
   const [faturas, setFaturas] = useState<FinanceiroCartaoFatura[]>([]);
   const [transacoes, setTransacoes] = useState<FinanceiroCartaoTransacao[]>([]);
-  const [cartaoFiltro, setCartaoFiltro] = useState(getInitialCartaoId);
+  const [cartaoFiltro, setCartaoFiltro] = useState(() => getInitialCartaoId(initialCartaoId));
   const [empresaFiltro, setEmpresaFiltro] = useState('all');
   const [statusFiltro, setStatusFiltro] = useState('all');
   const [competenciaFiltro, setCompetenciaFiltro] = useState('all');
@@ -321,6 +327,12 @@ export const FaturasCartaoPage: React.FC = () => {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (initialCartaoId !== undefined) {
+      setCartaoFiltro(initialCartaoId || 'all');
+    }
+  }, [initialCartaoId]);
 
   const enrichedFaturas = useMemo(() => attachClassificacaoResumo(faturas, transacoes), [faturas, transacoes]);
 
@@ -382,19 +394,21 @@ export const FaturasCartaoPage: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-muted">
-            <ReceiptText className="w-4 h-4 text-accent" />
-            Cartoes
+      {!embedded ? (
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-muted">
+              <ReceiptText className="w-4 h-4 text-accent" />
+              Cartoes
+            </div>
+            <h2 className="mt-2 text-3xl font-black text-primary tracking-tight">Faturas</h2>
+            <p className="mt-2 text-sm font-bold text-secondary max-w-2xl">
+              Visao read-only das faturas e das transacoes que ja nasceram no modulo de cartoes.
+            </p>
           </div>
-          <h2 className="mt-2 text-3xl font-black text-primary tracking-tight">Faturas</h2>
-          <p className="mt-2 text-sm font-bold text-secondary max-w-2xl">
-            Visao read-only das faturas e das transacoes que ja nasceram no modulo de cartoes.
-          </p>
+          <Badge variant="purple" className="w-fit">Somente leitura</Badge>
         </div>
-        <Badge variant="purple" className="w-fit">Somente leitura</Badge>
-      </div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard

@@ -23,6 +23,7 @@ import type { CentroCusto, FinanceiroContaBancaria, FinanceiroEmpresa } from '..
 import type { CartaoTitularidadeTipo, FinanceiroCartao, FinanceiroCartaoLancamentoResponse, FinanceiroCartaoPayload } from '../../types/cartoes';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
 import { NovaCompraCartaoModal } from './NovaCompraCartaoModal';
+import { FaturasCartaoPage } from './FaturasCartaoPage';
 
 type CartaoFormState = {
   cartao_id?: string;
@@ -81,6 +82,25 @@ const TONE_CLASSES = [
   'bg-success/15 text-success border-success/25',
   'bg-warning/15 text-warning border-warning/25',
 ];
+
+type CartoesTab = 'cartoes' | 'faturas';
+
+function getInitialCartoesTab(): CartoesTab {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    return window.location.pathname === '/faturas' || params.get('tab') === 'faturas' ? 'faturas' : 'cartoes';
+  } catch {
+    return 'cartoes';
+  }
+}
+
+function getInitialFaturasCartaoId(): string | null {
+  try {
+    return new URLSearchParams(window.location.search || '').get('cartaoId');
+  } catch {
+    return null;
+  }
+}
 
 function parseBRL(raw: string): number | null {
   const cleaned = String(raw || '')
@@ -536,6 +556,8 @@ const CartaoCard: React.FC<{
 
 export const CartoesPage: React.FC = () => {
   const { run } = useAsyncAction();
+  const [activeTab, setActiveTab] = useState<CartoesTab>(getInitialCartoesTab);
+  const [faturasCartaoId, setFaturasCartaoId] = useState<string | null>(getInitialFaturasCartaoId);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cartoes, setCartoes] = useState<FinanceiroCartao[]>([]);
@@ -607,6 +629,28 @@ export const CartoesPage: React.FC = () => {
     ...empresas.map((empresa) => ({ value: empresa.id, label: empresaLabel(empresa) })),
   ];
 
+  const setCartoesTab = (tab: CartoesTab, cartaoId?: string | null) => {
+    setActiveTab(tab);
+
+    try {
+      if (tab === 'faturas') {
+        const nextCartaoId = cartaoId ?? faturasCartaoId;
+        setFaturasCartaoId(nextCartaoId || null);
+
+        const params = new URLSearchParams();
+        params.set('tab', 'faturas');
+        if (nextCartaoId) params.set('cartaoId', nextCartaoId);
+        window.history.pushState({}, '', `/cartoes?${params.toString()}`);
+        return;
+      }
+
+      setFaturasCartaoId(null);
+      window.history.pushState({}, '', '/cartoes');
+    } catch {
+      // ignore URL sync errors
+    }
+  };
+
   const openCreate = () => {
     const firstEmpresa = empresas[0];
     setForm({
@@ -628,13 +672,7 @@ export const CartoesPage: React.FC = () => {
   };
 
   const openFaturas = (cartao?: FinanceiroCartao | null) => {
-    const path = cartao?.id ? `/faturas?cartaoId=${encodeURIComponent(cartao.id)}` : '/faturas';
-    try {
-      window.history.pushState({}, '', path);
-    } catch {
-      // ignore URL sync errors
-    }
-    window.dispatchEvent(new CustomEvent('la:navigate', { detail: { module: 'faturas' } }));
+    setCartoesTab('faturas', cartao?.id || null);
   };
 
   const handleCompraSuccess = async (_result: FinanceiroCartaoLancamentoResponse) => {
@@ -691,18 +729,55 @@ export const CartoesPage: React.FC = () => {
             Cadastre cartões por empresa e mantenha o caminho fiscal pronto para faturas e compras nas próximas fatias.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3 self-start lg:self-auto">
-          <Button variant="outline" onClick={() => openCompra()} className="px-5">
-            <ReceiptText className="w-4 h-4" />
-            Nova compra
-          </Button>
-          <Button variant="primary" onClick={openCreate} className="px-5">
-            <Plus className="w-4 h-4" />
-            Novo cartão
-          </Button>
-        </div>
+        {activeTab === 'cartoes' ? (
+          <div className="flex flex-wrap gap-3 self-start lg:self-auto">
+            <Button variant="outline" onClick={() => openCompra()} className="px-5">
+              <ReceiptText className="w-4 h-4" />
+              Nova compra
+            </Button>
+            <Button variant="primary" onClick={openCreate} className="px-5">
+              <Plus className="w-4 h-4" />
+              Novo cartão
+            </Button>
+          </div>
+        ) : null}
       </div>
 
+      <Card className="p-1">
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            onClick={() => setCartoesTab('cartoes')}
+            className={cn(
+              'h-12 rounded-xl border px-4 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.16em] transition-all',
+              activeTab === 'cartoes'
+                ? 'border-accent/25 bg-accent/15 text-accent shadow-sm shadow-accent/10'
+                : 'border-transparent text-secondary hover:bg-surface-2 hover:text-primary'
+            )}
+          >
+            <WalletCards className="w-4 h-4" />
+            Cartões
+          </button>
+          <button
+            type="button"
+            onClick={() => setCartoesTab('faturas', faturasCartaoId)}
+            className={cn(
+              'h-12 rounded-xl border px-4 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.16em] transition-all',
+              activeTab === 'faturas'
+                ? 'border-accent/25 bg-accent/15 text-accent shadow-sm shadow-accent/10'
+                : 'border-transparent text-secondary hover:bg-surface-2 hover:text-primary'
+            )}
+          >
+            <FileText className="w-4 h-4" />
+            Faturas
+          </button>
+        </div>
+      </Card>
+
+      {activeTab === 'faturas' ? (
+        <FaturasCartaoPage embedded initialCartaoId={faturasCartaoId || 'all'} />
+      ) : (
+        <>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard title="Limite total" value={formatCurrency(stats.limiteTotal)} subtitle={`${stats.semLimite} cartão(ões) sem limite cadastrado`} icon={CreditCard} />
         <StatCard title="Limite usado" value={formatCurrency(stats.usado)} subtitle="Faturas abertas ou fechadas aguardando baixa" icon={Landmark} variant="warning" />
@@ -789,6 +864,8 @@ export const CartoesPage: React.FC = () => {
         }
         confirmLabel={confirming?.ativo ? 'Arquivar' : 'Desarquivar'}
       />
+        </>
+      )}
     </div>
   );
 };
