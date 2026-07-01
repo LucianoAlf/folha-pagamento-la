@@ -3,7 +3,6 @@ import { Card, Badge, Modal, CustomSelect, Tooltip } from './UI';
 import {
   LayoutDashboard,
   Users,
-  FileText,
   TrendingUp,
   CreditCard,
   Calendar,

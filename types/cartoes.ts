@@ -1,7 +1,9 @@
-import type { CentroCusto, FinanceiroContaBancaria, FinanceiroEmpresa } from './contasPagar';
+import type { CentroCusto, FinanceiroContaBancaria, FinanceiroEmpresa, PlanoConta } from './contasPagar';
 
 export type CartaoTitularidadeTipo = 'pf' | 'pj';
 export type CartaoTipoTransacao = 'compra' | 'estorno' | 'tarifa' | 'anuidade' | 'ajuste';
+export type CartaoFaturaStatus = 'aberta' | 'fechada' | 'paga' | 'cancelada';
+export type CartaoClassificacaoStatus = 'pendente' | 'sugerida' | 'confirmada';
 
 export interface FinanceiroCartao {
   id: string;
@@ -29,7 +31,72 @@ export interface FinanceiroCartao {
 export interface FinanceiroCartaoFaturaResumo {
   cartao_id: string;
   valor_total: number;
-  status: 'aberta' | 'fechada' | 'paga' | 'cancelada' | string;
+  status: CartaoFaturaStatus | string;
+}
+
+export interface FinanceiroCartaoClassificacaoResumo {
+  total: number;
+  confirmadas: number;
+  sugeridas: number;
+  pendentes: number;
+  percentualConfirmado: number;
+}
+
+export interface FinanceiroCartaoFatura {
+  id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  cartao_id: string;
+  cartao?: FinanceiroCartao | null;
+  competencia: string;
+  data_fechamento: string | null;
+  data_vencimento: string;
+  valor_total: number;
+  status: CartaoFaturaStatus | string;
+  conta_pagar_id: string | null;
+  observacoes?: string | null;
+  classificacao?: FinanceiroCartaoClassificacaoResumo;
+}
+
+export interface FinanceiroCartaoTransacao {
+  id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  fatura_id: string;
+  cartao_id: string;
+  importacao_id?: string | null;
+  data_compra: string;
+  descricao: string;
+  estabelecimento?: string | null;
+  valor: number;
+  tipo_transacao: CartaoTipoTransacao | string;
+  empresa_id?: string | null;
+  empresa?: FinanceiroEmpresa | null;
+  plano_conta_id?: string | null;
+  plano_conta?: PlanoConta | null;
+  centro_custo_id?: string | null;
+  centro_custo?: CentroCusto | null;
+  classificacao_status: CartaoClassificacaoStatus | string;
+  classificado_por?: string | null;
+  classificado_em?: string | null;
+  compra_parcelada_id?: string | null;
+  parcela_atual?: number | null;
+  total_parcelas?: number | null;
+  valor_total_compra?: number | null;
+  fingerprint?: string | null;
+  possivel_duplicata?: boolean;
+  id_externo?: string | null;
+  fonte_tipo?: string | null;
+  ator_tipo?: string | null;
+  ator_ref?: string | null;
+  created_by?: string | null;
+  observacoes?: string | null;
+}
+
+export interface CartoesFaturasData extends CartoesLookups {
+  cartoes: FinanceiroCartao[];
+  faturas: FinanceiroCartaoFatura[];
+  transacoes: FinanceiroCartaoTransacao[];
 }
 
 export interface CartoesLookups {

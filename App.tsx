@@ -207,7 +207,7 @@ export default function App() {
   };
 
   const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh'>(() =>
-    window.location.pathname === '/cartoes' ? 'cartoes' : 'folha'
+    window.location.pathname === '/cartoes' || window.location.pathname === '/faturas' ? 'cartoes' : 'folha'
   );
   const [activeTab, setActiveTab] = useState('dashboard');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
@@ -333,7 +333,8 @@ export default function App() {
       const detail = (e as CustomEvent).detail as { module?: string; page?: string } | undefined;
       if (!detail?.module) return;
 
-      const mod = detail.module as 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
+      const requestedModule = detail.module === 'faturas' ? 'cartoes' : detail.module;
+      const mod = requestedModule as 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
       setCurrentModule(mod);
 
       if (detail.page) {
@@ -390,10 +391,28 @@ export default function App() {
         handleNavigate('cartoes');
         return;
       }
+      if (window.location.pathname === '/faturas') {
+        const params = new URLSearchParams(window.location.search || '');
+        params.set('tab', 'faturas');
+        const nextSearch = params.toString();
+        window.history.replaceState({}, '', `/cartoes${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || ''}`);
+        handleNavigate('cartoes');
+        return;
+      }
 
       const params = new URLSearchParams(window.location.search || '');
       const moduleParam = (params.get('module') || '').toLowerCase();
       const pageParam = (params.get('page') || '').toLowerCase();
+
+      if (moduleParam === 'faturas') {
+        params.delete('module');
+        params.delete('page');
+        params.set('tab', 'faturas');
+        const nextSearch = params.toString();
+        window.history.replaceState({}, '', `/cartoes${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || ''}`);
+        handleNavigate('cartoes');
+        return;
+      }
 
       if (moduleParam === 'folha' || moduleParam === 'contas' || moduleParam === 'cartoes' || moduleParam === 'agenda' || moduleParam === 'notificacoes' || moduleParam === 'ferias' || moduleParam === 'rh') {
         handleNavigate(moduleParam, pageParam || undefined);
