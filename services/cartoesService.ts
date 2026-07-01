@@ -1,0 +1,156 @@
+import { supabase } from './supabase';
+import {
+  fetchCentrosCusto,
+  fetchFinanceiroContasBancarias,
+  fetchFinanceiroEmpresas,
+} from './contasPagarService';
+import type {
+  CartaoRpcResponse,
+  CartoesDashboardData,
+  FinanceiroCartao,
+  FinanceiroCartaoFaturaResumo,
+  FinanceiroCartaoPayload,
+} from '../types/cartoes';
+
+const CARTAO_SELECT = `
+  id,
+  created_at,
+  updated_at,
+  empresa_id,
+  conta_pagadora_id,
+  centro_custo_id,
+  titularidade_tipo,
+  titular,
+  apelido,
+  final,
+  bandeira,
+  dia_fechamento,
+  dia_vencimento,
+  limite,
+  ativo,
+  observacoes,
+  empresa:financeiro_empresas(
+    id,
+    razao_social,
+    nome_fantasia,
+    cnpj,
+    label_operacional,
+    unidade_id,
+    ativo,
+    observacoes,
+    unidade:centros_custo(id,codigo,nome,tipo,ativo,ordem)
+  ),
+  conta_pagadora:financeiro_contas_bancarias(
+    id,
+    empresa_id,
+    banco,
+    banco_codigo,
+    agencia,
+    conta,
+    apelido,
+    tipo,
+    ativo,
+    observacoes
+  ),
+  centro_custo:centros_custo(id,codigo,nome,tipo,ativo,ordem)
+`;
+
+function normalizePayload(input: FinanceiroCartaoPayload): FinanceiroCartaoPayload {
+  const clean: FinanceiroCartaoPayload = {
+    apelido: input.apelido.trim(),
+    final: input.final.trim(),
+    titularidade_tipo: input.titularidade_tipo,
+    titular: input.titular?.trim() || null,
+    bandeira: input.bandeira?.trim() || null,
+    empresa_id: input.empresa_id || null,
+    conta_pagadora_id: input.conta_pagadora_id || null,
+    centro_custo_id: input.centro_custo_id || null,
+    dia_fechamento: input.dia_fechamento ?? null,
+    dia_vencimento: input.dia_vencimento ?? null,
+    limite: input.limite ?? null,
+    observacoes: input.observacoes?.trim() || null,
+  };
+
+  if (input.cartao_id) clean.cartao_id = input.cartao_id;
+  return clean;
+}
+
+function friendlyRpcError(error: any): Error {
+  const message = String(error?.message || '');
+  const code = String(error?.code || '');
+  if (code === '23505' || /apelido|unique|duplic/i.test(message)) {
+    return new Error('Já existe um cartão com esse apelido.');
+  }
+  if (/final.*4|4 digitos|4 dígitos/i.test(message)) {
+    return new Error('O final do cartão precisa ter exatamente 4 dígitos.');
+  }
+  return new Error(message || 'Não foi possível salvar o cartão.');
+}
+
+export async function fetchCartoesDashboard(): Promise<CartoesDashboardData> {
+  const [cartoesResult, faturasResult, empresas, contasBancarias, centrosCusto] = await Promise.all([
+    supabase
+      .from('financeiro_cartoes')
+      .select(CARTAO_SELECT)
+      .order('ativo', { ascending: false })
+      .order('apelido', { ascending: true }),
+    supabase
+      .from('financeiro_cartao_faturas')
+      .select('cartao_id,valor_total,status')
+      .in('status', ['aberta', 'fechada']),
+    fetchFinanceiroEmpresas(),
+    fetchFinanceiroContasBancarias(),
+    fetchCentrosCusto(),
+  ]);
+
+  if (cartoesResult.error) throw cartoesResult.error;
+  if (faturasResult.error) throw faturasResult.error;
+
+  const usadoPorCartao = new Map<string, number>();
+  ((faturasResult.data || []) as FinanceiroCartaoFaturaResumo[]).forEach((fatura) => {
+    usadoPorCartao.set(
+      fatura.cartao_id,
+      (usadoPorCartao.get(fatura.cartao_id) || 0) + Number(fatura.valor_total || 0)
+    );
+  });
+
+  const cartoes = ((cartoesResult.data || []) as unknown as FinanceiroCartao[]).map((cartao) => ({
+    ...cartao,
+    valor_usado: usadoPorCartao.get(cartao.id) || 0,
+  }));
+
+  return {
+    cartoes,
+    empresas,
+    contasBancarias,
+    centrosCusto,
+  };
+}
+
+export async function salvarCartao(payload: FinanceiroCartaoPayload): Promise<CartaoRpcResponse> {
+  const { data, error } = await supabase.rpc('financeiro_cartao_salvar', {
+    p_payload: normalizePayload(payload),
+    p_ator: {},
+  });
+
+  if (error) throw friendlyRpcError(error);
+  return data as CartaoRpcResponse;
+}
+
+export async function arquivarCartao(input: {
+  cartao_id: string;
+  ativo: boolean;
+  motivo?: string | null;
+}): Promise<CartaoRpcResponse> {
+  const { data, error } = await supabase.rpc('financeiro_cartao_arquivar', {
+    p_payload: {
+      cartao_id: input.cartao_id,
+      ativo: input.ativo,
+      motivo: input.motivo || (input.ativo ? 'Desarquivado pelo app web.' : 'Arquivado pelo app web.'),
+    },
+    p_ator: {},
+  });
+
+  if (error) throw friendlyRpcError(error);
+  return data as CartaoRpcResponse;
+}

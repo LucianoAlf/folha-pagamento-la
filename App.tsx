@@ -11,7 +11,7 @@ import {
   Calendar, CalendarCheck, Bell, BarChart3, FileText, 
   TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database, ShieldCheck, CreditCard,
   LineChart as LineChartIcon,
-  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, ChefHat, LogOut, Menu, X, UserCheck
+  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, ChefHat, LogOut, Menu, X, UserCheck, WalletCards
 } from 'lucide-react';
 import { 
   CollaboratorCard, 
@@ -31,6 +31,9 @@ import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
 
 const ContasPagarPage = lazy(() =>
   import('./components/contas/ContasPagarPage').then((m) => ({ default: m.ContasPagarPage }))
+);
+const CartoesPage = lazy(() =>
+  import('./components/cartoes/CartoesPage').then((m) => ({ default: m.CartoesPage }))
 );
 const AgendaPage = lazy(() =>
   import('./components/agenda/AgendaPage').then((m) => ({ default: m.AgendaPage }))
@@ -203,7 +206,9 @@ export default function App() {
     return null;
   };
 
-  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh'>('folha');
+  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh'>(() =>
+    window.location.pathname === '/cartoes' ? 'cartoes' : 'folha'
+  );
   const [activeTab, setActiveTab] = useState('dashboard');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -281,6 +286,12 @@ export default function App() {
       icon: CreditCard,
       tabs: [] // Tabs gerenciadas internamente pelo ContasPagarPage (evita re-render do App)
     },
+    cartoes: {
+      title: 'Cartões',
+      subtitle: 'CADASTRO E LIMITES OPERACIONAIS',
+      icon: WalletCards,
+      tabs: []
+    },
     agenda: {
       title: 'Agenda',
       subtitle: 'COMPROMISSOS E TAREFAS',
@@ -322,7 +333,7 @@ export default function App() {
       const detail = (e as CustomEvent).detail as { module?: string; page?: string } | undefined;
       if (!detail?.module) return;
 
-      const mod = detail.module as 'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
+      const mod = detail.module as 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
       setCurrentModule(mod);
 
       if (detail.page) {
@@ -330,6 +341,7 @@ export default function App() {
       } else {
         if (mod === 'folha') setActiveTab('dashboard');
         if (mod === 'contas') setActiveTab('dashboard');
+        if (mod === 'cartoes') setActiveTab('cartoes');
         if (mod === 'agenda') setActiveTab('agenda');
         if (mod === 'notificacoes') setActiveTab('notificacoes');
         if (mod === 'ferias') setActiveTab('ferias');
@@ -344,7 +356,7 @@ export default function App() {
   }, []);
 
   const handleNavigate = (module: string, page?: string) => {
-    const mod = module as 'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
+    const mod = module as 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
     setCurrentModule(mod);
     
     if (page) {
@@ -352,6 +364,7 @@ export default function App() {
     } else {
       if (mod === 'folha') setActiveTab('dashboard');
       if (mod === 'contas') setActiveTab('dashboard');
+      if (mod === 'cartoes') setActiveTab('cartoes');
       if (mod === 'agenda') setActiveTab('agenda');
       if (mod === 'notificacoes') setActiveTab('notificacoes');
       if (mod === 'ferias') setActiveTab('ferias');
@@ -359,16 +372,30 @@ export default function App() {
     }
     
     if (mod === 'folha') setUnidadeFiltro('todos');
+
+    try {
+      const targetPath = mod === 'cartoes' ? '/cartoes' : '/';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({}, '', `${targetPath}${window.location.search || ''}${window.location.hash || ''}`);
+      }
+    } catch {
+      // ignore navigation sync errors
+    }
   };
 
   // Deep-linking for PWA shortcuts (/?module=agenda|contas|folha|notificacoes)
   useEffect(() => {
     try {
+      if (window.location.pathname === '/cartoes') {
+        handleNavigate('cartoes');
+        return;
+      }
+
       const params = new URLSearchParams(window.location.search || '');
       const moduleParam = (params.get('module') || '').toLowerCase();
       const pageParam = (params.get('page') || '').toLowerCase();
 
-      if (moduleParam === 'folha' || moduleParam === 'contas' || moduleParam === 'agenda' || moduleParam === 'notificacoes' || moduleParam === 'ferias' || moduleParam === 'rh') {
+      if (moduleParam === 'folha' || moduleParam === 'contas' || moduleParam === 'cartoes' || moduleParam === 'agenda' || moduleParam === 'notificacoes' || moduleParam === 'ferias' || moduleParam === 'rh') {
         handleNavigate(moduleParam, pageParam || undefined);
 
         // Keep URL clean (remove only module/page)
@@ -1862,7 +1889,7 @@ export default function App() {
           // No desktop, mantemos um respiro no fundo para não “cortar” a última seção.
           currentModule === 'agenda'
             ? "p-0 pb-28 lg:pb-10"
-            : currentModule === 'contas' || currentModule === 'folha' || currentModule === 'notificacoes' || currentModule === 'rh'
+            : currentModule === 'contas' || currentModule === 'cartoes' || currentModule === 'folha' || currentModule === 'notificacoes' || currentModule === 'rh'
               ? "px-4 py-8 pb-28 lg:p-8 lg:pb-10"
               : "p-8 pb-28 lg:pb-10"
         )}
@@ -2044,6 +2071,10 @@ export default function App() {
                 competenciaYM={contasCompetenciaYM}
                 onCompetenciaYMChange={setContasCompetenciaYM}
               />
+            </Suspense>
+          ) : currentModule === 'cartoes' ? (
+            <Suspense fallback={<LoadingSpinner />}>
+              <CartoesPage />
             </Suspense>
           ) : currentModule === 'agenda' ? (
             <Suspense fallback={<LoadingSpinner />}>
@@ -4527,10 +4558,11 @@ export default function App() {
         aria-label="Navegação inferior"
       >
         <div className="px-4 pt-2">
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-6 gap-1">
             {([
               { id: 'folha', label: 'Folha', icon: Users },
               { id: 'contas', label: 'Contas', icon: CreditCard },
+              { id: 'cartoes', label: 'Cartões', icon: WalletCards },
               { id: 'agenda', label: 'Agenda', icon: Calendar },
               { id: 'notificacoes', label: 'Notif.', icon: Bell },
               { id: 'rh', label: 'RH', icon: UserCheck },
