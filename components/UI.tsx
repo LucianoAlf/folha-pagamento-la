@@ -763,15 +763,15 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       onValueChange={(v) => onValueChange(v === EMPTY_SENTINEL ? '' : v)}
     >
       <Select.Trigger 
-        className={`flex items-center gap-2 bg-surface/50 hover:bg-surface-2 text-secondary px-4 py-3 rounded-xl border border-line-strong focus:ring-2 focus:ring-accent outline-none transition-all w-full justify-between group cursor-pointer whitespace-nowrap ${className}`}
+        className={`flex min-w-0 items-center gap-2 overflow-hidden bg-surface/50 hover:bg-surface-2 text-secondary px-4 py-3 rounded-xl border border-line-strong focus:ring-2 focus:ring-accent outline-none transition-all w-full justify-between group cursor-pointer whitespace-nowrap ${className}`}
       >
-        <div className="flex items-center gap-2 pointer-events-none min-w-0">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden pointer-events-none">
           {SelectedIcon ? (
             <SelectedIcon size={16} className="text-muted group-hover:text-accent transition-colors shrink-0" />
           ) : null}
-          <Select.Value placeholder={placeholder} className="truncate" />
+          <Select.Value placeholder={placeholder} className="block min-w-0 truncate" />
         </div>
-        <Select.Icon className="pointer-events-none">
+        <Select.Icon className="pointer-events-none shrink-0">
           <ChevronDown size={14} className="text-muted" />
         </Select.Icon>
       </Select.Trigger>
@@ -789,11 +789,11 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               <Select.Item
                 key={opt.value || EMPTY_SENTINEL}
                 value={opt.value === '' ? EMPTY_SENTINEL : opt.value}
-                className="flex items-center justify-between px-3 py-2.5 text-sm text-secondary rounded-lg outline-none cursor-pointer hover:bg-accent/20 hover:text-primary focus:bg-accent/20 focus:text-primary transition-colors data-[state=checked]:text-accent data-[state=checked]:font-bold data-[highlighted]:bg-accent/20 data-[highlighted]:text-primary select-none"
+                className="flex min-w-0 items-center justify-between px-3 py-2.5 text-sm text-secondary rounded-lg outline-none cursor-pointer hover:bg-accent/20 hover:text-primary focus:bg-accent/20 focus:text-primary transition-colors data-[state=checked]:text-accent data-[state=checked]:font-bold data-[highlighted]:bg-accent/20 data-[highlighted]:text-primary select-none"
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
                   {opt.icon ? <opt.icon size={16} className="shrink-0 opacity-80" /> : null}
-                  <Select.ItemText>{opt.label}</Select.ItemText>
+                  <Select.ItemText className="truncate">{opt.label}</Select.ItemText>
                 </div>
                 <Select.ItemIndicator>
                   <Check size={14} className="text-accent" />
