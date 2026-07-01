@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  WalletCards,
 } from 'lucide-react';
 
 const SIDEBAR_COLLAPSED_KEY = 'la-music-sidebar-collapsed';
@@ -54,7 +55,7 @@ const getFeriasBadgeCounts = async (): Promise<{ vencidos: number; proximos: num
   }
 };
 
-type ModuleId = 'folha' | 'contas' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
+type ModuleId = 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
 type FolhaPageId = 'dashboard' | 'colaboradores' | 'lancamentos' | 'comparativo';
 
 export interface SidebarNavigate {
@@ -130,6 +131,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         id: 'contas' as const,
         label: 'Contas a Pagar',
         icon: CreditCard,
+        disabled: false,
+      },
+      {
+        id: 'cartoes' as const,
+        label: 'Cartões',
+        icon: WalletCards,
         disabled: false,
       },
       {
