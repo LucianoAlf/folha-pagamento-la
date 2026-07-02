@@ -187,7 +187,7 @@ export const ImportarTransacaoFaturaForm: React.FC<{
   };
 
   return (
-    <Card className="p-4 md:p-5 bg-surface-2/35 border-line-strong">
+    <Card className="p-4 md:p-5 border border-line-strong bg-surface shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
         <div className="flex gap-3">
           <div className="w-10 h-10 rounded-2xl bg-accent/15 border border-accent/25 text-accent flex items-center justify-center shrink-0">
