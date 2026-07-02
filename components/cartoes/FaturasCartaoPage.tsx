@@ -869,51 +869,56 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
               </div>
             </div>
 
-            <Card className="p-4 md:p-5 bg-surface-2/35">
+            <Card className="p-4 md:p-5 border border-line-strong bg-surface shadow-sm">
               <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="purple">Fechamento</Badge>
-                    {selectedFatura.conta_pagar_id ? <Badge variant="info">Conta a pagar vinculada</Badge> : null}
-                    {selectedFatura.status === 'fechada' && selectedFaturaPendencias > 0 ? (
-                      <Badge variant="warning">DRE incompleto</Badge>
+                <div className="min-w-0 flex gap-4">
+                  <div className="hidden sm:flex w-11 h-11 rounded-2xl bg-accent/12 border border-accent/25 text-accent items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="purple">Fechamento</Badge>
+                      {selectedFatura.conta_pagar_id ? <Badge variant="info">Conta a pagar vinculada</Badge> : null}
+                      {selectedFatura.status === 'fechada' && selectedFaturaPendencias > 0 ? (
+                        <Badge variant="warning">DRE incompleto</Badge>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 text-base font-black text-primary">
+                      {selectedFatura.status === 'aberta'
+                        ? 'Fechar fatura e gerar conta a pagar'
+                        : selectedFatura.status === 'fechada'
+                          ? 'Fatura fechada e vinculada ao Contas a Pagar'
+                          : 'Fatura sem acao de fechamento'}
+                    </div>
+                    <div className="mt-1 text-sm font-bold text-secondary leading-relaxed max-w-3xl">
+                      {selectedFatura.status === 'aberta'
+                        ? 'Ao fechar, o sistema cria a conta no Contas a Pagar com valor, vencimento e dados fiscais do cartao.'
+                        : selectedFatura.status === 'fechada'
+                          ? 'Ao reabrir, a conta a pagar gerada por este fechamento sera cancelada.'
+                          : 'Faturas pagas ou canceladas ficam apenas para consulta nesta etapa.'}
+                    </div>
+                    {selectedFatura.status === 'aberta' && !selectedCartaoFiscalCompleto ? (
+                      <div className="mt-3 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-warning flex gap-3">
+                        <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                        <div className="text-xs font-bold">
+                          Complete empresa, conta pagadora e centro no cadastro do cartao antes de fechar a fatura.
+                        </div>
+                      </div>
+                    ) : null}
+                    {faturaFeedback?.faturaId === selectedFatura.id ? (
+                      <div
+                        className={cn(
+                          'mt-3 rounded-2xl border px-4 py-3 text-sm font-bold',
+                          faturaFeedback.variant === 'success' && 'border-success/30 bg-success/10 text-success',
+                          faturaFeedback.variant === 'warning' && 'border-warning/30 bg-warning/10 text-warning',
+                          faturaFeedback.variant === 'info' && 'border-info/30 bg-info/10 text-info'
+                        )}
+                      >
+                        <div className="font-black">{faturaFeedback.title}</div>
+                        <div className="mt-1">{faturaFeedback.message}</div>
+                      </div>
                     ) : null}
                   </div>
-                  <div className="mt-3 text-base font-black text-primary">
-                    {selectedFatura.status === 'aberta'
-                      ? 'Fechar fatura gera a conta a pagar'
-                      : selectedFatura.status === 'fechada'
-                        ? 'Fatura fechada e vinculada ao Contas a Pagar'
-                        : 'Fatura sem acao de fechamento'}
-                  </div>
-                  <div className="mt-1 text-sm font-bold text-secondary">
-                    {selectedFatura.status === 'aberta'
-                      ? 'A RPC cria a conta a pagar com valor, vencimento e trilha fiscal do cartao.'
-                      : selectedFatura.status === 'fechada'
-                        ? 'Reabrir cancela a conta a pagar gerada por este fechamento.'
-                        : 'Faturas pagas ou canceladas ficam em leitura nesta etapa.'}
-                  </div>
-                  {selectedFatura.status === 'aberta' && !selectedCartaoFiscalCompleto ? (
-                    <div className="mt-3 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-warning flex gap-3">
-                      <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                      <div className="text-xs font-bold">
-                        Complete empresa, conta pagadora e centro no cadastro do cartao antes de fechar a fatura.
-                      </div>
-                    </div>
-                  ) : null}
-                  {faturaFeedback?.faturaId === selectedFatura.id ? (
-                    <div
-                      className={cn(
-                        'mt-3 rounded-2xl border px-4 py-3 text-sm font-bold',
-                        faturaFeedback.variant === 'success' && 'border-success/30 bg-success/10 text-success',
-                        faturaFeedback.variant === 'warning' && 'border-warning/30 bg-warning/10 text-warning',
-                        faturaFeedback.variant === 'info' && 'border-info/30 bg-info/10 text-info'
-                      )}
-                    >
-                      <div className="font-black">{faturaFeedback.title}</div>
-                      <div className="mt-1">{faturaFeedback.message}</div>
-                    </div>
-                  ) : null}
                 </div>
 
                 {selectedFaturaAction ? (
@@ -924,7 +929,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
                       (selectedFaturaAction === 'fechar' && !selectedCartaoFiscalCompleto)
                     }
                     onClick={() => setPendingFaturaAction(selectedFaturaAction)}
-                    className="w-full xl:w-auto"
+                    className="w-full xl:w-auto xl:min-w-[170px] whitespace-nowrap"
                   >
                     {selectedFaturaSaving ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

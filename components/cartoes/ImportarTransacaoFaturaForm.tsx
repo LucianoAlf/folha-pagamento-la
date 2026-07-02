@@ -208,7 +208,7 @@ export const ImportarTransacaoFaturaForm: React.FC<{
       {form.tipo_transacao === 'estorno' ? (
         <div className="mb-5 rounded-2xl border border-info/30 bg-info/10 px-4 py-3 text-sm font-bold text-secondary flex gap-3">
           <RotateCcw className="w-5 h-5 text-info shrink-0" />
-          <span>Estorno entra como credito. Digite o valor positivo; o app envia o valor com sinal de credito para a RPC.</span>
+          <span>Estorno entra como credito. Digite o valor positivo; o sistema registra essa transacao abatendo o total da fatura.</span>
         </div>
       ) : null}
 
@@ -314,7 +314,7 @@ export const ImportarTransacaoFaturaForm: React.FC<{
       <div className="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <Badge variant="default">Nasce pendente</Badge>
-          <Badge variant="info">RPC transacao_registrar</Badge>
+          <Badge variant="info">Importacao manual</Badge>
           {valor ? <Badge variant={form.tipo_transacao === 'estorno' ? 'success' : 'purple'}>{formatCurrency(form.tipo_transacao === 'estorno' ? -Math.abs(valor) : Math.abs(valor))}</Badge> : null}
         </div>
         <Button variant="primary" onClick={submit} disabled={!canSubmit} className="md:min-w-[210px]">
