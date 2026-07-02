@@ -183,3 +183,24 @@ export interface FinanceiroCartaoClassificacaoResponse {
   transacao_id: string;
   classificacao_status: CartaoClassificacaoStatus | string;
 }
+
+export interface FinanceiroCartaoFaturaFecharResponse {
+  success: boolean;
+  fatura_id: string;
+  conta_pagar_id: string | null;
+  valor_total: number;
+  status: CartaoFaturaStatus | string;
+  classificacao?: {
+    total: number;
+    confirmadas: number;
+    sugeridas: number;
+    pendentes: number;
+    dre_incompleto: boolean;
+  };
+}
+
+export interface FinanceiroCartaoFaturaReabrirResponse {
+  success: boolean;
+  fatura_id: string;
+  status: CartaoFaturaStatus | string;
+}
