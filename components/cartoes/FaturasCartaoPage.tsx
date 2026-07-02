@@ -8,6 +8,7 @@ import {
   FileText,
   Filter,
   Loader2,
+  Plus,
   ReceiptText,
   RotateCcw,
   ShieldCheck,
@@ -25,6 +26,7 @@ import {
 } from '../../services/cartoesService';
 import { PlanoContaTreeSelect } from '../contas/PlanoContaTreeSelect';
 import { MariaActionBadge } from '../MariaActionBadge';
+import { ImportarTransacaoFaturaForm } from './ImportarTransacaoFaturaForm';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
 import {
   attachClassificacaoResumo,
@@ -36,6 +38,7 @@ import {
   getCompetenciasOptions,
   getTransacoesDaFatura,
   hasAutoriaMaria,
+  isFaturaImportacaoManualDisponivel,
   isCartaoFiscalCompletoParaFechar,
   isFaturaClassificacaoBloqueada,
 } from './cartoesFaturasSelectors';
@@ -46,6 +49,8 @@ import type {
   FinanceiroCartao,
   FinanceiroCartaoFatura,
   FinanceiroCartaoTransacao,
+  FinanceiroCartaoTransacaoImportadaPayload,
+  FinanceiroCartaoTransacaoImportadaResponse,
 } from '../../types/cartoes';
 import type { FinanceiroEmpresa, PlanoConta } from '../../types/contasPagar';
 
@@ -503,6 +508,13 @@ type FaturaActionFeedback = {
   variant: 'success' | 'warning' | 'info';
 };
 
+type ImportacaoManualFeedback = {
+  faturaId: string;
+  title: string;
+  message: string;
+  variant: 'success' | 'warning' | 'info';
+};
+
 export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded = false, initialCartaoId }) => {
   const { run } = useAsyncAction();
   const [loading, setLoading] = useState(true);
@@ -521,6 +533,8 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
   const [savingFaturaId, setSavingFaturaId] = useState<string | null>(null);
   const [pendingFaturaAction, setPendingFaturaAction] = useState<FaturaFechamentoAction | null>(null);
   const [faturaFeedback, setFaturaFeedback] = useState<FaturaActionFeedback | null>(null);
+  const [showImportForm, setShowImportForm] = useState(false);
+  const [importacaoFeedback, setImportacaoFeedback] = useState<ImportacaoManualFeedback | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -571,6 +585,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
     [selectedFatura, transacoes]
   );
   const selectedFaturaAction = selectedFatura ? getFaturaAcaoFechamento(selectedFatura) : null;
+  const selectedFaturaImportacaoDisponivel = selectedFatura ? isFaturaImportacaoManualDisponivel(selectedFatura) : false;
   const selectedFaturaPendencias = selectedFatura ? getFaturaPendenciasClassificacao(selectedFatura) : 0;
   const selectedCartaoFiscalCompleto = selectedFatura ? isCartaoFiscalCompletoParaFechar(selectedFatura) : false;
   const selectedFaturaSaving = selectedFatura ? savingFaturaId === selectedFatura.id : false;
@@ -686,6 +701,34 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
     setPendingFaturaAction(null);
   };
 
+  const handleTransacaoImportada = async (
+    result: FinanceiroCartaoTransacaoImportadaResponse,
+    payload: FinanceiroCartaoTransacaoImportadaPayload
+  ) => {
+    if (!selectedFatura) return;
+
+    const faturaId = selectedFatura.id;
+    await load();
+    setShowImportForm(false);
+
+    if (result.possivel_duplicata) {
+      setImportacaoFeedback({
+        faturaId,
+        title: 'Possivel duplicata',
+        message: 'Essa transacao parece duplicada de outra ja existente nesta fatura. Confira antes de prosseguir.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    setImportacaoFeedback({
+      faturaId,
+      title: result.idempotent ? 'Transacao ja registrada' : 'Transacao adicionada',
+      message: `${payload.descricao} entrou como pendente em ${formatCurrency(Number(payload.valor || 0))}.`,
+      variant: result.idempotent ? 'info' : 'success',
+    });
+  };
+
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={load} />;
 
@@ -765,6 +808,8 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
               fatura={fatura}
               onOpen={(next) => {
                 setFaturaFeedback(null);
+                setImportacaoFeedback(null);
+                setShowImportForm(false);
                 setSelectedFaturaId(next.id);
               }}
             />
@@ -778,6 +823,8 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
           setSelectedFaturaId(null);
           setPendingFaturaAction(null);
           setFaturaFeedback(null);
+          setImportacaoFeedback(null);
+          setShowImportForm(false);
         }}
         title={selectedFatura ? `Fatura ${formatCompetencia(selectedFatura.competencia)}` : 'Detalhe da fatura'}
         subtitle={selectedFatura ? cartaoLabel(selectedFatura.cartao) : undefined}
@@ -900,7 +947,46 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
                     {transacoesSelecionadas.length} item(ns) desta fatura
                   </div>
                 </div>
+                {selectedFaturaImportacaoDisponivel ? (
+                  <Button
+                    variant={showImportForm ? 'outline' : 'primary'}
+                    onClick={() => {
+                      setImportacaoFeedback(null);
+                      setShowImportForm((current) => !current);
+                    }}
+                    className="shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {showImportForm ? 'Ocultar form' : 'Adicionar transacao'}
+                  </Button>
+                ) : (
+                  <Badge variant="default">Reabra para importar</Badge>
+                )}
               </div>
+
+              {importacaoFeedback?.faturaId === selectedFatura.id ? (
+                <div
+                  className={cn(
+                    'mb-4 rounded-2xl border px-4 py-3 text-sm font-bold',
+                    importacaoFeedback.variant === 'success' && 'border-success/30 bg-success/10 text-success',
+                    importacaoFeedback.variant === 'warning' && 'border-warning/30 bg-warning/10 text-warning',
+                    importacaoFeedback.variant === 'info' && 'border-info/30 bg-info/10 text-info'
+                  )}
+                >
+                  <div className="font-black">{importacaoFeedback.title}</div>
+                  <div className="mt-1">{importacaoFeedback.message}</div>
+                </div>
+              ) : null}
+
+              {selectedFaturaImportacaoDisponivel && showImportForm ? (
+                <div className="mb-4">
+                  <ImportarTransacaoFaturaForm
+                    fatura={selectedFatura}
+                    onCancel={() => setShowImportForm(false)}
+                    onSuccess={handleTransacaoImportada}
+                  />
+                </div>
+              ) : null}
 
               {transacoesSelecionadas.length === 0 ? (
                 <Card className="p-8 text-center bg-surface-2/35">

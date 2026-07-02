@@ -169,6 +169,29 @@ export interface FinanceiroCartaoLancamentoResponse {
   parcelas: FinanceiroCartaoLancamentoParcela[];
 }
 
+export interface FinanceiroCartaoTransacaoImportadaPayload {
+  fatura_id: string;
+  descricao: string;
+  data_compra: string;
+  valor: number;
+  tipo_transacao: CartaoTipoTransacao;
+  estabelecimento?: string | null;
+  parcela_atual?: number | null;
+  total_parcelas?: number | null;
+  id_externo: string;
+  observacoes?: string | null;
+  motivo?: string | null;
+}
+
+export interface FinanceiroCartaoTransacaoImportadaResponse {
+  success: boolean;
+  transacao_id: string;
+  classificacao_status: CartaoClassificacaoStatus | string;
+  possivel_duplicata?: boolean;
+  idempotent?: boolean;
+  ator_tipo?: string | null;
+}
+
 export interface FinanceiroCartaoClassificacaoPayload {
   transacao_id: string;
   classificacao_status: 'confirmada' | 'pendente';

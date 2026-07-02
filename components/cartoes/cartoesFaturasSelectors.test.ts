@@ -6,7 +6,10 @@ import {
   buildFaturasResumo,
   getFaturaAcaoFechamento,
   getFaturaPendenciasClassificacao,
+  buildTransacaoImportadaPayload,
+  isFaturaImportacaoManualDisponivel,
   isCartaoFiscalCompletoParaFechar,
+  validateTransacaoImportadaInput,
   getCentroCustoIdDaEmpresa,
   hasAutoriaMaria,
   isFaturaClassificacaoBloqueada,
@@ -183,4 +186,77 @@ test('closing warning counts pending and suggested classifications', () => {
     3
   );
   assert.equal(getFaturaPendenciasClassificacao({ classificacao: null } as any), 0);
+});
+
+test('manual import is available only for open invoices', () => {
+  assert.equal(isFaturaImportacaoManualDisponivel({ status: 'aberta' } as any), true);
+  assert.equal(isFaturaImportacaoManualDisponivel({ status: 'fechada' } as any), false);
+  assert.equal(isFaturaImportacaoManualDisponivel({ status: 'paga' } as any), false);
+  assert.equal(isFaturaImportacaoManualDisponivel({ status: 'cancelada' } as any), false);
+});
+
+test('manual import validation blocks missing essentials and invalid installment metadata', () => {
+  assert.equal(validateTransacaoImportadaInput({ descricao: '', data_compra: '2026-07-01', valor: 10 }), 'Informe a descricao da transacao.');
+  assert.equal(validateTransacaoImportadaInput({ descricao: 'OpenAI', data_compra: '01/07/2026', valor: 10 }), 'Informe uma data valida.');
+  assert.equal(validateTransacaoImportadaInput({ descricao: 'OpenAI', data_compra: '2026-07-01', valor: 0 }), 'Informe um valor diferente de zero.');
+  assert.equal(
+    validateTransacaoImportadaInput({
+      descricao: 'Sul America',
+      data_compra: '2026-07-01',
+      valor: 425.92,
+      is_parcela: true,
+      parcela_atual: 7,
+      total_parcelas: 6,
+    }),
+    'Informe parcelas no formato correto.'
+  );
+  assert.equal(validateTransacaoImportadaInput({ descricao: 'OpenAI', data_compra: '2026-07-01', valor: 54.48 }), null);
+});
+
+test('manual import payload uses the fatura RPC shape without classification fields', () => {
+  const payload = buildTransacaoImportadaPayload(
+    {
+      fatura_id: 'fat-1',
+      descricao: '  OpenAI  ',
+      data_compra: '2026-07-01',
+      valor: 54.48,
+      tipo_transacao: 'compra',
+      estabelecimento: '  OpenAI ',
+      observacoes: '  extrato santander ',
+      is_parcela: false,
+    } as any,
+    'token-123'
+  );
+
+  assert.deepEqual(payload, {
+    fatura_id: 'fat-1',
+    descricao: 'OpenAI',
+    data_compra: '2026-07-01',
+    valor: 54.48,
+    tipo_transacao: 'compra',
+    estabelecimento: 'OpenAI',
+    id_externo: 'token-123',
+    observacoes: 'extrato santander',
+    motivo: 'Importacao manual pelo app web.',
+  });
+  assert.equal('plano_conta_id' in payload, false);
+  assert.equal('classificacao_status' in payload, false);
+
+  const estorno = buildTransacaoImportadaPayload(
+    {
+      fatura_id: 'fat-1',
+      descricao: 'Estorno OpenAI',
+      data_compra: '2026-07-02',
+      valor: 54.48,
+      tipo_transacao: 'estorno',
+      is_parcela: true,
+      parcela_atual: 2,
+      total_parcelas: 6,
+    } as any,
+    'token-456'
+  );
+
+  assert.equal(estorno.valor, -54.48);
+  assert.equal(estorno.parcela_atual, 2);
+  assert.equal(estorno.total_parcelas, 6);
 });
