@@ -5,11 +5,12 @@ import { CentroCusto, PlanoConta, PlanoContaMaisUsado } from '../../types/contas
 import { cn } from '../CollaboratorComponents';
 import {
   centroCustoToUnidade,
-  filterSelectablePlanos,
   formatPlanoContaLabel,
   getPlanoContaParentName,
   isPlanoContaSelecionavel,
+  resolvePlanoContaComboboxOptions,
   resolvePlanosMaisUsados,
+  shouldClosePlanoContaPopoverOnInteractOutside,
 } from './planoContasSelectors';
 
 type PlanoContaTreeSelectProps = {
@@ -105,17 +106,19 @@ export const PlanoContaTreeSelect: React.FC<PlanoContaTreeSelectProps> = ({
   const normalizedQuery = query.trim();
   const parentMap = useMemo(() => new Map(planos.map((p) => [p.id, p])), [planos]);
 
-  const filteredOptions = useMemo<PlanoContaOption[]>(
-    () => filterSelectablePlanos(planos, normalizedQuery).map((plano) => ({ plano })),
-    [normalizedQuery, planos]
-  );
-
   const usedOptions = useMemo<PlanoContaOption[]>(
     () => resolvePlanosMaisUsados(planos, maisUsados).map((item) => ({ plano: item.plano, total: item.total })),
     [maisUsados, planos]
   );
 
-  const currentOptions = normalizedQuery ? filteredOptions : usedOptions;
+  const currentOptions = useMemo<PlanoContaOption[]>(
+    () => resolvePlanoContaComboboxOptions(planos, maisUsados, normalizedQuery).map((item) => ({
+      plano: item.plano,
+      total: item.total,
+    })),
+    [maisUsados, normalizedQuery, planos]
+  );
+  const hasUsageRanking = !normalizedQuery && usedOptions.length > 0;
 
   useEffect(() => {
     if (open) return;
@@ -156,6 +159,12 @@ export const PlanoContaTreeSelect: React.FC<PlanoContaTreeSelectProps> = ({
     setQuery(formatPlanoContaLabel(plano));
     setOpen(false);
     setMode('search');
+  };
+
+  const openSearchPanel = () => {
+    if (disabled) return;
+    setMode('search');
+    setOpen(true);
   };
 
   const toggleExpanded = (id: string) => {
@@ -282,14 +291,15 @@ export const PlanoContaTreeSelect: React.FC<PlanoContaTreeSelectProps> = ({
             ref={inputRef}
             value={query}
             disabled={disabled}
+            onPointerDown={() => openSearchPanel()}
+            onClick={() => openSearchPanel()}
             onFocus={(event) => {
-              setOpen(true);
+              openSearchPanel();
               event.currentTarget.select();
             }}
             onChange={(event) => {
               setQuery(event.target.value);
-              setMode('search');
-              setOpen(true);
+              openSearchPanel();
             }}
             onKeyDown={handleInputKeyDown}
             placeholder={placeholder}
@@ -320,21 +330,31 @@ export const PlanoContaTreeSelect: React.FC<PlanoContaTreeSelectProps> = ({
             setOpen(false);
             inputRef.current?.focus();
           }}
-          onInteractOutside={() => setOpen(false)}
+          onInteractOutside={(event) => {
+            if (!shouldClosePlanoContaPopoverOnInteractOutside(fieldRef.current, event.target)) {
+              event.preventDefault();
+              return;
+            }
+            setOpen(false);
+          }}
           className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-pop)] animate-in fade-in zoom-in-95 duration-150"
           style={{ width: panelWidth }}
         >
           {mode === 'search' ? (
             <div id="plano-conta-options" role="listbox" className="max-h-[300px] overflow-hidden">
               <div className="px-4 py-3 text-[11px] font-black text-secondary">
-                {normalizedQuery ? 'Resultados' : 'Mais usados'}
+                {normalizedQuery ? 'Resultados' : hasUsageRanking ? 'Mais usados' : 'Folhas de saida'}
               </div>
               <div className="max-h-[220px] overflow-y-auto">
                 {currentOptions.length ? (
                   currentOptions.map(renderOption)
                 ) : (
                   <div className="px-4 py-8 text-center text-sm font-bold text-muted">
-                    {normalizedQuery ? 'Nenhuma folha encontrada.' : 'Nenhuma conta usada ainda.'}
+                    {normalizedQuery
+                      ? 'Nenhuma folha encontrada.'
+                      : hasUsageRanking
+                        ? 'Nenhuma conta usada ainda.'
+                        : 'Nenhuma folha disponivel.'}
                   </div>
                 )}
               </div>

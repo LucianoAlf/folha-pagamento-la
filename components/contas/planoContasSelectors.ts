@@ -25,6 +25,11 @@ export type PlanoContaMaisUsadoResolved<T extends PlanoContaSelecionavelInput & 
   total: number;
 };
 
+export type PlanoContaComboboxOption<T extends PlanoContaSelecionavelInput & PlanoContaSearchInput = PlanoConta> = {
+  plano: T;
+  total?: number;
+};
+
 export type PlanoContaViewerTreeNode<T extends PlanoConta = PlanoConta> = {
   plano: T;
   children: PlanoContaViewerTreeNode<T>[];
@@ -218,6 +223,28 @@ export function resolvePlanosMaisUsados<T extends PlanoContaSelecionavelInput & 
     if (!plano || !isPlanoContaSelecionavel(plano)) return [];
     return [{ plano, total: uso.total }];
   });
+}
+
+export function resolvePlanoContaComboboxOptions<T extends PlanoContaSelecionavelInput & PlanoContaSearchInput>(
+  planos: T[],
+  usos: PlanoContaMaisUsadoInput[],
+  query: string
+): PlanoContaComboboxOption<T>[] {
+  const normalizedQuery = String(query || '').trim();
+  if (normalizedQuery) return filterSelectablePlanos(planos, normalizedQuery).map((plano) => ({ plano }));
+
+  const maisUsados = resolvePlanosMaisUsados(planos, usos);
+  if (maisUsados.length) return maisUsados;
+
+  return filterSelectablePlanos(planos, '').map((plano) => ({ plano }));
+}
+
+export function shouldClosePlanoContaPopoverOnInteractOutside(
+  fieldElement: Pick<HTMLElement, 'contains'> | null,
+  target: EventTarget | null
+): boolean {
+  if (!fieldElement || !target) return true;
+  return !fieldElement.contains(target as Node);
 }
 
 export function centroCustoToUnidade(centro?: CentroCustoCodigoInput | null): UnidadeContaLegada | null {

@@ -20,6 +20,8 @@ import type {
   FinanceiroCartaoLancamentoPayload,
   FinanceiroCartaoLancamentoResponse,
   FinanceiroCartaoPayload,
+  FinanceiroCartaoTransacaoImportadaPayload,
+  FinanceiroCartaoTransacaoImportadaResponse,
   FinanceiroCartaoTransacao,
 } from '../types/cartoes';
 
@@ -165,6 +167,15 @@ function friendlyRpcError(error: any): Error {
   }
   if (/conta_pagar.*ja esta paga.*reabertura bloqueada|reabertura bloqueada/i.test(message)) {
     return new Error('A conta a pagar desta fatura ja esta paga; nao e possivel reabrir.');
+  }
+  if (/fatura_id obrigatorio/i.test(message)) {
+    return new Error('Selecione uma fatura antes de adicionar a transacao.');
+  }
+  if (/valor obrigatorio e diferente de zero/i.test(message)) {
+    return new Error('Informe um valor diferente de zero.');
+  }
+  if (/nao permite alterar transacoes quando status|transacoes de fatura .* nao podem ser alteradas quando status/i.test(message)) {
+    return new Error('Esta fatura nao esta aberta. Reabra a fatura antes de adicionar transacoes.');
   }
   return new Error(message || 'Não foi possível salvar o cartão.');
 }
@@ -319,6 +330,39 @@ export async function registrarLancamentoCartao(
 
   if (error) throw friendlyRpcError(error);
   return data as FinanceiroCartaoLancamentoResponse;
+}
+
+export async function registrarTransacaoImportada(
+  payload: FinanceiroCartaoTransacaoImportadaPayload
+): Promise<FinanceiroCartaoTransacaoImportadaResponse> {
+  const cleanPayload: FinanceiroCartaoTransacaoImportadaPayload = {
+    fatura_id: payload.fatura_id,
+    data_compra: payload.data_compra,
+    descricao: payload.descricao.trim(),
+    valor: payload.valor,
+    tipo_transacao: payload.tipo_transacao,
+    estabelecimento: payload.estabelecimento?.trim() || null,
+    id_externo: payload.id_externo,
+    observacoes: payload.observacoes?.trim() || null,
+    motivo: payload.motivo?.trim() || 'Importacao manual pelo app web.',
+  };
+
+  if (payload.parcela_atual != null) cleanPayload.parcela_atual = payload.parcela_atual;
+  if (payload.total_parcelas != null) cleanPayload.total_parcelas = payload.total_parcelas;
+  if (payload.classificacao_status === 'confirmada') {
+    cleanPayload.classificacao_status = 'confirmada';
+    cleanPayload.plano_conta_id = payload.plano_conta_id || null;
+    cleanPayload.centro_custo_id = payload.centro_custo_id || null;
+    cleanPayload.empresa_id = payload.empresa_id || null;
+  }
+
+  const { data, error } = await supabase.rpc('financeiro_cartao_transacao_registrar', {
+    payload: cleanPayload,
+    ator: {},
+  });
+
+  if (error) throw friendlyRpcError(error);
+  return data as FinanceiroCartaoTransacaoImportadaResponse;
 }
 
 export async function classificarTransacaoCartao(

@@ -13,7 +13,9 @@ import {
   isPlanoContaSelecionavel,
   matchesContaPlanoCentroSearch,
   matchesPlanoContaSearch,
+  resolvePlanoContaComboboxOptions,
   resolvePlanosMaisUsados,
+  shouldClosePlanoContaPopoverOnInteractOutside,
 } from './planoContasSelectors.ts';
 
 test('isPlanoContaSelecionavel accepts only active outgoing leaves', () => {
@@ -211,6 +213,40 @@ test('resolvePlanosMaisUsados preserves usage order and ignores non-selectable i
       ['energia', 3],
     ]
   );
+});
+
+test('resolvePlanoContaComboboxOptions falls back to selectable leaves when no usage ranking exists', () => {
+  const planos = [
+    { id: 'grupo', codigo: '5.2', nome: 'Despesas Administrativas', nivel: 2 as const, natureza: 'saida' as const, ativo: true, ordem: 1 },
+    { id: 'energia', codigo: '5.2.3', nome: 'Energia Eletrica', parent_id: 'grupo', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 3 },
+    { id: 'software', codigo: '5.2.11', nome: 'Softwares e plataformas', parent_id: 'grupo', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 11 },
+    { id: 'receita', codigo: '3.1.1', nome: 'Mensalidades', nivel: 3 as const, natureza: 'entrada' as const, ativo: true, ordem: 1 },
+  ];
+
+  assert.deepEqual(
+    resolvePlanoContaComboboxOptions(planos, [], '').map((item) => item.plano.id),
+    ['energia', 'software']
+  );
+
+  assert.deepEqual(
+    resolvePlanoContaComboboxOptions(planos, [{ plano_conta_id: 'software', total: 5 }], '').map((item) => [
+      item.plano.id,
+      item.total,
+    ]),
+    [['software', 5]]
+  );
+});
+
+test('shouldClosePlanoContaPopoverOnInteractOutside keeps the popover open for the field anchor', () => {
+  const input = { node: 'input' };
+  const outside = { node: 'outside' };
+  const field = {
+    contains: (target: unknown) => target === input,
+  };
+
+  assert.equal(shouldClosePlanoContaPopoverOnInteractOutside(field, input as unknown as EventTarget), false);
+  assert.equal(shouldClosePlanoContaPopoverOnInteractOutside(field, outside as unknown as EventTarget), true);
+  assert.equal(shouldClosePlanoContaPopoverOnInteractOutside(null, input as unknown as EventTarget), true);
 });
 
 test('formatContaPlanoLabel renders plano codigo and nome with defensive fallback', () => {

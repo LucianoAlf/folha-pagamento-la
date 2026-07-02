@@ -1,9 +1,12 @@
 import type {
+  CartaoTipoTransacao,
   CartaoFaturaStatus,
   FinanceiroCartaoFatura,
+  FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacao,
 } from '../../types/cartoes';
-import type { FinanceiroEmpresa } from '../../types/contasPagar';
+import type { FinanceiroEmpresa, PlanoConta } from '../../types/contasPagar';
+import { isPlanoContaSelecionavel } from '../contas/planoContasSelectors.ts';
 
 export type FaturasFiltro = {
   cartaoId: string;
@@ -142,6 +145,116 @@ export function getFaturaPendenciasClassificacao(
   const classificacao = fatura.classificacao;
   if (!classificacao) return 0;
   return Number(classificacao.pendentes || 0) + Number(classificacao.sugeridas || 0);
+}
+
+export type TransacaoImportadaInput = {
+  fatura_id?: string | null;
+  descricao: string;
+  data_compra: string;
+  valor: number | null;
+  tipo_transacao?: CartaoTipoTransacao;
+  estabelecimento?: string | null;
+  observacoes?: string | null;
+  is_parcela?: boolean;
+  parcela_atual?: number | null;
+  total_parcelas?: number | null;
+  empresa_id?: string | null;
+  centro_custo_id?: string | null;
+  plano_conta_id?: string | null;
+  plano_conta?: (Pick<PlanoConta, 'ativo' | 'natureza' | 'nivel'> & Partial<PlanoConta>) | null;
+};
+
+export type TransacaoImportadaClassificacaoState = 'pendente' | 'confirmada' | 'parcial';
+
+export const TRANSACAO_IMPORTADA_CLASSIFICACAO_PARCIAL_MESSAGE =
+  'Complete empresa e plano para classificar agora, ou deixe ambos em branco para adicionar como pendente.';
+
+export function isFaturaImportacaoManualDisponivel(
+  fatura: Pick<FinanceiroCartaoFatura, 'status'>
+): boolean {
+  return fatura.status === 'aberta';
+}
+
+export function getTransacaoImportadaClassificacaoState(
+  input: Pick<
+    TransacaoImportadaInput,
+    'empresa_id' | 'centro_custo_id' | 'plano_conta_id' | 'plano_conta'
+  >
+): TransacaoImportadaClassificacaoState {
+  const hasEmpresa = Boolean(String(input.empresa_id || '').trim());
+  const hasCentro = Boolean(String(input.centro_custo_id || '').trim());
+  const hasPlano = Boolean(String(input.plano_conta_id || '').trim());
+
+  if (!hasEmpresa && !hasCentro && !hasPlano) return 'pendente';
+
+  if (hasEmpresa && hasCentro && hasPlano && input.plano_conta && isPlanoContaSelecionavel(input.plano_conta)) {
+    return 'confirmada';
+  }
+
+  return 'parcial';
+}
+
+export function validateTransacaoImportadaInput(input: TransacaoImportadaInput): string | null {
+  if (!String(input.descricao || '').trim()) return 'Informe a descricao da transacao.';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(input.data_compra || ''))) return 'Informe uma data valida.';
+  if (input.valor == null || !Number.isFinite(input.valor) || input.valor === 0) {
+    return 'Informe um valor diferente de zero.';
+  }
+
+  if (input.is_parcela) {
+    const parcelaAtual = Number(input.parcela_atual || 0);
+    const totalParcelas = Number(input.total_parcelas || 0);
+    if (
+      !Number.isInteger(parcelaAtual) ||
+      !Number.isInteger(totalParcelas) ||
+      parcelaAtual < 1 ||
+      totalParcelas < 2 ||
+      parcelaAtual > totalParcelas
+    ) {
+      return 'Informe parcelas no formato correto.';
+    }
+  }
+
+  if (getTransacaoImportadaClassificacaoState(input) === 'parcial') {
+    return TRANSACAO_IMPORTADA_CLASSIFICACAO_PARCIAL_MESSAGE;
+  }
+
+  return null;
+}
+
+export function buildTransacaoImportadaPayload(
+  input: TransacaoImportadaInput,
+  idExterno: string
+): FinanceiroCartaoTransacaoImportadaPayload {
+  const tipo = input.tipo_transacao || 'compra';
+  const valorAbs = Math.abs(Number(input.valor || 0));
+  const payload: FinanceiroCartaoTransacaoImportadaPayload = {
+    fatura_id: String(input.fatura_id || ''),
+    descricao: String(input.descricao || '').trim(),
+    data_compra: input.data_compra,
+    valor: tipo === 'estorno' ? -valorAbs : valorAbs,
+    tipo_transacao: tipo,
+    estabelecimento: input.estabelecimento?.trim() || null,
+    id_externo: idExterno,
+    observacoes: input.observacoes?.trim() || null,
+    motivo: 'Importacao manual pelo app web.',
+  };
+
+  if (input.is_parcela) {
+    payload.parcela_atual = Number(input.parcela_atual);
+    payload.total_parcelas = Number(input.total_parcelas);
+  }
+
+  if (getTransacaoImportadaClassificacaoState(input) === 'confirmada') {
+    payload.classificacao_status = 'confirmada';
+    payload.empresa_id = input.empresa_id || null;
+    payload.centro_custo_id = input.centro_custo_id || null;
+    payload.plano_conta_id = input.plano_conta_id || null;
+  }
+
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== null && value !== undefined && value !== '')
+  ) as FinanceiroCartaoTransacaoImportadaPayload;
 }
 
 export function getCentroCustoIdDaEmpresa(
