@@ -10,6 +10,7 @@ import {
   isPlanoContaSelecionavel,
   resolvePlanoContaComboboxOptions,
   resolvePlanosMaisUsados,
+  shouldClosePlanoContaPopoverOnInteractOutside,
 } from './planoContasSelectors';
 
 type PlanoContaTreeSelectProps = {
@@ -160,6 +161,12 @@ export const PlanoContaTreeSelect: React.FC<PlanoContaTreeSelectProps> = ({
     setMode('search');
   };
 
+  const openSearchPanel = () => {
+    if (disabled) return;
+    setMode('search');
+    setOpen(true);
+  };
+
   const toggleExpanded = (id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -284,14 +291,15 @@ export const PlanoContaTreeSelect: React.FC<PlanoContaTreeSelectProps> = ({
             ref={inputRef}
             value={query}
             disabled={disabled}
+            onPointerDown={() => openSearchPanel()}
+            onClick={() => openSearchPanel()}
             onFocus={(event) => {
-              setOpen(true);
+              openSearchPanel();
               event.currentTarget.select();
             }}
             onChange={(event) => {
               setQuery(event.target.value);
-              setMode('search');
-              setOpen(true);
+              openSearchPanel();
             }}
             onKeyDown={handleInputKeyDown}
             placeholder={placeholder}
@@ -322,7 +330,13 @@ export const PlanoContaTreeSelect: React.FC<PlanoContaTreeSelectProps> = ({
             setOpen(false);
             inputRef.current?.focus();
           }}
-          onInteractOutside={() => setOpen(false)}
+          onInteractOutside={(event) => {
+            if (!shouldClosePlanoContaPopoverOnInteractOutside(fieldRef.current, event.target)) {
+              event.preventDefault();
+              return;
+            }
+            setOpen(false);
+          }}
           className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-pop)] animate-in fade-in zoom-in-95 duration-150"
           style={{ width: panelWidth }}
         >

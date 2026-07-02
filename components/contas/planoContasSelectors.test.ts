@@ -15,6 +15,7 @@ import {
   matchesPlanoContaSearch,
   resolvePlanoContaComboboxOptions,
   resolvePlanosMaisUsados,
+  shouldClosePlanoContaPopoverOnInteractOutside,
 } from './planoContasSelectors.ts';
 
 test('isPlanoContaSelecionavel accepts only active outgoing leaves', () => {
@@ -234,6 +235,18 @@ test('resolvePlanoContaComboboxOptions falls back to selectable leaves when no u
     ]),
     [['software', 5]]
   );
+});
+
+test('shouldClosePlanoContaPopoverOnInteractOutside keeps the popover open for the field anchor', () => {
+  const input = { node: 'input' };
+  const outside = { node: 'outside' };
+  const field = {
+    contains: (target: unknown) => target === input,
+  };
+
+  assert.equal(shouldClosePlanoContaPopoverOnInteractOutside(field, input as unknown as EventTarget), false);
+  assert.equal(shouldClosePlanoContaPopoverOnInteractOutside(field, outside as unknown as EventTarget), true);
+  assert.equal(shouldClosePlanoContaPopoverOnInteractOutside(null, input as unknown as EventTarget), true);
 });
 
 test('formatContaPlanoLabel renders plano codigo and nome with defensive fallback', () => {

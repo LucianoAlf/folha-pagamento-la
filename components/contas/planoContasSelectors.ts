@@ -239,6 +239,14 @@ export function resolvePlanoContaComboboxOptions<T extends PlanoContaSelecionave
   return filterSelectablePlanos(planos, '').map((plano) => ({ plano }));
 }
 
+export function shouldClosePlanoContaPopoverOnInteractOutside(
+  fieldElement: Pick<HTMLElement, 'contains'> | null,
+  target: EventTarget | null
+): boolean {
+  if (!fieldElement || !target) return true;
+  return !fieldElement.contains(target as Node);
+}
+
 export function centroCustoToUnidade(centro?: CentroCustoCodigoInput | null): UnidadeContaLegada | null {
   if (centro?.codigo === 'cg' || centro?.codigo === 'rec' || centro?.codigo === 'bar') {
     return centro.codigo;
