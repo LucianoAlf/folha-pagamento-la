@@ -121,6 +121,29 @@ export function isFaturaClassificacaoBloqueada(
   return fatura.status === 'cancelada';
 }
 
+export function getFaturaAcaoFechamento(
+  fatura: Pick<FinanceiroCartaoFatura, 'status'>
+): 'fechar' | 'reabrir' | null {
+  if (fatura.status === 'aberta') return 'fechar';
+  if (fatura.status === 'fechada') return 'reabrir';
+  return null;
+}
+
+export function isCartaoFiscalCompletoParaFechar(
+  fatura: Pick<FinanceiroCartaoFatura, 'cartao'>
+): boolean {
+  const cartao = fatura.cartao;
+  return Boolean(cartao?.empresa_id && cartao?.conta_pagadora_id && cartao?.centro_custo_id);
+}
+
+export function getFaturaPendenciasClassificacao(
+  fatura: Pick<FinanceiroCartaoFatura, 'classificacao'>
+): number {
+  const classificacao = fatura.classificacao;
+  if (!classificacao) return 0;
+  return Number(classificacao.pendentes || 0) + Number(classificacao.sugeridas || 0);
+}
+
 export function getCentroCustoIdDaEmpresa(
   empresas: Pick<FinanceiroEmpresa, 'id' | 'unidade_id'>[],
   empresaId: string | null | undefined

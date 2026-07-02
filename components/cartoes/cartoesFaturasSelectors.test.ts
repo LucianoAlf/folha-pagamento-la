@@ -4,6 +4,9 @@ import test from 'node:test';
 import {
   attachClassificacaoResumo,
   buildFaturasResumo,
+  getFaturaAcaoFechamento,
+  getFaturaPendenciasClassificacao,
+  isCartaoFiscalCompletoParaFechar,
   getCentroCustoIdDaEmpresa,
   hasAutoriaMaria,
   isFaturaClassificacaoBloqueada,
@@ -148,4 +151,36 @@ test('Maria stamp is detected from launch and classification authorship fields',
   assert.equal(hasAutoriaMaria({ fonte_tipo: 'maria' } as any, 'lancamento'), true);
   assert.equal(hasAutoriaMaria({ classificado_por: 'maria' } as any, 'classificacao'), true);
   assert.equal(hasAutoriaMaria({ ator_tipo: 'web', classificado_por: 'web' } as any, 'classificacao'), false);
+});
+
+test('invoice closing action follows invoice status only', () => {
+  assert.equal(getFaturaAcaoFechamento({ status: 'aberta' } as any), 'fechar');
+  assert.equal(getFaturaAcaoFechamento({ status: 'fechada' } as any), 'reabrir');
+  assert.equal(getFaturaAcaoFechamento({ status: 'paga' } as any), null);
+  assert.equal(getFaturaAcaoFechamento({ status: 'cancelada' } as any), null);
+});
+
+test('closing requires fiscal card triad before calling the RPC', () => {
+  assert.equal(
+    isCartaoFiscalCompletoParaFechar({
+      cartao: { empresa_id: 'empresa-emla', conta_pagadora_id: 'conta-santander', centro_custo_id: 'centro-cg' },
+    } as any),
+    true
+  );
+  assert.equal(
+    isCartaoFiscalCompletoParaFechar({
+      cartao: { empresa_id: 'empresa-emla', conta_pagadora_id: null, centro_custo_id: 'centro-cg' },
+    } as any),
+    false
+  );
+});
+
+test('closing warning counts pending and suggested classifications', () => {
+  assert.equal(
+    getFaturaPendenciasClassificacao({
+      classificacao: { total: 4, confirmadas: 1, sugeridas: 1, pendentes: 2, percentualConfirmado: 25 },
+    } as any),
+    3
+  );
+  assert.equal(getFaturaPendenciasClassificacao({ classificacao: null } as any), 0);
 });

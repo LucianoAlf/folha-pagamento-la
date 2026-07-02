@@ -8,6 +8,8 @@ import {
 import type {
   FinanceiroCartaoClassificacaoPayload,
   FinanceiroCartaoClassificacaoResponse,
+  FinanceiroCartaoFaturaFecharResponse,
+  FinanceiroCartaoFaturaReabrirResponse,
   CartaoRpcResponse,
   CartoesDashboardData,
   CartoesFaturasData,
@@ -154,6 +156,15 @@ function friendlyRpcError(error: any): Error {
   }
   if (/folha de saida ativa/i.test(message)) {
     return new Error('Escolha uma folha ativa de saida no plano de contas.');
+  }
+  if (/fechamento fiscal bloqueado/i.test(message)) {
+    return new Error('Complete empresa, conta pagadora e centro no cadastro do cartao antes de fechar a fatura.');
+  }
+  if (/fatura paga nao pode ser reaberta/i.test(message)) {
+    return new Error('Fatura paga nao pode ser reaberta.');
+  }
+  if (/conta_pagar.*ja esta paga.*reabertura bloqueada|reabertura bloqueada/i.test(message)) {
+    return new Error('A conta a pagar desta fatura ja esta paga; nao e possivel reabrir.');
   }
   return new Error(message || 'Não foi possível salvar o cartão.');
 }
@@ -332,4 +343,24 @@ export async function classificarTransacaoCartao(
 
   if (error) throw friendlyRpcError(error);
   return data as FinanceiroCartaoClassificacaoResponse;
+}
+
+export async function fecharFaturaCartao(faturaId: string): Promise<FinanceiroCartaoFaturaFecharResponse> {
+  const { data, error } = await supabase.rpc('financeiro_cartao_fatura_fechar', {
+    p_fatura_id: faturaId,
+    ator: {},
+  });
+
+  if (error) throw friendlyRpcError(error);
+  return data as FinanceiroCartaoFaturaFecharResponse;
+}
+
+export async function reabrirFaturaCartao(faturaId: string): Promise<FinanceiroCartaoFaturaReabrirResponse> {
+  const { data, error } = await supabase.rpc('financeiro_cartao_fatura_reabrir', {
+    p_fatura_id: faturaId,
+    ator: {},
+  });
+
+  if (error) throw friendlyRpcError(error);
+  return data as FinanceiroCartaoFaturaReabrirResponse;
 }

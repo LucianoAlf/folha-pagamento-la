@@ -11,12 +11,18 @@ import {
   ReceiptText,
   RotateCcw,
   ShieldCheck,
+  Undo2,
   WalletCards,
 } from 'lucide-react';
-import { Badge, Button, Card, CustomSelect, ErrorState, LoadingSpinner, Modal } from '../UI';
+import { Badge, Button, Card, ConfirmDialog, CustomSelect, ErrorState, LoadingSpinner, Modal } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { formatCurrency } from '../../services/api';
-import { classificarTransacaoCartao, fetchCartoesFaturas } from '../../services/cartoesService';
+import {
+  classificarTransacaoCartao,
+  fecharFaturaCartao,
+  fetchCartoesFaturas,
+  reabrirFaturaCartao,
+} from '../../services/cartoesService';
 import { PlanoContaTreeSelect } from '../contas/PlanoContaTreeSelect';
 import { MariaActionBadge } from '../MariaActionBadge';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
@@ -24,14 +30,19 @@ import {
   attachClassificacaoResumo,
   buildFaturasResumo,
   filterAndSortFaturas,
+  getFaturaAcaoFechamento,
+  getFaturaPendenciasClassificacao,
   getCentroCustoIdDaEmpresa,
   getCompetenciasOptions,
   getTransacoesDaFatura,
   hasAutoriaMaria,
+  isCartaoFiscalCompletoParaFechar,
   isFaturaClassificacaoBloqueada,
 } from './cartoesFaturasSelectors';
 import type {
   FinanceiroCartaoClassificacaoPayload,
+  FinanceiroCartaoFaturaFecharResponse,
+  FinanceiroCartaoFaturaReabrirResponse,
   FinanceiroCartao,
   FinanceiroCartaoFatura,
   FinanceiroCartaoTransacao,
@@ -219,6 +230,7 @@ const FaturaCard: React.FC<{
 }> = ({ fatura, onOpen }) => {
   const empresa = empresaLabel(fatura.cartao?.empresa);
   const totalTransacoes = fatura.classificacao?.total || 0;
+  const pendencias = getFaturaPendenciasClassificacao(fatura);
 
   return (
     <Card className="p-5 md:p-6 transition-all hover:border-line-strong hover:bg-surface/80">
@@ -226,6 +238,7 @@ const FaturaCard: React.FC<{
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={statusVariant(fatura.status)}>{statusLabel(fatura.status)}</Badge>
+            {fatura.status === 'fechada' && pendencias > 0 ? <Badge variant="warning">DRE incompleto</Badge> : null}
             {fatura.conta_pagar_id ? <Badge variant="purple">→ conta a pagar</Badge> : null}
           </div>
           <div className="mt-3 text-xl font-black text-primary truncate">{formatCompetencia(fatura.competencia)}</div>
@@ -481,6 +494,15 @@ type FaturasCartaoPageProps = {
   initialCartaoId?: string | null;
 };
 
+type FaturaFechamentoAction = 'fechar' | 'reabrir';
+
+type FaturaActionFeedback = {
+  faturaId: string;
+  title: string;
+  message: string;
+  variant: 'success' | 'warning' | 'info';
+};
+
 export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded = false, initialCartaoId }) => {
   const { run } = useAsyncAction();
   const [loading, setLoading] = useState(true);
@@ -496,6 +518,9 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
   const [competenciaFiltro, setCompetenciaFiltro] = useState('all');
   const [selectedFaturaId, setSelectedFaturaId] = useState<string | null>(null);
   const [savingTransacaoId, setSavingTransacaoId] = useState<string | null>(null);
+  const [savingFaturaId, setSavingFaturaId] = useState<string | null>(null);
+  const [pendingFaturaAction, setPendingFaturaAction] = useState<FaturaFechamentoAction | null>(null);
+  const [faturaFeedback, setFaturaFeedback] = useState<FaturaActionFeedback | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -545,6 +570,10 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
     () => (selectedFatura ? getTransacoesDaFatura(transacoes, selectedFatura.id) : []),
     [selectedFatura, transacoes]
   );
+  const selectedFaturaAction = selectedFatura ? getFaturaAcaoFechamento(selectedFatura) : null;
+  const selectedFaturaPendencias = selectedFatura ? getFaturaPendenciasClassificacao(selectedFatura) : 0;
+  const selectedCartaoFiscalCompleto = selectedFatura ? isCartaoFiscalCompletoParaFechar(selectedFatura) : false;
+  const selectedFaturaSaving = selectedFatura ? savingFaturaId === selectedFatura.id : false;
 
   const classificacaoGeral = useMemo(() => {
     const total = faturasFiltradas.reduce((sum, fatura) => sum + (fatura.classificacao?.total || 0), 0);
@@ -579,6 +608,15 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
     })),
   ];
 
+  const faturaActionDialogTitle =
+    pendingFaturaAction === 'fechar' ? 'Fechar fatura' : 'Reabrir fatura';
+  const faturaActionDialogMessage =
+    pendingFaturaAction === 'fechar'
+      ? selectedFaturaPendencias > 0
+        ? `Esta fatura tem ${selectedFaturaPendencias} ${selectedFaturaPendencias === 1 ? 'transacao nao confirmada' : 'transacoes nao confirmadas'}. Ao fechar, o DRE fica incompleto ate voce reclassificar. Fechar mesmo assim?`
+        : 'Fechar esta fatura vai gerar uma conta a pagar com o valor total e vencimento da fatura. Confirmar?'
+      : 'Reabrir vai CANCELAR a conta a pagar gerada por este fechamento. Confirmar?';
+
   const handleClassificar = async (payload: FinanceiroCartaoClassificacaoPayload) => {
     setSavingTransacaoId(payload.transacao_id);
     await run(
@@ -595,6 +633,57 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
       }
     );
     setSavingTransacaoId(null);
+  };
+
+  const handleFaturaAction = async (action: FaturaFechamentoAction) => {
+    if (!selectedFatura) return;
+    if (action === 'fechar' && !selectedCartaoFiscalCompleto) {
+      setFaturaFeedback({
+        faturaId: selectedFatura.id,
+        title: 'Cadastro do cartao incompleto',
+        message: 'Complete empresa, conta pagadora e centro no cadastro do cartao antes de fechar a fatura.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    const faturaId = selectedFatura.id;
+    setSavingFaturaId(faturaId);
+    const result = await run<FinanceiroCartaoFaturaFecharResponse | FinanceiroCartaoFaturaReabrirResponse>(
+      async () => {
+        const response = action === 'fechar'
+          ? await fecharFaturaCartao(faturaId)
+          : await reabrirFaturaCartao(faturaId);
+        await load();
+        return response;
+      },
+      {
+        success: action === 'fechar' ? 'Fatura fechada.' : 'Fatura reaberta.',
+        error: action === 'fechar' ? 'Nao foi possivel fechar a fatura.' : 'Nao foi possivel reabrir a fatura.',
+      }
+    );
+
+    if (result) {
+      if (action === 'fechar') {
+        const response = result as FinanceiroCartaoFaturaFecharResponse;
+        setFaturaFeedback({
+          faturaId,
+          title: 'Conta a pagar gerada',
+          message: `${formatCurrency(Number(response.valor_total || selectedFatura.valor_total || 0))} com vencimento em ${formatDateBR(selectedFatura.data_vencimento)}. Conta vinculada: ${response.conta_pagar_id || 'ja existente'}.`,
+          variant: response.classificacao?.dre_incompleto ? 'warning' : 'success',
+        });
+      } else {
+        setFaturaFeedback({
+          faturaId,
+          title: 'Fatura reaberta',
+          message: 'A conta a pagar gerada por este fechamento foi cancelada e o vinculo saiu da fatura.',
+          variant: 'info',
+        });
+      }
+    }
+
+    setSavingFaturaId(null);
+    setPendingFaturaAction(null);
   };
 
   if (loading) return <LoadingSpinner />;
@@ -671,14 +760,25 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
       ) : (
         <div className="space-y-4">
           {faturasFiltradas.map((fatura) => (
-            <FaturaCard key={fatura.id} fatura={fatura} onOpen={(next) => setSelectedFaturaId(next.id)} />
+            <FaturaCard
+              key={fatura.id}
+              fatura={fatura}
+              onOpen={(next) => {
+                setFaturaFeedback(null);
+                setSelectedFaturaId(next.id);
+              }}
+            />
           ))}
         </div>
       )}
 
       <Modal
         isOpen={!!selectedFatura}
-        onClose={() => setSelectedFaturaId(null)}
+        onClose={() => {
+          setSelectedFaturaId(null);
+          setPendingFaturaAction(null);
+          setFaturaFeedback(null);
+        }}
         title={selectedFatura ? `Fatura ${formatCompetencia(selectedFatura.competencia)}` : 'Detalhe da fatura'}
         subtitle={selectedFatura ? cartaoLabel(selectedFatura.cartao) : undefined}
         size="xl"
@@ -722,6 +822,76 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
               </div>
             </div>
 
+            <Card className="p-4 md:p-5 bg-surface-2/35">
+              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="purple">Fechamento</Badge>
+                    {selectedFatura.conta_pagar_id ? <Badge variant="info">Conta a pagar vinculada</Badge> : null}
+                    {selectedFatura.status === 'fechada' && selectedFaturaPendencias > 0 ? (
+                      <Badge variant="warning">DRE incompleto</Badge>
+                    ) : null}
+                  </div>
+                  <div className="mt-3 text-base font-black text-primary">
+                    {selectedFatura.status === 'aberta'
+                      ? 'Fechar fatura gera a conta a pagar'
+                      : selectedFatura.status === 'fechada'
+                        ? 'Fatura fechada e vinculada ao Contas a Pagar'
+                        : 'Fatura sem acao de fechamento'}
+                  </div>
+                  <div className="mt-1 text-sm font-bold text-secondary">
+                    {selectedFatura.status === 'aberta'
+                      ? 'A RPC cria a conta a pagar com valor, vencimento e trilha fiscal do cartao.'
+                      : selectedFatura.status === 'fechada'
+                        ? 'Reabrir cancela a conta a pagar gerada por este fechamento.'
+                        : 'Faturas pagas ou canceladas ficam em leitura nesta etapa.'}
+                  </div>
+                  {selectedFatura.status === 'aberta' && !selectedCartaoFiscalCompleto ? (
+                    <div className="mt-3 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-warning flex gap-3">
+                      <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                      <div className="text-xs font-bold">
+                        Complete empresa, conta pagadora e centro no cadastro do cartao antes de fechar a fatura.
+                      </div>
+                    </div>
+                  ) : null}
+                  {faturaFeedback?.faturaId === selectedFatura.id ? (
+                    <div
+                      className={cn(
+                        'mt-3 rounded-2xl border px-4 py-3 text-sm font-bold',
+                        faturaFeedback.variant === 'success' && 'border-success/30 bg-success/10 text-success',
+                        faturaFeedback.variant === 'warning' && 'border-warning/30 bg-warning/10 text-warning',
+                        faturaFeedback.variant === 'info' && 'border-info/30 bg-info/10 text-info'
+                      )}
+                    >
+                      <div className="font-black">{faturaFeedback.title}</div>
+                      <div className="mt-1">{faturaFeedback.message}</div>
+                    </div>
+                  ) : null}
+                </div>
+
+                {selectedFaturaAction ? (
+                  <Button
+                    variant={selectedFaturaAction === 'reabrir' ? 'outline' : 'primary'}
+                    disabled={
+                      selectedFaturaSaving ||
+                      (selectedFaturaAction === 'fechar' && !selectedCartaoFiscalCompleto)
+                    }
+                    onClick={() => setPendingFaturaAction(selectedFaturaAction)}
+                    className="w-full xl:w-auto"
+                  >
+                    {selectedFaturaSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : selectedFaturaAction === 'fechar' ? (
+                      <ShieldCheck className="w-4 h-4" />
+                    ) : (
+                      <Undo2 className="w-4 h-4" />
+                    )}
+                    {selectedFaturaAction === 'fechar' ? 'Fechar fatura' : 'Reabrir fatura'}
+                  </Button>
+                ) : null}
+              </div>
+            </Card>
+
             <div>
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
@@ -758,6 +928,16 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
           </div>
         ) : null}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingFaturaAction && selectedFatura)}
+        onClose={() => setPendingFaturaAction(null)}
+        onConfirm={() => (pendingFaturaAction ? handleFaturaAction(pendingFaturaAction) : Promise.resolve())}
+        title={faturaActionDialogTitle}
+        message={faturaActionDialogMessage}
+        confirmLabel={pendingFaturaAction === 'fechar' ? 'Fechar fatura' : 'Reabrir fatura'}
+        variant={pendingFaturaAction === 'reabrir' ? 'danger' : 'primary'}
+      />
     </div>
   );
 };
