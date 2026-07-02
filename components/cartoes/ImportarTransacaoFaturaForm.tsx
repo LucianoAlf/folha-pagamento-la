@@ -1,14 +1,17 @@
 import type React from 'react';
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Loader2, Plus, ReceiptText, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Building2, CheckCircle2, Loader2, Plus, ReceiptText, RotateCcw, ShieldCheck } from 'lucide-react';
 import { Badge, Button, Card, CustomSelect, DatePicker, ToggleSwitch } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { formatCurrency } from '../../services/api';
 import { registrarTransacaoImportada } from '../../services/cartoesService';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
 import { useToast } from '../../hooks/useToast';
+import { PlanoContaTreeSelect } from '../contas/PlanoContaTreeSelect';
 import {
   buildTransacaoImportadaPayload,
+  getCentroCustoIdDaEmpresa,
+  getTransacaoImportadaClassificacaoState,
   validateTransacaoImportadaInput,
 } from './cartoesFaturasSelectors';
 import type {
@@ -17,6 +20,7 @@ import type {
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacaoImportadaResponse,
 } from '../../types/cartoes';
+import type { FinanceiroEmpresa, PlanoConta } from '../../types/contasPagar';
 
 type ImportFormState = {
   data_compra: string;
@@ -28,6 +32,9 @@ type ImportFormState = {
   parcela_atual: string;
   total_parcelas: string;
   observacoes: string;
+  empresa_id: string;
+  centro_custo_id: string;
+  plano_conta_id: string;
 };
 
 const TIPO_OPTIONS: { value: CartaoTipoTransacao; label: string }[] = [
@@ -118,17 +125,25 @@ function buildInitialState(): ImportFormState {
     parcela_atual: '1',
     total_parcelas: '2',
     observacoes: '',
+    empresa_id: '',
+    centro_custo_id: '',
+    plano_conta_id: '',
   };
 }
 
+const empresaLabel = (empresa?: FinanceiroEmpresa | null) =>
+  empresa?.label_operacional || empresa?.nome_fantasia || empresa?.razao_social || 'Sem empresa';
+
 export const ImportarTransacaoFaturaForm: React.FC<{
   fatura: FinanceiroCartaoFatura;
+  empresas: FinanceiroEmpresa[];
+  planos: PlanoConta[];
   onCancel: () => void;
   onSuccess: (
     result: FinanceiroCartaoTransacaoImportadaResponse,
     payload: FinanceiroCartaoTransacaoImportadaPayload
   ) => void | Promise<void>;
-}> = ({ fatura, onCancel, onSuccess }) => {
+}> = ({ fatura, empresas, planos, onCancel, onSuccess }) => {
   const { run } = useAsyncAction();
   const toast = useToast();
   const [form, setForm] = useState<ImportFormState>(() => buildInitialState());
@@ -136,6 +151,24 @@ export const ImportarTransacaoFaturaForm: React.FC<{
   const [saving, setSaving] = useState(false);
 
   const valor = parseBRL(form.valor);
+  const selectedEmpresa = useMemo(
+    () => empresas.find((empresa) => empresa.id === form.empresa_id) || null,
+    [empresas, form.empresa_id]
+  );
+  const selectedPlano = useMemo(
+    () => planos.find((plano) => plano.id === form.plano_conta_id) || null,
+    [form.plano_conta_id, planos]
+  );
+  const selectedCentroNome = selectedEmpresa?.unidade?.nome || 'Centro fixado pela empresa';
+  const empresaOptions = useMemo(
+    () => [
+      { value: '', label: 'Deixar pendente' },
+      ...empresas
+        .filter((empresa) => empresa.ativo !== false)
+        .map((empresa) => ({ value: empresa.id, label: empresaLabel(empresa) })),
+    ],
+    [empresas]
+  );
   const input = useMemo(
     () => ({
       fatura_id: fatura.id,
@@ -148,9 +181,15 @@ export const ImportarTransacaoFaturaForm: React.FC<{
       is_parcela: form.is_parcela,
       parcela_atual: form.is_parcela ? Number(form.parcela_atual) : null,
       total_parcelas: form.is_parcela ? Number(form.total_parcelas) : null,
+      empresa_id: form.empresa_id,
+      centro_custo_id: form.centro_custo_id,
+      plano_conta_id: form.plano_conta_id,
+      plano_conta: selectedPlano,
     }),
-    [form, fatura.id, valor]
+    [form, fatura.id, selectedPlano, valor]
   );
+  const classificacaoState = getTransacaoImportadaClassificacaoState(input);
+  const isClassificacaoConfirmada = classificacaoState === 'confirmada';
   const validation = validateTransacaoImportadaInput(input);
   const canSubmit = !saving && !validation;
 
@@ -160,6 +199,14 @@ export const ImportarTransacaoFaturaForm: React.FC<{
       data_compra: current.data_compra,
     }));
     setIdExterno(makeIdExterno(fatura.id));
+  };
+
+  const setEmpresa = (empresaId: string) => {
+    setForm((current) => ({
+      ...current,
+      empresa_id: empresaId,
+      centro_custo_id: getCentroCustoIdDaEmpresa(empresas, empresaId),
+    }));
   };
 
   const submit = async () => {
@@ -196,7 +243,7 @@ export const ImportarTransacaoFaturaForm: React.FC<{
           <div>
             <div className="text-base font-black text-primary">Adicionar transacao manual</div>
             <div className="mt-1 text-sm font-bold text-secondary">
-              Use para completar o extrato real desta fatura. A transacao nasce pendente para classificacao.
+              Use para completar o extrato real desta fatura. Voce pode classificar agora ou deixar pendente.
             </div>
           </div>
         </div>
@@ -311,15 +358,68 @@ export const ImportarTransacaoFaturaForm: React.FC<{
         />
       </div>
 
+      <div className="mt-4 rounded-2xl border border-line bg-surface-2/55 p-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="flex gap-3">
+            <div className="w-9 h-9 rounded-2xl bg-accent/15 border border-accent/25 text-accent flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">
+                Classificacao fiscal opcional
+              </div>
+              <div className="mt-1 text-sm font-bold text-secondary">
+                Preencha empresa e plano para ja confirmar. Deixe em branco para adicionar como pendente.
+              </div>
+            </div>
+          </div>
+          <Badge variant={isClassificacaoConfirmada ? 'success' : classificacaoState === 'parcial' ? 'warning' : 'default'}>
+            {isClassificacaoConfirmada ? 'Nasce confirmada' : classificacaoState === 'parcial' ? 'Completar classificacao' : 'Nasce pendente'}
+          </Badge>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-[minmax(180px,0.65fr)_minmax(0,1fr)] gap-3">
+          <div>
+            <FieldLabel>Empresa</FieldLabel>
+            <CustomSelect
+              value={form.empresa_id}
+              onValueChange={setEmpresa}
+              options={empresaOptions}
+              icon={Building2}
+              disabled={saving}
+            />
+            <div className="mt-2 rounded-xl border border-line bg-surface px-3 py-2">
+              <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted">Centro fixado</div>
+              <div className="mt-1 text-xs font-black text-secondary">
+                {form.empresa_id ? selectedCentroNome : 'Escolha uma empresa para fixar o centro.'}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <FieldLabel>Plano de contas</FieldLabel>
+            <PlanoContaTreeSelect
+              planos={planos}
+              value={form.plano_conta_id}
+              onValueChange={(planoId) => setForm((current) => ({ ...current, plano_conta_id: planoId }))}
+              placeholder="Buscar folha de saida por codigo ou nome..."
+              disabled={saving}
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="default">Nasce pendente</Badge>
+          <Badge variant={isClassificacaoConfirmada ? 'success' : 'default'}>
+            {isClassificacaoConfirmada ? 'Nasce confirmada' : 'Nasce pendente'}
+          </Badge>
           <Badge variant="info">Importacao manual</Badge>
           {valor ? <Badge variant={form.tipo_transacao === 'estorno' ? 'success' : 'purple'}>{formatCurrency(form.tipo_transacao === 'estorno' ? -Math.abs(valor) : Math.abs(valor))}</Badge> : null}
         </div>
         <Button variant="primary" onClick={submit} disabled={!canSubmit} className="md:min-w-[210px]">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-          Adicionar a fatura
+          {isClassificacaoConfirmada ? 'Adicionar e classificar' : 'Adicionar como pendente'}
         </Button>
       </div>
 
@@ -331,7 +431,11 @@ export const ImportarTransacaoFaturaForm: React.FC<{
       ) : (
         <div className="mt-3 rounded-2xl border border-success/25 bg-success/10 px-4 py-3 text-success flex gap-3">
           <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="text-xs font-bold">Pronto para registrar sem classificacao fiscal nesta etapa.</div>
+          <div className="text-xs font-bold">
+            {isClassificacaoConfirmada
+              ? 'Pronto para adicionar com classificacao confirmada.'
+              : 'Pronto para adicionar como pendente.'}
+          </div>
         </div>
       )}
     </Card>

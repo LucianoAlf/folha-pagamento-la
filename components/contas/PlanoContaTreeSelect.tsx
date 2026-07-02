@@ -5,10 +5,10 @@ import { CentroCusto, PlanoConta, PlanoContaMaisUsado } from '../../types/contas
 import { cn } from '../CollaboratorComponents';
 import {
   centroCustoToUnidade,
-  filterSelectablePlanos,
   formatPlanoContaLabel,
   getPlanoContaParentName,
   isPlanoContaSelecionavel,
+  resolvePlanoContaComboboxOptions,
   resolvePlanosMaisUsados,
 } from './planoContasSelectors';
 
@@ -105,17 +105,19 @@ export const PlanoContaTreeSelect: React.FC<PlanoContaTreeSelectProps> = ({
   const normalizedQuery = query.trim();
   const parentMap = useMemo(() => new Map(planos.map((p) => [p.id, p])), [planos]);
 
-  const filteredOptions = useMemo<PlanoContaOption[]>(
-    () => filterSelectablePlanos(planos, normalizedQuery).map((plano) => ({ plano })),
-    [normalizedQuery, planos]
-  );
-
   const usedOptions = useMemo<PlanoContaOption[]>(
     () => resolvePlanosMaisUsados(planos, maisUsados).map((item) => ({ plano: item.plano, total: item.total })),
     [maisUsados, planos]
   );
 
-  const currentOptions = normalizedQuery ? filteredOptions : usedOptions;
+  const currentOptions = useMemo<PlanoContaOption[]>(
+    () => resolvePlanoContaComboboxOptions(planos, maisUsados, normalizedQuery).map((item) => ({
+      plano: item.plano,
+      total: item.total,
+    })),
+    [maisUsados, normalizedQuery, planos]
+  );
+  const hasUsageRanking = !normalizedQuery && usedOptions.length > 0;
 
   useEffect(() => {
     if (open) return;
@@ -327,14 +329,18 @@ export const PlanoContaTreeSelect: React.FC<PlanoContaTreeSelectProps> = ({
           {mode === 'search' ? (
             <div id="plano-conta-options" role="listbox" className="max-h-[300px] overflow-hidden">
               <div className="px-4 py-3 text-[11px] font-black text-secondary">
-                {normalizedQuery ? 'Resultados' : 'Mais usados'}
+                {normalizedQuery ? 'Resultados' : hasUsageRanking ? 'Mais usados' : 'Folhas de saida'}
               </div>
               <div className="max-h-[220px] overflow-y-auto">
                 {currentOptions.length ? (
                   currentOptions.map(renderOption)
                 ) : (
                   <div className="px-4 py-8 text-center text-sm font-bold text-muted">
-                    {normalizedQuery ? 'Nenhuma folha encontrada.' : 'Nenhuma conta usada ainda.'}
+                    {normalizedQuery
+                      ? 'Nenhuma folha encontrada.'
+                      : hasUsageRanking
+                        ? 'Nenhuma conta usada ainda.'
+                        : 'Nenhuma folha disponivel.'}
                   </div>
                 )}
               </div>

@@ -181,6 +181,10 @@ export interface FinanceiroCartaoTransacaoImportadaPayload {
   id_externo: string;
   observacoes?: string | null;
   motivo?: string | null;
+  classificacao_status?: 'confirmada';
+  plano_conta_id?: string | null;
+  centro_custo_id?: string | null;
+  empresa_id?: string | null;
 }
 
 export interface FinanceiroCartaoTransacaoImportadaResponse {

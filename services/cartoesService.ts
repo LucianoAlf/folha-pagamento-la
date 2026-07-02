@@ -349,6 +349,12 @@ export async function registrarTransacaoImportada(
 
   if (payload.parcela_atual != null) cleanPayload.parcela_atual = payload.parcela_atual;
   if (payload.total_parcelas != null) cleanPayload.total_parcelas = payload.total_parcelas;
+  if (payload.classificacao_status === 'confirmada') {
+    cleanPayload.classificacao_status = 'confirmada';
+    cleanPayload.plano_conta_id = payload.plano_conta_id || null;
+    cleanPayload.centro_custo_id = payload.centro_custo_id || null;
+    cleanPayload.empresa_id = payload.empresa_id || null;
+  }
 
   const { data, error } = await supabase.rpc('financeiro_cartao_transacao_registrar', {
     payload: cleanPayload,

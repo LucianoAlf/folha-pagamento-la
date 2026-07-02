@@ -11,6 +11,7 @@ import {
   isCartaoFiscalCompletoParaFechar,
   validateTransacaoImportadaInput,
   getCentroCustoIdDaEmpresa,
+  getTransacaoImportadaClassificacaoState,
   hasAutoriaMaria,
   isFaturaClassificacaoBloqueada,
   filterAndSortFaturas,
@@ -259,4 +260,54 @@ test('manual import payload uses the fatura RPC shape without classification fie
   assert.equal(estorno.valor, -54.48);
   assert.equal(estorno.parcela_atual, 2);
   assert.equal(estorno.total_parcelas, 6);
+});
+
+test('manual import validation blocks partial fiscal classification', () => {
+  const base = {
+    fatura_id: 'fat-1',
+    descricao: 'OpenAI',
+    data_compra: '2026-07-01',
+    valor: 54.48,
+    tipo_transacao: 'compra' as const,
+  };
+
+  assert.equal(
+    validateTransacaoImportadaInput({
+      ...base,
+      empresa_id: 'empresa-emla',
+      centro_custo_id: 'centro-cg',
+    } as any),
+    'Complete empresa e plano para classificar agora, ou deixe ambos em branco para adicionar como pendente.'
+  );
+  assert.equal(
+    validateTransacaoImportadaInput({
+      ...base,
+      plano_conta_id: 'plano-software',
+      plano_conta: { id: 'plano-software', codigo: '5.2.11', nome: 'Software', nivel: 3, natureza: 'saida', ativo: true },
+    } as any),
+    'Complete empresa e plano para classificar agora, ou deixe ambos em branco para adicionar como pendente.'
+  );
+});
+
+test('manual import payload can include confirmed fiscal classification', () => {
+  const input = {
+    fatura_id: 'fat-1',
+    descricao: 'OpenAI',
+    data_compra: '2026-07-01',
+    valor: 54.48,
+    tipo_transacao: 'compra' as const,
+    empresa_id: 'empresa-emla',
+    centro_custo_id: 'centro-cg',
+    plano_conta_id: 'plano-software',
+    plano_conta: { id: 'plano-software', codigo: '5.2.11', nome: 'Software', nivel: 3, natureza: 'saida', ativo: true },
+  };
+
+  assert.equal(getTransacaoImportadaClassificacaoState(input as any), 'confirmada');
+
+  const payload = buildTransacaoImportadaPayload(input as any, 'token-789');
+
+  assert.equal(payload.classificacao_status, 'confirmada');
+  assert.equal(payload.empresa_id, 'empresa-emla');
+  assert.equal(payload.centro_custo_id, 'centro-cg');
+  assert.equal(payload.plano_conta_id, 'plano-software');
 });

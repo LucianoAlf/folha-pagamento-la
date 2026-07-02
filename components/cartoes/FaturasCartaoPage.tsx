@@ -987,6 +987,8 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
                 <div className="mb-4">
                   <ImportarTransacaoFaturaForm
                     fatura={selectedFatura}
+                    empresas={empresas}
+                    planos={planos}
                     onCancel={() => setShowImportForm(false)}
                     onSuccess={handleTransacaoImportada}
                   />

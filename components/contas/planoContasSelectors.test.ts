@@ -13,6 +13,7 @@ import {
   isPlanoContaSelecionavel,
   matchesContaPlanoCentroSearch,
   matchesPlanoContaSearch,
+  resolvePlanoContaComboboxOptions,
   resolvePlanosMaisUsados,
 } from './planoContasSelectors.ts';
 
@@ -210,6 +211,28 @@ test('resolvePlanosMaisUsados preserves usage order and ignores non-selectable i
       ['software', 5],
       ['energia', 3],
     ]
+  );
+});
+
+test('resolvePlanoContaComboboxOptions falls back to selectable leaves when no usage ranking exists', () => {
+  const planos = [
+    { id: 'grupo', codigo: '5.2', nome: 'Despesas Administrativas', nivel: 2 as const, natureza: 'saida' as const, ativo: true, ordem: 1 },
+    { id: 'energia', codigo: '5.2.3', nome: 'Energia Eletrica', parent_id: 'grupo', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 3 },
+    { id: 'software', codigo: '5.2.11', nome: 'Softwares e plataformas', parent_id: 'grupo', nivel: 3 as const, natureza: 'saida' as const, ativo: true, ordem: 11 },
+    { id: 'receita', codigo: '3.1.1', nome: 'Mensalidades', nivel: 3 as const, natureza: 'entrada' as const, ativo: true, ordem: 1 },
+  ];
+
+  assert.deepEqual(
+    resolvePlanoContaComboboxOptions(planos, [], '').map((item) => item.plano.id),
+    ['energia', 'software']
+  );
+
+  assert.deepEqual(
+    resolvePlanoContaComboboxOptions(planos, [{ plano_conta_id: 'software', total: 5 }], '').map((item) => [
+      item.plano.id,
+      item.total,
+    ]),
+    [['software', 5]]
   );
 });
 

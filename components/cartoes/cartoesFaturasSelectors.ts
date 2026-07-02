@@ -5,7 +5,8 @@ import type {
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacao,
 } from '../../types/cartoes';
-import type { FinanceiroEmpresa } from '../../types/contasPagar';
+import type { FinanceiroEmpresa, PlanoConta } from '../../types/contasPagar';
+import { isPlanoContaSelecionavel } from '../contas/planoContasSelectors.ts';
 
 export type FaturasFiltro = {
   cartaoId: string;
@@ -157,12 +158,40 @@ export type TransacaoImportadaInput = {
   is_parcela?: boolean;
   parcela_atual?: number | null;
   total_parcelas?: number | null;
+  empresa_id?: string | null;
+  centro_custo_id?: string | null;
+  plano_conta_id?: string | null;
+  plano_conta?: (Pick<PlanoConta, 'ativo' | 'natureza' | 'nivel'> & Partial<PlanoConta>) | null;
 };
+
+export type TransacaoImportadaClassificacaoState = 'pendente' | 'confirmada' | 'parcial';
+
+export const TRANSACAO_IMPORTADA_CLASSIFICACAO_PARCIAL_MESSAGE =
+  'Complete empresa e plano para classificar agora, ou deixe ambos em branco para adicionar como pendente.';
 
 export function isFaturaImportacaoManualDisponivel(
   fatura: Pick<FinanceiroCartaoFatura, 'status'>
 ): boolean {
   return fatura.status === 'aberta';
+}
+
+export function getTransacaoImportadaClassificacaoState(
+  input: Pick<
+    TransacaoImportadaInput,
+    'empresa_id' | 'centro_custo_id' | 'plano_conta_id' | 'plano_conta'
+  >
+): TransacaoImportadaClassificacaoState {
+  const hasEmpresa = Boolean(String(input.empresa_id || '').trim());
+  const hasCentro = Boolean(String(input.centro_custo_id || '').trim());
+  const hasPlano = Boolean(String(input.plano_conta_id || '').trim());
+
+  if (!hasEmpresa && !hasCentro && !hasPlano) return 'pendente';
+
+  if (hasEmpresa && hasCentro && hasPlano && input.plano_conta && isPlanoContaSelecionavel(input.plano_conta)) {
+    return 'confirmada';
+  }
+
+  return 'parcial';
 }
 
 export function validateTransacaoImportadaInput(input: TransacaoImportadaInput): string | null {
@@ -184,6 +213,10 @@ export function validateTransacaoImportadaInput(input: TransacaoImportadaInput):
     ) {
       return 'Informe parcelas no formato correto.';
     }
+  }
+
+  if (getTransacaoImportadaClassificacaoState(input) === 'parcial') {
+    return TRANSACAO_IMPORTADA_CLASSIFICACAO_PARCIAL_MESSAGE;
   }
 
   return null;
@@ -210,6 +243,13 @@ export function buildTransacaoImportadaPayload(
   if (input.is_parcela) {
     payload.parcela_atual = Number(input.parcela_atual);
     payload.total_parcelas = Number(input.total_parcelas);
+  }
+
+  if (getTransacaoImportadaClassificacaoState(input) === 'confirmada') {
+    payload.classificacao_status = 'confirmada';
+    payload.empresa_id = input.empresa_id || null;
+    payload.centro_custo_id = input.centro_custo_id || null;
+    payload.plano_conta_id = input.plano_conta_id || null;
   }
 
   return Object.fromEntries(
