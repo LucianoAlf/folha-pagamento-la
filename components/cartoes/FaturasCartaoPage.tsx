@@ -238,7 +238,7 @@ const FaturaCard: React.FC<{
   const pendencias = getFaturaPendenciasClassificacao(fatura);
 
   return (
-    <Card className="p-5 md:p-6 transition-all hover:border-line-strong hover:bg-surface/80">
+    <Card className="p-5 md:p-6 bg-surface/90 border border-line-strong/60 shadow-[var(--shadow-card)] transition-all hover:border-line-strong hover:bg-surface">
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_minmax(240px,0.8fr)_minmax(180px,0.5fr)_auto] gap-5 items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
