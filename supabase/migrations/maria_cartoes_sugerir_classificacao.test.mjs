@@ -1,10 +1,24 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const read = (file) => readFileSync(new URL(`./${file}`, import.meta.url), 'utf8');
+const readOptional = (file) => {
+  const url = new URL(`./${file}`, import.meta.url);
+  return existsSync(url) ? readFileSync(url, 'utf8') : '';
+};
+const functionBody = (source, name) => {
+  const marker = new RegExp(`create or replace function public\\.${name}\\(`, 'i');
+  const start = source.search(marker);
+  if (start < 0) return '';
+  const rest = source.slice(start);
+  const end = rest.search(/\n\$\$;\s*\n/i);
+  return end < 0 ? rest : rest.slice(0, end);
+};
 
 const sql = read('20260703_1_maria_cartoes_sugerir_classificacao.sql');
+const sqlV2 = readOptional('20260703_2_maria_cartoes_sugestao_v2.sql');
+const sqlV2AliasFix = readOptional('20260703_3_maria_cartoes_sugestao_v2_alias_fix.sql');
 
 test('Fatia C versions the editable Maria classification rules table with least-privilege grants and seed', () => {
   assert.match(sql, /create table if not exists public\.maria_classificacao_regras/i);
@@ -69,4 +83,57 @@ test('Suggested classification never confirms and validates the M8 triad before 
   assert.match(sql, /'classificacao_status',\s*'sugerida'/i);
   assert.doesNotMatch(sql, /'classificacao_status',\s*'confirmada'/i);
   assert.match(sql, /if p_aplicar and v_acao = 'sugerida' then/i);
+});
+
+test('Fatia C v2 removes the p_aplicar flag and exposes separate read-only and apply RPCs', () => {
+  assert.match(sqlV2, /drop function if exists public\.maria_cartoes_sugerir_classificacao\(\s*text,\s*text,\s*text,\s*uuid,\s*date,\s*boolean,\s*numeric,\s*text,\s*text\s*\)/i);
+  assert.match(sqlV2, /create or replace function public\.maria_cartoes_classificacao_sugestoes_calcular\(/i);
+  assert.match(sqlV2, /create or replace function public\.maria_cartoes_sugerir_classificacao\(\s*p_ator_numero text,\s*p_papel text,\s*p_canal text,\s*p_cartao_id uuid,\s*p_competencia date,\s*p_limiar_confianca numeric default 0\.80/i);
+  assert.match(sqlV2, /create or replace function public\.maria_cartoes_aplicar_sugestao\(\s*p_ator_numero text,\s*p_papel text,\s*p_canal text,\s*p_cartao_id uuid,\s*p_competencia date,\s*p_limiar_confianca numeric default 0\.80/i);
+  assert.doesNotMatch(functionBody(sqlV2, 'maria_cartoes_sugerir_classificacao'), /p_aplicar|financeiro_cartao_transacao_classificar|maria_audit_insert/i);
+  assert.match(functionBody(sqlV2, 'maria_cartoes_sugerir_classificacao'), /'aplicado',\s*false/i);
+  assert.match(functionBody(sqlV2, 'maria_cartoes_aplicar_sugestao'), /financeiro_cartao_transacao_classificar/i);
+  assert.match(functionBody(sqlV2, 'maria_cartoes_aplicar_sugestao'), /maria_audit_insert/i);
+  assert.match(functionBody(sqlV2, 'maria_cartoes_aplicar_sugestao'), /'aplicado',\s*true/i);
+});
+
+test('Fatia C v2 keeps regra precedence over history and leaves rule-null or history conflict pending', () => {
+  const helper = functionBody(sqlV2, 'maria_cartoes_classificacao_sugestoes_calcular');
+  assert.match(helper, /Regra ativa tem precedencia sobre historico/i);
+  assert.match(helper, /position\(r\.palavra_chave in v_texto_norm\) > 0/i);
+  assert.match(helper, /if v_regra_sem_sugestao then[\s\S]*v_acao := 'pendente'[\s\S]*v_origem := 'regra_sem_sugestao'/i);
+  assert.match(helper, /if v_plano_id is null and not v_regra_sem_sugestao then[\s\S]*historico_plano as/i);
+  assert.match(helper, /v_historico_conflito := true[\s\S]*v_acao := 'conflito'[\s\S]*v_origem := 'historico_conflito'/i);
+  assert.match(helper, /if v_confianca < p_limiar_confianca then[\s\S]*v_acao := 'pendente'/i);
+});
+
+test('Fatia C v2 apply path can only touch pending rows and never confirms classifications', () => {
+  const helper = functionBody(sqlV2, 'maria_cartoes_classificacao_sugestoes_calcular');
+  const apply = functionBody(sqlV2, 'maria_cartoes_aplicar_sugestao');
+  assert.match(helper, /where t\.fatura_id = v_fatura_id[\s\S]*t\.classificacao_status = 'pendente'/i);
+  assert.match(apply, /from jsonb_to_recordset\(v_calc->'linhas'\)[\s\S]*where linha\.acao = 'sugerida'/i);
+  assert.match(apply, /'classificacao_status',\s*'sugerida'/i);
+  assert.doesNotMatch(apply, /'classificacao_status',\s*'confirmada'/i);
+  assert.doesNotMatch(sqlV2, /update\s+public\.financeiro_cartao_transacoes/i);
+  assert.match(sqlV2, /confirmadas permanecem fora do conjunto calculado/i);
+});
+
+test('Fatia C v2 grants only maria_operacional direct execution on public RPCs', () => {
+  assert.match(sqlV2, /revoke all on function public\.maria_cartoes_classificacao_sugestoes_calcular\([\s\S]*\) from public, anon, authenticated, maria_operacional, maria_leitura/i);
+  assert.match(sqlV2, /revoke all on function public\.maria_cartoes_sugerir_classificacao\([\s\S]*\) from public, anon, authenticated, maria_leitura/i);
+  assert.match(sqlV2, /grant execute on function public\.maria_cartoes_sugerir_classificacao\([\s\S]*\) to maria_operacional/i);
+  assert.match(sqlV2, /revoke all on function public\.maria_cartoes_aplicar_sugestao\([\s\S]*\) from public, anon, authenticated, maria_leitura/i);
+  assert.match(sqlV2, /grant execute on function public\.maria_cartoes_aplicar_sugestao\([\s\S]*\) to maria_operacional/i);
+});
+
+test('Fatia C v2 alias fix avoids PL/pgSQL record variable shadowing jsonb_to_recordset aliases', () => {
+  const apply = functionBody(sqlV2AliasFix, 'maria_cartoes_aplicar_sugestao');
+  assert.match(sqlV2AliasFix, /create or replace function public\.maria_cartoes_aplicar_sugestao/i);
+  assert.match(apply, /v_linha record/i);
+  assert.match(apply, /from jsonb_to_recordset\(v_calc->'linhas'\) as item/i);
+  assert.match(apply, /where item\.acao = 'sugerida'/i);
+  assert.match(apply, /for v_linha in/i);
+  assert.doesNotMatch(apply, /for linha in/i);
+  assert.doesNotMatch(apply, /as linha\(/i);
+  assert.doesNotMatch(apply, /where linha\.acao/i);
 });
