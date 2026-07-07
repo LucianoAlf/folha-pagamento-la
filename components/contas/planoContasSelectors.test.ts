@@ -305,6 +305,23 @@ test('formatContaCentroCustoLabel and search use operational company label for e
   assert.equal(matchesContaPlanoCentroSearch(conta, 'kids cg'), true);
 });
 
+test('card invoice accounts are displayed as payment instruments without a required plan', () => {
+  const conta = {
+    descricao: 'Cartão 8516 Barra 07/2026',
+    tipo_lancamento: 'fatura_cartao',
+    plano_conta: null,
+    centro_custo: { id: 'bar', codigo: 'bar', nome: 'Barra', tipo: 'unidade', ativo: true, ordem: 3 },
+    empresa: { id: 'barra', label_operacional: 'Barra', unidade_id: 'bar' },
+    unidade: 'bar' as const,
+  };
+
+  assert.equal(formatContaPlanoLabel(conta), 'Fatura de cartão');
+  assert.equal(formatContaPlanoCodigo(conta), 'Cartão');
+  assert.equal(formatContaCentroCustoLabel(conta), 'Barra');
+  assert.equal(matchesContaPlanoCentroSearch(conta, 'cartao'), true);
+  assert.equal(matchesContaPlanoCentroSearch(conta, 'fatura'), true);
+});
+
 test('matchesContaPlanoCentroSearch finds descricao, plano and centro without accents', () => {
   const conta = {
     descricao: 'Light loja 171',

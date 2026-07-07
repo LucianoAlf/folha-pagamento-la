@@ -12,3 +12,11 @@ test('edit modal shows Maria audit stamp for agent-registered payment codes', ()
   assert.match(source, /Registro auditado/);
   assert.doesNotMatch(source, /codigo_barras.*Registro auditado|chave_pix.*Registro auditado|qr_pix_payload.*Registro auditado/);
 });
+
+test('edit modal does not require plano de conta for card invoice payables', () => {
+  assert.match(source, /const isFaturaCartao = conta\.tipo_lancamento === 'fatura_cartao'/);
+  assert.match(source, /!isFaturaCartao && !planoContaId/);
+  assert.match(source, /Detalhamento no cartão/);
+  assert.match(source, /evitando duplicidade/);
+  assert.doesNotMatch(source, /disabled=\{saving \|\| !descricao\.trim\(\) \|\| !vencimento \|\| !\(valorNum > 0\) \|\| !planoContaId \|\| !centroCustoId\}/);
+});

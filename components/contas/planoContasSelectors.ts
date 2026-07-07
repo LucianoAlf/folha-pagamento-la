@@ -69,16 +69,18 @@ export function formatPlanoContaLabel(plano: PlanoContaLabelInput): string {
 }
 
 export function formatContaPlanoLabel(conta: ContaPlanoDisplayInput): string {
+  if (conta.tipo_lancamento === 'fatura_cartao') return 'Fatura de cartão';
   if (conta.plano_conta) return formatPlanoContaLabel(conta.plano_conta);
   return 'Sem plano';
 }
 
 export function formatContaPlanoCodigo(conta: ContaPlanoDisplayInput): string {
+  if (conta.tipo_lancamento === 'fatura_cartao') return 'Cartão';
   return conta.plano_conta?.codigo || 'Sem plano';
 }
 
 export function formatContaCentroCustoLabel(conta: ContaPlanoDisplayInput): string {
-  if (conta.tipo_lancamento === 'eventual' && conta.empresa?.label_operacional) return conta.empresa.label_operacional;
+  if ((conta.tipo_lancamento === 'eventual' || conta.tipo_lancamento === 'fatura_cartao') && conta.empresa?.label_operacional) return conta.empresa.label_operacional;
   if (conta.centro_custo?.nome) return conta.centro_custo.nome;
   return (conta.unidade || 'todas').toUpperCase();
 }
@@ -102,6 +104,7 @@ export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, que
       [
         conta.descricao || '',
         conta.plano_conta?.nome || '',
+        conta.tipo_lancamento === 'fatura_cartao' ? 'fatura cartao fatura de cartao cartao de credito' : '',
         conta.empresa?.label_operacional || '',
         conta.centro_custo?.nome || '',
         conta.unidade || '',
@@ -114,6 +117,7 @@ export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, que
       conta.descricao || '',
       conta.plano_conta?.codigo || '',
       conta.plano_conta?.nome || '',
+      conta.tipo_lancamento === 'fatura_cartao' ? 'fatura cartao fatura de cartao cartao de credito' : '',
       conta.empresa?.label_operacional || '',
       conta.centro_custo?.nome || '',
       conta.unidade || '',

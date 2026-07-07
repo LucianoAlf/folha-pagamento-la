@@ -263,6 +263,11 @@ export const ContasTable: React.FC<{
                             Eventual
                           </span>
                         )}
+                        {c.tipo_lancamento === 'fatura_cartao' && (
+                          <span className="shrink-0 text-[10px] text-info bg-info/10 px-1.5 py-0.5 rounded-md">
+                            Fatura de cartão
+                          </span>
+                        )}
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-bold text-secondary leading-snug">
                         {hasPlanoConta ? (
@@ -408,6 +413,13 @@ export const ContasTable: React.FC<{
                                 <div className="mt-1">
                                   <span className="inline-flex text-[10px] font-black text-info bg-info/10 px-1.5 py-0.5 rounded-md">
                                     Eventual
+                                  </span>
+                                </div>
+                              )}
+                              {c.tipo_lancamento === 'fatura_cartao' && (
+                                <div className="mt-1">
+                                  <span className="inline-flex text-[10px] font-black text-info bg-info/10 px-1.5 py-0.5 rounded-md">
+                                    Fatura de cartão
                                   </span>
                                 </div>
                               )}

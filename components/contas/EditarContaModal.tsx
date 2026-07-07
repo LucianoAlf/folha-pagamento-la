@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, Info, Save } from 'lucide-react';
+import { Bot, CreditCard, Info, Save } from 'lucide-react';
 import { Modal, DatePicker, CustomSelect, ConfirmDialog } from '../UI';
 import { CentroCusto, ContaCredencial, ContaPagar, ContaPagarCodigoMes, FONTE_TIPOS, FonteTipo, PlanoConta, PlanoContaMaisUsado, StatusColetaCodigo } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
@@ -128,13 +128,14 @@ export const EditarContaModal: React.FC<{
 
   const handleSave = async (aplicarAFuturos?: boolean) => {
     if (!conta) return;
+    const isFaturaCartao = conta.tipo_lancamento === 'fatura_cartao';
 
     const patch: Partial<ContaPagar> = {
       descricao: descricao.trim(),
       valor: valorNum,
-      plano_conta_id: planoContaId,
-      centro_custo_id: conta.tipo_lancamento === 'eventual' ? conta.centro_custo_id : centroCustoId,
-      unidade: conta.tipo_lancamento === 'eventual' ? conta.unidade : unidade as any,
+      plano_conta_id: isFaturaCartao ? conta.plano_conta_id ?? null : planoContaId,
+      centro_custo_id: conta.tipo_lancamento === 'eventual' || isFaturaCartao ? conta.centro_custo_id : centroCustoId,
+      unidade: conta.tipo_lancamento === 'eventual' || isFaturaCartao ? conta.unidade : unidade as any,
       data_vencimento: toDateOnly(vencimento),
       competencia,
       tipo_lancamento: conta.tipo_lancamento === 'eventual' || conta.tipo_lancamento === 'fatura_cartao' ? conta.tipo_lancamento : launchType,
@@ -146,7 +147,7 @@ export const EditarContaModal: React.FC<{
       credencial_id: credencialId || null,
       pix_chave_fixa: pixChaveFixa.trim() || null,
       email_pagamento: emailPagamento.trim() || null,
-      ...(launchType === 'parcelada' ? { parcela_atual: parcelaAtual, total_parcelas: totalParcelas } : {}),
+      ...(launchType === 'parcelada' && !isFaturaCartao ? { parcela_atual: parcelaAtual, total_parcelas: totalParcelas } : {}),
     };
 
     // Se for recorrente e não confirmou ainda, pergunta
@@ -213,6 +214,9 @@ export const EditarContaModal: React.FC<{
   };
 
   if (!isOpen || !conta) return null;
+  const isFaturaCartao = conta.tipo_lancamento === 'fatura_cartao';
+  const saveDisabled = saving || !descricao.trim() || !vencimento || !(valorNum > 0) || (!isFaturaCartao && !planoContaId) || (!isFaturaCartao && !centroCustoId);
+  const centroDerivadoLabel = conta.empresa?.label_operacional || conta.centro_custo?.nome || unidade?.toUpperCase() || 'Centro derivado';
 
   return (
     <>
@@ -232,7 +236,7 @@ export const EditarContaModal: React.FC<{
             </button>
             <button
               type="button"
-              disabled={saving || !descricao.trim() || !vencimento || !(valorNum > 0) || !planoContaId || !centroCustoId}
+              disabled={saveDisabled}
               onClick={() => handleSave()}
               className="px-10 py-4 rounded-[2rem] bg-accent hover:bg-accent/80 text-on-accent font-black shadow-xl shadow-accent/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
             >
@@ -271,6 +275,20 @@ export const EditarContaModal: React.FC<{
             </div>
           )}
 
+          {isFaturaCartao && (
+            <div className="rounded-3xl bg-info/10 border border-info/20 p-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-info/15 border border-info/25 flex items-center justify-center text-info shrink-0">
+                <CreditCard size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-info">Fatura de cartão</div>
+                <div className="mt-1 text-xs font-bold text-primary leading-snug">
+                  Esta conta registra somente o pagamento da fatura. O detalhamento por plano fica nas transações do cartão, evitando duplicidade nos gastos.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* A) Dados principais */}
           <div>
             <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-6">
@@ -301,25 +319,38 @@ export const EditarContaModal: React.FC<{
                   <div className="mt-2 text-[10px] text-muted font-bold px-1">{valor ? `Preview: ${valorPreview}` : ''}</div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Plano de conta *</label>
-                  <PlanoContaTreeSelect
-                    planos={planosConta}
-                    maisUsados={planoContaMaisUsados}
-                    value={planoContaId}
-                    onValueChange={setPlanoContaId}
-                    invalid={!planoContaId}
-                  />
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">
+                    Plano de conta{isFaturaCartao ? '' : ' *'}
+                  </label>
+                  {isFaturaCartao ? (
+                    <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
+                      Detalhamento no cartão
+                      <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">
+                        As categorias ficam nas transações da fatura
+                      </div>
+                    </div>
+                  ) : (
+                    <PlanoContaTreeSelect
+                      planos={planosConta}
+                      maisUsados={planoContaMaisUsados}
+                      value={planoContaId}
+                      onValueChange={setPlanoContaId}
+                      invalid={!planoContaId}
+                    />
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Centro de custo *</label>
-                  {conta.tipo_lancamento === 'eventual' ? (
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">
+                    Centro de custo{isFaturaCartao ? '' : ' *'}
+                  </label>
+                  {conta.tipo_lancamento === 'eventual' || isFaturaCartao ? (
                     <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
-                      {conta.empresa?.label_operacional || conta.centro_custo?.nome || unidade?.toUpperCase() || 'Centro derivado da conta pagadora'}
+                      {centroDerivadoLabel}
                       <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">
-                        Derivado da conta pagadora
+                        {isFaturaCartao ? 'Derivado da fatura do cartão' : 'Derivado da conta pagadora'}
                       </div>
                     </div>
                   ) : (
@@ -336,6 +367,14 @@ export const EditarContaModal: React.FC<{
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Tipo de Lançamento</label>
+                  {isFaturaCartao ? (
+                    <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
+                      Fatura de cartão
+                      <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">
+                        Gerada no fechamento do cartão
+                      </div>
+                    </div>
+                  ) : (
                   <div className="flex items-center gap-2 bg-surface/40 border border-line rounded-2xl p-1">
                     {(conta.tipo_lancamento === 'eventual' ? (['eventual'] as const) : (['unica', 'recorrente', 'parcelada'] as const)).map((t) => (
                       <button
@@ -351,9 +390,10 @@ export const EditarContaModal: React.FC<{
                       </button>
                     ))}
                   </div>
+                  )}
                 </div>
               </div>
-              {launchType === 'parcelada' && (
+              {!isFaturaCartao && launchType === 'parcelada' && (
                 <div className="grid grid-cols-2 gap-5 md:gap-6">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Parcela Atual</label>
