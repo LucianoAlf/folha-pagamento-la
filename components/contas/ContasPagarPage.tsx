@@ -220,6 +220,7 @@ export const ContasPagarPage: React.FC<{
   const [filtroTab, setFiltroTab] = useState<FiltroTab>('todas');
   const [dataFiltroInicio, setDataFiltroInicio] = useState<string | undefined>();
   const [dataFiltroFim, setDataFiltroFim] = useState<string | undefined>();
+  const [relatorioDataRef, setRelatorioDataRef] = useState(todayISO);
   const [unidadeFiltro, setUnidadeFiltro] = useState<'todas' | 'cg' | 'rec' | 'bar'>('todas');
   const [grupoPlanoFiltro, setGrupoPlanoFiltro] = useState<string>('all');
   const [comportamentoFiltro, setComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
@@ -266,10 +267,10 @@ export const ContasPagarPage: React.FC<{
     (next: FiltroTab) => {
       setFiltroTab(next);
       if (next === 'data' && !dataFiltroInicio && !dataFiltroFim) {
-        setDataFiltroInicio(todayISO());
+        setDataFiltroInicio(relatorioDataRef);
       }
     },
-    [dataFiltroInicio, dataFiltroFim]
+    [dataFiltroInicio, dataFiltroFim, relatorioDataRef]
   );
 
   // Limpar seleção quando mudam filtros
@@ -3241,6 +3242,8 @@ export const ContasPagarPage: React.FC<{
         unidade={unidadeFiltro}
         unidadeLabel={unidadeLabelAtual}
         geradoPor={operadorNome}
+        dataRef={relatorioDataRef}
+        onDataRefChange={setRelatorioDataRef}
         onCopied={() => toastSuccess('Mensagem copiada. Status: copiado.')}
       />
 

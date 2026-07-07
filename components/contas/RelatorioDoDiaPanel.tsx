@@ -18,10 +18,14 @@ export const RelatorioDoDiaPanel: React.FC<{
   unidade: string;
   unidadeLabel: string;
   geradoPor: string;
+  dataRef?: string;
+  onDataRefChange?: (next: string) => void;
   onCopied?: () => void;
-}> = ({ contas, codigosPorConta, unidade, unidadeLabel, geradoPor, onCopied }) => {
+}> = ({ contas, codigosPorConta, unidade, unidadeLabel, geradoPor, dataRef: dataRefControlled, onDataRefChange, onCopied }) => {
   const hoje = new Date().toISOString().split('T')[0];
-  const [dataRef, setDataRef] = useState(hoje);
+  const [dataRefInternal, setDataRefInternal] = useState(hoje);
+  const dataRef = dataRefControlled || dataRefInternal;
+  const setDataRef = onDataRefChange || setDataRefInternal;
   const [mensagem, setMensagem] = useState('');
   const [relatorioId, setRelatorioId] = useState<string | null>(null);
   const [historico, setHistorico] = useState<ContaPagarRelatorioDia[]>([]);
