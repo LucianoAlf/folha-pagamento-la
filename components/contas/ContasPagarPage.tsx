@@ -29,6 +29,7 @@ import { toDateOnly, formatDateBR } from '../../utils/dateOnly';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../../services/supabase';
 import { ContasSummaryCards } from './ContasSummaryCards';
 import { ContasTable } from './ContasTable';
+import type { FiltroTab } from './contasTableFilters';
 import { NovaContaModal, NovaContaOptions } from './NovaContaModal';
 import { PagarContaModal } from './PagarContaModal';
 import { EditarContaModal } from './EditarContaModal';
@@ -82,8 +83,6 @@ import {
   formatContaPlanoLabel,
   matchesContaPlanoCentroSearch,
 } from './planoContasSelectors';
-
-type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
 type ContasAuditoriaAiSeverity = 'alta' | 'media' | 'baixa';
 
@@ -157,6 +156,7 @@ type ContasAnomaliaNotaRow = {
 };
 
 const COMPARATIVO_THRESHOLD = 20;
+const todayISO = () => new Date().toISOString().split('T')[0];
 
 type PlanoGrupo = { id: string; codigo: string; nome: string };
 
@@ -218,6 +218,8 @@ export const ContasPagarPage: React.FC<{
 
   // Filtros
   const [filtroTab, setFiltroTab] = useState<FiltroTab>('todas');
+  const [dataFiltroInicio, setDataFiltroInicio] = useState<string | undefined>();
+  const [dataFiltroFim, setDataFiltroFim] = useState<string | undefined>();
   const [unidadeFiltro, setUnidadeFiltro] = useState<'todas' | 'cg' | 'rec' | 'bar'>('todas');
   const [grupoPlanoFiltro, setGrupoPlanoFiltro] = useState<string>('all');
   const [comportamentoFiltro, setComportamentoFiltro] = useState<'all' | 'fixo' | 'variavel'>('all');
@@ -260,8 +262,18 @@ export const ContasPagarPage: React.FC<{
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
+  const handleFiltroTabChange = useCallback(
+    (next: FiltroTab) => {
+      setFiltroTab(next);
+      if (next === 'data' && !dataFiltroInicio && !dataFiltroFim) {
+        setDataFiltroInicio(todayISO());
+      }
+    },
+    [dataFiltroInicio, dataFiltroFim]
+  );
+
   // Limpar seleção quando mudam filtros
-  useEffect(() => { clearSelection(); }, [filtroTab, unidadeFiltro, competenciaFiltro, grupoPlanoFiltro, tipoFiltro]);
+  useEffect(() => { clearSelection(); }, [filtroTab, unidadeFiltro, competenciaFiltro, grupoPlanoFiltro, tipoFiltro, dataFiltroInicio, dataFiltroFim]);
   const [competenciaComparar, setCompetenciaComparar] = useState<string>(() => {
     const hoje = new Date();
     const prev = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
@@ -1170,7 +1182,8 @@ export const ContasPagarPage: React.FC<{
 
   // Tabela da Visão Geral:
   // - "Todas" => somente contas do mês selecionado
-  // - outros filtros (Hoje/Vencidas/Próx 7/Próx 30) => busca no universo (multi-mês), evitando surpresa de mês futuro em "Todas"
+  // - atalhos operacionais (Hoje/Vencidas/Próx) => busca no universo pendente
+  // - Data => busca no universo ativo, incluindo pagas, para auditoria histórica por dia/período
   const contasPendentesBase = useMemo(() => {
     return contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && c.status !== 'pago' && matchesCommonFilters(c));
   }, [contas, matchesCommonFilters]);
@@ -1189,9 +1202,20 @@ export const ContasPagarPage: React.FC<{
     );
   }, [contas, matchesCommonFilters, matchesCompetencia]);
 
+  const contasDataOperacional = useMemo(() => {
+    return contas.filter(
+      (c) =>
+        c.status !== 'cancelado' &&
+        c.status !== 'finalizado' &&
+        matchesCommonFilters(c)
+    );
+  }, [contas, matchesCommonFilters]);
+
   const contasParaTabelaVisaoGeral = useMemo(() => {
-    return filtroTab === 'todas' ? contasDoMesOperacional : contasPendentesBase;
-  }, [filtroTab, contasDoMesOperacional, contasPendentesBase]);
+    if (filtroTab === 'todas') return contasDoMesOperacional;
+    if (filtroTab === 'data') return contasDataOperacional;
+    return contasPendentesBase;
+  }, [filtroTab, contasDoMesOperacional, contasDataOperacional, contasPendentesBase]);
 
   const contasParaCalendario = useMemo(() => {
     // calendário: mostra contas do mês (competência) — pendentes e pagas, para visão geral.
@@ -2598,7 +2622,11 @@ export const ContasPagarPage: React.FC<{
           <ContasTable
             contas={auditRows}
             filtro={filtroTab}
-            onFiltroChange={setFiltroTab}
+            onFiltroChange={handleFiltroTabChange}
+            dataInicio={dataFiltroInicio}
+            dataFim={dataFiltroFim}
+            onDataInicioChange={setDataFiltroInicio}
+            onDataFimChange={setDataFiltroFim}
             busca={busca}
             onBuscaChange={setBusca}
             onPagar={(c) => setPagarConta(c)}
@@ -3417,7 +3445,11 @@ export const ContasPagarPage: React.FC<{
           <ContasTable
             contas={contasParaListaOperacional}
             filtro={filtroTab}
-            onFiltroChange={setFiltroTab}
+            onFiltroChange={handleFiltroTabChange}
+            dataInicio={dataFiltroInicio}
+            dataFim={dataFiltroFim}
+            onDataInicioChange={setDataFiltroInicio}
+            onDataFimChange={setDataFiltroFim}
             busca={busca}
             onBuscaChange={setBusca}
             onPagar={(c) => setPagarConta(c)}

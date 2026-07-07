@@ -1,26 +1,30 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, DollarSign, Edit2, Bell, CheckCircle2, Trash2, CheckSquare, Bot } from 'lucide-react';
-import { Badge, Card, Tooltip } from '../UI';
+import { Badge, Card, DatePicker, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { ContaPagar, ContaPagarCodigoMes } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
 import { getCodigoMesBadge, getStatusVisual } from '../../services/contasPagarService';
+import { MariaActionBadge } from '../MariaActionBadge';
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
 import { ParcelasTimeline } from './ParcelasTimeline';
 import { formatDateBR, toDateOnly } from '../../utils/dateOnly';
+import { filterContasForTable, getMariaContaActionInfo } from './contasTableFilters';
+import type { FiltroTab } from './contasTableFilters';
 import {
   formatContaCentroCustoLabel,
   formatContaPlanoCodigo,
   formatContaPlanoLabel,
-  matchesContaPlanoCentroSearch,
 } from './planoContasSelectors';
-
-type FiltroTab = 'todas' | 'hoje' | 'vencidas' | 'prox7' | 'prox30';
 
 export const ContasTable: React.FC<{
   contas: ContaPagar[];
   filtro: FiltroTab;
   onFiltroChange: (f: FiltroTab) => void;
+  dataInicio?: string;
+  dataFim?: string;
+  onDataInicioChange?: (value?: string) => void;
+  onDataFimChange?: (value?: string) => void;
   busca: string;
   onBuscaChange: (q: string) => void;
   onPagar: (conta: ContaPagar) => void;
@@ -31,7 +35,7 @@ export const ContasTable: React.FC<{
   onToggleSelect?: (id: string) => void;
   onToggleSelectAll?: (ids: string[]) => void;
   codigosPorConta?: Record<string, ContaPagarCodigoMes>;
-}> = ({ contas, filtro, onFiltroChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar, selectedIds, onToggleSelect, onToggleSelectAll, codigosPorConta }) => {
+}> = ({ contas, filtro, onFiltroChange, dataInicio, dataFim, onDataInicioChange, onDataFimChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar, selectedIds, onToggleSelect, onToggleSelectAll, codigosPorConta }) => {
   const hasSelection = !!selectedIds && !!onToggleSelect;
   const desktopGridClass = hasSelection
     ? "grid-cols-[40px_minmax(140px,1fr)_96px_102px_104px_228px]"
@@ -47,26 +51,8 @@ export const ContasTable: React.FC<{
   }, [localBusca]);
 
   const filtered = useMemo(() => {
-    const q = (busca || '').trim();
-    const hojeISO = new Date().toISOString().split('T')[0];
-
-    return contas.filter((c) => {
-      if (q && !matchesContaPlanoCentroSearch(c, q)) return false;
-
-      const statusVisual = getStatusVisual(c);
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
-      const venc = new Date(`${c.data_vencimento}T00:00:00`);
-      venc.setHours(0, 0, 0, 0);
-      const diffDias = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (filtro === 'hoje') return c.data_vencimento === hojeISO && c.status === 'pendente';
-      if (filtro === 'vencidas') return statusVisual === 'vencida' && c.data_vencimento !== hojeISO;
-      if (filtro === 'prox7') return diffDias > 0 && diffDias <= 7 && c.status === 'pendente';
-      if (filtro === 'prox30') return diffDias > 0 && diffDias <= 30 && c.status === 'pendente';
-      return true;
-    });
-  }, [contas, busca, filtro]);
+    return filterContasForTable(contas, { filtro, busca, dataInicio, dataFim });
+  }, [contas, busca, filtro, dataInicio, dataFim]);
 
   const badgeFor = (c: ContaPagar) => {
     const s = getStatusVisual(c);
@@ -143,6 +129,7 @@ export const ContasTable: React.FC<{
                 { id: 'todas', label: 'Todas', mobile: 'Todas' },
                 { id: 'hoje', label: 'Hoje', mobile: 'Hoje' },
                 { id: 'vencidas', label: 'Vencidas', mobile: 'Venc.' },
+                { id: 'data', label: 'Data', mobile: 'Data' },
                 { id: 'prox7', label: 'Próx 7 dias', mobile: '7D' },
                 { id: 'prox30', label: 'Próx 30 dias', mobile: '30D' },
               ] as const
@@ -161,6 +148,38 @@ export const ContasTable: React.FC<{
               </button>
             ))}
           </div>
+          {filtro === 'data' && (
+            <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+              <div className="w-full sm:w-[150px]">
+                <DatePicker
+                  value={dataInicio}
+                  onChange={onDataInicioChange || (() => undefined)}
+                  placeholder="De"
+                  className="py-2.5 rounded-xl text-xs"
+                />
+              </div>
+              <div className="w-full sm:w-[150px]">
+                <DatePicker
+                  value={dataFim}
+                  onChange={onDataFimChange || (() => undefined)}
+                  placeholder="Até"
+                  className="py-2.5 rounded-xl text-xs"
+                />
+              </div>
+              {(dataInicio || dataFim) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDataInicioChange?.(undefined);
+                    onDataFimChange?.(undefined);
+                  }}
+                  className="px-3 py-2 rounded-xl border border-line bg-surface/40 text-[10px] font-black uppercase tracking-wider text-secondary hover:text-primary hover:bg-surface-2 transition-colors"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="relative w-full lg:w-[360px]">
@@ -217,6 +236,14 @@ export const ContasTable: React.FC<{
               const planoNome = c.plano_conta?.nome || planoLabel;
               const hasPlanoConta = Boolean(c.plano_conta?.codigo && c.plano_conta?.nome);
               const centroLabel = formatContaCentroCustoLabel(c);
+              const mariaAction = getMariaContaActionInfo(c);
+              const mariaActionBadge = mariaAction ? (
+                <MariaActionBadge
+                  tooltip={mariaAction.tooltip}
+                  className="align-middle"
+                />
+              ) : null;
+              const showMariaBadgeInStatus = c.status === 'pago';
 
               return (
                 <div key={c.id}>
@@ -268,6 +295,7 @@ export const ContasTable: React.FC<{
                             Fatura de cartão
                           </span>
                         )}
+                        {!showMariaBadgeInStatus && mariaActionBadge}
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs font-bold text-secondary leading-snug">
                         {hasPlanoConta ? (
@@ -307,6 +335,7 @@ export const ContasTable: React.FC<{
                         <div className="flex items-center gap-2 text-success font-black text-xs px-4 py-2">
                           <CheckCircle2 size={14} />
                           Liquidado
+                          {showMariaBadgeInStatus && mariaActionBadge}
                         </div>
                       ) : c.status === 'finalizado' ? (
                         <div className="flex items-center gap-2 text-secondary font-black text-xs px-4 py-2">
@@ -423,6 +452,9 @@ export const ContasTable: React.FC<{
                                   </span>
                                 </div>
                               )}
+                              {!showMariaBadgeInStatus && mariaActionBadge && (
+                                <div className="mt-1">{mariaActionBadge}</div>
+                              )}
                               {codigosPorConta && <div className="mt-1">{codigoBadgeFor(c)}</div>}
                             </div>
                             <div className="shrink-0 flex flex-col items-end gap-1">
@@ -496,6 +528,7 @@ export const ContasTable: React.FC<{
                             <div className="h-8 px-3 rounded-xl bg-success/10 text-success text-[10px] font-black border border-success/20 flex items-center gap-1.5">
                               <CheckCircle2 size={12} />
                               Liquidado
+                              {showMariaBadgeInStatus && mariaActionBadge}
                             </div>
                           )}
                         </div>
