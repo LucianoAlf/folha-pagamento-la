@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useState, useEffect, useMemo, useDeferredValue, 
 import * as Popover from '@radix-ui/react-popover';
 import { api, formatCurrency, getMesNome } from './services/api';
 import { supabase } from './services/supabase';
+import { notifyAnaFolhaAprovada } from './services/folhaAprovacaoWhatsapp';
 import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta, UserProfile } from './types';
 import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, AlertDialog, Modal, Tooltip } from './components/UI';
 import { MobileCollaboratorList } from './components/colaboradores/MobileCollaboratorList';
@@ -1315,10 +1316,31 @@ export default function App() {
 
   const handleUpdateStatus = async (newStatus: string) => {
     if (!folhaAtual) return;
+    const shouldNotifyAna = newStatus === 'aprovada' && folhaAtual.status !== 'aprovada';
+
     try {
       await api.updateFolhaStatus(folhaAtual.id, newStatus);
       setStatusFolha(newStatus);
       setFolhaAtual(prev => prev ? ({ ...prev, status: newStatus as any }) : null);
+
+      if (shouldNotifyAna) {
+        try {
+          await notifyAnaFolhaAprovada({ mes: folhaAtual.mes, ano: folhaAtual.ano });
+          setAlertState({
+            isOpen: true,
+            title: 'Folha aprovada',
+            message: 'A folha foi aprovada e a Maria avisou a Ana no WhatsApp.',
+            variant: 'primary'
+          });
+        } catch (notifyErr: any) {
+          setAlertState({
+            isOpen: true,
+            title: 'Folha aprovada',
+            message: `A folha foi aprovada, mas não consegui avisar a Ana pelo WhatsApp: ${notifyErr?.message || 'erro desconhecido'}`,
+            variant: 'primary'
+          });
+        }
+      }
     } catch (err: any) {
       setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao atualizar status: ' + err.message, variant: 'danger' });
     }
