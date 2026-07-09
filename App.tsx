@@ -1908,8 +1908,10 @@ export default function App() {
           // No desktop, mantemos um respiro no fundo para não “cortar” a última seção.
           currentModule === 'agenda'
             ? "p-0 pb-28 lg:pb-10"
-            : currentModule === 'contas' || currentModule === 'cartoes' || currentModule === 'folha' || currentModule === 'notificacoes' || currentModule === 'rh'
-              ? "px-4 py-8 pb-28 lg:p-8 lg:pb-10"
+            : currentModule === 'folha' && statusFolha === 'pendente'
+              ? "px-4 py-8 pb-52 lg:p-8 lg:pb-10"
+              : currentModule === 'contas' || currentModule === 'cartoes' || currentModule === 'folha' || currentModule === 'notificacoes' || currentModule === 'rh'
+                ? "px-4 py-8 pb-28 lg:p-8 lg:pb-10"
               : "p-8 pb-28 lg:pb-10"
         )}
       >
@@ -4532,7 +4534,7 @@ export default function App() {
 
             {/* Action Bar Footer (if pending) */}
             {statusFolha === 'pendente' && (
-              <div className="fixed bottom-6 left-0 right-0 px-4 z-40 pointer-events-none">
+              <div className="fixed left-0 right-0 bottom-[calc(88px+env(safe-area-inset-bottom)+12px)] lg:bottom-6 px-4 z-[10400] lg:z-40 pointer-events-none">
                 <div className="max-w-3xl mx-auto pointer-events-auto">
                     <div className="bg-surface-2/90 backdrop-blur-md border border-warning/30 shadow-2xl shadow-black/50 p-4 rounded-2xl flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
