@@ -93,6 +93,7 @@ export interface Lancamento {
   colaborador_id: number;
   unidade: 'cg' | 'rec' | 'bar';
   categoria: CollaboratorDepartment;
+  conta_pagadora_id?: string | null;
   salario: number;
   bonus: number;
   comissao: number;
