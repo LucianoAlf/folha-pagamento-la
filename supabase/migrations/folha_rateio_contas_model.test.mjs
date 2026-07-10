@@ -10,6 +10,10 @@ const model = readFileSync(
   new URL('./20260710_2_folha_rateio_conta_pagadora_model.sql', import.meta.url),
   'utf8'
 );
+const fkIndex = readFileSync(
+  new URL('./20260710_5_folha_rateio_conta_pagadora_fk_index.sql', import.meta.url),
+  'utf8'
+);
 
 test('keeps the already-applied collaborator migration unchanged in history', () => {
   assert.match(legacy, /alter table public\.colaboradores[\s\S]*add column if not exists conta_pagadora_id uuid/i);
@@ -41,4 +45,10 @@ test('guards account writes and validates account-company-center-unit coherence'
   assert.match(model, /join public\.centros_custo cc/i);
   assert.match(model, /new\.unidade is distinct from v_unidade/i);
   assert.match(model, /before insert or update of conta_pagadora_id, unidade/i);
+});
+
+test('adds an account-first covering index for the payer-account foreign key', () => {
+  assert.match(fkIndex, /create index if not exists lancamentos_folha_conta_pagadora_id_idx/i);
+  assert.match(fkIndex, /on public\.lancamentos_folha \(conta_pagadora_id\)/i);
+  assert.doesNotMatch(fkIndex, /drop index/i);
 });
