@@ -3,9 +3,16 @@ import * as Popover from '@radix-ui/react-popover';
 import { api, formatCurrency, getMesNome } from './services/api';
 import { supabase } from './services/supabase';
 import { notifyAnaFolhaAprovada } from './services/folhaAprovacaoWhatsapp';
+import { fetchFinanceiroContasBancarias } from './services/contasPagarService';
 import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta, UserProfile } from './types';
+import type { FinanceiroContaBancaria } from './types/contasPagar';
 import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, AlertDialog, Modal, Tooltip } from './components/UI';
 import { MobileCollaboratorList } from './components/colaboradores/MobileCollaboratorList';
+import {
+  countActiveCollaboratorsWithoutPayer,
+  filterCollaboratorsByPayerStatus,
+  type ContaPagadoraFilter,
+} from './components/colaboradores/contaPagadoraSelectors';
 import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
@@ -236,6 +243,7 @@ export default function App() {
   const [collabSearch, setCollabSearch] = useState('');
   const [collabDeptFilter, setCollabDeptFilter] = useState('all');
   const [collabStatusFilter, setCollabStatusFilter] = useState('active');
+  const [collabPayerFilter, setCollabPayerFilter] = useState<ContaPagadoraFilter>('all');
 
   // Debug instrumentation removida (evita overhead e ruído em produção).
 
@@ -484,6 +492,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [contasPagadoras, setContasPagadoras] = useState<FinanceiroContaBancaria[]>([]);
   const [folhas, setFolhas] = useState<FolhaMensal[]>([]);
   const [folhaAtual, setFolhaAtual] = useState<FolhaMensal | null>(null);
   const [selectedFolhaId, setSelectedFolhaId] = useState<number | null>(null);
@@ -617,7 +626,7 @@ export default function App() {
   };
 
   const filteredColaboradores = useMemo(() => {
-    return colaboradores.filter(c => {
+    return filterCollaboratorsByPayerStatus(colaboradores, collabPayerFilter).filter(c => {
       const matchesSearch = c.nome.toLowerCase().includes(collabSearch.toLowerCase()) || 
                            c.email?.toLowerCase().includes(collabSearch.toLowerCase()) ||
                            c.funcao?.toLowerCase().includes(collabSearch.toLowerCase());
@@ -625,7 +634,12 @@ export default function App() {
       const matchesStatus = collabStatusFilter === 'all' || getEffectiveCollaboratorStatus(c) === collabStatusFilter;
       return matchesSearch && matchesDept && matchesStatus;
     });
-  }, [colaboradores, collabSearch, collabDeptFilter, collabStatusFilter]);
+  }, [colaboradores, collabSearch, collabDeptFilter, collabStatusFilter, collabPayerFilter]);
+
+  const activeCollaboratorsWithoutPayer = useMemo(
+    () => countActiveCollaboratorsWithoutPayer(colaboradores),
+    [colaboradores]
+  );
 
   // If salario_base isn't filled in colaboradores yet, derive it from the selected month launches (sum of "salario")
   const baseSalaryByColabId = useMemo(() => {
@@ -986,6 +1000,17 @@ export default function App() {
     if (userEmail) {
       fetchMetadata({ deferColaboradores: true });
     }
+  }, [userEmail]);
+
+  useEffect(() => {
+    if (!userEmail) {
+      setContasPagadoras([]);
+      return;
+    }
+
+    void fetchFinanceiroContasBancarias()
+      .then(setContasPagadoras)
+      .catch(() => setContasPagadoras([]));
   }, [userEmail]);
 
   // Fetch month data when selection changes
@@ -2825,6 +2850,21 @@ export default function App() {
                   />
                 </div>
 
+                <div className="flex flex-col items-stretch gap-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning">
+                      <WalletCards size={18} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-primary">Conta pagadora da folha</p>
+                      <p className="text-xs text-secondary">Defina de qual conta da LA sai o pagamento integral de cada pessoa.</p>
+                    </div>
+                  </div>
+                  <Badge variant={activeCollaboratorsWithoutPayer > 0 ? 'warning' : 'success'} className="self-start shrink-0 sm:self-auto">
+                    {activeCollaboratorsWithoutPayer} ativos sem conta pagadora
+                  </Badge>
+                </div>
+
                 {/* Toolbar (Mobile-first premium) */}
                 <>
                   {/* Mobile */}
@@ -2874,6 +2914,21 @@ export default function App() {
                               className="w-full"
                             />
                           </div>
+
+                          <div>
+                            <div className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">
+                              Conta pagadora
+                            </div>
+                            <CustomSelect
+                              value={collabPayerFilter}
+                              onValueChange={(value) => setCollabPayerFilter(value as ContaPagadoraFilter)}
+                              options={[
+                                { value: 'all', label: 'Todas as contas' },
+                                { value: 'missing', label: 'Sem conta pagadora' },
+                              ]}
+                              className="w-full"
+                            />
+                          </div>
                         </div>
 
                         {/* Ações */}
@@ -2894,7 +2949,7 @@ export default function App() {
 
                   {/* Desktop (mantém layout atual) */}
                   <div className="hidden lg:flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex flex-1 items-center gap-4 w-full">
+                    <div className="flex flex-1 flex-wrap items-center gap-4 w-full">
                       <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" size={18} />
                         <input 
@@ -2922,6 +2977,15 @@ export default function App() {
                           ...Object.entries(STATUS_LABELS).map(([k, v]) => ({ value: k, label: v }))
                         ]}
                         className="max-w-[180px]"
+                      />
+                      <CustomSelect
+                        value={collabPayerFilter}
+                        onValueChange={(value) => setCollabPayerFilter(value as ContaPagadoraFilter)}
+                        options={[
+                          { value: 'all', label: 'Todas as contas' },
+                          { value: 'missing', label: 'Sem conta pagadora' },
+                        ]}
+                        className="w-[220px] shrink-0"
                       />
                     </div>
 
@@ -3064,6 +3128,7 @@ export default function App() {
                   onClose={() => { setIsCollabModalOpen(false); setEditingCollab(null); }}
                   onSave={handleSaveCollab}
                   initialData={editingCollab || undefined}
+                  contasPagadoras={contasPagadoras}
                 />
               </div>
             )}

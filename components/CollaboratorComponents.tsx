@@ -7,7 +7,9 @@ import {
 } from 'lucide-react';
 import { Card, Badge, CustomSelect, Tooltip, DatePicker } from './UI';
 import { Colaborador, CollaboratorDepartment, CollaboratorContractType, CollaboratorStatus } from '../types';
+import type { FinanceiroContaBancaria } from '../types/contasPagar';
 import { formatCurrency } from '../services/api';
+import { buildContaPagadoraOptions, normalizeContaPagadoraSelection } from './colaboradores/contaPagadoraSelectors';
 
 // --- Constants & Config ---
 
@@ -247,6 +249,7 @@ interface CollaboratorModalProps {
   onClose: () => void;
   onSave: (data: Partial<Colaborador>) => Promise<void>;
   initialData?: Colaborador;
+  contasPagadoras: FinanceiroContaBancaria[];
 }
 
 // --- Shared Form State Hook ---
@@ -381,7 +384,7 @@ const useImageCropper = (updateForm: (u: Partial<Colaborador>) => void) => {
 // MOBILE: Full-Screen Wizard
 // ============================================================
 
-const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
+const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, onClose, onSave, initialData, contasPagadoras }) => {
   const formState = useCollaboratorForm(isOpen, initialData);
   const cropper = useImageCropper(formState.updateForm);
   const { form, updateForm, activeSection, saving, setSaving, submitError, setSubmitError,
@@ -730,6 +733,19 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
           {activeSection === 'banking' && (
             <>
+              <div className="rounded-2xl border border-line bg-surface-2 p-4">
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Empresa / conta pagadora</label>
+                <CustomSelect
+                  value={form.conta_pagadora_id || 'none'}
+                  onValueChange={(v) => updateForm({ conta_pagadora_id: normalizeContaPagadoraSelection(v) })}
+                  options={[
+                    { value: 'none', label: 'Não definida' },
+                    ...buildContaPagadoraOptions(contasPagadoras),
+                  ]}
+                />
+                <p className="mt-2 text-xs text-secondary">Conta da LA de onde sai o pagamento integral deste colaborador. O rateio de custos continua separado.</p>
+              </div>
+
               <div>
                 <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2">Chave PIX</label>
                 <input 
@@ -932,7 +948,7 @@ const CollaboratorWizardMobile: React.FC<CollaboratorModalProps> = ({ isOpen, on
 // DESKTOP: Traditional Modal with Sidebar
 // ============================================================
 
-const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
+const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, onClose, onSave, initialData, contasPagadoras }) => {
   const formState = useCollaboratorForm(isOpen, initialData);
   const cropper = useImageCropper(formState.updateForm);
   const { form, updateForm, activeSection, setActiveSection, saving, setSaving, submitError, setSubmitError,
@@ -1266,6 +1282,19 @@ const CollaboratorModalDesktop: React.FC<CollaboratorModalProps> = ({ isOpen, on
 
             {activeSection === 'banking' && (
               <div className="max-w-2xl space-y-6">
+                <div className="rounded-2xl border border-line bg-surface-2 p-5">
+                  <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Empresa / conta pagadora</label>
+                  <CustomSelect
+                    value={form.conta_pagadora_id || 'none'}
+                    onValueChange={(v) => updateForm({ conta_pagadora_id: normalizeContaPagadoraSelection(v) })}
+                    options={[
+                      { value: 'none', label: 'Não definida' },
+                      ...buildContaPagadoraOptions(contasPagadoras),
+                    ]}
+                  />
+                  <p className="mt-2 text-xs text-secondary">Conta da LA de onde sai o pagamento integral deste colaborador. O rateio de custos continua separado.</p>
+                </div>
+
                 <div>
                   <label className="block text-[10px] font-black text-secondary uppercase tracking-widest mb-2">Chave PIX</label>
                   <input 

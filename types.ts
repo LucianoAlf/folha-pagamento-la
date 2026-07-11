@@ -35,6 +35,7 @@ export interface Colaborador {
   status: CollaboratorStatus;
   
   // Bancário
+  conta_pagadora_id?: string | null;
   banco?: string;
   agencia?: string;
   conta?: string;
