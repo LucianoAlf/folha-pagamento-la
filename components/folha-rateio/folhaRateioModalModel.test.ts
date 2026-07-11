@@ -9,7 +9,11 @@ import {
   formatBrlCents,
   getFolhaRateioSuggestion,
   getFolhaRateioTotals,
+  getRateioUserErrorMessage,
+  getRateioValidationCodeMessage,
+  getRateioValidationMessage,
   parseBrlCents,
+  updateInvalidRateioFields,
   updateFolhaRateioCell,
 } from './folhaRateioModalModel.ts';
 
@@ -72,6 +76,48 @@ test('parses and formats currency inputs exclusively as integer cents', () => {
   assert.equal(parseBrlCents(''), null);
   assert.equal(formatBrlCents(1), 'R$ 0,01');
   assert.equal(formatBrlCents(123456), 'R$ 1.234,56');
+});
+
+test('tracks empty, partial, and invalid money text until a complete value replaces it', () => {
+  const initial = new Set<string>();
+  const empty = updateInvalidRateioFields(initial, 'salario:emla', '');
+  const partial = updateInvalidRateioFields(empty, 'bonus:emla', '12,');
+  const invalid = updateInvalidRateioFields(partial, 'passagem:emla', 'valor');
+  const repaired = updateInvalidRateioFields(invalid, 'salario:emla', 'R$ 10,00');
+
+  assert.deepEqual([...initial], []);
+  assert.deepEqual([...invalid].sort(), ['bonus:emla', 'passagem:emla', 'salario:emla']);
+  assert.deepEqual([...repaired].sort(), ['bonus:emla', 'passagem:emla']);
+});
+
+test('maps validation codes to operational messages without internal identifiers', () => {
+  const message = getRateioValidationMessage({
+    valid: false,
+    diferencas: [],
+    problemas: [{
+      codigo: 'diferenca',
+      mensagem: 'staff_rateado/salario possui diferenca de 37 centavo(s).',
+    }],
+    message: 'staff_rateado/salario possui diferenca de 37 centavo(s).',
+  });
+
+  assert.equal(message, 'A divisao ainda nao fecha. Revise os valores destacados.');
+  assert.equal(
+    getRateioValidationCodeMessage('ancora_ausente'),
+    'Escolha em qual conta os detalhes desta fatia devem permanecer.',
+  );
+  assert.doesNotMatch(message || '', /staff_rateado|37|centavo|id|rpc|postgres/i);
+});
+
+test('preserves known safe service messages and hides raw infrastructure errors', () => {
+  assert.equal(
+    getRateioUserErrorMessage(new Error('Escolha uma conta pagadora ativa e vinculada a uma unidade.')),
+    'Escolha uma conta pagadora ativa e vinculada a uma unidade.',
+  );
+  assert.equal(
+    getRateioUserErrorMessage(new Error('Postgres RPC folha_rateio_contas_salvar failed for id 81')),
+    'Nao foi possivel concluir a operacao. Tente novamente.',
+  );
 });
 
 test('updates one cell immutably and keeps every value in integer cents', () => {

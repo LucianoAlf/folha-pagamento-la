@@ -238,9 +238,9 @@ function createSourceSnapshot(
 
 function protectedLabel(lancamento: Lancamento): string {
   if (lancamento.detalhamento && Object.keys(lancamento.detalhamento).length > 0) {
-    return `Detalhes da linha ${lancamento.id}`;
+    return 'Detalhes adicionais desta fatia';
   }
-  return `Observacao da linha ${lancamento.id}`;
+  return 'Observacao desta fatia';
 }
 
 export function buildFolhaRateioDraft(

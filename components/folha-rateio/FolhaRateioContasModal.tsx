@@ -24,7 +24,11 @@ import {
   getFolhaRateioSuggestion,
   getFolhaRateioTotals,
   getNetCentavos,
+  getRateioUserErrorMessage,
+  getRateioValidationCodeMessage,
+  getRateioValidationMessage,
   parseBrlCents,
+  updateInvalidRateioFields,
   updateFolhaRateioAnchor,
   updateFolhaRateioCell,
 } from './folhaRateioModalModel.ts';
@@ -53,21 +57,20 @@ const COMPONENTE_LABELS: Record<RateioComponente, string> = {
   descontos: 'Descontos',
 };
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message;
-  return 'Nao foi possivel salvar a divisao por conta.';
-}
-
 function MoneyInput({
+  fieldId,
   value,
   label,
   disabled,
   onChange,
+  onTextChange,
 }: {
+  fieldId: string;
   value: number;
   label: string;
   disabled: boolean;
   onChange: (centavos: number) => void;
+  onTextChange: (fieldId: string, rawValue: string) => void;
 }) {
   const focused = useRef(false);
   const [text, setText] = useState(() => formatBrlCents(value));
@@ -83,16 +86,20 @@ function MoneyInput({
       value={text}
       disabled={disabled}
       aria-label={label}
+      aria-invalid={parseBrlCents(text) === null}
       onFocus={(event) => {
         focused.current = true;
         event.currentTarget.select();
       }}
       onBlur={() => {
         focused.current = false;
-        setText(formatBrlCents(value));
+        const formatted = formatBrlCents(value);
+        setText(formatted);
+        onTextChange(fieldId, formatted);
       }}
       onChange={(event) => {
         setText(event.target.value);
+        onTextChange(fieldId, event.target.value);
         const parsed = parseBrlCents(event.target.value);
         if (parsed !== null) onChange(parsed);
       }}
@@ -104,10 +111,12 @@ function MoneyInput({
 function Remaining({ value }: { value: number }) {
   const complete = value === 0;
   return (
-    <Badge variant={complete ? 'success' : 'danger'} className="whitespace-nowrap">
-      {complete ? <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> : null}
-      Restante {formatBrlCents(value)}
-    </Badge>
+    <span role="status" aria-live="polite">
+      <Badge variant={complete ? 'success' : 'danger'} className="whitespace-nowrap">
+        {complete ? <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> : null}
+        Restante {formatBrlCents(value)}
+      </Badge>
+    </span>
   );
 }
 
@@ -171,11 +180,13 @@ function DesktopMatrix({
   categoria,
   disabled,
   onCellChange,
+  onFieldTextChange,
 }: {
   draft: FolhaRateioDraft;
   categoria: FolhaRateioDraftCategoria;
   disabled: boolean;
   onCellChange: (contaId: string, componente: RateioComponente, value: number) => void;
+  onFieldTextChange: (fieldId: string, rawValue: string) => void;
 }) {
   const componentesAtivos = getActiveRateioComponents(categoria);
   const requiresScroll = draft.contas.length > 4;
@@ -213,10 +224,12 @@ function DesktopMatrix({
                   {draft.contas.map((conta) => (
                     <td key={conta.id} className="px-2 py-2">
                       <MoneyInput
+                        fieldId={`${categoria.categoria}:${conta.id}:${componente}`}
                         value={categoria.porConta[conta.id][componente]}
                         disabled={disabled}
                         label={`${COMPONENTE_LABELS[componente]}, ${getContaPagadoraLabel(conta)}, ${CATEGORIA_LABELS[categoria.categoria]}`}
                         onChange={(value) => onCellChange(conta.id, componente, value)}
+                        onTextChange={onFieldTextChange}
                       />
                     </td>
                   ))}
@@ -238,11 +251,13 @@ function MobileAccounts({
   categoria,
   disabled,
   onCellChange,
+  onFieldTextChange,
 }: {
   draft: FolhaRateioDraft;
   categoria: FolhaRateioDraftCategoria;
   disabled: boolean;
   onCellChange: (contaId: string, componente: RateioComponente, value: number) => void;
+  onFieldTextChange: (fieldId: string, rawValue: string) => void;
 }) {
   const componentesAtivos = getActiveRateioComponents(categoria);
   return (
@@ -269,10 +284,12 @@ function MobileAccounts({
                     <Remaining value={restanteCentavos} />
                   </span>
                   <MoneyInput
+                    fieldId={`${categoria.categoria}:${conta.id}:${componente}`}
                     value={categoria.porConta[conta.id][componente]}
                     disabled={disabled}
                     label={`${COMPONENTE_LABELS[componente]}, ${getContaPagadoraLabel(conta)}, ${CATEGORIA_LABELS[categoria.categoria]}`}
                     onChange={(value) => onCellChange(conta.id, componente, value)}
+                    onTextChange={onFieldTextChange}
                   />
                 </label>
               );
@@ -296,6 +313,7 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [savedRemotely, setSavedRemotely] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invalidFields, setInvalidFields] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (isOpen && pessoa) {
@@ -304,6 +322,7 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
       setRefreshing(false);
       setSavedRemotely(false);
       setError(null);
+      setInvalidFields(new Set());
       return;
     }
     setDraft(null);
@@ -317,7 +336,16 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
     () => draft ? getFolhaRateioTotals(draft) : null,
     [draft],
   );
+  const validationMessage = useMemo(
+    () => validation ? getRateioValidationMessage(validation) : null,
+    [validation],
+  );
   const disabled = saving || refreshing || savedRemotely;
+  const hasInvalidFields = invalidFields.size > 0;
+
+  const handleFieldTextChange = (fieldId: string, rawValue: string) => {
+    setInvalidFields((current) => updateInvalidRateioFields(current, fieldId, rawValue));
+  };
 
   const retryRefresh = async () => {
     if (!savedRemotely || refreshing) return;
@@ -326,13 +354,17 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
     try {
       await onSaved();
     } catch (cause) {
-      setError(`A divisao continua salva, mas a tela nao atualizou. ${getErrorMessage(cause)}`);
+      const message = getRateioUserErrorMessage(
+        cause,
+        'Nao foi possivel atualizar os dados. Tente novamente.',
+      );
+      setError(`A divisao continua salva, mas a tela nao atualizou. ${message}`);
       setRefreshing(false);
     }
   };
 
   const handleSave = async () => {
-    if (!draft || !validation?.valid || saving || savedRemotely) return;
+    if (!draft || !validation?.valid || invalidFields.size > 0 || saving || savedRemotely) return;
     setSaving(true);
     setError(null);
     try {
@@ -345,11 +377,18 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
       try {
         await onSaved();
       } catch (cause) {
-        setError(`A divisao foi salva, mas a tela nao atualizou. ${getErrorMessage(cause)}`);
+        const message = getRateioUserErrorMessage(
+          cause,
+          'Nao foi possivel atualizar os dados. Tente novamente.',
+        );
+        setError(`A divisao foi salva, mas a tela nao atualizou. ${message}`);
         setSaving(false);
       }
     } catch (cause) {
-      setError(getErrorMessage(cause));
+      setError(getRateioUserErrorMessage(
+        cause,
+        'Nao foi possivel salvar a divisao. Tente novamente.',
+      ));
       setSaving(false);
     }
   };
@@ -384,8 +423,12 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </div>
-      ) : !validation.valid ? (
-        <p className="text-xs text-danger">{validation.message}</p>
+      ) : hasInvalidFields || validationMessage ? (
+        <p className="text-xs text-danger" role="status" aria-live="polite">
+          {hasInvalidFields
+            ? 'Revise os campos monetarios incompletos ou invalidos.'
+            : validationMessage}
+        </p>
       ) : null}
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -400,7 +443,7 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
         ) : (
           <Button
             variant="primary"
-            disabled={saving || !validation.valid}
+            disabled={saving || hasInvalidFields || !validation.valid}
             onClick={() => void handleSave()}
           >
             <Save className="h-4 w-4" aria-hidden="true" />
@@ -466,6 +509,7 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
                     ? updateFolhaRateioCell(current, categoria.categoria, contaId, componente, value)
                     : current);
                 }}
+                onFieldTextChange={handleFieldTextChange}
               />
               <MobileAccounts
                 draft={draft}
@@ -476,6 +520,7 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
                     ? updateFolhaRateioCell(current, categoria.categoria, contaId, componente, value)
                     : current);
                 }}
+                onFieldTextChange={handleFieldTextChange}
               />
 
               <div className="flex items-center justify-between border-t border-line pt-4 text-sm">
@@ -533,7 +578,7 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
                       role="alert"
                     >
                       <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      <span>{problem.mensagem}</span>
+                      <span>{getRateioValidationCodeMessage(problem.codigo)}</span>
                     </p>
                   ))}
                 </div>
