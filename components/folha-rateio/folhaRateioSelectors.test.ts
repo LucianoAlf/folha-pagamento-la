@@ -5,10 +5,13 @@ import type { Lancamento } from '../../types.ts';
 import type { FolhaContaPagadora } from '../../types/folhaRateio.ts';
 import {
   RATEIO_COMPONENTES,
+  buildFolhaRateioDraft,
+  buildFolhaRateioPayload,
   buildFolhaRateioPessoas,
   fromCents,
   hasProtectedRateioMetadata,
   toCents,
+  validateFolhaRateioDraft,
 } from './folhaRateioSelectors.ts';
 
 function conta(
@@ -328,4 +331,338 @@ test('detects protected structured details and observations', () => {
   assert.equal(hasProtectedRateioMetadata({ ...ana[0], detalhamento: { nota: 'preservar' } }), true);
   assert.equal(hasProtectedRateioMetadata({ ...ana[0], observacao: 'preservar' }), true);
   assert.equal(hasProtectedRateioMetadata({ ...ana[0], detalhamento: {}, observacao: '  ' }), false);
+});
+
+test('builds a lossless draft with only dynamic eligible destination accounts', () => {
+  const draft = buildFolhaRateioDraft(ana, contas.slice(0, 3));
+  const categoria = draft.categorias[0];
+
+  assert.deepEqual(Object.keys(categoria.porConta), ['emla', 'kids', 'rec']);
+  assert.equal(categoria.porConta.rec.salario, 80000);
+  assert.equal(categoria.porConta.rec.bonus, 25000);
+  assert.equal(categoria.porConta.emla.salario, 0);
+  assert.equal(categoria.totais.salario, 275000);
+  assert.deepEqual(categoria.sourceIds, [1, 2, 3]);
+  assert.equal(draft.ancoras[1], 'rec');
+  assert.equal(draft.ancoras[3], '');
+  assert.strictEqual(draft.lancamentos, ana);
+});
+
+test('filters inactive accounts and accounts outside the supported units from the draft', () => {
+  const unsupported = {
+    ...conta('unsupported', 'Unsupported', 'cg'),
+    empresa: {
+      ...conta('unsupported', 'Unsupported', 'cg').empresa!,
+      unidade: {
+        ...conta('unsupported', 'Unsupported', 'cg').empresa!.unidade!,
+        codigo: 'sp',
+      },
+    },
+  } as FolhaContaPagadora;
+  const draft = buildFolhaRateioDraft(ana, [...contas, unsupported]);
+
+  assert.deepEqual(Object.keys(draft.categorias[0].porConta), ['emla', 'kids', 'rec', 'bar']);
+  assert.deepEqual(draft.contas.map((item) => item.id), ['emla', 'kids', 'rec', 'bar']);
+});
+
+test('detects plural observations and all-zero rows as required anchors', () => {
+  const plural = {
+    ...ana[0],
+    id: 50,
+    conta_pagadora_id: null,
+    observacao: undefined,
+    observacoes: 'preservar plural',
+  } as Lancamento & { observacoes: string };
+  const zero = lancamento(
+    {
+      id: 51,
+      colaborador_id: 2,
+      categoria: 'professores',
+      unidade: 'cg',
+    },
+    { nome: 'Ana Paula', funcao: 'RH/DP' },
+  );
+
+  assert.equal(hasProtectedRateioMetadata(plural), true);
+  const draft = buildFolhaRateioDraft([plural, zero], contas);
+  assert.deepEqual(draft.protegidos.map((item) => item.lancamentoId), [50, 51]);
+  assert.equal(draft.ancoras[50], '');
+  assert.equal(draft.ancoras[51], '');
+});
+
+function completeAnaEmEmLa(draft: ReturnType<typeof buildFolhaRateioDraft>): void {
+  const emla = draft.categorias[0].porConta.emla;
+  emla.salario = 125000;
+  emla.bonus = 20000;
+  emla.passagem = 25000;
+  emla.inss = 20068;
+  draft.ancoras[3] = 'emla';
+}
+
+test('reports a one-cent difference without absorbing it into Ana allocation', () => {
+  const draft = buildFolhaRateioDraft(ana, contas);
+  completeAnaEmEmLa(draft);
+  draft.categorias[0].porConta.emla.salario = 124999;
+
+  const validation = validateFolhaRateioDraft(draft);
+  const salaryDifference = validation.diferencas.find(
+    (item) => item.categoria === 'staff_rateado' && item.componente === 'salario',
+  );
+
+  assert.equal(validation.valid, false);
+  assert.deepEqual(salaryDifference, {
+    categoria: 'staff_rateado',
+    componente: 'salario',
+    esperadoCentavos: 275000,
+    alocadoCentavos: 274999,
+    restanteCentavos: 1,
+  });
+  assert.equal(draft.categorias[0].porConta.emla.salario, 124999);
+});
+
+test('accepts Ana only after every component and protected anchor are complete', () => {
+  const draft = buildFolhaRateioDraft(ana, contas);
+  completeAnaEmEmLa(draft);
+
+  assert.deepEqual(validateFolhaRateioDraft(draft), {
+    valid: true,
+    diferencas: [],
+    problemas: [],
+    message: undefined,
+  });
+});
+
+test('blocks two protected anchors in the same category and account', () => {
+  const protectedRows = [
+    { ...ana[0], id: 60, conta_pagadora_id: null, observacao: 'origem A' },
+    { ...ana[0], id: 61, conta_pagadora_id: null, detalhamento: { origem: 'B' } },
+  ];
+  const draft = buildFolhaRateioDraft(protectedRows, contas);
+  draft.categorias[0].porConta.rec.salario = 160000;
+  draft.categorias[0].porConta.rec.bonus = 50000;
+  draft.ancoras[60] = 'rec';
+  draft.ancoras[61] = 'rec';
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) => item.codigo === 'ancora_protegida_duplicada'));
+  assert.match(validation.message || '', /detalhes.*mesma conta/i);
+});
+
+test('requires plural observations to be anchored to an eligible account', () => {
+  const plural = {
+    ...ana[0],
+    id: 62,
+    conta_pagadora_id: null,
+    observacao: undefined,
+    observacoes: 'nota do banco',
+  } as Lancamento & { observacoes: string };
+  const draft = buildFolhaRateioDraft([plural], contas);
+  draft.categorias[0].porConta.rec.salario = 80000;
+  draft.categorias[0].porConta.rec.bonus = 25000;
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) => item.codigo === 'ancora_ausente'));
+  assert.match(validation.message || '', /linha 62.*conta/i);
+});
+
+test('blocks an anchor assigned to an unknown or inactive account', () => {
+  for (const contaId of ['unknown', 'inativa']) {
+    const draft = buildFolhaRateioDraft(ana, contas);
+    completeAnaEmEmLa(draft);
+    draft.ancoras[3] = contaId;
+
+    const validation = validateFolhaRateioDraft(draft);
+
+    assert.equal(validation.valid, false, contaId);
+    assert.ok(
+      validation.problemas.some((item) =>
+        item.codigo === 'conta_invalida' && item.contaId === contaId),
+      contaId,
+    );
+  }
+});
+
+test('validates multiple categories independently', () => {
+  const draft = buildFolhaRateioDraft(anne, contas);
+  draft.categorias[0].porConta.rec.bonus = 9999;
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.deepEqual(
+    validation.diferencas.map((item) => [item.categoria, item.componente, item.restanteCentavos]),
+    [['staff_rateado', 'bonus', 1]],
+  );
+  assert.equal(
+    validation.diferencas.some((item) => item.categoria === 'equipe_operacional'),
+    false,
+  );
+});
+
+test('rejects fractional cents instead of silently rounding draft values', () => {
+  const draft = buildFolhaRateioDraft(ana, contas);
+  completeAnaEmEmLa(draft);
+  draft.categorias[0].porConta.emla.salario = 124999.5;
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) => item.codigo === 'centavos_invalidos'));
+  assert.equal(draft.categorias[0].porConta.emla.salario, 124999.5);
+});
+
+test('builds Ana payload with the protected EMLA ID and exact existing Rec and Bar IDs', () => {
+  const draft = buildFolhaRateioDraft(ana, contas);
+  completeAnaEmEmLa(draft);
+
+  const payload = buildFolhaRateioPayload(draft);
+
+  assert.deepEqual(payload, [
+    {
+      lancamento_id: 3,
+      categoria: 'staff_rateado',
+      conta_pagadora_id: 'emla',
+      salario: 1250,
+      bonus: 200,
+      comissao: 0,
+      passagem: 250,
+      reembolso: 0,
+      inss: 200.68,
+      descontos: 0,
+    },
+    {
+      lancamento_id: 1,
+      categoria: 'staff_rateado',
+      conta_pagadora_id: 'rec',
+      salario: 800,
+      bonus: 250,
+      comissao: 0,
+      passagem: 0,
+      reembolso: 0,
+      inss: 0,
+      descontos: 0,
+    },
+    {
+      lancamento_id: 2,
+      categoria: 'staff_rateado',
+      conta_pagadora_id: 'bar',
+      salario: 700,
+      bonus: 250,
+      comissao: 0,
+      passagem: 0,
+      reembolso: 0,
+      inss: 0,
+      descontos: 0,
+    },
+  ]);
+});
+
+test('emits a protected all-zero row exactly once after it is anchored', () => {
+  const zero = lancamento(
+    {
+      id: 80,
+      colaborador_id: 80,
+      categoria: 'professores',
+      unidade: 'cg',
+    },
+    { nome: 'Zero', funcao: 'Professor' },
+  );
+  const draft = buildFolhaRateioDraft([zero], contas);
+  draft.ancoras[80] = 'emla';
+
+  const payload = buildFolhaRateioPayload(draft);
+
+  assert.equal(payload.length, 1);
+  assert.deepEqual(payload[0], {
+    lancamento_id: 80,
+    categoria: 'professores',
+    conta_pagadora_id: 'emla',
+    salario: 0,
+    bonus: 0,
+    comissao: 0,
+    passagem: 0,
+    reembolso: 0,
+    inss: 0,
+    descontos: 0,
+  });
+});
+
+test('normalizes a protected anchor before carrying its source ID into the payload', () => {
+  const zero = lancamento(
+    {
+      id: 81,
+      colaborador_id: 81,
+      categoria: 'professores',
+      unidade: 'cg',
+    },
+    { nome: 'Zero Espacado', funcao: 'Professor' },
+  );
+  const draft = buildFolhaRateioDraft([zero], contas);
+  draft.ancoras[81] = ' emla ';
+
+  const payload = buildFolhaRateioPayload(draft);
+
+  assert.equal(payload.length, 1);
+  assert.equal(payload[0].conta_pagadora_id, 'emla');
+  assert.equal(payload[0].lancamento_id, 81);
+});
+
+test('never reuses an ID and leaves new extra destination rows with null IDs', () => {
+  const sources = [
+    lancamento(
+      {
+        id: 90,
+        colaborador_id: 90,
+        categoria: 'equipe_operacional',
+        unidade: 'rec',
+        conta_pagadora_id: 'rec',
+        salario: 100,
+        total: 100,
+      },
+      { nome: 'Destino', funcao: 'Operacional' },
+    ),
+    lancamento(
+      {
+        id: 91,
+        colaborador_id: 90,
+        categoria: 'equipe_operacional',
+        unidade: 'bar',
+        conta_pagadora_id: 'bar',
+        salario: 100,
+        total: 100,
+      },
+      { nome: 'Destino', funcao: 'Operacional' },
+    ),
+  ];
+  const draft = buildFolhaRateioDraft(sources, contas);
+  const porConta = draft.categorias[0].porConta;
+  porConta.emla.salario = 5000;
+  porConta.kids.salario = 5000;
+  porConta.rec.salario = 5000;
+  porConta.bar.salario = 5000;
+
+  const payload = buildFolhaRateioPayload(draft);
+  const byAccount = Object.fromEntries(payload.map((item) => [item.conta_pagadora_id, item]));
+  const ids = payload.flatMap((item) => item.lancamento_id === null ? [] : [item.lancamento_id]);
+
+  assert.equal(byAccount.rec.lancamento_id, 90);
+  assert.equal(byAccount.bar.lancamento_id, 91);
+  assert.equal(byAccount.emla.lancamento_id, null);
+  assert.equal(byAccount.kids.lancamento_id, null);
+  assert.equal(new Set(ids).size, ids.length);
+});
+
+test('refuses to build payload from an invalid draft using the validation message', () => {
+  const draft = buildFolhaRateioDraft(ana, contas);
+  completeAnaEmEmLa(draft);
+  draft.categorias[0].porConta.emla.salario = 124999;
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.throws(
+    () => buildFolhaRateioPayload(draft),
+    (error: Error) => error.message === validation.message,
+  );
 });
