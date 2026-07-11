@@ -9,6 +9,7 @@ import {
   createFolhaRateioSaveLifecycle,
   folhaRateioSaveLifecycleReducer,
   formatBrlCents,
+  getContaPagadoraLabel,
   getFolhaRateioSuggestion,
   getFolhaRateioTotals,
   getRateioUserErrorMessage,
@@ -78,6 +79,15 @@ test('parses and formats currency inputs exclusively as integer cents', () => {
   assert.equal(parseBrlCents(''), null);
   assert.equal(formatBrlCents(1), 'R$ 0,01');
   assert.equal(formatBrlCents(123456), 'R$ 1.234,56');
+});
+
+test('shows a concise payer label without repeating company, bank, or agency', () => {
+  const payer = conta('bar', 'bar');
+  payer.conta = '13002358-5';
+  payer.apelido = 'Barra Santander 1534';
+
+  assert.equal(getContaPagadoraLabel(payer), 'BAR · conta 13002358-5');
+  assert.doesNotMatch(getContaPagadoraLabel(payer), /Santander|1534|final/i);
 });
 
 test('tracks empty, partial, and invalid money text until a complete value replaces it', () => {

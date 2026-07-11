@@ -391,8 +391,6 @@ export function getContaPagadoraLabel(conta: FolhaContaPagadora): string {
     || conta.empresa?.nome_fantasia?.trim()
     || conta.empresa?.razao_social?.trim()
     || 'Empresa';
-  const banco = conta.apelido?.trim() || conta.banco.trim() || 'Conta';
-  const digits = conta.conta.replace(/\D/g, '');
-  const final = digits ? `final ${digits.slice(-4)}` : conta.conta.trim();
-  return [empresa, banco, final].filter(Boolean).join(' - ');
+  const numeroConta = conta.conta.trim();
+  return numeroConta ? `${empresa} · conta ${numeroConta}` : empresa;
 }
