@@ -67,3 +67,10 @@ test('offers an explicit refresh retry after close without reopening save', () =
   assert.match(source, /retryPendingRefresh\(pessoa\.colaboradorId\)/);
   assert.doesNotMatch(source, /disabled=\{refreshPending\}/);
 });
+
+test('clears editing and pending refresh state whenever the active payroll changes', () => {
+  assert.match(
+    source,
+    /useEffect\(\(\) => \{[\s\S]*?setEditingPessoa\(null\)[\s\S]*?setPendingRefreshPessoaId\(null\)[\s\S]*?setRefreshingPessoaId\(null\)[\s\S]*?setPendingRefreshError\(null\)[\s\S]*?\}, \[folhaId\]\)/,
+  );
+});

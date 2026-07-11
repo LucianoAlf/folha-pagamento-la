@@ -98,7 +98,7 @@ test('derives reconciled counts, percentage, and positive diagnostics', () => {
     percent: 60,
     diagnostics: [
       { key: 'fatias_sem_conta', label: 'Fatias sem conta', value: 3 },
-      { key: 'conflitos_chave', label: 'Conflitos de chave', value: 1 },
+      { key: 'conflitos_chave', label: 'Divisoes duplicadas', value: 1 },
     ],
   });
 });

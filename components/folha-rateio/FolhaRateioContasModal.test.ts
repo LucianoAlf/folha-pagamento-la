@@ -29,11 +29,23 @@ test('writes only through saveFolhaRateio and cannot repeat a completed remote s
 
 test('shows exact component differences and keeps the save action disabled until valid', () => {
   assert.match(source, /validateFolhaRateioDraft\(draft\)/);
+  assert.match(source, /invalidFields/);
+  assert.match(source, /updateInvalidRateioFields/);
+  assert.match(source, /invalidFields\.size > 0/);
   assert.match(source, /restanteCentavos/);
   assert.match(source, /disabled=\{[^}]*!validation\.valid/s);
   assert.match(source, /Total da pessoa/);
   assert.match(source, /Total distribuido/);
   assert.match(source, /Diferenca/);
+});
+
+test('renders only sanitized validation and error messages with accessible feedback', () => {
+  assert.match(source, /getRateioValidationMessage\(validation\)/);
+  assert.match(source, /getRateioUserErrorMessage/);
+  assert.doesNotMatch(source, />\{validation\.message\}</);
+  assert.match(source, /role="status"/);
+  assert.match(source, /aria-live="polite"/);
+  assert.match(source, /role="alert"/);
 });
 
 test('derives payer columns dynamically without fixed payer names or a four-column layout', () => {

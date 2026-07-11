@@ -60,7 +60,7 @@ export function deriveFolhaRateioProgress(
   const allDiagnostics: FolhaRateioPanelDiagnostic[] = [
     { key: 'fatias_sem_conta', label: 'Fatias sem conta', value: preflight.fatias_sem_conta },
     { key: 'incoerencias_fiscais', label: 'Incoerencias fiscais', value: preflight.incoerencias_fiscais },
-    { key: 'conflitos_chave', label: 'Conflitos de chave', value: preflight.conflitos_chave },
+    { key: 'conflitos_chave', label: 'Divisoes duplicadas', value: preflight.conflitos_chave },
   ];
   const diagnostics = allDiagnostics.filter((item) => item.value > 0);
 

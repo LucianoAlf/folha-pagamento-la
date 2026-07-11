@@ -345,6 +345,12 @@ test('detects protected structured details and observations', () => {
   assert.equal(hasProtectedRateioMetadata({ ...ana[0], detalhamento: {}, observacao: '  ' }), false);
 });
 
+test('uses protected labels without exposing source row identifiers', () => {
+  const draft = buildFolhaRateioDraft([ana[2]], contas);
+  assert.equal(draft.protegidos.length, 1);
+  assert.doesNotMatch(draft.protegidos[0].label, /linha|\b3\b|id/i);
+});
+
 test('builds a lossless draft with only dynamic eligible destination accounts', () => {
   const draft = buildFolhaRateioDraft(ana, contas.slice(0, 3));
   const categoria = draft.categorias[0];

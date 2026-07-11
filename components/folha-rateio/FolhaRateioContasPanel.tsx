@@ -11,6 +11,7 @@ import {
 import { useToast } from '../../hooks/useToast.tsx';
 import { Badge, Button, Card, ErrorState, LoadingSpinner } from '../UI';
 import { FolhaRateioContasModal } from './FolhaRateioContasModal.tsx';
+import { getRateioUserErrorMessage } from './folhaRateioModalModel.ts';
 import {
   buildFolhaRateioPessoas,
   type FolhaRateioPessoa,
@@ -46,8 +47,10 @@ function formatCentavos(value: number): string {
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message;
-  return 'Nao foi possivel carregar a conciliacao por conta pagadora.';
+  return getRateioUserErrorMessage(
+    error,
+    'Nao foi possivel carregar a conciliacao por conta pagadora.',
+  );
 }
 
 export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
@@ -111,6 +114,13 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
       setRefreshingPessoaId(null);
     }
   };
+
+  useEffect(() => {
+    setEditingPessoa(null);
+    setPendingRefreshPessoaId(null);
+    setRefreshingPessoaId(null);
+    setPendingRefreshError(null);
+  }, [folhaId]);
 
   useEffect(() => {
     let cancelled = false;
