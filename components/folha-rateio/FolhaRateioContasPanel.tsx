@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Search, WalletCards } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, RefreshCw, Search, WalletCards } from 'lucide-react';
 
 import type { Lancamento } from '../../types.ts';
 import type { FolhaContaPagadora, FolhaRateioPreflight } from '../../types/folhaRateio.ts';
@@ -67,6 +67,8 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
   const [filtro, setFiltro] = useState<FolhaRateioFiltro>('todos');
   const [editingPessoa, setEditingPessoa] = useState<FolhaRateioPessoa | null>(null);
   const [pendingRefreshPessoaId, setPendingRefreshPessoaId] = useState<number | null>(null);
+  const [refreshingPessoaId, setRefreshingPessoaId] = useState<number | null>(null);
+  const [pendingRefreshError, setPendingRefreshError] = useState<string | null>(null);
 
   const refreshResources = async () => {
     const [nextContas, nextPreflight] = await Promise.all([
@@ -76,6 +78,7 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
     setContas(nextContas);
     setPreflight(nextPreflight);
     setLoadedFolhaId(folhaId);
+    setError(null);
   };
 
   const handleSaved = async () => {
@@ -83,12 +86,29 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
       await onLancamentosChanged();
       await refreshResources();
       setPendingRefreshPessoaId(null);
-      setReloadKey((current) => current + 1);
+      setPendingRefreshError(null);
       setEditingPessoa(null);
       toastSuccess('Divisao por conta atualizada.');
     } catch (cause) {
       setPendingRefreshPessoaId(editingPessoa?.colaboradorId ?? null);
+      setPendingRefreshError(errorMessage(cause));
       throw cause;
+    }
+  };
+
+  const retryPendingRefresh = async (colaboradorId: number) => {
+    if (pendingRefreshPessoaId !== colaboradorId || refreshingPessoaId !== null) return;
+    setRefreshingPessoaId(colaboradorId);
+    setPendingRefreshError(null);
+    try {
+      await onLancamentosChanged();
+      await refreshResources();
+      setPendingRefreshPessoaId(null);
+      toastSuccess('Dados da divisao atualizados.');
+    } catch (cause) {
+      setPendingRefreshError(errorMessage(cause));
+    } finally {
+      setRefreshingPessoaId(null);
     }
   };
 
@@ -113,6 +133,8 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
         setPreflight(nextPreflight);
         setLoadedFolhaId(folhaId);
         setPendingRefreshPessoaId(null);
+        setPendingRefreshError(null);
+        setError(null);
         setLoading(false);
       })
       .catch((cause: unknown) => {
@@ -282,6 +304,7 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
               {pessoasVisiveis.map((pessoa) => {
                 const status = STATUS_CONFIG[pessoa.status];
                 const refreshPending = pendingRefreshPessoaId === pessoa.colaboradorId;
+                const refreshingPessoa = refreshingPessoaId === pessoa.colaboradorId;
                 return (
                   <article key={pessoa.colaboradorId} className="min-w-0 py-4">
                     <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center">
@@ -338,12 +361,28 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
                         </div>
                         <Button
                           variant="outline"
-                          disabled={refreshPending}
+                          disabled={refreshingPessoa}
                           className="min-h-9 px-3 py-2 text-xs"
-                          onClick={() => setEditingPessoa(pessoa)}
+                          onClick={() => {
+                            if (refreshPending) {
+                              void retryPendingRefresh(pessoa.colaboradorId);
+                              return;
+                            }
+                            setEditingPessoa(pessoa);
+                          }}
                         >
-                          {refreshPending ? 'Atualizacao pendente' : 'Ajustar divisao'}
+                          {refreshPending ? (
+                            <>
+                              <RefreshCw className={`h-4 w-4 ${refreshingPessoa ? 'animate-spin' : ''}`} aria-hidden="true" />
+                              {refreshingPessoa ? 'Atualizando' : 'Tentar atualizar'}
+                            </>
+                          ) : 'Ajustar divisao'}
                         </Button>
+                        {refreshPending && pendingRefreshError ? (
+                          <p className="max-w-48 text-right text-xs text-danger" role="alert">
+                            {pendingRefreshError}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </article>

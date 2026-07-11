@@ -28,8 +28,17 @@ test('owns the selected person and requires the parent refresh contract', () => 
 });
 
 test('refreshes parent rows and preflight before closing after save', () => {
+  const handleSavedStart = source.indexOf('const handleSaved = async () =>');
+  const retryStart = source.indexOf('\n  const retryPendingRefresh', handleSavedStart);
+  const effectStart = source.indexOf('\n  useEffect(', handleSavedStart);
+  const handleSavedEnd = retryStart >= 0 ? retryStart : effectStart;
+  const handleSavedSource = source.slice(handleSavedStart, handleSavedEnd);
+
   assert.match(source, /await onLancamentosChanged\(\)/);
   assert.match(source, /await refreshResources\(\)/);
+  assert.equal(handleSavedSource.match(/await refreshResources\(\)/g)?.length, 1);
+  assert.doesNotMatch(handleSavedSource, /setReloadKey\(/);
+  assert.match(source, /const refreshResources = async \(\) => \{[\s\S]*?setError\(null\)/);
   assert.match(source, /setEditingPessoa\(null\)/);
   assert.match(source, /toastSuccess\(/);
   assert.ok(
@@ -50,9 +59,11 @@ test('owns the selected person, always offers adjustment, and renders the modal'
   assert.doesNotMatch(source, /onAdjustPessoa\?/);
 });
 
-test('keeps a saved person blocked after close until refresh succeeds', () => {
+test('offers an explicit refresh retry after close without reopening save', () => {
   assert.match(source, /pendingRefreshPessoaId/);
   assert.match(source, /setPendingRefreshPessoaId\(editingPessoa\?\.colaboradorId/);
-  assert.match(source, /Atualizacao pendente/);
-  assert.match(source, /disabled=\{refreshPending\}/);
+  assert.match(source, /const retryPendingRefresh = async \(colaboradorId: number\)/);
+  assert.match(source, /Tentar atualizar/);
+  assert.match(source, /retryPendingRefresh\(pessoa\.colaboradorId\)/);
+  assert.doesNotMatch(source, /disabled=\{refreshPending\}/);
 });
