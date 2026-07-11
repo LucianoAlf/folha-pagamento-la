@@ -46,7 +46,15 @@ const CATEGORIAS_ORDEM: CollaboratorDepartment[] = [
   'professores',
 ];
 
-export const toCents = (value: number): number => Math.round((Number(value) || 0) * 100);
+export function toCents(value: number): number {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 0;
+
+  const scaledValue = numericValue * 100;
+  const epsilon = Math.sign(scaledValue) * Number.EPSILON * Math.abs(scaledValue);
+  return Math.round(scaledValue + epsilon);
+}
+
 export const fromCents = (value: number): number => value / 100;
 
 export function hasProtectedRateioMetadata(lancamento: Lancamento): boolean {
@@ -91,10 +99,17 @@ function empresaNome(conta: FolhaContaPagadora): string {
   );
 }
 
-function isContaCoerente(lancamento: Lancamento, conta: FolhaContaPagadora | undefined): boolean {
+function isContaElegivel(conta: FolhaContaPagadora | undefined): boolean {
   return Boolean(
     conta?.ativo
     && conta.empresa?.ativo === true
+    && conta.empresa.unidade?.ativo === true
+  );
+}
+
+function isContaCoerente(lancamento: Lancamento, conta: FolhaContaPagadora | undefined): boolean {
+  return Boolean(
+    isContaElegivel(conta)
     && conta.empresa.unidade?.codigo === lancamento.unidade,
   );
 }
@@ -149,7 +164,7 @@ export function buildFolhaRateioPessoas(
       const conta = contasPorId.get(contaId);
       if (isContaCoerente(linha, conta)) linhasCoerentes += 1;
 
-      if (!conta?.ativo || conta.empresa?.ativo !== true) continue;
+      if (!isContaElegivel(conta)) continue;
       const chipAtual = chipsPorConta.get(contaId);
       if (chipAtual) {
         chipAtual.totalCentavos += linhaTotalCentavos;
