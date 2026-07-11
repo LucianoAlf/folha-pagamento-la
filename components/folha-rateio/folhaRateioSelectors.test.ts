@@ -271,6 +271,12 @@ test('distinguishes unassigned from missing, inactive, and incoherent accounts',
   );
   assert.deepEqual(inativa.contas, []);
 
+  const [empresaInativa] = buildFolhaRateioPessoas(
+    [{ ...base, conta_pagadora_id: 'empresa-inativa' }],
+    contas,
+  );
+  assert.deepEqual(empresaInativa.contas, []);
+
   const [incoerente] = buildFolhaRateioPessoas(
     [{ ...base, conta_pagadora_id: 'rec' }],
     contas,

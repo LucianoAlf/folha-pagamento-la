@@ -149,7 +149,7 @@ export function buildFolhaRateioPessoas(
       const conta = contasPorId.get(contaId);
       if (isContaCoerente(linha, conta)) linhasCoerentes += 1;
 
-      if (!conta?.ativo) continue;
+      if (!conta?.ativo || conta.empresa?.ativo !== true) continue;
       const chipAtual = chipsPorConta.get(contaId);
       if (chipAtual) {
         chipAtual.totalCentavos += linhaTotalCentavos;
