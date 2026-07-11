@@ -13,14 +13,19 @@ import {
   buildFolhaRateioPessoas,
   type FolhaRateioPessoa,
 } from './folhaRateioSelectors.ts';
+import {
+  deriveFolhaRateioProgress,
+  filterFolhaRateioPessoas,
+  selectFolhaLancamentos,
+  type FolhaRateioFiltro,
+} from './folhaRateioPanelModel.ts';
 
 export type FolhaRateioContasPanelProps = {
   folhaId: number;
   lancamentos: Lancamento[];
+  refreshToken?: number;
   onAdjustPessoa?: (pessoa: FolhaRateioPessoa, contas: FolhaContaPagadora[]) => void;
 };
-
-type FolhaRateioFiltro = 'todos' | 'pendentes';
 
 const CATEGORIA_LABELS = {
   staff_rateado: 'Staff',
@@ -34,14 +39,6 @@ const STATUS_CONFIG = {
   conciliado: { label: 'Conciliado', variant: 'success' },
 } as const;
 
-function normalizeSearch(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('pt-BR')
-    .trim();
-}
-
 function formatCentavos(value: number): string {
   return formatCurrency(value / 100);
 }
@@ -54,6 +51,7 @@ function errorMessage(error: unknown): string {
 export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
   folhaId,
   lancamentos,
+  refreshToken = 0,
   onAdjustPessoa,
 }) => {
   const [contas, setContas] = useState<FolhaContaPagadora[]>([]);
@@ -94,22 +92,22 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [folhaId, reloadKey]);
+  }, [folhaId, refreshToken, reloadKey]);
 
-  const pessoas = useMemo(
-    () => buildFolhaRateioPessoas(lancamentos, contas),
-    [lancamentos, contas],
+  const folhaLancamentos = useMemo(
+    () => selectFolhaLancamentos(lancamentos, folhaId),
+    [folhaId, lancamentos],
   );
 
-  const pessoasVisiveis = useMemo(() => {
-    const query = normalizeSearch(search);
-    return pessoas.filter((pessoa) => {
-      const pendente = pessoa.status === 'a_conciliar' || pessoa.status === 'parcial';
-      if (filtro === 'pendentes' && !pendente) return false;
-      if (!query) return true;
-      return normalizeSearch(`${pessoa.nome} ${pessoa.funcao}`).includes(query);
-    });
-  }, [filtro, pessoas, search]);
+  const pessoas = useMemo(
+    () => buildFolhaRateioPessoas(folhaLancamentos, contas),
+    [contas, folhaLancamentos],
+  );
+
+  const pessoasVisiveis = useMemo(
+    () => filterFolhaRateioPessoas(pessoas, search, filtro),
+    [filtro, pessoas, search],
+  );
 
   if (loading || loadedFolhaId !== folhaId) return <LoadingSpinner />;
 
@@ -122,17 +120,7 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
     );
   }
 
-  const totalPessoas = Math.max(0, preflight.pessoas_total);
-  const pendentes = Math.max(0, preflight.pessoas_pendentes);
-  const conciliadas = Math.max(0, totalPessoas - pendentes);
-  const progress = totalPessoas === 0
-    ? 0
-    : Math.min(100, Math.max(0, (conciliadas / totalPessoas) * 100));
-  const diagnostics = [
-    { label: 'Fatias sem conta', value: preflight.fatias_sem_conta },
-    { label: 'Incoerencias fiscais', value: preflight.incoerencias_fiscais },
-    { label: 'Conflitos de chave', value: preflight.conflitos_chave },
-  ].filter((item) => item.value > 0);
+  const progress = deriveFolhaRateioProgress(preflight);
 
   return (
     <section className="min-w-0 space-y-4" aria-label="Conciliacao por conta pagadora">
@@ -142,8 +130,8 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase text-muted">Progresso da conciliacao</p>
               <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="text-2xl font-bold text-primary">{conciliadas}</span>
-                <span className="text-sm text-secondary">de {totalPessoas} pessoas conciliadas</span>
+                <span className="text-2xl font-bold text-primary">{progress.reconciled}</span>
+                <span className="text-sm text-secondary">de {progress.total} pessoas conciliadas</span>
               </div>
             </div>
             <Badge variant={preflight.pronto ? 'success' : 'warning'}>
@@ -163,21 +151,21 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
               aria-label="Pessoas conciliadas"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={Math.round(progress)}
+              aria-valuenow={Math.round(progress.percent)}
             >
               <div
                 className={`h-full rounded-full ${preflight.pronto ? 'bg-success' : 'bg-accent'}`}
-                style={{ width: `${progress}%` }}
+                style={{ width: `${progress.percent}%` }}
               />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div>
                 <p className="text-xs text-muted">Pendentes</p>
-                <p className="mt-0.5 text-sm font-semibold text-primary">{pendentes}</p>
+                <p className="mt-0.5 text-sm font-semibold text-primary">{progress.pending}</p>
               </div>
               <div>
                 <p className="text-xs text-muted">Total</p>
-                <p className="mt-0.5 text-sm font-semibold text-primary">{totalPessoas}</p>
+                <p className="mt-0.5 text-sm font-semibold text-primary">{progress.total}</p>
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <p className="text-xs text-muted">Diferenca</p>
@@ -188,10 +176,10 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
             </div>
           </div>
 
-          {diagnostics.length > 0 ? (
+          {progress.diagnostics.length > 0 ? (
             <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-              {diagnostics.map((item) => (
-                <Badge key={item.label} variant="danger">
+              {progress.diagnostics.map((item) => (
+                <Badge key={item.key} variant="danger">
                   {item.label}: {item.value}
                 </Badge>
               ))}
@@ -313,15 +301,15 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
                             {formatCentavos(pessoa.totalCentavos)}
                           </p>
                         </div>
-                        <Button
-                          variant="outline"
-                          className="min-h-9 px-3 py-2 text-xs"
-                          disabled={!onAdjustPessoa}
-                          title={onAdjustPessoa ? 'Ajustar divisao desta pessoa' : 'Ajuste ainda indisponivel'}
-                          onClick={() => onAdjustPessoa?.(pessoa, contas)}
-                        >
-                          Ajustar divisao
-                        </Button>
+                        {onAdjustPessoa ? (
+                          <Button
+                            variant="outline"
+                            className="min-h-9 px-3 py-2 text-xs"
+                            onClick={() => onAdjustPessoa(pessoa, contas)}
+                          >
+                            Ajustar divisao
+                          </Button>
+                        ) : null}
                       </div>
                     </div>
                   </article>
