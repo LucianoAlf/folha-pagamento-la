@@ -224,7 +224,7 @@ Regras obrigatorias do builder/payload:
 - Uma linha protegida sem conta exige escolha explicita em `ancoras`.
 - Uma conta/categoria pode receber no maximo uma ancora protegida.
 - Fatia de destino que reutiliza uma ancora recebe seu `lancamento_id`; fatias adicionais recebem `null`.
-- Uma fatia totalmente zerada nao e enviada.
+- Uma fatia totalmente zerada nao e enviada, exceto quando carrega a ancora de uma linha protegida: nesse caso ela permanece no payload para preservar `detalhamento`/`observacoes`.
 - Cada categoria/componente precisa fechar exatamente com `totais`.
 - O payload final usa `fromCents` e segue `FolhaRateioFatiaInput`.
 
