@@ -365,6 +365,31 @@ test('filters inactive accounts and accounts outside the supported units from th
   assert.deepEqual(draft.contas.map((item) => item.id), ['emla', 'kids', 'rec', 'bar']);
 });
 
+test('deduplicates eligible destination accounts by ID and emits one row per category account', () => {
+  const source = lancamento(
+    {
+      id: 49,
+      colaborador_id: 49,
+      categoria: 'equipe_operacional',
+      unidade: 'cg',
+      conta_pagadora_id: 'emla',
+      salario: 100,
+      total: 100,
+    },
+    { nome: 'Conta Unica', funcao: 'Operacional' },
+  );
+  const firstAccount = contas[0];
+  const duplicateAccount = { ...firstAccount, apelido: 'Duplicada' };
+
+  const draft = buildFolhaRateioDraft([source], [firstAccount, duplicateAccount]);
+  const payload = buildFolhaRateioPayload(draft);
+
+  assert.deepEqual(draft.contas, [firstAccount]);
+  assert.deepEqual(Object.keys(draft.categorias[0].porConta), ['emla']);
+  assert.equal(payload.length, 1);
+  assert.equal(payload[0].conta_pagadora_id, 'emla');
+});
+
 test('detects plural observations and all-zero rows as required anchors', () => {
   const plural = {
     ...ana[0],
@@ -512,6 +537,52 @@ test('rejects fractional cents instead of silently rounding draft values', () =>
   assert.equal(validation.valid, false);
   assert.ok(validation.problemas.some((item) => item.codigo === 'centavos_invalidos'));
   assert.equal(draft.categorias[0].porConta.emla.salario, 124999.5);
+});
+
+test('rejects original source components with more than two decimal places before rounding', () => {
+  const source = lancamento(
+    {
+      id: 63,
+      colaborador_id: 63,
+      categoria: 'equipe_operacional',
+      unidade: 'cg',
+      conta_pagadora_id: 'emla',
+      salario: 1.005,
+      total: 1.005,
+    },
+    { nome: 'Precisao', funcao: 'Operacional' },
+  );
+
+  const draft = buildFolhaRateioDraft([source], contas);
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) =>
+    item.codigo === 'precisao_origem_invalida'
+    && item.lancamentoId === 63
+    && item.componente === 'salario'),
+  );
+  assert.match(validation.message || '', /origem.*duas casas decimais/i);
+  assert.equal(source.salario, 1.005);
+  assert.strictEqual(draft.lancamentos[0], source);
+});
+
+test('rejects a negative allocated cent even when another account compensates the total', () => {
+  const draft = buildFolhaRateioDraft(ana, contas);
+  completeAnaEmEmLa(draft);
+  draft.categorias[0].porConta.emla.salario = -1;
+  draft.categorias[0].porConta.kids.salario = 125001;
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.deepEqual(validation.diferencas, []);
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) =>
+    item.codigo === 'valor_negativo'
+    && item.contaId === 'emla'
+    && item.componente === 'salario'),
+  );
+  assert.match(validation.message || '', /negativ/i);
 });
 
 test('builds Ana payload with the protected EMLA ID and exact existing Rec and Bar IDs', () => {
