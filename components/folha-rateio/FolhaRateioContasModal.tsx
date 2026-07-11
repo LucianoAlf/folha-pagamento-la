@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Lightbulb, RefreshCw, Save, ShieldCheck } from 'lucide-react';
 
 import type { CollaboratorDepartment } from '../../types.ts';
@@ -16,6 +16,8 @@ import {
 } from './folhaRateioSelectors.ts';
 import {
   applyFolhaRateioSuggestion,
+  createFolhaRateioSaveLifecycle,
+  folhaRateioSaveLifecycleReducer,
   formatBrlCents,
   getActiveRateioComponents,
   getCategoryDistributedNetCentavos,
@@ -309,22 +311,30 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
   onSaved,
 }) => {
   const [draft, setDraft] = useState<FolhaRateioDraft | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [savedRemotely, setSavedRemotely] = useState(false);
+  const [saveLifecycle, dispatchSaveLifecycle] = useReducer(
+    folhaRateioSaveLifecycleReducer,
+    undefined,
+    createFolhaRateioSaveLifecycle,
+  );
   const [error, setError] = useState<string | null>(null);
   const [invalidFields, setInvalidFields] = useState<Set<string>>(() => new Set());
+  const openedPessoaId = useRef<number | null>(null);
 
   useEffect(() => {
     if (isOpen && pessoa) {
-      setDraft(buildFolhaRateioDraft(pessoa.lancamentos, contas));
-      setSaving(false);
-      setRefreshing(false);
-      setSavedRemotely(false);
-      setError(null);
-      setInvalidFields(new Set());
+      const openingPessoa = openedPessoaId.current !== pessoa.colaboradorId;
+      if (openingPessoa || saveLifecycle.phase === 'editing') {
+        setDraft(buildFolhaRateioDraft(pessoa.lancamentos, contas));
+        setError(null);
+        setInvalidFields(new Set());
+      }
+      if (openingPessoa) {
+        openedPessoaId.current = pessoa.colaboradorId;
+        dispatchSaveLifecycle({ type: 'reset' });
+      }
       return;
     }
+    openedPessoaId.current = null;
     setDraft(null);
   }, [isOpen, pessoa, contas]);
 
@@ -340,6 +350,11 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
     () => validation ? getRateioValidationMessage(validation) : null,
     [validation],
   );
+  const saving = saveLifecycle.phase === 'saving';
+  const refreshing = saveLifecycle.phase === 'refreshing';
+  const savedRemotely = saveLifecycle.phase === 'refreshing'
+    || saveLifecycle.phase === 'refresh_pending'
+    || saveLifecycle.phase === 'completed';
   const disabled = saving || refreshing || savedRemotely;
   const hasInvalidFields = invalidFields.size > 0;
 
@@ -348,24 +363,30 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
   };
 
   const retryRefresh = async () => {
-    if (!savedRemotely || refreshing) return;
-    setRefreshing(true);
+    if (saveLifecycle.phase !== 'refresh_pending') return;
+    dispatchSaveLifecycle({ type: 'retry_refresh' });
     setError(null);
     try {
       await onSaved();
+      dispatchSaveLifecycle({ type: 'refresh_succeeded' });
     } catch (cause) {
       const message = getRateioUserErrorMessage(
         cause,
         'Nao foi possivel atualizar os dados. Tente novamente.',
       );
       setError(`A divisao continua salva, mas a tela nao atualizou. ${message}`);
-      setRefreshing(false);
+      dispatchSaveLifecycle({ type: 'refresh_failed' });
     }
   };
 
   const handleSave = async () => {
-    if (!draft || !validation?.valid || invalidFields.size > 0 || saving || savedRemotely) return;
-    setSaving(true);
+    if (
+      !draft
+      || !validation?.valid
+      || invalidFields.size > 0
+      || saveLifecycle.phase !== 'editing'
+    ) return;
+    dispatchSaveLifecycle({ type: 'submit' });
     setError(null);
     try {
       await saveFolhaRateio({
@@ -373,23 +394,24 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
         colaboradorId: draft.colaboradorId,
         fatias: buildFolhaRateioPayload(draft),
       });
-      setSavedRemotely(true);
+      dispatchSaveLifecycle({ type: 'remote_saved' });
       try {
         await onSaved();
+        dispatchSaveLifecycle({ type: 'refresh_succeeded' });
       } catch (cause) {
         const message = getRateioUserErrorMessage(
           cause,
           'Nao foi possivel atualizar os dados. Tente novamente.',
         );
         setError(`A divisao foi salva, mas a tela nao atualizou. ${message}`);
-        setSaving(false);
+        dispatchSaveLifecycle({ type: 'refresh_failed' });
       }
     } catch (cause) {
       setError(getRateioUserErrorMessage(
         cause,
         'Nao foi possivel salvar a divisao. Tente novamente.',
       ));
-      setSaving(false);
+      dispatchSaveLifecycle({ type: 'save_failed' });
     }
   };
 

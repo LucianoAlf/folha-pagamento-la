@@ -5,8 +5,10 @@ import type { Lancamento } from '../../types.ts';
 import type { FolhaRateioPreflight } from '../../types/folhaRateio.ts';
 import type { FolhaRateioPessoa, FolhaRateioStatus } from './folhaRateioSelectors.ts';
 import {
+  createFolhaRateioPanelSelection,
   deriveFolhaRateioProgress,
   filterFolhaRateioPessoas,
+  folhaRateioPanelSelectionReducer,
   selectFolhaLancamentos,
 } from './folhaRateioPanelModel.ts';
 
@@ -111,4 +113,69 @@ test('derives zero-safe progress when the payroll has no people', () => {
     percent: 0,
     diagnostics: [],
   });
+});
+
+test('panel selection lifecycle selects, marks pending, retries, and clears on success', () => {
+  const ana = pessoa(2, 'Ana', 'RH', 'parcial');
+  const initial = createFolhaRateioPanelSelection(17);
+  const selected = folhaRateioPanelSelectionReducer(initial, { type: 'select', pessoa: ana });
+  assert.strictEqual(selected.selectedPessoa, ana);
+
+  const pending = folhaRateioPanelSelectionReducer(selected, {
+    type: 'refresh_failed',
+    folhaId: 17,
+    colaboradorId: ana.colaboradorId,
+  });
+  assert.equal(pending.pendingRefreshPessoaId, 2);
+  assert.strictEqual(pending.selectedPessoa, ana);
+
+  const closed = folhaRateioPanelSelectionReducer(pending, { type: 'close_selection' });
+  assert.equal(closed.selectedPessoa, null);
+  assert.equal(closed.pendingRefreshPessoaId, 2);
+
+  const retrying = folhaRateioPanelSelectionReducer(closed, {
+    type: 'retry_refresh',
+    folhaId: 17,
+    colaboradorId: 2,
+  });
+  assert.equal(retrying.refreshingPessoaId, 2);
+
+  const retryFailed = folhaRateioPanelSelectionReducer(retrying, {
+    type: 'refresh_failed',
+    folhaId: 17,
+    colaboradorId: 2,
+  });
+  assert.equal(retryFailed.pendingRefreshPessoaId, 2);
+  assert.equal(retryFailed.refreshingPessoaId, null);
+
+  const cleared = folhaRateioPanelSelectionReducer(retryFailed, {
+    type: 'refresh_succeeded',
+    folhaId: 17,
+  });
+  assert.deepEqual(cleared, createFolhaRateioPanelSelection(17));
+});
+
+test('panel selection lifecycle clears selection and pending state on month switch', () => {
+  const selected = folhaRateioPanelSelectionReducer(
+    createFolhaRateioPanelSelection(17),
+    { type: 'select', pessoa: pessoa(2, 'Ana', 'RH', 'parcial') },
+  );
+  const pending = folhaRateioPanelSelectionReducer(selected, {
+    type: 'refresh_failed',
+    folhaId: 17,
+    colaboradorId: 2,
+  });
+  const nextMonth = folhaRateioPanelSelectionReducer(pending, {
+    type: 'folha_changed',
+    folhaId: 18,
+  });
+
+  assert.deepEqual(nextMonth, createFolhaRateioPanelSelection(18));
+  assert.strictEqual(
+    folhaRateioPanelSelectionReducer(nextMonth, {
+      type: 'refresh_succeeded',
+      folhaId: 17,
+    }),
+    nextMonth,
+  );
 });

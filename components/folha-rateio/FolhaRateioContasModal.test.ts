@@ -27,6 +27,16 @@ test('writes only through saveFolhaRateio and cannot repeat a completed remote s
   assert.doesNotMatch(source, /supabase|\bRPC\b|backend|folha_rateio_contas_salvar/i);
 });
 
+test('uses the executable save lifecycle instead of parallel save booleans', () => {
+  assert.match(source, /useReducer\(\s*folhaRateioSaveLifecycleReducer/);
+  assert.match(source, /saveLifecycle\.phase/);
+  assert.match(source, /openingPessoa \|\| saveLifecycle\.phase === 'editing'/);
+  assert.match(source, /if \(openingPessoa\) \{[\s\S]*?type: 'reset'/);
+  assert.doesNotMatch(source, /const \[saving, setSaving\]/);
+  assert.doesNotMatch(source, /const \[refreshing, setRefreshing\]/);
+  assert.doesNotMatch(source, /const \[savedRemotely, setSavedRemotely\]/);
+});
+
 test('shows exact component differences and keeps the save action disabled until valid', () => {
   assert.match(source, /validateFolhaRateioDraft\(draft\)/);
   assert.match(source, /invalidFields/);

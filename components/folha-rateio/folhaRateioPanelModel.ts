@@ -18,6 +18,76 @@ export type FolhaRateioProgress = {
   diagnostics: FolhaRateioPanelDiagnostic[];
 };
 
+export type FolhaRateioPanelSelection = {
+  folhaId: number;
+  selectedPessoa: FolhaRateioPessoa | null;
+  pendingRefreshPessoaId: number | null;
+  refreshingPessoaId: number | null;
+};
+
+export type FolhaRateioPanelSelectionAction =
+  | { type: 'select'; pessoa: FolhaRateioPessoa }
+  | { type: 'close_selection' }
+  | { type: 'refresh_failed'; folhaId: number; colaboradorId: number }
+  | { type: 'retry_refresh'; folhaId: number; colaboradorId: number }
+  | { type: 'refresh_succeeded'; folhaId: number }
+  | { type: 'clear_pending_refresh'; folhaId: number }
+  | { type: 'folha_changed'; folhaId: number };
+
+export function createFolhaRateioPanelSelection(
+  folhaId: number,
+): FolhaRateioPanelSelection {
+  return {
+    folhaId,
+    selectedPessoa: null,
+    pendingRefreshPessoaId: null,
+    refreshingPessoaId: null,
+  };
+}
+
+export function folhaRateioPanelSelectionReducer(
+  state: FolhaRateioPanelSelection,
+  action: FolhaRateioPanelSelectionAction,
+): FolhaRateioPanelSelection {
+  switch (action.type) {
+    case 'select':
+      return { ...state, selectedPessoa: action.pessoa };
+    case 'close_selection':
+      return state.selectedPessoa === null ? state : { ...state, selectedPessoa: null };
+    case 'refresh_failed':
+      if (action.folhaId !== state.folhaId) return state;
+      return {
+        ...state,
+        pendingRefreshPessoaId: action.colaboradorId,
+        refreshingPessoaId: null,
+      };
+    case 'retry_refresh':
+      if (
+        action.folhaId !== state.folhaId
+        || state.pendingRefreshPessoaId !== action.colaboradorId
+        || state.refreshingPessoaId !== null
+      ) return state;
+      return { ...state, refreshingPessoaId: action.colaboradorId };
+    case 'refresh_succeeded':
+      if (action.folhaId !== state.folhaId) return state;
+      return createFolhaRateioPanelSelection(state.folhaId);
+    case 'clear_pending_refresh':
+      if (action.folhaId !== state.folhaId) return state;
+      if (state.pendingRefreshPessoaId === null && state.refreshingPessoaId === null) return state;
+      return {
+        ...state,
+        pendingRefreshPessoaId: null,
+        refreshingPessoaId: null,
+      };
+    case 'folha_changed':
+      return action.folhaId === state.folhaId
+        ? state
+        : createFolhaRateioPanelSelection(action.folhaId);
+    default:
+      return state;
+  }
+}
+
 function normalizeSearch(value: string): string {
   return value
     .normalize('NFD')

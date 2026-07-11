@@ -6,6 +6,8 @@ import type { FolhaContaPagadora } from '../../types/folhaRateio.ts';
 import { buildFolhaRateioDraft } from './folhaRateioSelectors.ts';
 import {
   applyFolhaRateioSuggestion,
+  createFolhaRateioSaveLifecycle,
+  folhaRateioSaveLifecycleReducer,
   formatBrlCents,
   getFolhaRateioSuggestion,
   getFolhaRateioTotals,
@@ -118,6 +120,59 @@ test('preserves known safe service messages and hides raw infrastructure errors'
     getRateioUserErrorMessage(new Error('Postgres RPC folha_rateio_contas_salvar failed for id 81')),
     'Nao foi possivel concluir a operacao. Tente novamente.',
   );
+});
+
+test('save lifecycle ignores duplicate submit after leaving editing', () => {
+  const editing = createFolhaRateioSaveLifecycle();
+  const saving = folhaRateioSaveLifecycleReducer(editing, { type: 'submit' });
+
+  assert.equal(saving.phase, 'saving');
+  assert.strictEqual(
+    folhaRateioSaveLifecycleReducer(saving, { type: 'submit' }),
+    saving,
+  );
+
+  const refreshing = folhaRateioSaveLifecycleReducer(saving, { type: 'remote_saved' });
+  assert.equal(refreshing.phase, 'refreshing');
+  assert.strictEqual(
+    folhaRateioSaveLifecycleReducer(refreshing, { type: 'submit' }),
+    refreshing,
+  );
+});
+
+test('save lifecycle retries only refresh after remote save and reaches completed', () => {
+  const saving = folhaRateioSaveLifecycleReducer(
+    createFolhaRateioSaveLifecycle(),
+    { type: 'submit' },
+  );
+  const refreshing = folhaRateioSaveLifecycleReducer(saving, { type: 'remote_saved' });
+  const pending = folhaRateioSaveLifecycleReducer(refreshing, { type: 'refresh_failed' });
+
+  assert.equal(pending.phase, 'refresh_pending');
+  assert.strictEqual(
+    folhaRateioSaveLifecycleReducer(pending, { type: 'submit' }),
+    pending,
+  );
+
+  const retrying = folhaRateioSaveLifecycleReducer(pending, { type: 'retry_refresh' });
+  assert.equal(retrying.phase, 'refreshing');
+  const completed = folhaRateioSaveLifecycleReducer(retrying, { type: 'refresh_succeeded' });
+  assert.equal(completed.phase, 'completed');
+});
+
+test('save lifecycle returns to editing after save failure or reset and reopen', () => {
+  const saving = folhaRateioSaveLifecycleReducer(
+    createFolhaRateioSaveLifecycle(),
+    { type: 'submit' },
+  );
+  assert.equal(
+    folhaRateioSaveLifecycleReducer(saving, { type: 'save_failed' }).phase,
+    'editing',
+  );
+
+  const refreshing = folhaRateioSaveLifecycleReducer(saving, { type: 'remote_saved' });
+  const pending = folhaRateioSaveLifecycleReducer(refreshing, { type: 'refresh_failed' });
+  assert.equal(folhaRateioSaveLifecycleReducer(pending, { type: 'reset' }).phase, 'editing');
 });
 
 test('updates one cell immutably and keeps every value in integer cents', () => {

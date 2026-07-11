@@ -21,6 +21,50 @@ export type FolhaRateioSuggestion = {
   unidade: 'rec' | 'bar';
 };
 
+export type FolhaRateioSavePhase =
+  | 'editing'
+  | 'saving'
+  | 'refreshing'
+  | 'refresh_pending'
+  | 'completed';
+
+export type FolhaRateioSaveLifecycle = {
+  phase: FolhaRateioSavePhase;
+};
+
+export type FolhaRateioSaveLifecycleAction =
+  | { type: 'submit' }
+  | { type: 'remote_saved' }
+  | { type: 'save_failed' }
+  | { type: 'refresh_failed' }
+  | { type: 'retry_refresh' }
+  | { type: 'refresh_succeeded' }
+  | { type: 'reset' };
+
+export function createFolhaRateioSaveLifecycle(): FolhaRateioSaveLifecycle {
+  return { phase: 'editing' };
+}
+
+export function folhaRateioSaveLifecycleReducer(
+  state: FolhaRateioSaveLifecycle,
+  action: FolhaRateioSaveLifecycleAction,
+): FolhaRateioSaveLifecycle {
+  if (action.type === 'reset') return createFolhaRateioSaveLifecycle();
+  if (action.type === 'submit' && state.phase === 'editing') return { phase: 'saving' };
+  if (action.type === 'remote_saved' && state.phase === 'saving') return { phase: 'refreshing' };
+  if (action.type === 'save_failed' && state.phase === 'saving') return { phase: 'editing' };
+  if (action.type === 'refresh_failed' && state.phase === 'refreshing') {
+    return { phase: 'refresh_pending' };
+  }
+  if (action.type === 'retry_refresh' && state.phase === 'refresh_pending') {
+    return { phase: 'refreshing' };
+  }
+  if (action.type === 'refresh_succeeded' && state.phase === 'refreshing') {
+    return { phase: 'completed' };
+  }
+  return state;
+}
+
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
