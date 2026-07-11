@@ -345,7 +345,7 @@ test('builds a lossless draft with only dynamic eligible destination accounts', 
   assert.deepEqual(categoria.sourceIds, [1, 2, 3]);
   assert.equal(draft.ancoras[1], 'rec');
   assert.equal(draft.ancoras[3], '');
-  assert.strictEqual(draft.lancamentos, ana);
+  assert.notStrictEqual(draft.lancamentos, ana);
 });
 
 test('refuses empty, mixed-folha, and mixed-collaborator source snapshots', () => {
@@ -641,9 +641,9 @@ test('validates multiple categories independently', () => {
 
 test('rejects an empty mutable source snapshot', () => {
   const draft = buildFolhaRateioDraft(anne, contas);
-  draft.lancamentos = [];
+  const emptySnapshotDraft = { ...draft, sourceSnapshot: [] };
 
-  const validation = validateFolhaRateioDraft(draft);
+  const validation = validateFolhaRateioDraft(emptySnapshotDraft);
 
   assert.equal(validation.valid, false);
   assert.ok(validation.problemas.some((item) => item.codigo === 'draft_vazio'));
@@ -781,7 +781,51 @@ test('rejects original source components with more than two decimal places befor
   );
   assert.match(validation.message || '', /origem.*duas casas decimais/i);
   assert.equal(source.salario, 1.005);
-  assert.strictEqual(draft.lancamentos[0], source);
+  assert.notStrictEqual(draft.lancamentos[0], source);
+});
+
+test('keeps an independent frozen source snapshot when caller and UI rows are mutated', () => {
+  const source = lancamento(
+    {
+      id: 66,
+      colaborador_id: 66,
+      categoria: 'equipe_operacional',
+      unidade: 'cg',
+      conta_pagadora_id: 'emla',
+      salario: 100,
+      total: 100,
+    },
+    { nome: 'Snapshot', funcao: 'Operacional' },
+  );
+  const draft = buildFolhaRateioDraft([source], contas);
+  const snapshot = draft.sourceSnapshot[0];
+
+  assert.notStrictEqual(snapshot, source);
+  assert.notStrictEqual(snapshot.componentesCentavos, draft.categorias[0].totais);
+  assert.notStrictEqual(snapshot.componentesCentavos, draft.categorias[0].porConta.emla);
+  assert.equal(Object.isFrozen(draft.sourceSnapshot), true);
+  assert.equal(Object.isFrozen(snapshot), true);
+  assert.equal(Object.isFrozen(snapshot.componentesCentavos), true);
+
+  source.salario = 50;
+  draft.lancamentos[0].salario = 50;
+  draft.categorias[0].totais.salario = 5000;
+  draft.categorias[0].porConta.emla.salario = 5000;
+
+  const validation = validateFolhaRateioDraft(draft);
+  const salaryDifference = validation.diferencas.find((item) => item.componente === 'salario');
+
+  assert.equal(snapshot.componentesOriginais.salario, 100);
+  assert.equal(snapshot.componentesCentavos.salario, 10000);
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) => item.codigo === 'totais_adulterados'));
+  assert.deepEqual(salaryDifference, {
+    categoria: 'equipe_operacional',
+    componente: 'salario',
+    esperadoCentavos: 10000,
+    alocadoCentavos: 5000,
+    restanteCentavos: 5000,
+  });
 });
 
 test('rejects a negative allocated cent even when another account compensates the total', () => {
@@ -941,6 +985,46 @@ test('never reuses an ID and leaves new extra destination rows with null IDs', (
   assert.equal(byAccount.emla.lancamento_id, null);
   assert.equal(byAccount.kids.lancamento_id, null);
   assert.equal(new Set(ids).size, ids.length);
+});
+
+test('uses snapshot accounts for payload ID selection after UI rows are mutated', () => {
+  const sources = [
+    lancamento(
+      {
+        id: 92,
+        colaborador_id: 92,
+        categoria: 'equipe_operacional',
+        unidade: 'rec',
+        conta_pagadora_id: 'rec',
+        salario: 100,
+        total: 100,
+      },
+      { nome: 'Snapshot IDs', funcao: 'Operacional' },
+    ),
+    lancamento(
+      {
+        id: 93,
+        colaborador_id: 92,
+        categoria: 'equipe_operacional',
+        unidade: 'bar',
+        conta_pagadora_id: 'bar',
+        salario: 100,
+        total: 100,
+      },
+      { nome: 'Snapshot IDs', funcao: 'Operacional' },
+    ),
+  ];
+  const draft = buildFolhaRateioDraft(sources, contas);
+  draft.lancamentos[0].conta_pagadora_id = 'bar';
+  draft.lancamentos[1].conta_pagadora_id = 'rec';
+  draft.ancoras[92] = '';
+  draft.ancoras[93] = '';
+
+  const payload = buildFolhaRateioPayload(draft);
+  const byAccount = Object.fromEntries(payload.map((item) => [item.conta_pagadora_id, item]));
+
+  assert.equal(byAccount.rec.lancamento_id, 92);
+  assert.equal(byAccount.bar.lancamento_id, 93);
 });
 
 test('refuses to build payload from an invalid draft using the validation message', () => {

@@ -29,6 +29,18 @@ export type FolhaRateioDraftProtegido = {
   linhaZerada: boolean;
 };
 
+export type FolhaRateioSourceSnapshotItem = Readonly<{
+  id: number;
+  folhaId: number;
+  colaboradorId: number;
+  categoria: CollaboratorDepartment;
+  contaPagadoraId: string | null;
+  componentesOriginais: Readonly<FolhaRateioComponentesCentavos>;
+  componentesCentavos: Readonly<FolhaRateioComponentesCentavos>;
+  protegido: boolean;
+  linhaZerada: boolean;
+}>;
+
 export type FolhaRateioDraft = {
   folhaId: number;
   colaboradorId: number;
@@ -37,6 +49,7 @@ export type FolhaRateioDraft = {
   ancoras: Record<number, string>;
   protegidos: FolhaRateioDraftProtegido[];
   lancamentos: Lancamento[];
+  readonly sourceSnapshot: readonly FolhaRateioSourceSnapshotItem[];
 };
 
 export type FolhaRateioDraftDifference = {
@@ -66,7 +79,8 @@ export type FolhaRateioDraftProblemCode =
   | 'categoria_duplicada'
   | 'totais_adulterados'
   | 'source_ids_adulterados'
-  | 'valor_origem_negativo';
+  | 'valor_origem_negativo'
+  | 'snapshot_identidade_invalida';
 
 export type FolhaRateioDraftProblem = {
   codigo: FolhaRateioDraftProblemCode;
@@ -157,6 +171,15 @@ function addComponentes(
   }
 }
 
+function addComponentesCentavos(
+  target: FolhaRateioComponentesCentavos,
+  source: Readonly<FolhaRateioComponentesCentavos>,
+): void {
+  for (const componente of RATEIO_COMPONENTES) {
+    target[componente] += source[componente];
+  }
+}
+
 function contaNome(conta: FolhaContaPagadora): string {
   return conta.apelido?.trim() || `${conta.banco} ${conta.conta}`.trim();
 }
@@ -181,10 +204,6 @@ function isContaElegivel(conta: FolhaContaPagadora | undefined): boolean {
   );
 }
 
-function isLancamentoZerado(lancamento: Lancamento): boolean {
-  return RATEIO_COMPONENTES.every((componente) => toCents(lancamento[componente]) === 0);
-}
-
 function hasInvalidSourcePrecision(value: number): boolean {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return true;
@@ -192,6 +211,34 @@ function hasInvalidSourcePrecision(value: number): boolean {
   const scaledValue = numericValue * 100;
   const tolerance = Number.EPSILON * Math.max(1, Math.abs(scaledValue)) * 4;
   return Math.abs(scaledValue - Math.round(scaledValue)) > tolerance;
+}
+
+function createSourceSnapshot(
+  lancamentos: Lancamento[],
+): readonly FolhaRateioSourceSnapshotItem[] {
+  return Object.freeze(lancamentos.map((lancamento) => {
+    const componentesOriginais = emptyComponentes();
+    const componentesCentavos = emptyComponentes();
+    for (const componente of RATEIO_COMPONENTES) {
+      componentesOriginais[componente] = Number(lancamento[componente]);
+      componentesCentavos[componente] = toCents(lancamento[componente]);
+    }
+    const frozenOriginais = Object.freeze(componentesOriginais);
+    const frozenCentavos = Object.freeze(componentesCentavos);
+    return Object.freeze({
+      id: lancamento.id,
+      folhaId: lancamento.folha_id,
+      colaboradorId: lancamento.colaborador_id,
+      categoria: lancamento.categoria,
+      contaPagadoraId: lancamento.conta_pagadora_id?.trim() || null,
+      componentesOriginais: frozenOriginais,
+      componentesCentavos: frozenCentavos,
+      protegido: hasProtectedRateioMetadata(lancamento),
+      linhaZerada: RATEIO_COMPONENTES.every(
+        (componente) => frozenCentavos[componente] === 0,
+      ),
+    } satisfies FolhaRateioSourceSnapshotItem);
+  }));
 }
 
 function protectedLabel(lancamento: Lancamento, linhaZerada: boolean): string {
@@ -209,12 +256,13 @@ export function buildFolhaRateioDraft(
   if (lancamentos.length === 0) {
     throw new Error('O rateio exige ao menos um lancamento de origem.');
   }
-  const primeiroLancamento = lancamentos[0];
-  if (lancamentos.some((lancamento) => lancamento.folha_id !== primeiroLancamento.folha_id)) {
+  const sourceSnapshot = createSourceSnapshot(lancamentos);
+  const primeiroSource = sourceSnapshot[0];
+  if (sourceSnapshot.some((source) => source.folhaId !== primeiroSource.folhaId)) {
     throw new Error('Todos os lancamentos do rateio devem pertencer a mesma folha.');
   }
-  if (lancamentos.some((lancamento) =>
-    lancamento.colaborador_id !== primeiroLancamento.colaborador_id)) {
+  if (sourceSnapshot.some((source) =>
+    source.colaboradorId !== primeiroSource.colaboradorId)) {
     throw new Error('Todos os lancamentos do rateio devem pertencer ao mesmo colaborador.');
   }
 
@@ -229,44 +277,44 @@ export function buildFolhaRateioDraft(
   const ancoras: Record<number, string> = {};
   const protegidos: FolhaRateioDraftProtegido[] = [];
 
-  for (const lancamento of lancamentos) {
-    let categoria = categoriasPorId.get(lancamento.categoria);
+  sourceSnapshot.forEach((source, index) => {
+    const lancamento = lancamentos[index];
+    let categoria = categoriasPorId.get(source.categoria);
     if (!categoria) {
       categoria = {
-        categoria: lancamento.categoria,
+        categoria: source.categoria,
         totais: emptyComponentes(),
         porConta: Object.fromEntries(
           contasElegiveis.map((conta) => [conta.id, emptyComponentes()]),
         ),
         sourceIds: [],
       };
-      categoriasPorId.set(lancamento.categoria, categoria);
+      categoriasPorId.set(source.categoria, categoria);
     }
 
-    categoria.sourceIds.push(lancamento.id);
-    addComponentes(categoria.totais, lancamento);
+    categoria.sourceIds.push(source.id);
+    addComponentesCentavos(categoria.totais, source.componentesCentavos);
 
-    const contaId = lancamento.conta_pagadora_id?.trim() || '';
+    const contaId = source.contaPagadoraId || '';
     if (contasElegiveisPorId.has(contaId)) {
-      addComponentes(categoria.porConta[contaId], lancamento);
-      ancoras[lancamento.id] = contaId;
+      addComponentesCentavos(categoria.porConta[contaId], source.componentesCentavos);
+      ancoras[source.id] = contaId;
     }
 
-    const linhaZerada = isLancamentoZerado(lancamento);
-    if (hasProtectedRateioMetadata(lancamento) || linhaZerada) {
+    if (source.protegido || source.linhaZerada) {
       protegidos.push({
-        lancamentoId: lancamento.id,
-        categoria: lancamento.categoria,
-        label: protectedLabel(lancamento, linhaZerada),
-        linhaZerada,
+        lancamentoId: source.id,
+        categoria: source.categoria,
+        label: protectedLabel(lancamento, source.linhaZerada),
+        linhaZerada: source.linhaZerada,
       });
-      ancoras[lancamento.id] ||= '';
+      ancoras[source.id] ||= '';
     }
-  }
+  });
 
   return {
-    folhaId: primeiroLancamento.folha_id,
-    colaboradorId: primeiroLancamento.colaborador_id,
+    folhaId: primeiroSource.folhaId,
+    colaboradorId: primeiroSource.colaboradorId,
     contas: contasElegiveis,
     categorias: CATEGORIAS_ORDEM.flatMap((categoria) => {
       const draftCategoria = categoriasPorId.get(categoria);
@@ -274,7 +322,8 @@ export function buildFolhaRateioDraft(
     }),
     ancoras,
     protegidos,
-    lancamentos,
+    lancamentos: lancamentos.map((lancamento) => ({ ...lancamento })),
+    sourceSnapshot,
   };
 }
 
@@ -295,17 +344,17 @@ type FolhaRateioSourceCategoria = {
 };
 
 function buildSourceCategorias(
-  lancamentos: Lancamento[],
+  sourceSnapshot: readonly FolhaRateioSourceSnapshotItem[],
 ): Map<CollaboratorDepartment, FolhaRateioSourceCategoria> {
   const categorias = new Map<CollaboratorDepartment, FolhaRateioSourceCategoria>();
-  for (const lancamento of lancamentos) {
-    let categoria = categorias.get(lancamento.categoria);
+  for (const source of sourceSnapshot) {
+    let categoria = categorias.get(source.categoria);
     if (!categoria) {
       categoria = { totais: emptyComponentes(), sourceIds: [] };
-      categorias.set(lancamento.categoria, categoria);
+      categorias.set(source.categoria, categoria);
     }
-    categoria.sourceIds.push(lancamento.id);
-    addComponentes(categoria.totais, lancamento);
+    categoria.sourceIds.push(source.id);
+    addComponentesCentavos(categoria.totais, source.componentesCentavos);
   }
   return categorias;
 }
@@ -324,6 +373,7 @@ function problemPriority(codigo: FolhaRateioDraftProblemCode): number {
     || codigo === 'categoria_duplicada'
     || codigo === 'totais_adulterados'
     || codigo === 'source_ids_adulterados'
+    || codigo === 'snapshot_identidade_invalida'
   ) return 20;
   if (
     codigo === 'conta_duplicada'
@@ -368,17 +418,34 @@ export function validateFolhaRateioDraft(
       });
     }
   }
-  const lancamentosPorId = new Map(draft.lancamentos.map((lancamento) => [lancamento.id, lancamento]));
+  const sourcesPorId = new Map(draft.sourceSnapshot.map((source) => [source.id, source]));
   const categoriasPorId = new Map(
     draft.categorias.map((categoria) => [categoria.categoria, categoria]),
   );
-  const sourceCategorias = buildSourceCategorias(draft.lancamentos);
+  const sourceCategorias = buildSourceCategorias(draft.sourceSnapshot);
   const draftCategorias = new Map<CollaboratorDepartment, FolhaRateioDraftCategoria[]>();
 
-  if (draft.lancamentos.length === 0) {
+  if (draft.sourceSnapshot.length === 0) {
     problemas.push({
       codigo: 'draft_vazio',
       mensagem: 'O rateio nao possui lancamentos de origem.',
+    });
+  }
+
+  const primeiroSource = draft.sourceSnapshot[0];
+  if (
+    primeiroSource
+    && (
+      draft.folhaId !== primeiroSource.folhaId
+      || draft.colaboradorId !== primeiroSource.colaboradorId
+      || draft.sourceSnapshot.some((source) =>
+        source.folhaId !== primeiroSource.folhaId
+        || source.colaboradorId !== primeiroSource.colaboradorId)
+    )
+  ) {
+    problemas.push({
+      codigo: 'snapshot_identidade_invalida',
+      mensagem: 'A identidade da origem do rateio foi alterada.',
     });
   }
 
@@ -443,24 +510,24 @@ export function validateFolhaRateioDraft(
     }
   }
 
-  for (const lancamento of draft.lancamentos) {
+  for (const source of draft.sourceSnapshot) {
     for (const componente of RATEIO_COMPONENTES) {
-      if (Number(lancamento[componente]) < 0) {
+      if (source.componentesOriginais[componente] < 0) {
         problemas.push({
           codigo: 'valor_origem_negativo',
           mensagem: 'A origem do rateio possui um valor negativo.',
-          categoria: lancamento.categoria,
+          categoria: source.categoria,
           componente,
-          lancamentoId: lancamento.id,
+          lancamentoId: source.id,
         });
       }
-      if (!hasInvalidSourcePrecision(lancamento[componente])) continue;
+      if (!hasInvalidSourcePrecision(source.componentesOriginais[componente])) continue;
       problemas.push({
         codigo: 'precisao_origem_invalida',
-        mensagem: `A origem da linha ${lancamento.id} em ${componente} deve ter no maximo duas casas decimais.`,
-        categoria: lancamento.categoria,
+        mensagem: `A origem da linha ${source.id} em ${componente} deve ter no maximo duas casas decimais.`,
+        categoria: source.categoria,
         componente,
-        lancamentoId: lancamento.id,
+        lancamentoId: source.id,
       });
     }
   }
@@ -571,12 +638,12 @@ export function validateFolhaRateioDraft(
     const contaId = rawContaId?.trim();
     if (!contaId) continue;
 
-    const lancamento = lancamentosPorId.get(lancamentoId);
-    if (!lancamento || !contasElegiveis.has(contaId)) {
+    const source = sourcesPorId.get(lancamentoId);
+    if (!source || !contasElegiveis.has(contaId)) {
       problemas.push({
         codigo: 'conta_invalida',
         mensagem: `A ancora da linha ${lancamentoId} aponta para a conta invalida ${contaId}.`,
-        categoria: lancamento?.categoria ?? draft.categorias[0]?.categoria ?? 'staff_rateado',
+        categoria: source?.categoria ?? draft.categorias[0]?.categoria ?? 'staff_rateado',
         lancamentoId,
         contaId,
       });
@@ -584,31 +651,32 @@ export function validateFolhaRateioDraft(
   }
 
   const protectedAnchors = new Map<string, number[]>();
-  for (const protegido of draft.protegidos) {
-    const contaId = draft.ancoras[protegido.lancamentoId]?.trim();
+  for (const source of draft.sourceSnapshot) {
+    if (!source.protegido && !source.linhaZerada) continue;
+    const contaId = draft.ancoras[source.id]?.trim();
     if (!contaId) {
       problemas.push({
         codigo: 'ancora_ausente',
-        mensagem: `A linha ${protegido.lancamentoId} precisa escolher uma conta para preservar seus detalhes.`,
-        categoria: protegido.categoria,
-        lancamentoId: protegido.lancamentoId,
+        mensagem: `A linha ${source.id} precisa escolher uma conta para preservar seus detalhes.`,
+        categoria: source.categoria,
+        lancamentoId: source.id,
       });
       continue;
     }
     if (!contasElegiveis.has(contaId)) continue;
 
-    const key = `${protegido.categoria}\u0000${contaId}`;
+    const key = `${source.categoria}\u0000${contaId}`;
     const ids = protectedAnchors.get(key) || [];
-    ids.push(protegido.lancamentoId);
+    ids.push(source.id);
     protectedAnchors.set(key, ids);
 
-    const categoria = categoriasPorId.get(protegido.categoria);
-    if (categoria && !protegido.linhaZerada && !categoriaHasValues(categoria, contaId)) {
+    const categoria = categoriasPorId.get(source.categoria);
+    if (categoria && !source.linhaZerada && !categoriaHasValues(categoria, contaId)) {
       problemas.push({
         codigo: 'ancora_sem_valores',
-        mensagem: `A conta ${contaId} da linha ${protegido.lancamentoId} precisa receber valores desta categoria.`,
-        categoria: protegido.categoria,
-        lancamentoId: protegido.lancamentoId,
+        mensagem: `A conta ${contaId} da linha ${source.id} precisa receber valores desta categoria.`,
+        categoria: source.categoria,
+        lancamentoId: source.id,
         contaId,
       });
     }
@@ -658,9 +726,11 @@ export function buildFolhaRateioPayload(
     throw new Error(validation.message || 'O rateio possui pendencias e nao pode ser salvo.');
   }
 
-  const lancamentosPorId = new Map(draft.lancamentos.map((lancamento) => [lancamento.id, lancamento]));
-  const protegidosPorId = new Map(
-    draft.protegidos.map((protegido) => [protegido.lancamentoId, protegido]),
+  const sourcesPorId = new Map(draft.sourceSnapshot.map((source) => [source.id, source]));
+  const protegidosPorId = new Set(
+    draft.sourceSnapshot
+      .filter((source) => source.protegido || source.linhaZerada)
+      .map((source) => source.id),
   );
   const idsUsados = new Set<number>();
   const targets: FolhaRateioPayloadTarget[] = [];
@@ -671,9 +741,10 @@ export function buildFolhaRateioPayload(
       const componentes = categoria.porConta[conta.id];
       if (!componentes) continue;
       const hasValues = RATEIO_COMPONENTES.some((componente) => componentes[componente] !== 0);
-      const hasRequiredAnchor = draft.protegidos.some((protegido) =>
-        protegido.categoria === categoria.categoria
-        && draft.ancoras[protegido.lancamentoId]?.trim() === conta.id,
+      const hasRequiredAnchor = draft.sourceSnapshot.some((source) =>
+        source.categoria === categoria.categoria
+        && (source.protegido || source.linhaZerada)
+        && draft.ancoras[source.id]?.trim() === conta.id,
       );
       if (hasValues || hasRequiredAnchor) {
         categoryTargets.push({
@@ -685,7 +756,9 @@ export function buildFolhaRateioPayload(
       }
     }
 
-    const sourceIds = categoria.sourceIds.filter((id) => lancamentosPorId.has(id));
+    const sourceIds = draft.sourceSnapshot
+      .filter((source) => source.categoria === categoria.categoria)
+      .map((source) => source.id);
     const unprotectedSourceIds = sourceIds.filter((id) => !protegidosPorId.has(id));
 
     for (const target of categoryTargets) {
@@ -704,9 +777,9 @@ export function buildFolhaRateioPayload(
       if (target.lancamentoId !== null) continue;
       const exactId = unprotectedSourceIds.find((id) => {
         if (idsUsados.has(id)) return false;
-        const source = lancamentosPorId.get(id);
+        const source = sourcesPorId.get(id);
         const chosenAccount = draft.ancoras[id]?.trim();
-        return source?.conta_pagadora_id?.trim() === target.contaId
+        return source?.contaPagadoraId === target.contaId
           && (!chosenAccount || chosenAccount === target.contaId);
       });
       if (exactId !== undefined) {
