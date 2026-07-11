@@ -15,7 +15,7 @@ function conta(
   id: string,
   nome: string,
   unidade: 'cg' | 'rec' | 'bar',
-  options: { contaAtiva?: boolean; empresaAtiva?: boolean } = {},
+  options: { contaAtiva?: boolean; empresaAtiva?: boolean; unidadeAtiva?: boolean } = {},
 ): FolhaContaPagadora {
   return {
     id,
@@ -35,7 +35,7 @@ function conta(
         codigo: unidade,
         nome: unidade.toUpperCase(),
         tipo: 'unidade',
-        ativo: true,
+        ativo: options.unidadeAtiva ?? true,
         ordem: 1,
       },
     },
@@ -73,6 +73,7 @@ const contas: FolhaContaPagadora[] = [
   conta('bar', 'Barra', 'bar'),
   conta('inativa', 'Conta inativa', 'cg', { contaAtiva: false }),
   conta('empresa-inativa', 'Empresa inativa', 'cg', { empresaAtiva: false }),
+  conta('unidade-inativa', 'Unidade inativa', 'cg', { unidadeAtiva: false }),
 ];
 
 const ana: Lancamento[] = [
@@ -185,6 +186,10 @@ test('exposes the rateio components and exact cent helpers', () => {
   ]);
   assert.equal(toCents(1499.32), 149932);
   assert.equal(toCents(0.1 + 0.2), 30);
+  assert.equal(toCents(1.005), 101);
+  assert.equal(toCents(10.075), 1008);
+  assert.equal(toCents(-10.07), -1007);
+  assert.equal(toCents(Number.POSITIVE_INFINITY), 0);
   assert.equal(fromCents(349932), 3499.32);
 });
 
@@ -257,7 +262,13 @@ test('distinguishes unassigned from missing, inactive, and incoherent accounts',
 
   assert.equal(buildFolhaRateioPessoas([base], contas)[0].status, 'a_conciliar');
 
-  for (const contaPagadoraId of ['ausente', 'inativa', 'empresa-inativa', 'rec']) {
+  for (const contaPagadoraId of [
+    'ausente',
+    'inativa',
+    'empresa-inativa',
+    'unidade-inativa',
+    'rec',
+  ]) {
     const [pessoa] = buildFolhaRateioPessoas(
       [{ ...base, conta_pagadora_id: contaPagadoraId }],
       contas,
@@ -276,6 +287,13 @@ test('distinguishes unassigned from missing, inactive, and incoherent accounts',
     contas,
   );
   assert.deepEqual(empresaInativa.contas, []);
+
+  const [unidadeInativa] = buildFolhaRateioPessoas(
+    [{ ...base, conta_pagadora_id: 'unidade-inativa' }],
+    contas,
+  );
+  assert.equal(unidadeInativa.status, 'parcial');
+  assert.deepEqual(unidadeInativa.contas, []);
 
   const [incoerente] = buildFolhaRateioPessoas(
     [{ ...base, conta_pagadora_id: 'rec' }],
