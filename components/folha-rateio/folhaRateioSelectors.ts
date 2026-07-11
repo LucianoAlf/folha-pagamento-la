@@ -854,9 +854,11 @@ export function buildFolhaRateioPessoas(
     const componentesCentavos = emptyComponentes();
     const categoriasPorId = new Map<CollaboratorDepartment, FolhaRateioPessoaCategoria>();
     const chipsPorConta = new Map<string, FolhaRateioPessoaConta>();
+    const chavesCategoriaConta = new Set<string>();
     let totalCentavos = 0;
     let linhasAtribuidas = 0;
     let linhasCoerentes = 0;
+    let temConflitoCategoriaConta = false;
 
     for (const linha of linhas) {
       const linhaTotalCentavos = toCents(linha.total);
@@ -879,6 +881,12 @@ export function buildFolhaRateioPessoas(
       if (!contaId) continue;
 
       linhasAtribuidas += 1;
+      const chaveCategoriaConta = JSON.stringify([linha.categoria, contaId]);
+      if (chavesCategoriaConta.has(chaveCategoriaConta)) {
+        temConflitoCategoriaConta = true;
+      } else {
+        chavesCategoriaConta.add(chaveCategoriaConta);
+      }
       const conta = contasPorId.get(contaId);
       if (isContaCoerente(linha, conta)) linhasCoerentes += 1;
 
@@ -898,7 +906,7 @@ export function buildFolhaRateioPessoas(
 
     const status: FolhaRateioStatus = linhasAtribuidas === 0
       ? 'a_conciliar'
-      : linhasCoerentes === linhas.length
+      : linhasCoerentes === linhas.length && !temConflitoCategoriaConta
         ? 'conciliado'
         : 'parcial';
 

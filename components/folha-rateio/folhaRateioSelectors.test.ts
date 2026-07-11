@@ -220,9 +220,10 @@ test('consolidates Ana into one partial person with Rec and Bar chips', () => {
   assert.strictEqual(pessoa.lancamentos[2], ana[2]);
 });
 
-test('keeps multiple categories separate in the required order with component totals', () => {
+test('keeps categories separate and allows the same account across categories', () => {
   const [pessoa] = buildFolhaRateioPessoas(anne, contas);
 
+  assert.equal(pessoa.status, 'conciliado');
   assert.deepEqual(
     pessoa.categorias.map(({ categoria, totalCentavos }) => ({ categoria, totalCentavos })),
     [
@@ -248,6 +249,17 @@ test('marks coherent EMLA and Kids rows as reconciled', () => {
       ['kids', 60022],
     ],
   );
+});
+
+test('marks duplicate category and account source rows as partial', () => {
+  const duplicadas = [
+    jeremias[0],
+    { ...jeremias[0], id: 22, salario: 100, total: 100 },
+  ];
+
+  const [pessoa] = buildFolhaRateioPessoas(duplicadas, contas);
+
+  assert.equal(pessoa.status, 'parcial');
 });
 
 test('distinguishes unassigned from missing, inactive, and incoherent accounts', () => {
