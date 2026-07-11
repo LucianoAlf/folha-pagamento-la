@@ -55,12 +55,23 @@ export type FolhaRateioDraftProblemCode =
   | 'ancora_sem_valores'
   | 'centavos_invalidos'
   | 'valor_negativo'
-  | 'precisao_origem_invalida';
+  | 'precisao_origem_invalida'
+  | 'conta_duplicada'
+  | 'matriz_conta_ausente'
+  | 'matriz_conta_extra'
+  | 'matriz_componentes_invalidos'
+  | 'draft_vazio'
+  | 'categoria_ausente'
+  | 'categoria_extra'
+  | 'categoria_duplicada'
+  | 'totais_adulterados'
+  | 'source_ids_adulterados'
+  | 'valor_origem_negativo';
 
 export type FolhaRateioDraftProblem = {
   codigo: FolhaRateioDraftProblemCode;
   mensagem: string;
-  categoria: CollaboratorDepartment;
+  categoria?: CollaboratorDepartment;
   componente?: RateioComponente;
   lancamentoId?: number;
   contaId?: string;
@@ -195,6 +206,18 @@ export function buildFolhaRateioDraft(
   lancamentos: Lancamento[],
   contas: FolhaContaPagadora[],
 ): FolhaRateioDraft {
+  if (lancamentos.length === 0) {
+    throw new Error('O rateio exige ao menos um lancamento de origem.');
+  }
+  const primeiroLancamento = lancamentos[0];
+  if (lancamentos.some((lancamento) => lancamento.folha_id !== primeiroLancamento.folha_id)) {
+    throw new Error('Todos os lancamentos do rateio devem pertencer a mesma folha.');
+  }
+  if (lancamentos.some((lancamento) =>
+    lancamento.colaborador_id !== primeiroLancamento.colaborador_id)) {
+    throw new Error('Todos os lancamentos do rateio devem pertencer ao mesmo colaborador.');
+  }
+
   const contaIds = new Set<string>();
   const contasElegiveis = contas.filter((conta) => {
     if (!isContaElegivel(conta) || contaIds.has(conta.id)) return false;
@@ -242,8 +265,8 @@ export function buildFolhaRateioDraft(
   }
 
   return {
-    folhaId: lancamentos[0]?.folha_id ?? 0,
-    colaboradorId: lancamentos[0]?.colaborador_id ?? 0,
+    folhaId: primeiroLancamento.folha_id,
+    colaboradorId: primeiroLancamento.colaborador_id,
     contas: contasElegiveis,
     categorias: CATEGORIAS_ORDEM.flatMap((categoria) => {
       const draftCategoria = categoriasPorId.get(categoria);
@@ -266,19 +289,171 @@ function categoriaHasValues(
   );
 }
 
+type FolhaRateioSourceCategoria = {
+  totais: FolhaRateioComponentesCentavos;
+  sourceIds: number[];
+};
+
+function buildSourceCategorias(
+  lancamentos: Lancamento[],
+): Map<CollaboratorDepartment, FolhaRateioSourceCategoria> {
+  const categorias = new Map<CollaboratorDepartment, FolhaRateioSourceCategoria>();
+  for (const lancamento of lancamentos) {
+    let categoria = categorias.get(lancamento.categoria);
+    if (!categoria) {
+      categoria = { totais: emptyComponentes(), sourceIds: [] };
+      categorias.set(lancamento.categoria, categoria);
+    }
+    categoria.sourceIds.push(lancamento.id);
+    addComponentes(categoria.totais, lancamento);
+  }
+  return categorias;
+}
+
+function sameIds(actual: number[], expected: number[]): boolean {
+  return actual.length === expected.length
+    && actual.every((id, index) => id === expected[index]);
+}
+
+function problemPriority(codigo: FolhaRateioDraftProblemCode): number {
+  if (codigo === 'draft_vazio') return 0;
+  if (codigo === 'valor_origem_negativo' || codigo === 'precisao_origem_invalida') return 10;
+  if (
+    codigo === 'categoria_ausente'
+    || codigo === 'categoria_extra'
+    || codigo === 'categoria_duplicada'
+    || codigo === 'totais_adulterados'
+    || codigo === 'source_ids_adulterados'
+  ) return 20;
+  if (
+    codigo === 'conta_duplicada'
+    || codigo === 'matriz_conta_ausente'
+    || codigo === 'matriz_conta_extra'
+    || codigo === 'matriz_componentes_invalidos'
+    || codigo === 'conta_invalida'
+  ) return 30;
+  if (
+    codigo === 'ancora_ausente'
+    || codigo === 'ancora_protegida_duplicada'
+    || codigo === 'ancora_sem_valores'
+  ) return 40;
+  if (codigo === 'centavos_invalidos' || codigo === 'valor_negativo') return 50;
+  return 60;
+}
+
 export function validateFolhaRateioDraft(
   draft: FolhaRateioDraft,
 ): FolhaRateioDraftValidation {
   const diferencas: FolhaRateioDraftDifference[] = [];
   const problemas: FolhaRateioDraftProblem[] = [];
-  const contasElegiveis = new Set(draft.contas.filter(isContaElegivel).map((conta) => conta.id));
+  const contasElegiveis = new Set<string>();
+  const contaIdsVistos = new Set<string>();
+  for (const conta of draft.contas) {
+    if (contaIdsVistos.has(conta.id)) {
+      problemas.push({
+        codigo: 'conta_duplicada',
+        mensagem: `A conta ${conta.id} aparece mais de uma vez no rateio.`,
+        contaId: conta.id,
+      });
+    } else {
+      contaIdsVistos.add(conta.id);
+    }
+    if (isContaElegivel(conta)) {
+      contasElegiveis.add(conta.id);
+    } else {
+      problemas.push({
+        codigo: 'conta_invalida',
+        mensagem: `A conta ${conta.id} nao esta ativa ou elegivel para o rateio.`,
+        contaId: conta.id,
+      });
+    }
+  }
   const lancamentosPorId = new Map(draft.lancamentos.map((lancamento) => [lancamento.id, lancamento]));
   const categoriasPorId = new Map(
     draft.categorias.map((categoria) => [categoria.categoria, categoria]),
   );
+  const sourceCategorias = buildSourceCategorias(draft.lancamentos);
+  const draftCategorias = new Map<CollaboratorDepartment, FolhaRateioDraftCategoria[]>();
+
+  if (draft.lancamentos.length === 0) {
+    problemas.push({
+      codigo: 'draft_vazio',
+      mensagem: 'O rateio nao possui lancamentos de origem.',
+    });
+  }
+
+  for (const categoria of draft.categorias) {
+    const ocorrencias = draftCategorias.get(categoria.categoria) || [];
+    ocorrencias.push(categoria);
+    draftCategorias.set(categoria.categoria, ocorrencias);
+  }
+
+  for (const [categoriaId, ocorrencias] of draftCategorias) {
+    if (ocorrencias.length > 1) {
+      problemas.push({
+        codigo: 'categoria_duplicada',
+        mensagem: 'O rateio possui uma categoria duplicada.',
+        categoria: categoriaId,
+      });
+    }
+    if (!sourceCategorias.has(categoriaId)) {
+      problemas.push({
+        codigo: 'categoria_extra',
+        mensagem: 'O rateio possui uma categoria que nao existe na origem.',
+        categoria: categoriaId,
+      });
+    }
+  }
+
+  for (const [categoriaId, sourceCategoria] of sourceCategorias) {
+    const ocorrencias = draftCategorias.get(categoriaId) || [];
+    if (ocorrencias.length === 0) {
+      problemas.push({
+        codigo: 'categoria_ausente',
+        mensagem: 'Uma categoria da origem foi removida do rateio.',
+        categoria: categoriaId,
+      });
+      continue;
+    }
+
+    const categoria = ocorrencias[0];
+    if (Object.keys(categoria.totais).some((key) =>
+      !RATEIO_COMPONENTES.includes(key as RateioComponente))) {
+      problemas.push({
+        codigo: 'totais_adulterados',
+        mensagem: 'Os totais originais do rateio foram alterados.',
+        categoria: categoriaId,
+      });
+    }
+    for (const componente of RATEIO_COMPONENTES) {
+      if (categoria.totais[componente] === sourceCategoria.totais[componente]) continue;
+      problemas.push({
+        codigo: 'totais_adulterados',
+        mensagem: 'Os totais originais do rateio foram alterados.',
+        categoria: categoriaId,
+        componente,
+      });
+    }
+    if (!sameIds(categoria.sourceIds, sourceCategoria.sourceIds)) {
+      problemas.push({
+        codigo: 'source_ids_adulterados',
+        mensagem: 'As linhas de origem da categoria foram alteradas.',
+        categoria: categoriaId,
+      });
+    }
+  }
 
   for (const lancamento of draft.lancamentos) {
     for (const componente of RATEIO_COMPONENTES) {
+      if (Number(lancamento[componente]) < 0) {
+        problemas.push({
+          codigo: 'valor_origem_negativo',
+          mensagem: 'A origem do rateio possui um valor negativo.',
+          categoria: lancamento.categoria,
+          componente,
+          lancamentoId: lancamento.id,
+        });
+      }
       if (!hasInvalidSourcePrecision(lancamento[componente])) continue;
       problemas.push({
         codigo: 'precisao_origem_invalida',
@@ -291,19 +466,62 @@ export function validateFolhaRateioDraft(
   }
 
   for (const categoria of draft.categorias) {
-    for (const contaId of Object.keys(categoria.porConta)) {
-      if (!contasElegiveis.has(contaId)) {
+    const contaIdsDaMatriz = new Set(Object.keys(categoria.porConta));
+    for (const contaId of contasElegiveis) {
+      if (!contaIdsDaMatriz.has(contaId)) {
         problemas.push({
-          codigo: 'conta_invalida',
-          mensagem: `A conta ${contaId} nao esta ativa ou elegivel para o rateio.`,
+          codigo: 'matriz_conta_ausente',
+          mensagem: `A matriz do rateio nao possui a conta ${contaId}.`,
+          categoria: categoria.categoria,
+          contaId,
+        });
+        continue;
+      }
+
+      const componentes = categoria.porConta[contaId];
+      for (const componente of RATEIO_COMPONENTES) {
+        if (
+          componentes
+          && Object.prototype.hasOwnProperty.call(componentes, componente)
+          && typeof componentes[componente] === 'number'
+          && Number.isFinite(componentes[componente])
+        ) continue;
+        problemas.push({
+          codigo: 'matriz_componentes_invalidos',
+          mensagem: `A matriz da conta ${contaId} esta incompleta.`,
+          categoria: categoria.categoria,
+          componente,
+          contaId,
+        });
+      }
+      const componentKeys = componentes ? Object.keys(componentes) : [];
+      if (componentKeys.some((key) =>
+        !RATEIO_COMPONENTES.includes(key as RateioComponente))) {
+        problemas.push({
+          codigo: 'matriz_componentes_invalidos',
+          mensagem: `A matriz da conta ${contaId} possui componentes desconhecidos.`,
           categoria: categoria.categoria,
           contaId,
         });
       }
     }
 
+    for (const contaId of contaIdsDaMatriz) {
+      if (!contasElegiveis.has(contaId)) {
+        problemas.push({
+          codigo: 'matriz_conta_extra',
+          mensagem: `A matriz do rateio possui a conta inesperada ${contaId}.`,
+          categoria: categoria.categoria,
+          contaId,
+        });
+      }
+    }
+
+    const sourceCategoria = sourceCategorias.get(categoria.categoria);
+    if (!sourceCategoria) continue;
+
     for (const componente of RATEIO_COMPONENTES) {
-      const esperadoCentavos = categoria.totais[componente];
+      const esperadoCentavos = sourceCategoria.totais[componente];
       const valores = draft.contas.map(
         (conta) => categoria.porConta[conta.id]?.[componente] ?? 0,
       );
@@ -410,11 +628,18 @@ export function validateFolhaRateioDraft(
   }
 
   const valid = problemas.length === 0;
+  const primaryProblem = problemas.reduce<FolhaRateioDraftProblem | undefined>(
+    (primary, problema) =>
+      !primary || problemPriority(problema.codigo) < problemPriority(primary.codigo)
+        ? problema
+        : primary,
+    undefined,
+  );
   return {
     valid,
     diferencas,
     problemas,
-    message: valid ? undefined : problemas.map((problema) => problema.mensagem).join(' '),
+    message: valid ? undefined : primaryProblem?.mensagem,
   };
 }
 
@@ -444,6 +669,7 @@ export function buildFolhaRateioPayload(
     const categoryTargets: FolhaRateioPayloadTarget[] = [];
     for (const conta of draft.contas) {
       const componentes = categoria.porConta[conta.id];
+      if (!componentes) continue;
       const hasValues = RATEIO_COMPONENTES.some((componente) => componentes[componente] !== 0);
       const hasRequiredAnchor = draft.protegidos.some((protegido) =>
         protegido.categoria === categoria.categoria
