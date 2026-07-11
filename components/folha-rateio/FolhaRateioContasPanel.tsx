@@ -8,7 +8,9 @@ import {
   fetchFolhaContasPagadoras,
   fetchFolhaRateioPreflight,
 } from '../../services/folhaRateioService.ts';
+import { useToast } from '../../hooks/useToast.tsx';
 import { Badge, Button, Card, ErrorState, LoadingSpinner } from '../UI';
+import { FolhaRateioContasModal } from './FolhaRateioContasModal.tsx';
 import {
   buildFolhaRateioPessoas,
   type FolhaRateioPessoa,
@@ -23,8 +25,8 @@ import {
 export type FolhaRateioContasPanelProps = {
   folhaId: number;
   lancamentos: Lancamento[];
+  onLancamentosChanged: () => Promise<void>;
   refreshToken?: number;
-  onAdjustPessoa?: (pessoa: FolhaRateioPessoa, contas: FolhaContaPagadora[]) => void;
 };
 
 const CATEGORIA_LABELS = {
@@ -51,9 +53,10 @@ function errorMessage(error: unknown): string {
 export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
   folhaId,
   lancamentos,
+  onLancamentosChanged,
   refreshToken = 0,
-  onAdjustPessoa,
 }) => {
+  const { success: toastSuccess } = useToast();
   const [contas, setContas] = useState<FolhaContaPagadora[]>([]);
   const [preflight, setPreflight] = useState<FolhaRateioPreflight | null>(null);
   const [loadedFolhaId, setLoadedFolhaId] = useState<number | null>(null);
@@ -62,14 +65,43 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
   const [reloadKey, setReloadKey] = useState(0);
   const [search, setSearch] = useState('');
   const [filtro, setFiltro] = useState<FolhaRateioFiltro>('todos');
+  const [editingPessoa, setEditingPessoa] = useState<FolhaRateioPessoa | null>(null);
+  const [pendingRefreshPessoaId, setPendingRefreshPessoaId] = useState<number | null>(null);
+
+  const refreshResources = async () => {
+    const [nextContas, nextPreflight] = await Promise.all([
+      fetchFolhaContasPagadoras(),
+      fetchFolhaRateioPreflight(folhaId),
+    ]);
+    setContas(nextContas);
+    setPreflight(nextPreflight);
+    setLoadedFolhaId(folhaId);
+  };
+
+  const handleSaved = async () => {
+    try {
+      await onLancamentosChanged();
+      await refreshResources();
+      setPendingRefreshPessoaId(null);
+      setReloadKey((current) => current + 1);
+      setEditingPessoa(null);
+      toastSuccess('Divisao por conta atualizada.');
+    } catch (cause) {
+      setPendingRefreshPessoaId(editingPessoa?.colaboradorId ?? null);
+      throw cause;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
+    const preserveCurrent = loadedFolhaId === folhaId && preflight !== null;
 
-    setLoading(true);
-    setError(null);
-    setLoadedFolhaId(null);
-    setPreflight(null);
+    if (!preserveCurrent) {
+      setLoading(true);
+      setError(null);
+      setLoadedFolhaId(null);
+      setPreflight(null);
+    }
 
     void Promise.all([
       fetchFolhaContasPagadoras(),
@@ -80,6 +112,7 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
         setContas(nextContas);
         setPreflight(nextPreflight);
         setLoadedFolhaId(folhaId);
+        setPendingRefreshPessoaId(null);
         setLoading(false);
       })
       .catch((cause: unknown) => {
@@ -123,7 +156,8 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
   const progress = deriveFolhaRateioProgress(preflight);
 
   return (
-    <section className="min-w-0 space-y-4" aria-label="Conciliacao por conta pagadora">
+    <>
+      <section className="min-w-0 space-y-4" aria-label="Conciliacao por conta pagadora">
       <Card className="overflow-hidden border border-line bg-surface">
         <div className="flex flex-col gap-5 p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -247,6 +281,7 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
             <div className="divide-y divide-line border-y border-line">
               {pessoasVisiveis.map((pessoa) => {
                 const status = STATUS_CONFIG[pessoa.status];
+                const refreshPending = pendingRefreshPessoaId === pessoa.colaboradorId;
                 return (
                   <article key={pessoa.colaboradorId} className="min-w-0 py-4">
                     <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center">
@@ -301,15 +336,14 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
                             {formatCentavos(pessoa.totalCentavos)}
                           </p>
                         </div>
-                        {onAdjustPessoa ? (
-                          <Button
-                            variant="outline"
-                            className="min-h-9 px-3 py-2 text-xs"
-                            onClick={() => onAdjustPessoa(pessoa, contas)}
-                          >
-                            Ajustar divisao
-                          </Button>
-                        ) : null}
+                        <Button
+                          variant="outline"
+                          disabled={refreshPending}
+                          className="min-h-9 px-3 py-2 text-xs"
+                          onClick={() => setEditingPessoa(pessoa)}
+                        >
+                          {refreshPending ? 'Atualizacao pendente' : 'Ajustar divisao'}
+                        </Button>
                       </div>
                     </div>
                   </article>
@@ -319,6 +353,14 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
           )}
         </>
       )}
-    </section>
+      </section>
+      <FolhaRateioContasModal
+        isOpen={editingPessoa !== null}
+        pessoa={editingPessoa}
+        contas={contas}
+        onClose={() => setEditingPessoa(null)}
+        onSaved={handleSaved}
+      />
+    </>
   );
 };
