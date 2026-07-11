@@ -53,7 +53,9 @@ export type FolhaRateioDraftProblemCode =
   | 'conta_invalida'
   | 'ancora_protegida_duplicada'
   | 'ancora_sem_valores'
-  | 'centavos_invalidos';
+  | 'centavos_invalidos'
+  | 'valor_negativo'
+  | 'precisao_origem_invalida';
 
 export type FolhaRateioDraftProblem = {
   codigo: FolhaRateioDraftProblemCode;
@@ -172,6 +174,15 @@ function isLancamentoZerado(lancamento: Lancamento): boolean {
   return RATEIO_COMPONENTES.every((componente) => toCents(lancamento[componente]) === 0);
 }
 
+function hasInvalidSourcePrecision(value: number): boolean {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return true;
+
+  const scaledValue = numericValue * 100;
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(scaledValue)) * 4;
+  return Math.abs(scaledValue - Math.round(scaledValue)) > tolerance;
+}
+
 function protectedLabel(lancamento: Lancamento, linhaZerada: boolean): string {
   if (linhaZerada) return `Linha ${lancamento.id} sem valores`;
   if (lancamento.detalhamento && Object.keys(lancamento.detalhamento).length > 0) {
@@ -184,7 +195,12 @@ export function buildFolhaRateioDraft(
   lancamentos: Lancamento[],
   contas: FolhaContaPagadora[],
 ): FolhaRateioDraft {
-  const contasElegiveis = contas.filter(isContaElegivel);
+  const contaIds = new Set<string>();
+  const contasElegiveis = contas.filter((conta) => {
+    if (!isContaElegivel(conta) || contaIds.has(conta.id)) return false;
+    contaIds.add(conta.id);
+    return true;
+  });
   const contasElegiveisPorId = new Map(contasElegiveis.map((conta) => [conta.id, conta]));
   const categoriasPorId = new Map<CollaboratorDepartment, FolhaRateioDraftCategoria>();
   const ancoras: Record<number, string> = {};
@@ -260,6 +276,20 @@ export function validateFolhaRateioDraft(
   const categoriasPorId = new Map(
     draft.categorias.map((categoria) => [categoria.categoria, categoria]),
   );
+
+  for (const lancamento of draft.lancamentos) {
+    for (const componente of RATEIO_COMPONENTES) {
+      if (!hasInvalidSourcePrecision(lancamento[componente])) continue;
+      problemas.push({
+        codigo: 'precisao_origem_invalida',
+        mensagem: `A origem da linha ${lancamento.id} em ${componente} deve ter no maximo duas casas decimais.`,
+        categoria: lancamento.categoria,
+        componente,
+        lancamentoId: lancamento.id,
+      });
+    }
+  }
+
   for (const categoria of draft.categorias) {
     for (const contaId of Object.keys(categoria.porConta)) {
       if (!contasElegiveis.has(contaId)) {
@@ -277,6 +307,17 @@ export function validateFolhaRateioDraft(
       const valores = draft.contas.map(
         (conta) => categoria.porConta[conta.id]?.[componente] ?? 0,
       );
+
+      draft.contas.forEach((conta, index) => {
+        if (valores[index] >= 0) return;
+        problemas.push({
+          codigo: 'valor_negativo',
+          mensagem: `O valor de ${componente} na conta ${conta.id} nao pode ser negativo.`,
+          categoria: categoria.categoria,
+          componente,
+          contaId: conta.id,
+        });
+      });
 
       if (!Number.isInteger(esperadoCentavos) || valores.some((valor) => !Number.isInteger(valor))) {
         problemas.push({
