@@ -485,6 +485,7 @@ export const FolhaRateioContasModal: React.FC<FolhaRateioContasModalProps> = ({
       title={`Dividir pagamento de ${pessoa.nome}`}
       subtitle={`Total consolidado ${formatBrlCents(pessoa.totalCentavos)}. Edicao somente desta folha mensal.`}
       className="max-w-[min(96vw,88rem)] rounded-lg"
+      overlayClassName="folha-rateio-modal-overlay"
       footer={footer}
     >
       <div className="space-y-8">

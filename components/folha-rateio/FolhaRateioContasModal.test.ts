@@ -4,6 +4,8 @@ import test from 'node:test';
 
 const modalUrl = new URL('./FolhaRateioContasModal.tsx', import.meta.url);
 const source = existsSync(modalUrl) ? readFileSync(modalUrl, 'utf8') : '';
+const themeUrl = new URL('../../styles/theme.css', import.meta.url);
+const themeSource = existsSync(themeUrl) ? readFileSync(themeUrl, 'utf8') : '';
 
 test('creates a fresh draft per open and uses the shared responsive UI', () => {
   assert.match(source, /buildFolhaRateioDraft\(pessoa\.lancamentos, contas\)/);
@@ -68,4 +70,11 @@ test('uses semantic design tokens without fixed light surfaces or decorative gra
   assert.doesNotMatch(source, /#[0-9a-f]{3,8}|bg-white|bg-gray|text-gray|gradient/i);
   assert.match(source, /bg-(?:bg|surface|surface-2)/);
   assert.match(source, /text-(?:primary|secondary|muted|success|danger)/);
+});
+
+test('keeps the desktop modal inside the app content beside either sidebar width', () => {
+  assert.match(source, /overlayClassName="folha-rateio-modal-overlay"/);
+  assert.match(themeSource, /body:has\(\.app-sidebar\.w-72\)[\s\S]*--app-sidebar-width:\s*18rem/);
+  assert.match(themeSource, /body:has\(\.app-sidebar\.w-20\)[\s\S]*--app-sidebar-width:\s*5rem/);
+  assert.match(themeSource, /\.folha-rateio-modal-overlay[\s\S]*left:\s*var\(--app-sidebar-width[^;]*!important/);
 });
