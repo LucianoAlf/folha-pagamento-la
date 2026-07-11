@@ -423,7 +423,7 @@ test('deduplicates eligible destination accounts by ID and emits one row per cat
   assert.equal(payload[0].conta_pagadora_id, 'emla');
 });
 
-test('detects plural observations and all-zero rows as required anchors', () => {
+test('detects plural observations but does not protect a plain all-zero row', () => {
   const plural = {
     ...ana[0],
     id: 50,
@@ -443,9 +443,9 @@ test('detects plural observations and all-zero rows as required anchors', () => 
 
   assert.equal(hasProtectedRateioMetadata(plural), true);
   const draft = buildFolhaRateioDraft([plural, zero], contas);
-  assert.deepEqual(draft.protegidos.map((item) => item.lancamentoId), [50, 51]);
+  assert.deepEqual(draft.protegidos.map((item) => item.lancamentoId), [50]);
   assert.equal(draft.ancoras[50], '');
-  assert.equal(draft.ancoras[51], '');
+  assert.equal(Object.hasOwn(draft.ancoras, 51), false);
 });
 
 function completeAnaEmEmLa(draft: ReturnType<typeof buildFolhaRateioDraft>): void {
@@ -904,7 +904,7 @@ test('builds Ana payload with the protected EMLA ID and exact existing Rec and B
   ]);
 });
 
-test('emits a protected all-zero row exactly once after it is anchored', () => {
+test('omits a plain all-zero row without blocking validation', () => {
   const zero = lancamento(
     {
       id: 80,
@@ -915,10 +915,32 @@ test('emits a protected all-zero row exactly once after it is anchored', () => {
     { nome: 'Zero', funcao: 'Professor' },
   );
   const draft = buildFolhaRateioDraft([zero], contas);
+  const validation = validateFolhaRateioDraft(draft);
+  const payload = buildFolhaRateioPayload(draft);
+
+  assert.equal(validation.valid, true);
+  assert.deepEqual(draft.protegidos, []);
+  assert.equal(Object.hasOwn(draft.ancoras, 80), false);
+  assert.deepEqual(payload, []);
+});
+
+test('preserves an all-zero row with metadata exactly once after it is anchored', () => {
+  const zero = lancamento(
+    {
+      id: 80,
+      colaborador_id: 80,
+      categoria: 'professores',
+      unidade: 'cg',
+      observacao: 'Manter origem do ajuste',
+    },
+    { nome: 'Zero protegido', funcao: 'Professor' },
+  );
+  const draft = buildFolhaRateioDraft([zero], contas);
   draft.ancoras[80] = 'emla';
 
   const payload = buildFolhaRateioPayload(draft);
 
+  assert.deepEqual(draft.protegidos.map((item) => item.lancamentoId), [80]);
   assert.equal(payload.length, 1);
   assert.deepEqual(payload[0], {
     lancamento_id: 80,
@@ -941,6 +963,7 @@ test('normalizes a protected anchor before carrying its source ID into the paylo
       colaborador_id: 81,
       categoria: 'professores',
       unidade: 'cg',
+      detalhamento: { origem: 'ajuste' },
     },
     { nome: 'Zero Espacado', funcao: 'Professor' },
   );

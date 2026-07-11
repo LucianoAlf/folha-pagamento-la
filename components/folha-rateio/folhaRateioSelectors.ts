@@ -26,7 +26,6 @@ export type FolhaRateioDraftProtegido = {
   lancamentoId: number;
   categoria: CollaboratorDepartment;
   label: string;
-  linhaZerada: boolean;
 };
 
 export type FolhaRateioSourceSnapshotItem = Readonly<{
@@ -38,7 +37,6 @@ export type FolhaRateioSourceSnapshotItem = Readonly<{
   componentesOriginais: Readonly<FolhaRateioComponentesCentavos>;
   componentesCentavos: Readonly<FolhaRateioComponentesCentavos>;
   protegido: boolean;
-  linhaZerada: boolean;
 }>;
 
 export type FolhaRateioDraft = {
@@ -234,15 +232,11 @@ function createSourceSnapshot(
       componentesOriginais: frozenOriginais,
       componentesCentavos: frozenCentavos,
       protegido: hasProtectedRateioMetadata(lancamento),
-      linhaZerada: RATEIO_COMPONENTES.every(
-        (componente) => frozenCentavos[componente] === 0,
-      ),
     } satisfies FolhaRateioSourceSnapshotItem);
   }));
 }
 
-function protectedLabel(lancamento: Lancamento, linhaZerada: boolean): string {
-  if (linhaZerada) return `Linha ${lancamento.id} sem valores`;
+function protectedLabel(lancamento: Lancamento): string {
   if (lancamento.detalhamento && Object.keys(lancamento.detalhamento).length > 0) {
     return `Detalhes da linha ${lancamento.id}`;
   }
@@ -301,12 +295,11 @@ export function buildFolhaRateioDraft(
       ancoras[source.id] = contaId;
     }
 
-    if (source.protegido || source.linhaZerada) {
+    if (source.protegido) {
       protegidos.push({
         lancamentoId: source.id,
         categoria: source.categoria,
-        label: protectedLabel(lancamento, source.linhaZerada),
-        linhaZerada: source.linhaZerada,
+        label: protectedLabel(lancamento),
       });
       ancoras[source.id] ||= '';
     }
@@ -652,7 +645,7 @@ export function validateFolhaRateioDraft(
 
   const protectedAnchors = new Map<string, number[]>();
   for (const source of draft.sourceSnapshot) {
-    if (!source.protegido && !source.linhaZerada) continue;
+    if (!source.protegido) continue;
     const contaId = draft.ancoras[source.id]?.trim();
     if (!contaId) {
       problemas.push({
@@ -671,7 +664,10 @@ export function validateFolhaRateioDraft(
     protectedAnchors.set(key, ids);
 
     const categoria = categoriasPorId.get(source.categoria);
-    if (categoria && !source.linhaZerada && !categoriaHasValues(categoria, contaId)) {
+    const sourceHasValues = RATEIO_COMPONENTES.some(
+      (componente) => source.componentesCentavos[componente] !== 0,
+    );
+    if (categoria && sourceHasValues && !categoriaHasValues(categoria, contaId)) {
       problemas.push({
         codigo: 'ancora_sem_valores',
         mensagem: `A conta ${contaId} da linha ${source.id} precisa receber valores desta categoria.`,
@@ -729,7 +725,7 @@ export function buildFolhaRateioPayload(
   const sourcesPorId = new Map(draft.sourceSnapshot.map((source) => [source.id, source]));
   const protegidosPorId = new Set(
     draft.sourceSnapshot
-      .filter((source) => source.protegido || source.linhaZerada)
+      .filter((source) => source.protegido)
       .map((source) => source.id),
   );
   const idsUsados = new Set<number>();
@@ -743,7 +739,7 @@ export function buildFolhaRateioPayload(
       const hasValues = RATEIO_COMPONENTES.some((componente) => componentes[componente] !== 0);
       const hasRequiredAnchor = draft.sourceSnapshot.some((source) =>
         source.categoria === categoria.categoria
-        && (source.protegido || source.linhaZerada)
+        && source.protegido
         && draft.ancoras[source.id]?.trim() === conta.id,
       );
       if (hasValues || hasRequiredAnchor) {
