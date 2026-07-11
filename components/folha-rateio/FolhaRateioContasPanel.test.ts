@@ -39,15 +39,15 @@ test('refreshes parent rows and preflight before closing after save', () => {
   assert.equal(handleSavedSource.match(/await refreshResources\(\)/g)?.length, 1);
   assert.doesNotMatch(handleSavedSource, /setReloadKey\(/);
   assert.match(source, /const refreshResources = async \(\) => \{[\s\S]*?setError\(null\)/);
-  assert.match(source, /setEditingPessoa\(null\)/);
+  assert.match(handleSavedSource, /dispatchSelectionLifecycle\(\{ type: 'refresh_succeeded', folhaId \}\)/);
   assert.match(source, /toastSuccess\(/);
   assert.ok(
     source.indexOf('await onLancamentosChanged()')
       < source.indexOf('await refreshResources()'),
   );
   assert.ok(
-    source.indexOf('await refreshResources()')
-      < source.indexOf('setEditingPessoa(null)'),
+    handleSavedSource.indexOf('await refreshResources()')
+      < handleSavedSource.indexOf("dispatchSelectionLifecycle({ type: 'refresh_succeeded', folhaId })"),
   );
 });
 
@@ -61,7 +61,7 @@ test('owns the selected person, always offers adjustment, and renders the modal'
 
 test('offers an explicit refresh retry after close without reopening save', () => {
   assert.match(source, /pendingRefreshPessoaId/);
-  assert.match(source, /setPendingRefreshPessoaId\(editingPessoa\?\.colaboradorId/);
+  assert.match(source, /type: 'refresh_failed',[\s\S]*?colaboradorId: editingPessoa\.colaboradorId/);
   assert.match(source, /const retryPendingRefresh = async \(colaboradorId: number\)/);
   assert.match(source, /Tentar atualizar/);
   assert.match(source, /retryPendingRefresh\(pessoa\.colaboradorId\)/);
@@ -71,6 +71,14 @@ test('offers an explicit refresh retry after close without reopening save', () =
 test('clears editing and pending refresh state whenever the active payroll changes', () => {
   assert.match(
     source,
-    /useEffect\(\(\) => \{[\s\S]*?setEditingPessoa\(null\)[\s\S]*?setPendingRefreshPessoaId\(null\)[\s\S]*?setRefreshingPessoaId\(null\)[\s\S]*?setPendingRefreshError\(null\)[\s\S]*?\}, \[folhaId\]\)/,
+    /useEffect\(\(\) => \{[\s\S]*?dispatchSelectionLifecycle\(\{ type: 'folha_changed', folhaId \}\)[\s\S]*?setPendingRefreshError\(null\)[\s\S]*?\}, \[folhaId\]\)/,
   );
+});
+
+test('uses the executable folha-keyed selection lifecycle instead of parallel selection state', () => {
+  assert.match(source, /useReducer\(\s*folhaRateioPanelSelectionReducer/);
+  assert.match(source, /selectionLifecycle\.folhaId/);
+  assert.doesNotMatch(source, /const \[editingPessoa, setEditingPessoa\]/);
+  assert.doesNotMatch(source, /const \[pendingRefreshPessoaId, setPendingRefreshPessoaId\]/);
+  assert.doesNotMatch(source, /const \[refreshingPessoaId, setRefreshingPessoaId\]/);
 });

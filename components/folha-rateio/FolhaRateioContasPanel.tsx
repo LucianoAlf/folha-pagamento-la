@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useState } from 'react';
 import { AlertTriangle, CheckCircle2, RefreshCw, Search, WalletCards } from 'lucide-react';
 
 import type { Lancamento } from '../../types.ts';
@@ -14,11 +14,12 @@ import { FolhaRateioContasModal } from './FolhaRateioContasModal.tsx';
 import { getRateioUserErrorMessage } from './folhaRateioModalModel.ts';
 import {
   buildFolhaRateioPessoas,
-  type FolhaRateioPessoa,
 } from './folhaRateioSelectors.ts';
 import {
+  createFolhaRateioPanelSelection,
   deriveFolhaRateioProgress,
   filterFolhaRateioPessoas,
+  folhaRateioPanelSelectionReducer,
   selectFolhaLancamentos,
   type FolhaRateioFiltro,
 } from './folhaRateioPanelModel.ts';
@@ -68,10 +69,20 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
   const [reloadKey, setReloadKey] = useState(0);
   const [search, setSearch] = useState('');
   const [filtro, setFiltro] = useState<FolhaRateioFiltro>('todos');
-  const [editingPessoa, setEditingPessoa] = useState<FolhaRateioPessoa | null>(null);
-  const [pendingRefreshPessoaId, setPendingRefreshPessoaId] = useState<number | null>(null);
-  const [refreshingPessoaId, setRefreshingPessoaId] = useState<number | null>(null);
+  const [selectionLifecycle, dispatchSelectionLifecycle] = useReducer(
+    folhaRateioPanelSelectionReducer,
+    folhaId,
+    createFolhaRateioPanelSelection,
+  );
   const [pendingRefreshError, setPendingRefreshError] = useState<string | null>(null);
+  const selectionMatchesFolha = selectionLifecycle.folhaId === folhaId;
+  const editingPessoa = selectionMatchesFolha ? selectionLifecycle.selectedPessoa : null;
+  const pendingRefreshPessoaId = selectionMatchesFolha
+    ? selectionLifecycle.pendingRefreshPessoaId
+    : null;
+  const refreshingPessoaId = selectionMatchesFolha
+    ? selectionLifecycle.refreshingPessoaId
+    : null;
 
   const refreshResources = async () => {
     const [nextContas, nextPreflight] = await Promise.all([
@@ -88,12 +99,17 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
     try {
       await onLancamentosChanged();
       await refreshResources();
-      setPendingRefreshPessoaId(null);
+      dispatchSelectionLifecycle({ type: 'refresh_succeeded', folhaId });
       setPendingRefreshError(null);
-      setEditingPessoa(null);
       toastSuccess('Divisao por conta atualizada.');
     } catch (cause) {
-      setPendingRefreshPessoaId(editingPessoa?.colaboradorId ?? null);
+      if (editingPessoa) {
+        dispatchSelectionLifecycle({
+          type: 'refresh_failed',
+          folhaId,
+          colaboradorId: editingPessoa.colaboradorId,
+        });
+      }
       setPendingRefreshError(errorMessage(cause));
       throw cause;
     }
@@ -101,24 +117,21 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
 
   const retryPendingRefresh = async (colaboradorId: number) => {
     if (pendingRefreshPessoaId !== colaboradorId || refreshingPessoaId !== null) return;
-    setRefreshingPessoaId(colaboradorId);
+    dispatchSelectionLifecycle({ type: 'retry_refresh', folhaId, colaboradorId });
     setPendingRefreshError(null);
     try {
       await onLancamentosChanged();
       await refreshResources();
-      setPendingRefreshPessoaId(null);
+      dispatchSelectionLifecycle({ type: 'refresh_succeeded', folhaId });
       toastSuccess('Dados da divisao atualizados.');
     } catch (cause) {
+      dispatchSelectionLifecycle({ type: 'refresh_failed', folhaId, colaboradorId });
       setPendingRefreshError(errorMessage(cause));
-    } finally {
-      setRefreshingPessoaId(null);
     }
   };
 
   useEffect(() => {
-    setEditingPessoa(null);
-    setPendingRefreshPessoaId(null);
-    setRefreshingPessoaId(null);
+    dispatchSelectionLifecycle({ type: 'folha_changed', folhaId });
     setPendingRefreshError(null);
   }, [folhaId]);
 
@@ -142,7 +155,7 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
         setContas(nextContas);
         setPreflight(nextPreflight);
         setLoadedFolhaId(folhaId);
-        setPendingRefreshPessoaId(null);
+        dispatchSelectionLifecycle({ type: 'clear_pending_refresh', folhaId });
         setPendingRefreshError(null);
         setError(null);
         setLoading(false);
@@ -378,7 +391,7 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
                               void retryPendingRefresh(pessoa.colaboradorId);
                               return;
                             }
-                            setEditingPessoa(pessoa);
+                            dispatchSelectionLifecycle({ type: 'select', pessoa });
                           }}
                         >
                           {refreshPending ? (
@@ -407,7 +420,7 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
         isOpen={editingPessoa !== null}
         pessoa={editingPessoa}
         contas={contas}
-        onClose={() => setEditingPessoa(null)}
+        onClose={() => dispatchSelectionLifecycle({ type: 'close_selection' })}
         onSaved={handleSaved}
       />
     </>
