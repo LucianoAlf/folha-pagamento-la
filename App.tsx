@@ -6,6 +6,7 @@ import { notifyAnaFolhaAprovada } from './services/folhaAprovacaoWhatsapp';
 import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta, UserProfile } from './types';
 import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, AlertDialog, Modal, Tooltip } from './components/UI';
 import { MobileCollaboratorList } from './components/colaboradores/MobileCollaboratorList';
+import { FolhaRateioContasPanel } from './components/folha-rateio/FolhaRateioContasPanel';
 import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
@@ -169,6 +170,7 @@ const CellInput: React.FC<{
 };
 
 const MOBILE_LANC_PAGE_SIZE = 18;
+type LancamentosView = 'folha' | 'contas_pagadoras';
 
 const loginStyles = `
   @keyframes float {
@@ -211,6 +213,7 @@ export default function App() {
     window.location.pathname === '/cartoes' || window.location.pathname === '/faturas' ? 'cartoes' : 'folha'
   );
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [lancamentosView, setLancamentosView] = useState<LancamentosView>('folha');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [contasCompetenciaYM, setContasCompetenciaYM] = useState<string>(() => {
@@ -729,6 +732,12 @@ export default function App() {
     } catch (err: any) {
       setAlertState({ isOpen: true, title: 'Erro', message: err.message || 'Erro ao recarregar lançamentos', variant: 'danger' });
     }
+  };
+
+  const refetchLancamentosForRateio = async () => {
+    if (!folhaAtual) throw new Error('Selecione uma folha antes de atualizar a divisão.');
+    const currentLancData = await api.fetchLancamentos(folhaAtual.id);
+    setLancamentos(currentLancData);
   };
 
   const saveLancamentoPatch = async (l: Lancamento, patch: Partial<Lancamento>) => {
@@ -3071,6 +3080,36 @@ export default function App() {
             {/* Lancamentos Tab */}
             {activeTab === 'lancamentos' && (
               <div className="space-y-6">
+                <div className="flex justify-center sm:justify-start">
+                  <div
+                    className="grid w-full max-w-md grid-cols-2 rounded-lg border border-line bg-surface-2 p-1"
+                    role="group"
+                    aria-label="Visualização dos lançamentos"
+                  >
+                    {([
+                      ['folha', 'Folha do mês'],
+                      ['contas_pagadoras', 'Contas pagadoras'],
+                    ] as const).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setLancamentosView(value)}
+                        aria-pressed={lancamentosView === value}
+                        className={cn(
+                          'min-h-9 rounded-md px-3 text-xs font-semibold transition-colors sm:text-sm',
+                          lancamentosView === value
+                            ? 'bg-surface text-primary shadow-sm'
+                            : 'text-muted hover:bg-surface/60 hover:text-secondary',
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {lancamentosView === 'folha' ? (
+                  <>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   {/* Filters */}
                   {!isMobile ? (
@@ -3990,6 +4029,14 @@ export default function App() {
                     </div>
                   ) : null}
                 </Modal>
+                  </>
+                ) : folhaAtual ? (
+                  <FolhaRateioContasPanel
+                    folhaId={folhaAtual.id}
+                    lancamentos={lancamentos}
+                    onLancamentosChanged={refetchLancamentosForRateio}
+                  />
+                ) : null}
               </div>
             )}
             
