@@ -201,7 +201,7 @@ function DesktopMatrix({
         >
           <thead>
             <tr className="border-b border-line text-xs text-muted">
-              <th className="w-36 px-2 py-3 font-semibold">Componente</th>
+              <th className="w-48 px-2 py-3 pr-4 font-semibold">Componente</th>
               {draft.contas.map((conta) => (
                 <th key={conta.id} className="px-2 py-3 font-semibold">
                   <span className="block truncate" title={getContaPagadoraLabel(conta)}>
@@ -217,14 +217,16 @@ function DesktopMatrix({
               const restanteCentavos = getComponentRemainingCentavos(categoria, componente);
               return (
                 <tr key={componente}>
-                  <th className="px-2 py-3 align-middle">
-                    <span className="block text-sm font-semibold text-primary">
-                      {COMPONENTE_LABELS[componente]}
-                    </span>
-                    <Remaining value={restanteCentavos} />
+                  <th className="w-48 px-2 py-4 pr-4 align-middle">
+                    <div className="space-y-1.5">
+                      <span className="block text-sm font-semibold text-primary">
+                        {COMPONENTE_LABELS[componente]}
+                      </span>
+                      <Remaining value={restanteCentavos} />
+                    </div>
                   </th>
                   {draft.contas.map((conta) => (
-                    <td key={conta.id} className="px-2 py-2">
+                    <td key={conta.id} className="px-2 py-3">
                       <MoneyInput
                         fieldId={`${categoria.categoria}:${conta.id}:${componente}`}
                         value={categoria.porConta[conta.id][componente]}
@@ -235,7 +237,7 @@ function DesktopMatrix({
                       />
                     </td>
                   ))}
-                  <td className="px-2 py-3 text-right text-sm font-bold text-primary">
+                  <td className="px-2 py-4 text-right text-sm font-bold text-primary">
                     {formatBrlCents(categoria.totais[componente])}
                   </td>
                 </tr>

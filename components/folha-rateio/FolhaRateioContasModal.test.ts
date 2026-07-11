@@ -78,3 +78,9 @@ test('keeps the desktop modal inside the app content beside either sidebar width
   assert.match(themeSource, /body:has\(\.app-sidebar\.w-20\)[\s\S]*--app-sidebar-width:\s*5rem/);
   assert.match(themeSource, /\.folha-rateio-modal-overlay[\s\S]*left:\s*var\(--app-sidebar-width[^;]*!important/);
 });
+
+test('reserves enough room between component badges and payer inputs', () => {
+  assert.match(source, /className="w-48 px-2 py-3 pr-4 font-semibold">Componente/);
+  assert.match(source, /className="w-48 px-2 py-4 pr-4 align-middle"/);
+  assert.match(source, /className="space-y-1\.5"/);
+});
