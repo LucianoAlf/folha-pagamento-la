@@ -348,6 +348,27 @@ test('builds a lossless draft with only dynamic eligible destination accounts', 
   assert.strictEqual(draft.lancamentos, ana);
 });
 
+test('refuses empty, mixed-folha, and mixed-collaborator source snapshots', () => {
+  assert.throws(
+    () => buildFolhaRateioDraft([], contas),
+    /ao menos um lancamento/i,
+  );
+  assert.throws(
+    () => buildFolhaRateioDraft(
+      [ana[0], { ...ana[1], folha_id: ana[0].folha_id + 1 }],
+      contas,
+    ),
+    /mesma folha/i,
+  );
+  assert.throws(
+    () => buildFolhaRateioDraft(
+      [ana[0], { ...ana[1], colaborador_id: ana[0].colaborador_id + 1 }],
+      contas,
+    ),
+    /mesmo colaborador/i,
+  );
+});
+
 test('filters inactive accounts and accounts outside the supported units from the draft', () => {
   const unsupported = {
     ...conta('unsupported', 'Unsupported', 'cg'),
@@ -511,6 +532,97 @@ test('blocks an anchor assigned to an unknown or inactive account', () => {
   }
 });
 
+test('rejects duplicate mutable draft account IDs', () => {
+  const draft = buildFolhaRateioDraft(ana, contas);
+  completeAnaEmEmLa(draft);
+  draft.contas.push(draft.contas[0]);
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) =>
+    item.codigo === 'conta_duplicada' && item.contaId === 'emla'),
+  );
+});
+
+test('rejects a missing account matrix entry before payload dereferences it', () => {
+  const zero = lancamento(
+    {
+      id: 64,
+      colaborador_id: 64,
+      categoria: 'professores',
+      unidade: 'cg',
+    },
+    { nome: 'Matriz', funcao: 'Professor' },
+  );
+  const draft = buildFolhaRateioDraft([zero], contas);
+  draft.ancoras[64] = 'emla';
+  delete draft.categorias[0].porConta.emla;
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) =>
+    item.codigo === 'matriz_conta_ausente' && item.contaId === 'emla'),
+  );
+  assert.throws(
+    () => buildFolhaRateioPayload(draft),
+    (error: Error) => !(error instanceof TypeError) && error.message === validation.message,
+  );
+});
+
+test('rejects extra account keys and incomplete component entries in the matrix', () => {
+  const withExtra = buildFolhaRateioDraft(anne, contas);
+  withExtra.categorias[0].porConta.extra = {
+    salario: 0,
+    bonus: 0,
+    comissao: 0,
+    reembolso: 0,
+    passagem: 0,
+    inss: 0,
+    descontos: 0,
+  };
+
+  const extraValidation = validateFolhaRateioDraft(withExtra);
+  assert.ok(extraValidation.problemas.some((item) =>
+    item.codigo === 'matriz_conta_extra' && item.contaId === 'extra'),
+  );
+
+  const incomplete = buildFolhaRateioDraft(anne, contas);
+  delete (incomplete.categorias[0].porConta.rec as Partial<
+    typeof incomplete.categorias[0]['porConta'][string]
+  >).salario;
+
+  const incompleteValidation = validateFolhaRateioDraft(incomplete);
+  assert.ok(incompleteValidation.problemas.some((item) =>
+    item.codigo === 'matriz_componentes_invalidos'
+    && item.contaId === 'rec'
+    && item.componente === 'salario'),
+  );
+
+  const undefinedComponent = buildFolhaRateioDraft(anne, contas);
+  (undefinedComponent.categorias[0].porConta.rec as Partial<
+    typeof undefinedComponent.categorias[0]['porConta'][string]
+  >).salario = undefined;
+  assert.ok(validateFolhaRateioDraft(undefinedComponent).problemas.some((item) =>
+    item.codigo === 'matriz_componentes_invalidos'
+    && item.contaId === 'rec'
+    && item.componente === 'salario'),
+  );
+});
+
+test('rejects an ineligible account injected into mutable draft accounts', () => {
+  const draft = buildFolhaRateioDraft(anne, contas);
+  draft.contas.push(contas.find((item) => item.id === 'inativa')!);
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) =>
+    item.codigo === 'conta_invalida' && item.contaId === 'inativa'),
+  );
+});
+
 test('validates multiple categories independently', () => {
   const draft = buildFolhaRateioDraft(anne, contas);
   draft.categorias[0].porConta.rec.bonus = 9999;
@@ -525,6 +637,111 @@ test('validates multiple categories independently', () => {
     validation.diferencas.some((item) => item.categoria === 'equipe_operacional'),
     false,
   );
+});
+
+test('rejects an empty mutable source snapshot', () => {
+  const draft = buildFolhaRateioDraft(anne, contas);
+  draft.lancamentos = [];
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) => item.codigo === 'draft_vazio'));
+});
+
+test('cross-checks missing, extra, and duplicate draft categories against the source snapshot', () => {
+  const missing = buildFolhaRateioDraft(anne, contas);
+  missing.categorias = missing.categorias.filter(
+    (categoria) => categoria.categoria !== 'staff_rateado',
+  );
+  assert.ok(validateFolhaRateioDraft(missing).problemas.some((item) =>
+    item.codigo === 'categoria_ausente' && item.categoria === 'staff_rateado'),
+  );
+
+  const extra = buildFolhaRateioDraft(anne, contas);
+  extra.categorias.push({
+    ...extra.categorias[0],
+    categoria: 'professores',
+    totais: { ...extra.categorias[0].totais },
+    porConta: Object.fromEntries(Object.entries(extra.categorias[0].porConta).map(
+      ([contaId, componentes]) => [contaId, { ...componentes }],
+    )),
+    sourceIds: [...extra.categorias[0].sourceIds],
+  });
+  assert.ok(validateFolhaRateioDraft(extra).problemas.some((item) =>
+    item.codigo === 'categoria_extra' && item.categoria === 'professores'),
+  );
+
+  const duplicate = buildFolhaRateioDraft(anne, contas);
+  duplicate.categorias.push(duplicate.categorias[0]);
+  assert.ok(validateFolhaRateioDraft(duplicate).problemas.some((item) =>
+    item.codigo === 'categoria_duplicada'
+    && item.categoria === duplicate.categorias[0].categoria),
+  );
+});
+
+test('cross-checks mutable totals and source IDs against exact source-derived values', () => {
+  const tamperedTotals = buildFolhaRateioDraft(anne, contas);
+  tamperedTotals.categorias[0].totais.bonus += 1;
+  const totalsValidation = validateFolhaRateioDraft(tamperedTotals);
+  assert.ok(totalsValidation.problemas.some((item) =>
+    item.codigo === 'totais_adulterados'
+    && item.categoria === 'staff_rateado'
+    && item.componente === 'bonus'),
+  );
+  assert.deepEqual(totalsValidation.diferencas, []);
+
+  const extraTotal = buildFolhaRateioDraft(anne, contas);
+  (extraTotal.categorias[0].totais as Record<string, number>).extra = 0;
+  assert.ok(validateFolhaRateioDraft(extraTotal).problemas.some((item) =>
+    item.codigo === 'totais_adulterados'
+    && item.categoria === 'staff_rateado'),
+  );
+
+  const tamperedIds = buildFolhaRateioDraft(ana, contas);
+  tamperedIds.categorias[0].sourceIds.reverse();
+  assert.ok(validateFolhaRateioDraft(tamperedIds).problemas.some((item) =>
+    item.codigo === 'source_ids_adulterados'
+    && item.categoria === 'staff_rateado'),
+  );
+});
+
+test('rejects a negative original source component with a source-data problem', () => {
+  const source = lancamento(
+    {
+      id: 65,
+      colaborador_id: 65,
+      categoria: 'equipe_operacional',
+      unidade: 'cg',
+      conta_pagadora_id: 'emla',
+      salario: -1,
+      total: -1,
+    },
+    { nome: 'Origem Negativa', funcao: 'Operacional' },
+  );
+  const draft = buildFolhaRateioDraft([source], contas);
+
+  const validation = validateFolhaRateioDraft(draft);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.problemas.some((item) =>
+    item.codigo === 'valor_origem_negativo'
+    && item.lancamentoId === 65
+    && item.componente === 'salario'),
+  );
+  assert.match(validation.message || '', /origem.*negativ/i);
+});
+
+test('returns only the highest-priority concise validation message', () => {
+  const draft = buildFolhaRateioDraft(ana, contas);
+  const validation = validateFolhaRateioDraft(draft);
+  const missingAnchor = validation.problemas.find((item) => item.codigo === 'ancora_ausente');
+
+  assert.ok(validation.problemas.length > 2);
+  assert.ok(missingAnchor);
+  assert.equal(validation.message, missingAnchor.mensagem);
+  assert.doesNotMatch(validation.message || '', /staff_rateado\/salario/);
+  assert.ok((validation.message?.length || 0) < 160);
 });
 
 test('rejects fractional cents instead of silently rounding draft values', () => {
