@@ -1,7 +1,7 @@
 # Correcao controlada da folha 17 - lote parcial
 
-Data da execucao: 11/07/2026  
-Competencia: 07/2026  
+Data da execucao: 11/07/2026
+Competencia: 07/2026
 Projeto Supabase: `ubdvtjbitozhkuvvqkxj`
 
 ## Escopo executado
