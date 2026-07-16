@@ -38,10 +38,20 @@ test('normalizes money to cents and keeps only the safe rateio contract', () => 
   ]);
 });
 
-test('service calls only preflight and save RPCs and sends an empty actor for web', () => {
+test('service calls only allowlisted payroll RPCs and sends an empty actor for web', () => {
   const source = readFileSync(new URL('./folhaRateioService.ts', import.meta.url), 'utf8');
   assert.match(source, /\.rpc\('folha_rateio_contas_preflight'/);
   assert.match(source, /\.rpc\('folha_rateio_contas_salvar'/);
-  assert.match(source, /p_ator:\s*\{\}/);
+  assert.match(source, /\.rpc\('folha_fechar'/);
+  assert.match(source, /\.rpc\('folha_reabrir'/);
+  assert.equal(source.match(/p_ator:\s*\{\}/g)?.length, 3);
   assert.doesNotMatch(source, /\.from\('lancamentos_folha'\)\.(insert|update|delete)/);
+  assert.doesNotMatch(source, /\.from\('contas_pagar'\)\.(insert|update|delete|upsert)/);
+});
+
+test('service translates payroll close and reopen failures without exposing RPC jargon', () => {
+  const source = readFileSync(new URL('./folhaRateioService.ts', import.meta.url), 'utf8');
+  assert.match(source, /preflight da folha nao esta zerado/i);
+  assert.match(source, /contas vinculadas nao podem ser canceladas/i);
+  assert.match(source, /folhaLifecycleError/);
 });

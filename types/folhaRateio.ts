@@ -55,4 +55,35 @@ export type FolhaRateioSaveResponse = {
   preflight: FolhaRateioPreflight;
 };
 
+export type FolhaContaGerada = {
+  id: string;
+  empresa: string;
+  valor: number;
+};
+
+export type FolhaContaCancelada = {
+  id: string;
+  descricao: string;
+  status: 'cancelado';
+  valor: number;
+};
+
+export type FolhaFecharResponse = {
+  success: true;
+  folha_id: number;
+  status: 'fechada';
+  contas_geradas: FolhaContaGerada[];
+  total_geral: number;
+  audit_id: string;
+};
+
+export type FolhaReabrirResponse = {
+  success: true;
+  folha_id: number;
+  status: 'aprovada';
+  contas_canceladas: FolhaContaCancelada[];
+  total_geral: number;
+  audit_id: string;
+};
+
 export type FolhaContaPagadora = FinanceiroContaBancaria;

@@ -167,3 +167,18 @@
   z-index: calc(var(--z-header) + 1);
 }
 
+/* Modais largos da folha ocupam apenas a area de conteudo no desktop. */
+@media (min-width: 1024px) {
+  body:has(.app-sidebar.w-72) {
+    --app-sidebar-width: 18rem;
+  }
+
+  body:has(.app-sidebar.w-20) {
+    --app-sidebar-width: 5rem;
+  }
+
+  .folha-rateio-modal-overlay {
+    left: var(--app-sidebar-width, 0) !important;
+  }
+}
+

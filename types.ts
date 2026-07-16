@@ -56,7 +56,7 @@ export interface FolhaMensal {
   id: number;
   mes: number;
   ano: number;
-  status: 'rascunho' | 'pendente' | 'aprovada';
+  status: 'rascunho' | 'pendente' | 'aprovada' | 'fechada';
   total_geral: number;
   total_cg: number;
   total_rec: number;
