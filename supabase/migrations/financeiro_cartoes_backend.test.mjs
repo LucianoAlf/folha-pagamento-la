@@ -76,6 +76,13 @@ test('M4 excludes fatura_cartao from plan-based AI aggregation without removing 
   assert.match(m4Comparativo, /currRows\.filter\(isPlanoAggregationConta\)/i);
 });
 
+test('plan-based AI aggregation also excludes payroll payment instruments', () => {
+  assert.match(m4Audit, /type ContaRow[\s\S]*\|\s*"folha_pagamento"/i);
+  assert.match(m4Audit, /function isPlanoAggregationConta[\s\S]*tipo_lancamento !== "folha_pagamento"/i);
+  assert.match(m4Comparativo, /type ContaRow[\s\S]*\|\s*"folha_pagamento"/i);
+  assert.match(m4Comparativo, /function isPlanoAggregationConta[\s\S]*tipo_lancamento !== "folha_pagamento"/i);
+});
+
 test('M5 creates secure ingestion, close and reopen RPCs with actor derivation and grants', () => {
   assert.match(m5, /create or replace function public\.financeiro_cartao_transacao_registrar\(payload jsonb, ator jsonb/i);
   assert.match(m5, /auth\.role\(\)/i);

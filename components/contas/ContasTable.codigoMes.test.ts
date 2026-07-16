@@ -16,3 +16,8 @@ test('payment code badge shows a visible Maria stamp without exposing payment co
   assert.match(source, /Registrado por \$\{agente\}/);
   assert.doesNotMatch(source, /codigo_barras.*<|chave_pix.*<|qr_pix_payload.*</);
 });
+
+test('payroll payables have an explicit fixed-type badge', () => {
+  assert.match(source, /c\.tipo_lancamento === 'folha_pagamento'/);
+  assert.match(source, />\s*Folha de pagamento\s*</);
+});

@@ -36,6 +36,8 @@ export const PagarContaModal: React.FC<{
 
   if (!isOpen || !conta) return null;
   const isFaturaCartao = conta.tipo_lancamento === 'fatura_cartao';
+  const isFolhaPagamento = conta.tipo_lancamento === 'folha_pagamento';
+  const isContaGeradaSemPlano = isFaturaCartao || isFolhaPagamento;
 
   return (
     <Modal
@@ -74,11 +76,16 @@ export const PagarContaModal: React.FC<{
         <Card className="p-6 mb-6 bg-surface/40 border-line">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">{isFaturaCartao ? 'Tipo de conta' : 'Plano de conta'}</div>
+              <div className="text-[10px] text-muted font-black uppercase tracking-[0.2em]">{isContaGeradaSemPlano ? 'Tipo de conta' : 'Plano de conta'}</div>
               <div className="text-primary font-black mt-1">{formatContaPlanoLabel(conta).toUpperCase()}</div>
               {isFaturaCartao && (
                 <div className="mt-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3 text-xs font-bold text-secondary leading-snug">
                   A baixa registra o pagamento da fatura. O detalhamento por plano fica nas transações do cartão.
+                </div>
+              )}
+              {isFolhaPagamento && (
+                <div className="mt-3 rounded-2xl border border-info/20 bg-info/10 px-4 py-3 text-xs font-bold text-secondary leading-snug">
+                  A baixa registra o pagamento da folha. Detalhamento por colaborador e conta pagadora permanece na folha, sem duplicar o DRE.
                 </div>
               )}
               <div className="mt-4 text-[10px] text-muted font-black uppercase tracking-[0.2em]">Descrição</div>

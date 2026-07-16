@@ -171,7 +171,8 @@ function matchesContaGrupoPlano(conta: ContaPagar, grupoPlano: string): boolean 
 }
 
 function isPlanoAggregationConta(conta: ContaPagar): boolean {
-  return conta.tipo_lancamento !== 'fatura_cartao';
+  return conta.tipo_lancamento !== 'fatura_cartao'
+    && conta.tipo_lancamento !== 'folha_pagamento';
 }
 
 type ContasMode = 'dashboard' | 'visao-geral' | 'todas' | 'comparativo' | 'financeiro-fiscal' | 'plano-contas';

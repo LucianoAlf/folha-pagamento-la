@@ -322,6 +322,23 @@ test('card invoice accounts are displayed as payment instruments without a requi
   assert.equal(matchesContaPlanoCentroSearch(conta, 'fatura'), true);
 });
 
+test('payroll accounts are displayed as payment instruments without a required plan', () => {
+  const conta = {
+    descricao: 'Folha de Pagamento - Barra - 07/2026',
+    tipo_lancamento: 'folha_pagamento',
+    plano_conta: null,
+    centro_custo: { id: 'bar', codigo: 'bar', nome: 'Barra', tipo: 'unidade', ativo: true, ordem: 3 },
+    empresa: { id: 'barra', label_operacional: 'Barra', unidade_id: 'bar' },
+    unidade: 'bar' as const,
+  };
+
+  assert.equal(formatContaPlanoLabel(conta), 'Folha de pagamento');
+  assert.equal(formatContaPlanoCodigo(conta), 'Folha');
+  assert.equal(formatContaCentroCustoLabel(conta), 'Barra');
+  assert.equal(matchesContaPlanoCentroSearch(conta, 'folha'), true);
+  assert.equal(matchesContaPlanoCentroSearch(conta, 'salario'), true);
+});
+
 test('matchesContaPlanoCentroSearch finds descricao, plano and centro without accents', () => {
   const conta = {
     descricao: 'Light loja 171',

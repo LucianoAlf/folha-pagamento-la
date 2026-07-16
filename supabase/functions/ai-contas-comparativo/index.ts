@@ -110,7 +110,7 @@ type ContaRow = {
   data_vencimento: string;
   competencia: string;
   status: "pendente" | "pago" | "cancelado" | "finalizado";
-  tipo_lancamento: "unica" | "recorrente" | "parcelada" | "eventual" | "fatura_cartao";
+  tipo_lancamento: "unica" | "recorrente" | "parcelada" | "eventual" | "fatura_cartao" | "folha_pagamento";
   plano_conta?: { id: string; codigo: string; nome: string; tipo_custo: string | null } | null;
 };
 
@@ -140,7 +140,8 @@ type ComparativoJson = {
 };
 
 function isPlanoAggregationConta(c: ContaRow): boolean {
-  return c.tipo_lancamento !== "fatura_cartao";
+  return c.tipo_lancamento !== "fatura_cartao"
+    && c.tipo_lancamento !== "folha_pagamento";
 }
 
 function buildFallbackComparativo(

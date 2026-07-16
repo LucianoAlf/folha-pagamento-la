@@ -70,12 +70,14 @@ export function formatPlanoContaLabel(plano: PlanoContaLabelInput): string {
 
 export function formatContaPlanoLabel(conta: ContaPlanoDisplayInput): string {
   if (conta.tipo_lancamento === 'fatura_cartao') return 'Fatura de cartão';
+  if (conta.tipo_lancamento === 'folha_pagamento') return 'Folha de pagamento';
   if (conta.plano_conta) return formatPlanoContaLabel(conta.plano_conta);
   return 'Sem plano';
 }
 
 export function formatContaPlanoCodigo(conta: ContaPlanoDisplayInput): string {
   if (conta.tipo_lancamento === 'fatura_cartao') return 'Cartão';
+  if (conta.tipo_lancamento === 'folha_pagamento') return 'Folha';
   return conta.plano_conta?.codigo || 'Sem plano';
 }
 
@@ -105,6 +107,7 @@ export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, que
         conta.descricao || '',
         conta.plano_conta?.nome || '',
         conta.tipo_lancamento === 'fatura_cartao' ? 'fatura cartao fatura de cartao cartao de credito' : '',
+        conta.tipo_lancamento === 'folha_pagamento' ? 'folha folha de pagamento salario salarios pagamento de pessoal' : '',
         conta.empresa?.label_operacional || '',
         conta.centro_custo?.nome || '',
         conta.unidade || '',
@@ -118,6 +121,7 @@ export function matchesContaPlanoCentroSearch(conta: ContaPlanoDisplayInput, que
       conta.plano_conta?.codigo || '',
       conta.plano_conta?.nome || '',
       conta.tipo_lancamento === 'fatura_cartao' ? 'fatura cartao fatura de cartao cartao de credito' : '',
+      conta.tipo_lancamento === 'folha_pagamento' ? 'folha folha de pagamento salario salarios pagamento de pessoal' : '',
       conta.empresa?.label_operacional || '',
       conta.centro_custo?.nome || '',
       conta.unidade || '',

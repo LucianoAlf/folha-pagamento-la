@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const migration = readFileSync(
   new URL('./20260715_1_folha_fechar_contas_pagar.sql', import.meta.url),
   'utf8'
 );
+const vencimentoMigrationUrl = new URL('./20260715_2_folha_vencimento_dia_10.sql', import.meta.url);
+const vencimentoMigration = existsSync(vencimentoMigrationUrl)
+  ? readFileSync(vencimentoMigrationUrl, 'utf8')
+  : '';
 
 test('migration extends only the required contas pagar classifications', () => {
   assert.match(migration, /drop constraint if exists contas_pagar_tipo_lancamento_check/i);
@@ -73,4 +77,12 @@ test('RPCs reject spoofed actors and expose execute only to authenticated and se
     /grant execute on function public\.folha_reabrir\(integer, jsonb\)\s+to authenticated, service_role/i
   );
   assert.doesNotMatch(migration, /grant\s+(insert|update|delete|all)\s+on\s+public\.(contas_pagar|folhas_mensais)/i);
+});
+
+test('follow-up migration makes payroll payables due on day 10 of the competence', () => {
+  assert.match(vencimentoMigration, /create or replace function public\.folha_fechar/i);
+  assert.match(vencimentoMigration, /v_data_vencimento date/);
+  assert.match(vencimentoMigration, /make_date\(v_ano,\s*v_mes,\s*10\)/i);
+  assert.match(vencimentoMigration, /v_data_fechamento,\s*v_data_vencimento,\s*v_competencia/i);
+  assert.doesNotMatch(vencimentoMigration, /v_data_fechamento,\s*v_data_fechamento,\s*v_competencia/i);
 });

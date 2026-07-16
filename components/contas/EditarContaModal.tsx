@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, CreditCard, Info, Save } from 'lucide-react';
+import { Bot, CreditCard, Info, Landmark, Save } from 'lucide-react';
 import { Modal, DatePicker, CustomSelect, ConfirmDialog } from '../UI';
 import { CentroCusto, ContaCredencial, ContaPagar, ContaPagarCodigoMes, FONTE_TIPOS, FonteTipo, PlanoConta, PlanoContaMaisUsado, StatusColetaCodigo } from '../../types/contasPagar';
 import { formatCurrency } from '../../services/api';
@@ -129,11 +129,16 @@ export const EditarContaModal: React.FC<{
   const handleSave = async (aplicarAFuturos?: boolean) => {
     if (!conta) return;
     const isFaturaCartao = conta.tipo_lancamento === 'fatura_cartao';
+    const isFolhaPagamento = conta.tipo_lancamento === 'folha_pagamento';
+    const isContaGeradaSemPlano = isFaturaCartao || isFolhaPagamento;
 
-    const patch: Partial<ContaPagar> = {
+    const patch: Partial<ContaPagar> = isFolhaPagamento ? {
+      data_vencimento: toDateOnly(vencimento),
+      observacoes: observacoes.trim() || null,
+    } : {
       descricao: descricao.trim(),
       valor: valorNum,
-      plano_conta_id: isFaturaCartao ? conta.plano_conta_id ?? null : planoContaId,
+      plano_conta_id: isContaGeradaSemPlano ? conta.plano_conta_id ?? null : planoContaId,
       centro_custo_id: conta.tipo_lancamento === 'eventual' || isFaturaCartao ? conta.centro_custo_id : centroCustoId,
       unidade: conta.tipo_lancamento === 'eventual' || isFaturaCartao ? conta.unidade : unidade as any,
       data_vencimento: toDateOnly(vencimento),
@@ -147,7 +152,7 @@ export const EditarContaModal: React.FC<{
       credencial_id: credencialId || null,
       pix_chave_fixa: pixChaveFixa.trim() || null,
       email_pagamento: emailPagamento.trim() || null,
-      ...(launchType === 'parcelada' && !isFaturaCartao ? { parcela_atual: parcelaAtual, total_parcelas: totalParcelas } : {}),
+      ...(launchType === 'parcelada' && !isContaGeradaSemPlano ? { parcela_atual: parcelaAtual, total_parcelas: totalParcelas } : {}),
     };
 
     // Se for recorrente e não confirmou ainda, pergunta
@@ -185,7 +190,7 @@ export const EditarContaModal: React.FC<{
     try {
       await onConfirm(patch, aplicarAFuturos);
 
-      const comp = competencia || conta.competencia;
+      const comp = isFolhaPagamento ? conta.competencia : competencia || conta.competencia;
       const temCodigo = hasCodigoPagamento(
         { pix_chave_fixa: pixChaveFixa },
         { codigo_barras: codigoBarras, chave_pix: chavePix, qr_pix_payload: qrPixPayload }
@@ -215,8 +220,14 @@ export const EditarContaModal: React.FC<{
 
   if (!isOpen || !conta) return null;
   const isFaturaCartao = conta.tipo_lancamento === 'fatura_cartao';
-  const saveDisabled = saving || !descricao.trim() || !vencimento || !(valorNum > 0) || (!isFaturaCartao && !planoContaId) || (!isFaturaCartao && !centroCustoId);
+  const isFolhaPagamento = conta.tipo_lancamento === 'folha_pagamento';
+  const isContaGeradaSemPlano = isFaturaCartao || isFolhaPagamento;
+  const saveDisabled = saving || !descricao.trim() || !vencimento || !(valorNum > 0) || (!isContaGeradaSemPlano && !planoContaId) || (!isContaGeradaSemPlano && !centroCustoId);
   const centroDerivadoLabel = conta.empresa?.label_operacional || conta.centro_custo?.nome || unidade?.toUpperCase() || 'Centro derivado';
+  const empresaLabel = conta.empresa?.label_operacional || conta.conta_pagadora?.empresa?.label_operacional || 'Empresa da folha';
+  const contaPagadoraLabel = conta.conta_pagadora
+    ? conta.conta_pagadora.apelido || `${conta.conta_pagadora.banco} · ag. ${conta.conta_pagadora.agencia} · conta ${conta.conta_pagadora.conta}`
+    : 'Conta pagadora definida no fechamento';
 
   return (
     <>
@@ -289,6 +300,20 @@ export const EditarContaModal: React.FC<{
             </div>
           )}
 
+          {isFolhaPagamento && (
+            <div className="rounded-3xl bg-info/10 border border-info/20 p-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-info/15 border border-info/25 flex items-center justify-center text-info shrink-0">
+                <Landmark size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-info">Folha de pagamento</div>
+                <div className="mt-1 text-xs font-bold text-primary leading-snug">
+                  Gerada no fechamento da folha. Valor, empresa, centro e conta pagadora ficam protegidos; ajuste apenas vencimento e observações.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* A) Dados principais */}
           <div>
             <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-6">
@@ -299,34 +324,50 @@ export const EditarContaModal: React.FC<{
             <div className="grid grid-cols-1 gap-5 md:gap-6">
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">
-                  Descrição do lançamento *
+                  Descrição do lançamento{isFolhaPagamento ? '' : ' *'}
                 </label>
-                <input
-                  value={descricao}
-                  onChange={(e) => setDescricao(e.target.value)}
-                  className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
-                />
+                {isFolhaPagamento ? (
+                  <div className="w-full rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-primary">
+                    {descricao}
+                    <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">Gerada no fechamento da folha</div>
+                  </div>
+                ) : (
+                  <input
+                    value={descricao}
+                    onChange={(e) => setDescricao(e.target.value)}
+                    className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Valor (R$) *</label>
-                  <input
-                    value={valor}
-                    onChange={(e) => setValor(e.target.value)}
-                    className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
-                  />
-                  <div className="mt-2 text-[10px] text-muted font-bold px-1">{valor ? `Preview: ${valorPreview}` : ''}</div>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Valor (R$){isFolhaPagamento ? '' : ' *'}</label>
+                  {isFolhaPagamento ? (
+                    <div className="w-full rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-black text-primary">
+                      {valorPreview}
+                      <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">Valor definido pelo fechamento</div>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        value={valor}
+                        onChange={(e) => setValor(e.target.value)}
+                        className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-accent/40 transition-all"
+                      />
+                      <div className="mt-2 text-[10px] text-muted font-bold px-1">{valor ? `Preview: ${valorPreview}` : ''}</div>
+                    </>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">
-                    Plano de conta{isFaturaCartao ? '' : ' *'}
+                    Plano de conta{isContaGeradaSemPlano ? '' : ' *'}
                   </label>
-                  {isFaturaCartao ? (
+                  {isContaGeradaSemPlano ? (
                     <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
-                      Detalhamento no cartão
+                      {isFolhaPagamento ? 'Detalhamento na folha' : 'Detalhamento no cartão'}
                       <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">
-                        As categorias ficam nas transações da fatura
+                        {isFolhaPagamento ? 'Os componentes ficam na folha e fora da agregação por plano' : 'As categorias ficam nas transações da fatura'}
                       </div>
                     </div>
                   ) : (
@@ -344,13 +385,13 @@ export const EditarContaModal: React.FC<{
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">
-                    Centro de custo{isFaturaCartao ? '' : ' *'}
+                    Centro de custo{isContaGeradaSemPlano ? '' : ' *'}
                   </label>
-                  {conta.tipo_lancamento === 'eventual' || isFaturaCartao ? (
+                  {conta.tipo_lancamento === 'eventual' || isContaGeradaSemPlano ? (
                     <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
                       {centroDerivadoLabel}
                       <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">
-                        {isFaturaCartao ? 'Derivado da fatura do cartão' : 'Derivado da conta pagadora'}
+                        {isFolhaPagamento ? 'Definido pelo rateio e fechamento da folha' : isFaturaCartao ? 'Derivado da fatura do cartão' : 'Derivado da conta pagadora'}
                       </div>
                     </div>
                   ) : (
@@ -367,11 +408,11 @@ export const EditarContaModal: React.FC<{
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Tipo de Lançamento</label>
-                  {isFaturaCartao ? (
+                  {isContaGeradaSemPlano ? (
                     <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
-                      Fatura de cartão
+                      {isFolhaPagamento ? 'Folha de pagamento' : 'Fatura de cartão'}
                       <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">
-                        Gerada no fechamento do cartão
+                        {isFolhaPagamento ? 'Gerada no fechamento da folha' : 'Gerada no fechamento do cartão'}
                       </div>
                     </div>
                   ) : (
@@ -393,7 +434,25 @@ export const EditarContaModal: React.FC<{
                   )}
                 </div>
               </div>
-              {!isFaturaCartao && launchType === 'parcelada' && (
+              {isFolhaPagamento && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Empresa</label>
+                    <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
+                      {empresaLabel}
+                      <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">Definida pela conta pagadora</div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Conta pagadora</label>
+                    <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
+                      {contaPagadoraLabel}
+                      <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">Definida pelo fechamento</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {!isContaGeradaSemPlano && launchType === 'parcelada' && (
                 <div className="grid grid-cols-2 gap-5 md:gap-6">
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Parcela Atual</label>
@@ -444,9 +503,11 @@ export const EditarContaModal: React.FC<{
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Mês de Competência *</label>
                 <div className="w-full rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-primary">
-                  {vencimento ? competenciaLabel : '—'}
+                  {isFolhaPagamento ? formatCompetenciaLabel(conta.competencia) : vencimento ? competenciaLabel : '—'}
                 </div>
-                <p className="text-[10px] text-muted font-bold mt-2 px-1">Altere o vencimento para mudar a competência.</p>
+                <p className="text-[10px] text-muted font-bold mt-2 px-1">
+                  {isFolhaPagamento ? 'Competência definida pela folha.' : 'Altere o vencimento para mudar a competência.'}
+                </p>
               </div>
             </div>
           </div>
@@ -455,9 +516,26 @@ export const EditarContaModal: React.FC<{
           <div>
             <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-6">
               <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">C</span>
-              Origem / Fonte
+              {isFolhaPagamento ? 'Observações' : 'Observações e origem'}
             </div>
 
+            <div className="mb-5 md:mb-6">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Observações</label>
+              <textarea
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                rows={3}
+                placeholder="Registre orientações ou informações sobre o pagamento."
+                className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none"
+              />
+            </div>
+
+            {isFolhaPagamento ? (
+              <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
+                Fechamento da folha
+                <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">Vínculo de origem protegido</div>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 gap-5 md:gap-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
@@ -548,6 +626,7 @@ export const EditarContaModal: React.FC<{
                 />
               </div>
             </div>
+            )}
           </div>
 
           {/* D) Código do mês */}

@@ -131,7 +131,7 @@ export interface ContaPagar {
   status: 'pendente' | 'pago' | 'cancelado' | 'finalizado';
   data_pagamento: string | null;
   metodo_pagamento: string | null;
-  tipo_lancamento: 'unica' | 'recorrente' | 'parcelada' | 'eventual' | 'fatura_cartao';
+  tipo_lancamento: 'unica' | 'recorrente' | 'parcelada' | 'eventual' | 'fatura_cartao' | 'folha_pagamento';
   parcelamento_id?: string | null;
   parcela_atual: number | null;
   total_parcelas: number | null;
