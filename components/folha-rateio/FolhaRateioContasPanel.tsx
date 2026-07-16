@@ -1,16 +1,35 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react';
-import { AlertTriangle, CheckCircle2, RefreshCw, Search, WalletCards } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  FileCheck2,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  WalletCards,
+} from 'lucide-react';
 
-import type { Lancamento } from '../../types.ts';
-import type { FolhaContaPagadora, FolhaRateioPreflight } from '../../types/folhaRateio.ts';
+import type { FolhaMensal, Lancamento } from '../../types.ts';
+import type {
+  FolhaContaPagadora,
+  FolhaFecharResponse,
+  FolhaRateioPreflight,
+} from '../../types/folhaRateio.ts';
 import { formatCurrency } from '../../services/api.ts';
 import {
+  fecharFolha,
   fetchFolhaContasPagadoras,
   fetchFolhaRateioPreflight,
+  reabrirFolha,
 } from '../../services/folhaRateioService.ts';
 import { useToast } from '../../hooks/useToast.tsx';
-import { Badge, Button, Card, ErrorState, LoadingSpinner } from '../UI';
+import { Badge, Button, Card, ConfirmDialog, ErrorState, LoadingSpinner } from '../UI';
 import { FolhaRateioContasModal } from './FolhaRateioContasModal.tsx';
+import {
+  buildFolhaCloseConfirmation,
+  canCloseFolha,
+} from './folhaFechamentoModel.ts';
 import { getRateioUserErrorMessage } from './folhaRateioModalModel.ts';
 import {
   buildFolhaRateioPessoas,
@@ -26,8 +45,11 @@ import {
 
 export type FolhaRateioContasPanelProps = {
   folhaId: number;
+  folhaStatus: FolhaMensal['status'];
   lancamentos: Lancamento[];
   onLancamentosChanged: () => Promise<void>;
+  onFolhaChanged: () => Promise<void>;
+  onOpenContasPagar: () => void;
   refreshToken?: number;
 };
 
@@ -56,11 +78,14 @@ function errorMessage(error: unknown): string {
 
 export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
   folhaId,
+  folhaStatus,
   lancamentos,
   onLancamentosChanged,
+  onFolhaChanged,
+  onOpenContasPagar,
   refreshToken = 0,
 }) => {
-  const { success: toastSuccess } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [contas, setContas] = useState<FolhaContaPagadora[]>([]);
   const [preflight, setPreflight] = useState<FolhaRateioPreflight | null>(null);
   const [loadedFolhaId, setLoadedFolhaId] = useState<number | null>(null);
@@ -75,6 +100,10 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
     createFolhaRateioPanelSelection,
   );
   const [pendingRefreshError, setPendingRefreshError] = useState<string | null>(null);
+  const [lifecycleAction, setLifecycleAction] = useState<'close' | 'reopen' | null>(null);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [closeResult, setCloseResult] = useState<FolhaFecharResponse | null>(null);
   const selectionMatchesFolha = selectionLifecycle.folhaId === folhaId;
   const editingPessoa = selectionMatchesFolha ? selectionLifecycle.selectedPessoa : null;
   const pendingRefreshPessoaId = selectionMatchesFolha
@@ -130,9 +159,43 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
     }
   };
 
+  const refreshLifecycleState = async () => {
+    await onFolhaChanged();
+    await onLancamentosChanged();
+    await refreshResources();
+  };
+
+  const runLifecycleAction = async () => {
+    if (!lifecycleAction || lifecycleBusy) return;
+    setLifecycleBusy(true);
+    setLifecycleError(null);
+    try {
+      if (lifecycleAction === 'close') {
+        const result = await fecharFolha(folhaId);
+        setCloseResult(result);
+        toastSuccess('Folha fechada e contas a pagar geradas.');
+      } else {
+        await reabrirFolha(folhaId);
+        setCloseResult(null);
+        toastSuccess('Folha reaberta e contas pendentes canceladas.');
+      }
+      await refreshLifecycleState();
+      setLifecycleAction(null);
+    } catch (cause) {
+      const message = errorMessage(cause);
+      setLifecycleError(message);
+      toastError(message);
+    } finally {
+      setLifecycleBusy(false);
+    }
+  };
+
   useEffect(() => {
     dispatchSelectionLifecycle({ type: 'folha_changed', folhaId });
     setPendingRefreshError(null);
+    setLifecycleAction(null);
+    setLifecycleError(null);
+    setCloseResult(null);
   }, [folhaId]);
 
   useEffect(() => {
@@ -199,6 +262,8 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
   }
 
   const progress = deriveFolhaRateioProgress(preflight);
+  const canClose = canCloseFolha(folhaStatus, preflight);
+  const pessoasPendentes = pessoas.filter((pessoa) => pessoa.status !== 'conciliado');
 
   return (
     <>
@@ -264,6 +329,90 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
               ))}
             </div>
           ) : null}
+
+          <div className="border-t border-line pt-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-primary">
+                    {folhaStatus === 'fechada' ? 'Folha fechada' : 'Fechamento financeiro'}
+                  </p>
+                  {folhaStatus === 'fechada' ? <Badge variant="success">Fechada</Badge> : null}
+                </div>
+                {folhaStatus === 'fechada' ? (
+                  <p className="mt-1 text-sm text-secondary">
+                    As contas desta folha ja foram geradas. A reabertura cancela apenas as que ainda estao pendentes.
+                  </p>
+                ) : canClose ? (
+                  <p className="mt-1 text-sm text-secondary">
+                    A divisao esta conciliada. O fechamento vai gerar as contas a pagar deste mes.
+                  </p>
+                ) : (
+                  <div className="mt-1 text-sm text-secondary">
+                    <p>Ainda nao esta pronto. Conclua a divisao das pessoas pendentes antes de fechar.</p>
+                    {pessoasPendentes.length > 0 ? (
+                      <p className="mt-1 text-xs text-muted">
+                        Pendentes: {pessoasPendentes.slice(0, 4).map((pessoa) => pessoa.nome).join(', ')}
+                        {pessoasPendentes.length > 4 ? ` e mais ${pessoasPendentes.length - 4}` : ''}.
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              {folhaStatus === 'fechada' ? (
+                <Button
+                  variant="outline"
+                  disabled={lifecycleBusy}
+                  className="min-h-10 shrink-0"
+                  onClick={() => setLifecycleAction('reopen')}
+                >
+                  <RotateCcw className={`h-4 w-4 ${lifecycleBusy ? 'animate-spin' : ''}`} aria-hidden="true" />
+                  Reabrir folha
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  disabled={lifecycleBusy || !canClose}
+                  className="min-h-10 shrink-0"
+                  onClick={() => setLifecycleAction('close')}
+                >
+                  <FileCheck2 className="h-4 w-4" aria-hidden="true" />
+                  Fechar folha
+                </Button>
+              )}
+            </div>
+
+            {lifecycleError ? (
+              <div className="mt-4 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+                {lifecycleError}
+              </div>
+            ) : null}
+
+            {closeResult ? (
+              <div className="mt-4 border-t border-line pt-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase text-muted">Contas geradas</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {closeResult.contas_geradas.map((conta) => (
+                        <span
+                          key={conta.id}
+                          className="rounded-md border border-line bg-surface-2 px-2.5 py-1.5 text-xs text-secondary"
+                        >
+                          {conta.empresa} · <strong className="text-primary">{formatCurrency(conta.valor)}</strong>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <Button variant="outline" className="min-h-9 shrink-0" onClick={onOpenContasPagar}>
+                    Abrir Contas a Pagar
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </Card>
 
@@ -422,6 +571,24 @@ export const FolhaRateioContasPanel: React.FC<FolhaRateioContasPanelProps> = ({
         contas={contas}
         onClose={() => dispatchSelectionLifecycle({ type: 'close_selection' })}
         onSaved={handleSaved}
+      />
+      <ConfirmDialog
+        isOpen={lifecycleAction === 'close'}
+        onClose={() => { if (!lifecycleBusy) setLifecycleAction(null); }}
+        onConfirm={runLifecycleAction}
+        title="Fechar folha"
+        message={buildFolhaCloseConfirmation(preflight)}
+        confirmLabel={lifecycleBusy ? 'Fechando...' : 'Fechar folha'}
+        variant="primary"
+      />
+      <ConfirmDialog
+        isOpen={lifecycleAction === 'reopen'}
+        onClose={() => { if (!lifecycleBusy) setLifecycleAction(null); }}
+        onConfirm={runLifecycleAction}
+        title="Reabrir folha"
+        message="Isso cancela as contas desta folha que ainda estao pendentes. Se alguma ja foi paga, a reabertura sera bloqueada. Confirma?"
+        confirmLabel={lifecycleBusy ? 'Reabrindo...' : 'Reabrir folha'}
+        variant="danger"
       />
     </>
   );

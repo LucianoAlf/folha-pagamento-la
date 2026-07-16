@@ -17,6 +17,14 @@ test('entrega folha e refresh real ao painel de contas pagadoras', () => {
   assert.match(appSource, /folhaId=\{folhaAtual\.id\}/);
   assert.match(appSource, /lancamentos=\{lancamentos\}/);
   assert.match(appSource, /onLancamentosChanged=\{refetchLancamentosForRateio\}/);
+  assert.match(appSource, /folhaStatus=\{folhaAtual\.status\}/);
+  assert.match(appSource, /onFolhaChanged=\{refetchFolhaForRateio\}/);
+  assert.match(appSource, /onOpenContasPagar=\{\(\) => handleNavigate\('contas'\)\}/);
+});
+
+test('renders the closed status from the refreshed sheet record', () => {
+  assert.match(appSource, /statusFolha === 'fechada'/);
+  assert.match(appSource, /<Badge variant="success">Fechada<\/Badge>/);
 });
 
 test('isola o refresh estrito sem alterar os chamadores existentes da folha', () => {

@@ -99,7 +99,7 @@ test('derives reconciled counts, percentage, and positive diagnostics', () => {
     reconciled: 3,
     percent: 60,
     diagnostics: [
-      { key: 'fatias_sem_conta', label: 'Fatias sem conta', value: 3 },
+      { key: 'fatias_sem_conta', label: 'Lancamentos sem conta pagadora', value: 3 },
       { key: 'conflitos_chave', label: 'Divisoes duplicadas', value: 1 },
     ],
   });

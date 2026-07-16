@@ -82,3 +82,23 @@ test('uses the executable folha-keyed selection lifecycle instead of parallel se
   assert.doesNotMatch(source, /const \[pendingRefreshPessoaId, setPendingRefreshPessoaId\]/);
   assert.doesNotMatch(source, /const \[refreshingPessoaId, setRefreshingPessoaId\]/);
 });
+
+test('offers guarded close and reopen actions with shared confirmation dialogs', () => {
+  assert.match(source, /folhaStatus:\s*FolhaMensal\['status'\]/);
+  assert.match(source, /fecharFolha/);
+  assert.match(source, /reabrirFolha/);
+  assert.match(source, /<ConfirmDialog/);
+  assert.match(source, /Fechar folha/);
+  assert.match(source, /Reabrir folha/);
+  assert.match(source, /disabled=\{[^}]*!canClose/);
+  assert.match(source, /Ainda nao esta pronto/);
+  assert.doesNotMatch(source, />[^<]*RPC[^<]*</i);
+});
+
+test('refreshes the real sheet status and preflight after every lifecycle action', () => {
+  assert.match(source, /onFolhaChanged:\s*\(\)\s*=>\s*Promise<void>/);
+  assert.match(source, /await onFolhaChanged\(\)/);
+  assert.match(source, /await refreshResources\(\)/);
+  assert.match(source, /onOpenContasPagar:\s*\(\)\s*=>\s*void/);
+  assert.match(source, /Abrir Contas a Pagar/);
+});

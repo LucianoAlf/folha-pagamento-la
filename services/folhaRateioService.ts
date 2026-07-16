@@ -3,6 +3,8 @@ import type {
   FolhaRateioFatiaInput,
   FolhaRateioPreflight,
   FolhaRateioSaveResponse,
+  FolhaFecharResponse,
+  FolhaReabrirResponse,
 } from '../types/folhaRateio.ts';
 
 const money = (value: number): number =>
@@ -42,6 +44,29 @@ function folhaRateioError(error: unknown): Error {
   return new Error(message || 'Nao foi possivel salvar a divisao por conta.');
 }
 
+function folhaLifecycleError(error: unknown): Error {
+  const message = String((error as { message?: string })?.message || '');
+  if (/preflight da folha nao esta zerado/i.test(message)) {
+    return new Error('A folha ainda tem pessoas sem conta pagadora. Conclua a divisao antes de fechar.');
+  }
+  if (/status da folha deve ser aprovada para fechar/i.test(message)) {
+    return new Error('A folha precisa estar aprovada antes do fechamento.');
+  }
+  if (/ja possui contas a pagar ativas/i.test(message)) {
+    return new Error('Esta folha ja possui contas a pagar ativas e nao pode ser fechada novamente.');
+  }
+  if (/contas vinculadas nao podem ser canceladas/i.test(message)) {
+    return new Error('Nao e possivel reabrir: uma ou mais contas da folha ja foram pagas ou finalizadas.');
+  }
+  if (/nao possui contas a pagar ativas para reabrir/i.test(message)) {
+    return new Error('Nao foram encontradas contas pendentes desta folha para cancelar.');
+  }
+  if (/status da folha deve ser fechada para reabrir/i.test(message)) {
+    return new Error('Somente uma folha fechada pode ser reaberta.');
+  }
+  return new Error(message || 'Nao foi possivel atualizar o fechamento da folha.');
+}
+
 export async function fetchFolhaContasPagadoras(): Promise<FolhaContaPagadora[]> {
   const { fetchFinanceiroContasBancarias } = await import('./contasPagarService.ts');
   const contas = await fetchFinanceiroContasBancarias();
@@ -73,4 +98,24 @@ export async function saveFolhaRateio(input: {
   });
   if (error) throw folhaRateioError(error);
   return data as FolhaRateioSaveResponse;
+}
+
+export async function fecharFolha(folhaId: number): Promise<FolhaFecharResponse> {
+  const { supabase } = await import('./supabase.ts');
+  const { data, error } = await supabase.rpc('folha_fechar', {
+    p_folha_id: folhaId,
+    p_ator: {},
+  });
+  if (error) throw folhaLifecycleError(error);
+  return data as FolhaFecharResponse;
+}
+
+export async function reabrirFolha(folhaId: number): Promise<FolhaReabrirResponse> {
+  const { supabase } = await import('./supabase.ts');
+  const { data, error } = await supabase.rpc('folha_reabrir', {
+    p_folha_id: folhaId,
+    p_ator: {},
+  });
+  if (error) throw folhaLifecycleError(error);
+  return data as FolhaReabrirResponse;
 }

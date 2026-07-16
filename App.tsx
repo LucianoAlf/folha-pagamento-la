@@ -7,6 +7,7 @@ import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta, UserProfile 
 import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, AlertDialog, Modal, Tooltip } from './components/UI';
 import { MobileCollaboratorList } from './components/colaboradores/MobileCollaboratorList';
 import { FolhaRateioContasPanel } from './components/folha-rateio/FolhaRateioContasPanel';
+import { buildFolhaAlertSummary } from './components/folhaAlertasModel';
 import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
@@ -740,6 +741,16 @@ export default function App() {
     setLancamentos(currentLancData);
   };
 
+  const refetchFolhaForRateio = async () => {
+    if (!folhaAtual) throw new Error('Selecione uma folha antes de atualizar o fechamento.');
+    const folhasData = await api.fetchFolhasMensais();
+    const refreshedFolha = folhasData.find((folha) => folha.id === folhaAtual.id);
+    if (!refreshedFolha) throw new Error('A folha selecionada nao foi encontrada ao atualizar.');
+    setFolhas(folhasData);
+    setFolhaAtual(refreshedFolha);
+    setStatusFolha(refreshedFolha.status);
+  };
+
   const saveLancamentoPatch = async (l: Lancamento, patch: Partial<Lancamento>) => {
     const next = { ...l, ...patch } as Lancamento;
     const total = computeLancamentoTotal(next);
@@ -1441,6 +1452,11 @@ export default function App() {
   };
 
   const unidadeLabels: Record<string, string> = { cg: 'CG', rec: 'REC', bar: 'BAR' };
+  const alertSummary = buildFolhaAlertSummary({
+    count: filteredAlertas.length,
+    notedCount: filteredAlertas.filter((alerta) => alerta.id && (noteDrafts[alerta.id] || '').trim()).length,
+    scopeLabel: unidadeFiltro === 'todos' ? undefined : unidadeLabels[unidadeFiltro],
+  });
   const folhaAnterior = useMemo(() => {
     if (!selectedFolhaId || folhas.length === 0) return null;
     const idx = folhas.findIndex(f => f.id === selectedFolhaId);
@@ -1967,6 +1983,7 @@ export default function App() {
                         {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
                         {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
                         {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
+                        {statusFolha === 'fechada' && <Badge variant="success">Fechada</Badge>}
                       </div>
                     </div>
               </div>
@@ -1998,6 +2015,7 @@ export default function App() {
                 {statusFolha === 'rascunho' && <Badge variant="warning">Rascunho</Badge>}
                 {statusFolha === 'pendente' && <Badge variant="info">Pendente</Badge>}
                 {statusFolha === 'aprovada' && <Badge variant="success">Aprovada</Badge>}
+                {statusFolha === 'fechada' && <Badge variant="success">Fechada</Badge>}
                   </div>
                 </h2>
                 <p className="text-sm text-muted font-bold mt-1">
@@ -2388,11 +2406,9 @@ export default function App() {
                       </div>
                       <div className="text-left">
                         <h4 className="font-bold text-warning text-lg">
-                          {filteredAlertas.length} {filteredAlertas.length === 1 ? 'Alerta Detectado' : 'Alertas Detectados'}
+                          {alertSummary.title}
                         </h4>
-                        <p className="text-xs text-secondary">
-                          {unidadeFiltro === 'todos' ? 'Revise antes de aprovar a folha' : `Alertas da unidade ${unidadeLabels[unidadeFiltro]}`}
-                        </p>
+                        <p className="text-xs text-secondary">{alertSummary.subtitle}</p>
                       </div>
                     </div>
                     <div className={`p-2 rounded-lg bg-surface-3/30 text-secondary transition-transform duration-300 ${alertsExpanded ? 'rotate-180' : ''}`}>
@@ -2454,8 +2470,13 @@ export default function App() {
                             {/* Ana note preview */}
                             {alerta.id && (noteDrafts[alerta.id] || '').trim() ? (
                               <div className="mt-2 rounded-xl border border-line-strong/40 bg-surface/30 px-3 py-2">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-muted">
-                                  Motivo (Ana)
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="text-[10px] font-black uppercase tracking-widest text-muted">
+                                    Motivo (Ana)
+                                  </div>
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-warning">
+                                    Aguardando confirmacao
+                                  </span>
                                 </div>
                                 <div className="mt-1 text-[11px] text-secondary leading-snug line-clamp-2">
                                   {(noteDrafts[alerta.id] || '').trim()}
@@ -2479,14 +2500,14 @@ export default function App() {
                                   <Edit2 size={16} />
                                 </button>
                               </Tooltip>
-                              <Tooltip content="Marcar como verificado">
+                              <Tooltip content="Confirmar revisao e concluir alerta">
                                 <button
                                   onClick={() => handleCheckAlert(alerta.id!)}
                                   className={cn(
                                     "w-10 h-10 rounded-xl bg-success/10 hover:bg-success/20 text-success border border-success/30 transition-all flex items-center justify-center",
                                     "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus:opacity-100"
                                   )}
-                                  aria-label="Verificado"
+                                  aria-label="Confirmar revisao"
                                 >
                                   <CheckCircle size={16} />
                                 </button>
@@ -4033,8 +4054,11 @@ export default function App() {
                 ) : folhaAtual ? (
                   <FolhaRateioContasPanel
                     folhaId={folhaAtual.id}
+                    folhaStatus={folhaAtual.status}
                     lancamentos={lancamentos}
                     onLancamentosChanged={refetchLancamentosForRateio}
+                    onFolhaChanged={refetchFolhaForRateio}
+                    onOpenContasPagar={() => handleNavigate('contas')}
                   />
                 ) : null}
               </div>

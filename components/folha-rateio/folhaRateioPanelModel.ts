@@ -128,7 +128,7 @@ export function deriveFolhaRateioProgress(
     ? 0
     : Math.min(100, Math.max(0, (reconciled / total) * 100));
   const allDiagnostics: FolhaRateioPanelDiagnostic[] = [
-    { key: 'fatias_sem_conta', label: 'Fatias sem conta', value: preflight.fatias_sem_conta },
+    { key: 'fatias_sem_conta', label: 'Lancamentos sem conta pagadora', value: preflight.fatias_sem_conta },
     { key: 'incoerencias_fiscais', label: 'Incoerencias fiscais', value: preflight.incoerencias_fiscais },
     { key: 'conflitos_chave', label: 'Divisoes duplicadas', value: preflight.conflitos_chave },
   ];
