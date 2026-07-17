@@ -35,6 +35,26 @@ export function getFocusCycleTarget({
   return null;
 }
 
+function isFocusRestorable(element: HTMLElement | null): element is HTMLElement {
+  if (!element?.isConnected || !element.matches(FOCUSABLE_SELECTOR)) return false;
+  if (element.getClientRects().length === 0) return false;
+
+  let current: HTMLElement | null = element;
+  while (current) {
+    const style = window.getComputedStyle(current);
+    if (
+      style.display === 'none' ||
+      style.visibility === 'hidden' ||
+      style.visibility === 'collapse' ||
+      Number.parseFloat(style.opacity) === 0
+    ) {
+      return false;
+    }
+    current = current.parentElement;
+  }
+  return true;
+}
+
 export interface MobileNavigationDrawerProps {
   open: boolean;
   current: NavigationDestination;
@@ -58,6 +78,7 @@ const OpenMobileNavigationDrawer: React.FC<OpenMobileNavigationDrawerProps> = ({
   useEffect(() => {
     const previousActive = document.activeElement as HTMLElement | null;
     const previousOverflow = document.body.style.overflow;
+    const desktopMedia = window.matchMedia('(min-width: 1024px)');
     document.body.style.overflow = 'hidden';
     closeButtonRef.current?.focus({ preventScroll: true });
 
@@ -99,17 +120,27 @@ const OpenMobileNavigationDrawer: React.FC<OpenMobileNavigationDrawerProps> = ({
       targetElement?.focus({ preventScroll: true });
     };
 
+    const handleDesktopChange = (event: MediaQueryListEvent) => {
+      if (event.matches) onCloseRef.current();
+    };
+
     document.addEventListener('keydown', handleKeyDown);
+    desktopMedia.addEventListener('change', handleDesktopChange);
+    if (desktopMedia.matches) onCloseRef.current();
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      desktopMedia.removeEventListener('change', handleDesktopChange);
       document.body.style.overflow = previousOverflow;
-      previousActive?.focus({ preventScroll: true });
+      if (isFocusRestorable(previousActive)) {
+        previousActive.focus({ preventScroll: true });
+      }
     };
   }, []);
 
   return (
     <div
-      className="fixed inset-0 z-[10600] bg-black/55 backdrop-blur-sm lg:hidden"
+      className="fixed inset-0 z-[13000] bg-black/55 backdrop-blur-sm lg:hidden"
       onClick={(event) => {
         if (event.target !== event.currentTarget) return;
         onClose();
