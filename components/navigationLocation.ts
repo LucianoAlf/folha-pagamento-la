@@ -140,10 +140,17 @@ export function buildNavigationUrl(
 ): string {
   const params = new URLSearchParams(search);
   const hasLegacyParams = params.has('module') || params.has('page');
+  const hasCartoesScopedParams =
+    destination.module !== 'cartoes' &&
+    (params.get('tab') === 'faturas' || params.has('cartaoId'));
   params.delete('module');
   params.delete('page');
+  if (destination.module !== 'cartoes') {
+    if (params.get('tab') === 'faturas') params.delete('tab');
+    params.delete('cartaoId');
+  }
   const targetPath = destination.module === 'cartoes' ? '/cartoes' : '/';
-  const targetSearch = hasLegacyParams
+  const targetSearch = hasLegacyParams || hasCartoesScopedParams
     ? params.toString()
       ? `?${params.toString()}`
       : ''

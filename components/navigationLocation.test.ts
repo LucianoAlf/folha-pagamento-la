@@ -100,6 +100,17 @@ test('URL de navegacao preserva tabs e remove apenas module/page legados', () =>
   );
 });
 
+test('URL de navegacao remove filtros exclusivos de faturas ao sair de Cartoes', () => {
+  assert.equal(
+    buildNavigationUrl(
+      { module: 'folha', page: 'bistro' },
+      '?tab=faturas&cartaoId=cartao-2270&origem=menu',
+      '#consumos',
+    ),
+    '/?origem=menu#consumos',
+  );
+});
+
 const browserPagePlugin: Plugin = {
   name: 'navigation-location-browser-page',
   configureServer(server) {
