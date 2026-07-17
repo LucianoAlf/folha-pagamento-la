@@ -43,8 +43,18 @@ export const NavigationGroups: React.FC<NavigationGroupsProps> = ({
             const Icon = item.icon;
             const badge = badges[item.id];
             const active = isNavigationItemActive(item, current);
-            const accessibleLabel =
-              item.status === 'future' ? `${item.label}, Em breve` : item.label;
+            const badgeLabel = badge
+              ? badge.variant === 'danger'
+                ? `${badge.count} ${badge.count === 1 ? 'férias vencida' : 'férias vencidas'}`
+                : `${badge.count} ${badge.count === 1 ? 'férias próxima' : 'férias próximas'}`
+              : undefined;
+            const accessibleLabel = [
+              item.label,
+              item.status === 'future' ? 'Em breve' : undefined,
+              badgeLabel,
+            ]
+              .filter(Boolean)
+              .join(', ');
             const button = (
               <button
                 key={item.id}
