@@ -57,16 +57,28 @@ export interface NavigationBadge {
   pulse?: boolean;
 }
 
-export interface NavigationItem {
+interface NavigationItemBase {
   id: NavigationItemId;
   label: string;
   shortLabel?: string;
   icon: LucideIcon;
-  status: 'active' | 'future';
-  destination?: NavigationDestination;
+}
+
+interface ActiveNavigationItem extends NavigationItemBase {
+  status: 'active';
+  destination: NavigationDestination;
   activeMode?: 'module' | 'exact';
   excludedPages?: string[];
 }
+
+interface FutureNavigationItem extends NavigationItemBase {
+  status: 'future';
+  destination?: never;
+  activeMode?: never;
+  excludedPages?: never;
+}
+
+export type NavigationItem = ActiveNavigationItem | FutureNavigationItem;
 
 export interface NavigationGroup {
   id: 'financeiro' | 'rh-dp' | 'configuracoes';
