@@ -87,7 +87,6 @@ test('Mais separa destaque visual, aria-expanded e destino atual', async (t) => 
     );
 
   for (const current of [
-    { module: 'folha', page: 'bistro' },
     { module: 'rh', page: 'dashboard' },
     { module: 'ferias', page: 'ferias' },
     { module: 'notificacoes', page: 'notificacoes' },
@@ -97,7 +96,8 @@ test('Mais separa destaque visual, aria-expanded e destino atual', async (t) => 
   }
 
   const bistroMarkup = render({ module: 'folha', page: 'bistro' });
-  assert.doesNotMatch(getButton(bistroMarkup, 'Folha'), /aria-current=/);
+  assert.match(getButton(bistroMarkup, 'Folha'), /aria-current="page"/);
+  assert.doesNotMatch(getButton(bistroMarkup, 'Mais'), /aria-current=/);
 
   const drawerOpenMarkup = render({ module: 'folha', page: 'dashboard' }, true);
   assert.match(getButton(drawerOpenMarkup, 'Mais'), /aria-expanded="true"/);

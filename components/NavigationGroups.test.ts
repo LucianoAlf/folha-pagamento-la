@@ -46,7 +46,8 @@ test('NavigationGroups renderiza disabled e nomes acessiveis de status e badge',
     dangerMarkup,
     /<button[^>]*disabled=""[^>]*aria-label="Dashboard financeiro, Em breve"/,
   );
-  assert.equal((dangerMarkup.match(/<button[^>]*disabled=""/g) ?? []).length, 8);
+  assert.equal((dangerMarkup.match(/<button[^>]*disabled=""/g) ?? []).length, 9);
+  assert.match(dangerMarkup, /aria-label="Bistrô, Em breve"/);
   assert.match(
     dangerMarkup,
     /aria-label="Férias CLT, 1 colaborador com férias vencidas"/,

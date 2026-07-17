@@ -137,9 +137,7 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
         id: 'bistro',
         label: 'Bistrô',
         icon: ChefHat,
-        status: 'active',
-        destination: { module: 'folha', page: 'bistro' },
-        activeMode: 'exact',
+        status: 'future',
       },
     ],
   },
@@ -154,7 +152,6 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
         icon: Users,
         status: 'active',
         destination: { module: 'folha' },
-        excludedPages: ['bistro'],
       },
       {
         id: 'rh',

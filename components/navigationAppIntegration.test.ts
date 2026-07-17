@@ -90,13 +90,13 @@ test('mudancas de aba tambem passam pela aplicacao centralizada', () => {
   assert.doesNotMatch(appSource, /setActiveTab\('lancamentos'\)/);
 });
 
-test('Bistro permanece destino exato da Folha e nao reativa o atalho Folha', () => {
+test('Bistro permanece interno a Folha enquanto a pagina financeira esta em breve', () => {
   assert.match(
     navigationSource,
-    /id: 'bistro',[\s\S]*?destination: \{ module: 'folha', page: 'bistro' \},[\s\S]*?activeMode: 'exact'/,
+    /id: 'bistro',[\s\S]*?status: 'future'/,
   );
-  assert.match(
+  assert.doesNotMatch(
     navigationSource,
-    /id: 'folha',[\s\S]*?destination: \{ module: 'folha' \},[\s\S]*?excludedPages: \['bistro'\]/,
+    /excludedPages: \['bistro'\]/,
   );
 });

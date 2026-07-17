@@ -97,7 +97,7 @@ test('itens futuros nao possuem destino', () => {
     .flatMap((group) => group.items)
     .filter((item) => item.status === 'future');
 
-  assert.equal(futureItems.length, 8);
+  assert.equal(futureItems.length, 9);
   assert.ok(futureItems.every((item) => item.destination === undefined));
 });
 
@@ -116,8 +116,8 @@ test('mantem ids, status e destinos aprovados no mapa central', () => {
       { id: 'cartoes', status: 'active', destination: { module: 'cartoes' } },
       {
         id: 'bistro',
-        status: 'active',
-        destination: { module: 'folha', page: 'bistro' },
+        status: 'future',
+        destination: undefined,
       },
       { id: 'folha', status: 'active', destination: { module: 'folha' } },
       { id: 'rh', status: 'active', destination: { module: 'rh' } },
@@ -149,12 +149,12 @@ test('todo item ativo possui destino', () => {
   assert.ok(activeItems.every((item) => item.destination !== undefined));
 });
 
-test('Bistro ativa apenas Bistro e move o mobile para Mais', () => {
+test('Bistro futuro mantem Folha ativa na aba interna', () => {
   const current = { module: 'folha' as const, page: 'bistro' };
 
-  assert.equal(isNavigationItemActive(getNavigationItem('bistro'), current), true);
-  assert.equal(isNavigationItemActive(getNavigationItem('folha'), current), false);
-  assert.equal(isMoreNavigationActive(current), true);
+  assert.equal(isNavigationItemActive(getNavigationItem('bistro'), current), false);
+  assert.equal(isNavigationItemActive(getNavigationItem('folha'), current), true);
+  assert.equal(isMoreNavigationActive(current), false);
 });
 
 test('Folha continua ativa nas demais abas internas', () => {
