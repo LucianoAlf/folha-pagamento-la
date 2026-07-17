@@ -38,6 +38,13 @@ import {
   type ModuleId,
   type NavigationDestination,
 } from './components/navigation';
+import {
+  buildNavigationUrl,
+  isSameNavigationDestination,
+  normalizeNavigationDestination,
+  resolveNavigationLocation,
+  withNavigationHistoryState,
+} from './components/navigationLocation';
 import { ThemeToggle } from './components/ThemeToggle';
 import { AvatarCropper } from './components/AvatarCropper';
 import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
@@ -220,15 +227,23 @@ export default function App() {
     return null;
   };
 
-  const [currentModule, setCurrentModule] = useState<ModuleId>(() =>
-    window.location.pathname === '/cartoes' || window.location.pathname === '/faturas' ? 'cartoes' : 'folha'
+  const initialNavigation = useMemo(
+    () => normalizeNavigationDestination(resolveNavigationLocation({
+      pathname: window.location.pathname,
+      search: window.location.search,
+      hash: window.location.hash,
+      state: window.history.state,
+    }).destination),
+    [],
   );
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [currentModule, setCurrentModule] = useState<ModuleId>(initialNavigation.module);
+  const [activeTab, setActiveTab] = useState(initialNavigation.page ?? 'dashboard');
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const openMobileNavigation = useCallback(() => setMobileNavigationOpen(true), []);
   const closeMobileNavigation = useCallback(() => setMobileNavigationOpen(false), []);
   const [lancamentosView, setLancamentosView] = useState<LancamentosView>('folha');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
+  const currentNavigationRef = useRef(initialNavigation);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [contasCompetenciaYM, setContasCompetenciaYM] = useState<string>(() => {
     const hoje = new Date();
@@ -277,13 +292,6 @@ export default function App() {
     fromFolhaId: '', 
     unidade: 'todos' 
   });
-
-  // Reset filter when changing tabs to avoid UX confusion
-  const handleTabChange = (tabId: string) => {
-    startTabTransition(() => setActiveTab(tabId));
-    // Reset filter only for Folha, to avoid confusing the Finance module UX
-    if (currentModule === 'folha') setUnidadeFiltro('todos');
-  };
 
   const MODULE_CONFIG = {
     folha: {
@@ -345,10 +353,95 @@ export default function App() {
     }
   };
 
+  const applyNavigationState = useCallback((next: NavigationDestination) => {
+    const normalized: NavigationDestination = {
+      module: next.module,
+      page: next.page ?? getDefaultPage(next.module),
+    };
+    currentNavigationRef.current = normalized;
+    setCurrentModule(normalized.module);
+    setActiveTab(normalized.page ?? getDefaultPage(normalized.module));
+    if (normalized.module === 'folha') setUnidadeFiltro('todos');
+  }, []);
+
+  const handleTabChange = (tabId: string) => {
+    const next = normalizeNavigationDestination({ module: currentModule, page: tabId });
+    startTabTransition(() => applyNavigationState({ module: currentModule, page: tabId }));
+    try {
+      window.history.replaceState(
+        withNavigationHistoryState(window.history.state, next),
+        '',
+        `${window.location.pathname}${window.location.search}${window.location.hash}`,
+      );
+    } catch {
+      // Ignore history sync errors after applying the in-memory tab.
+    }
+  };
+
+  const handleNavigate = useCallback((next: NavigationDestination) => {
+    const normalized = normalizeNavigationDestination(next);
+    const targetUrl = buildNavigationUrl(
+      normalized,
+      window.location.search,
+      window.location.hash,
+    );
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const destinationChanged = !isSameNavigationDestination(
+      currentNavigationRef.current,
+      normalized,
+    );
+
+    applyNavigationState(normalized);
+    if (!destinationChanged && targetUrl === currentUrl) return;
+
+    try {
+      window.history.pushState(
+        withNavigationHistoryState({}, normalized),
+        '',
+        targetUrl,
+      );
+    } catch {
+      // Ignore history sync errors after applying the in-memory destination.
+    }
+  }, [applyNavigationState]);
+
+  const synchronizeNavigationFromLocation = useCallback(() => {
+    const resolution = resolveNavigationLocation({
+      pathname: window.location.pathname,
+      search: window.location.search,
+      hash: window.location.hash,
+      state: window.history.state,
+    });
+    const normalized = normalizeNavigationDestination(resolution.destination);
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+    try {
+      window.history.replaceState(
+        withNavigationHistoryState(window.history.state, normalized),
+        '',
+        resolution.canonicalUrl ?? currentUrl,
+      );
+    } catch {
+      // Ignore history sync errors and still restore the in-memory destination.
+    }
+    applyNavigationState(normalized);
+  }, [applyNavigationState]);
+
+  useEffect(() => {
+    synchronizeNavigationFromLocation();
+    window.addEventListener('popstate', synchronizeNavigationFromLocation);
+    return () => {
+      window.removeEventListener('popstate', synchronizeNavigationFromLocation);
+    };
+  }, [synchronizeNavigationFromLocation]);
+
   // Navegação global (atalhos dentro das telas podem disparar um CustomEvent)
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { module?: string; page?: string } | undefined;
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail as {
+        module?: string;
+        page?: string;
+      } | undefined;
       if (!detail?.module) return;
 
       const requestedModule = detail.module === 'faturas' ? 'cartoes' : detail.module;
@@ -358,69 +451,7 @@ export default function App() {
 
     window.addEventListener('la:navigate', handler as EventListener);
     return () => window.removeEventListener('la:navigate', handler as EventListener);
-  }, []);
-
-  const handleNavigate = (next: NavigationDestination) => {
-    setCurrentModule(next.module);
-    setActiveTab(next.page ?? getDefaultPage(next.module));
-
-    if (next.module === 'folha') setUnidadeFiltro('todos');
-
-    try {
-      const targetPath = next.module === 'cartoes' ? '/cartoes' : '/';
-      if (window.location.pathname !== targetPath) {
-        window.history.pushState({}, '', `${targetPath}${window.location.search || ''}${window.location.hash || ''}`);
-      }
-    } catch {
-      // ignore navigation sync errors
-    }
-  };
-
-  // Deep-linking for PWA shortcuts (/?module=agenda|contas|folha|notificacoes)
-  useEffect(() => {
-    try {
-      if (window.location.pathname === '/cartoes') {
-        handleNavigate({ module: 'cartoes' });
-        return;
-      }
-      if (window.location.pathname === '/faturas') {
-        const params = new URLSearchParams(window.location.search || '');
-        params.set('tab', 'faturas');
-        const nextSearch = params.toString();
-        window.history.replaceState({}, '', `/cartoes${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || ''}`);
-        handleNavigate({ module: 'cartoes' });
-        return;
-      }
-
-      const params = new URLSearchParams(window.location.search || '');
-      const moduleParam = (params.get('module') || '').toLowerCase();
-      const pageParam = (params.get('page') || '').toLowerCase();
-
-      if (moduleParam === 'faturas') {
-        params.delete('module');
-        params.delete('page');
-        params.set('tab', 'faturas');
-        const nextSearch = params.toString();
-        window.history.replaceState({}, '', `/cartoes${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || ''}`);
-        handleNavigate({ module: 'cartoes' });
-        return;
-      }
-
-      if (isModuleId(moduleParam)) {
-        handleNavigate({ module: moduleParam, page: pageParam || undefined });
-
-        // Keep URL clean (remove only module/page)
-        params.delete('module');
-        params.delete('page');
-        const nextSearch = params.toString();
-        const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || ''}`;
-        window.history.replaceState({}, '', nextUrl);
-      }
-    } catch {
-      // ignore
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [handleNavigate]);
 
   const loadAiInsights = async (folhaId: number) => {
     setAiInsightsLoading(true);
@@ -1493,7 +1524,7 @@ export default function App() {
           const created = await api.createFolhaMensal({ ano: nextAno, mes: nextMes });
           await loadData();
           setSelectedFolhaId(created.id);
-          setActiveTab('lancamentos');
+          handleTabChange('lancamentos');
         } catch (err: any) {
           setConfirmState(prev => ({ ...prev, isOpen: false }));
           setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao criar mês: ' + err.message, variant: 'danger' });

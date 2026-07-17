@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const appSource = readFileSync(new URL('../App.tsx', import.meta.url), 'utf8');
 const navigationSource = readFileSync(new URL('./navigation.ts', import.meta.url), 'utf8');
+const locationSource = readFileSync(new URL('./navigationLocation.ts', import.meta.url), 'utf8');
 
 test('App importa e usa um unico contrato tipado de destino', () => {
   assert.match(appSource, /import \{ BottomNavigation \} from '.\/components\/BottomNavigation'/);
@@ -15,8 +16,9 @@ test('App importa e usa um unico contrato tipado de destino', () => {
   assert.match(appSource, /type ModuleId/);
   assert.match(appSource, /type NavigationDestination/);
   assert.match(appSource, /useState<ModuleId>/);
-  assert.match(appSource, /const handleNavigate = \(next: NavigationDestination\)/);
-  assert.match(appSource, /next\.page \?\? getDefaultPage\(next\.module\)/);
+  assert.match(appSource, /const applyNavigationState = useCallback/);
+  assert.match(appSource, /const handleNavigate = useCallback/);
+  assert.match(appSource, /normalizeNavigationDestination\(next\)/);
   assert.doesNotMatch(appSource, /useState<'folha'\s*\|/);
   assert.doesNotMatch(appSource, /as 'folha'\s*\|/);
   assert.doesNotMatch(appSource, /handleNavigate\(\s*['"]/);
@@ -49,26 +51,43 @@ test('eventos, callsites e URLs usam NavigationDestination sem adaptador legado'
     appSource,
     /handleNavigate\(\{ module: requestedModule, page: detail\.page \}\)/,
   );
-  assert.match(appSource, /handleNavigate\(\{ module: 'cartoes' \}\)/);
-  assert.match(
-    appSource,
-    /handleNavigate\(\{ module: moduleParam, page: pageParam \|\| undefined \}\)/,
-  );
   assert.match(appSource, /onOpenContasPagar=\{\(\) => handleNavigate\(\{ module: 'contas' \}\)\}/);
-  assert.match(appSource, /const targetPath = next\.module === 'cartoes' \? '\/cartoes' : '\/'/);
-  assert.match(
-    appSource,
-    /`\$\{targetPath\}\$\{window\.location\.search \|\| ''\}\$\{window\.location\.hash \|\| ''\}`/,
-  );
+  assert.match(appSource, /buildNavigationUrl\(/);
+  assert.match(appSource, /window\.history\.pushState\(/);
+  assert.match(appSource, /withNavigationHistoryState\(\{\}, normalized\)/);
 });
 
 test('deep links de cartoes, faturas e query tabs permanecem explicitos', () => {
-  assert.match(appSource, /window\.location\.pathname === '\/cartoes'/);
-  assert.match(appSource, /window\.location\.pathname === '\/faturas'/);
-  assert.match(appSource, /moduleParam === 'faturas'/);
-  assert.match(appSource, /params\.set\('tab', 'faturas'\)/);
-  assert.match(appSource, /window\.history\.replaceState\(\{\}, '', `\/cartoes/);
-  assert.match(appSource, /isModuleId\(moduleParam\)/);
+  assert.match(locationSource, /pathname === '\/cartoes'/);
+  assert.match(locationSource, /pathname === '\/faturas'/);
+  assert.match(locationSource, /moduleParam === 'faturas'/);
+  assert.match(locationSource, /params\.set\('tab', 'faturas'\)/);
+  assert.match(locationSource, /params\.delete\('module'\)/);
+  assert.match(locationSource, /params\.delete\('page'\)/);
+});
+
+test('App sincroniza carga inicial e popstate sem empilhar historico', () => {
+  assert.match(appSource, /const synchronizeNavigationFromLocation = useCallback/);
+  assert.match(appSource, /resolveNavigationLocation\(/);
+  assert.match(appSource, /window\.history\.replaceState\(/);
+  assert.match(appSource, /synchronizeNavigationFromLocation\(\)/);
+  assert.match(
+    appSource,
+    /window\.addEventListener\('popstate', synchronizeNavigationFromLocation\)/,
+  );
+  assert.match(
+    appSource,
+    /window\.removeEventListener\('popstate', synchronizeNavigationFromLocation\)/,
+  );
+});
+
+test('mudancas de aba tambem passam pela aplicacao centralizada', () => {
+  assert.match(
+    appSource,
+    /startTabTransition\(\(\) => applyNavigationState\(\{ module: currentModule, page: tabId \}\)\)/,
+  );
+  assert.doesNotMatch(appSource, /startTabTransition\(\(\) => setActiveTab/);
+  assert.doesNotMatch(appSource, /setActiveTab\('lancamentos'\)/);
 });
 
 test('Bistro permanece destino exato da Folha e nao reativa o atalho Folha', () => {

@@ -70,7 +70,7 @@ test('SSR renderiza exatamente Folha, Contas, Cartoes, Agenda e Mais', async (t)
   assert.match(getButton(markup, 'Mais'), /aria-expanded="false"/);
 });
 
-test('Mais fica atual nos destinos nao fixos e enquanto o drawer esta aberto', async (t) => {
+test('Mais separa destaque visual, aria-expanded e destino atual', async (t) => {
   const vite = await createServer({ logLevel: 'silent', server: { middlewareMode: true } });
   t.after(() => vite.close());
 
@@ -101,5 +101,7 @@ test('Mais fica atual nos destinos nao fixos e enquanto o drawer esta aberto', a
 
   const drawerOpenMarkup = render({ module: 'folha', page: 'dashboard' }, true);
   assert.match(getButton(drawerOpenMarkup, 'Mais'), /aria-expanded="true"/);
-  assert.match(getButton(drawerOpenMarkup, 'Mais'), /aria-current="page"/);
+  assert.doesNotMatch(getButton(drawerOpenMarkup, 'Mais'), /aria-current=/);
+  assert.match(getButton(drawerOpenMarkup, 'Mais'), /text-accent/);
+  assert.equal((drawerOpenMarkup.match(/aria-current="page"/g) ?? []).length, 1);
 });

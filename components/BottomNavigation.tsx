@@ -21,7 +21,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onNavigate,
   onOpenMore,
 }) => {
-  const moreActive = moreOpen || isMoreNavigationActive(current);
+  const moreCurrent = isMoreNavigationActive(current);
+  const moreHighlighted = moreOpen || moreCurrent;
 
   return (
     <nav
@@ -68,16 +69,16 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           aria-label="Mais"
           aria-haspopup="dialog"
           aria-expanded={moreOpen}
-          aria-current={moreActive ? 'page' : undefined}
+          aria-current={moreCurrent ? 'page' : undefined}
           className={[
             'flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1.5 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
-            moreActive ? 'text-accent' : 'text-muted hover:text-secondary',
+            moreHighlighted ? 'text-accent' : 'text-muted hover:text-secondary',
           ].join(' ')}
         >
           <Menu
             className={[
               'h-6 w-6 shrink-0 transition-transform',
-              moreActive ? 'scale-110' : '',
+              moreHighlighted ? 'scale-110' : '',
             ].join(' ')}
             aria-hidden="true"
           />
