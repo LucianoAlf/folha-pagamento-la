@@ -31,6 +31,25 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 let authHeadersCache: { headers: Record<string, string>; expiresAt: number } | null = null;
 
+type FolhaDuplicacaoUnidade = 'cg' | 'rec' | 'bar';
+
+export type FolhaDuplicacaoPreflight = {
+  pode_duplicar: boolean;
+  source_hash: string;
+  ambiguos?: unknown[];
+  ambiguidades?: unknown[];
+  conflitos?: unknown[];
+  quantidade_origem?: number;
+  quantidade_a_duplicar?: number;
+  [key: string]: unknown;
+};
+
+export type FolhaDuplicacaoResult = {
+  success?: boolean;
+  duplicados?: number;
+  [key: string]: unknown;
+};
+
 export const api = {
   async fetchUserProfile(userId: string): Promise<UserProfile | null> {
     const headers = await getAuthHeaders();
@@ -258,57 +277,43 @@ export const api = {
     return rows[0];
   },
 
-  async duplicateLancamentos(input: { fromFolhaId: number; toFolhaId: number; unidade: 'cg' | 'rec' | 'bar' }): Promise<number> {
-    const headers = await getAuthHeaders();
-    const [sourceRes, targetRes] = await Promise.all([
-      fetch(
-        `${SUPABASE_URL}/rest/v1/lancamentos_folha?select=colaborador_id,unidade,categoria,salario,bonus,comissao,reembolso,passagem,inss,descontos&folha_id=eq.${input.fromFolhaId}&unidade=eq.${input.unidade}`,
-        { headers }
-      ),
-      fetch(
-        `${SUPABASE_URL}/rest/v1/lancamentos_folha?select=colaborador_id,unidade,categoria&folha_id=eq.${input.toFolhaId}&unidade=eq.${input.unidade}`,
-        { headers }
-      ),
-    ]);
-
-    if (!sourceRes.ok) throw new Error('Erro ao buscar lançamentos de origem');
-    if (!targetRes.ok) throw new Error('Erro ao buscar lançamentos de destino');
-
-    const source = await sourceRes.json();
-    const target = await targetRes.json();
-
-    const key = (r: any) => `${r.colaborador_id}|${r.unidade}|${r.categoria}`;
-    const targetKeys = new Set((target || []).map(key));
-
-    const toInsert = (source || [])
-      .filter((s: any) => !targetKeys.has(key(s)))
-      .map((s: any) => ({
-        folha_id: input.toFolhaId,
-        colaborador_id: s.colaborador_id,
-        unidade: s.unidade,
-        categoria: s.categoria,
-        salario: Number(s.salario) || 0,
-        bonus: Number(s.bonus) || 0,
-        comissao: Number(s.comissao) || 0,
-        reembolso: Number(s.reembolso) || 0,
-        passagem: Number(s.passagem) || 0,
-        inss: Number(s.inss) || 0,
-        descontos: Number(s.descontos) || 0,
-        alert_checked: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }));
-
-    if (toInsert.length === 0) return 0;
-
-    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/lancamentos_folha`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(toInsert),
+  async preflightDuplicateLancamentos(input: {
+    fromFolhaId: number;
+    toFolhaId: number;
+    unidades: FolhaDuplicacaoUnidade[];
+  }): Promise<FolhaDuplicacaoPreflight> {
+    const { data, error } = await supabase.rpc('folha_duplicar_lancamentos_preflight', {
+      p_folha_origem_id: input.fromFolhaId,
+      p_folha_destino_id: input.toFolhaId,
+      p_unidades: input.unidades,
     });
-    if (!insertRes.ok) throw new Error('Erro ao duplicar lançamentos');
+    if (error) throw new Error(error.message || 'Erro ao validar a duplicação de lançamentos');
 
-    return toInsert.length;
+    const preflight = data as FolhaDuplicacaoPreflight | null;
+    if (!preflight || typeof preflight.pode_duplicar !== 'boolean') {
+      throw new Error('O preflight da duplicação retornou uma resposta inválida.');
+    }
+    if (preflight.pode_duplicar && !preflight.source_hash) {
+      throw new Error('O preflight da duplicação não retornou o hash de origem.');
+    }
+    return preflight;
+  },
+
+  async duplicateLancamentos(input: {
+    fromFolhaId: number;
+    toFolhaId: number;
+    unidades: FolhaDuplicacaoUnidade[];
+    sourceHash: string;
+  }): Promise<FolhaDuplicacaoResult> {
+    const { data, error } = await supabase.rpc('folha_duplicar_lancamentos', {
+      p_folha_origem_id: input.fromFolhaId,
+      p_folha_destino_id: input.toFolhaId,
+      p_unidades: input.unidades,
+      p_source_hash_esperado: input.sourceHash,
+      p_ator: {},
+    });
+    if (error) throw new Error(error.message || 'Erro ao duplicar lançamentos');
+    return data as FolhaDuplicacaoResult;
   },
 
   async updateFolhaStatus(folhaId: number, status: string): Promise<FolhaMensal[]> {

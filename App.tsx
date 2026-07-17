@@ -3,11 +3,13 @@ import * as Popover from '@radix-ui/react-popover';
 import { api, formatCurrency, getMesNome } from './services/api';
 import { supabase } from './services/supabase';
 import { notifyAnaFolhaAprovada } from './services/folhaAprovacaoWhatsapp';
+import { fetchFolhaDreSnapshot } from './services/folhaDreService';
 import { Colaborador, FolhaMensal, Lancamento, TotaisFolha, Alerta, UserProfile } from './types';
 import { Card, Badge, LoadingSpinner, ErrorState, CustomSelect, ConfirmDialog, AlertDialog, Modal, Tooltip } from './components/UI';
 import { MobileCollaboratorList } from './components/colaboradores/MobileCollaboratorList';
 import { FolhaRateioContasPanel } from './components/folha-rateio/FolhaRateioContasPanel';
 import { buildFolhaAlertSummary } from './components/folhaAlertasModel';
+import { buildFolhaBistroBreakdown, type FolhaDreSnapshotRow } from './components/bistro/folhaBistroModel';
 import { KPICard, DistributionChart, EvolutionChart } from './components/DashboardWidgets';
 import { 
   DollarSign, Users, Building, AlertTriangle, CheckCircle, 
@@ -492,6 +494,7 @@ export default function App() {
   const [folhaAtual, setFolhaAtual] = useState<FolhaMensal | null>(null);
   const [selectedFolhaId, setSelectedFolhaId] = useState<number | null>(null);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [folhaDreSnapshot, setFolhaDreSnapshot] = useState<FolhaDreSnapshotRow[]>([]);
   const [lancamentosAnteriores, setLancamentosAnteriores] = useState<Lancamento[]>([]);
   const [statusFolha, setStatusFolha] = useState<string>('rascunho');
   const [alertsExpanded, setAlertsExpanded] = useState(false);
@@ -513,6 +516,27 @@ export default function App() {
   useEffect(() => {
     selectedFolhaIdRef.current = selectedFolhaId;
   }, [selectedFolhaId]);
+
+  useEffect(() => {
+    if (!folhaAtual?.id) {
+      setFolhaDreSnapshot([]);
+      return;
+    }
+
+    let cancelled = false;
+    void fetchFolhaDreSnapshot(folhaAtual.id)
+      .then((rows) => {
+        if (!cancelled) setFolhaDreSnapshot(rows);
+      })
+      .catch((snapshotError) => {
+        console.warn('[folha] snapshot DRE indisponível', snapshotError);
+        if (!cancelled) setFolhaDreSnapshot([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [folhaAtual?.id, folhaAtual?.status]);
 
   // Persist collapse state (Lancamentos)
   useEffect(() => {
@@ -1216,6 +1240,11 @@ export default function App() {
     };
   }, [lancamentos, unidadeFiltro]);
 
+  const folhaBistroBreakdown = useMemo(
+    () => buildFolhaBistroBreakdown({ lancamentos, snapshotRows: folhaDreSnapshot }),
+    [lancamentos, folhaDreSnapshot],
+  );
+
   const groupedLancamentosMobile = useMemo(() => {
     const q = (deferredLancSearch || '').trim().toLowerCase();
     if (!q) return groupedLancamentos;
@@ -1546,37 +1575,74 @@ export default function App() {
     const fromLabel = `${getMesNome(fromFolha.mes)} ${fromFolha.ano}`;
     const toLabel = `${getMesNome(folhaAtual.mes)} ${folhaAtual.ano}`;
     const unitLabel = duplicateConfig.unidade === 'todos' ? 'Todas' : unidadeLabels[duplicateConfig.unidade];
+    const unidades: Array<'cg' | 'rec' | 'bar'> = duplicateConfig.unidade === 'todos'
+      ? ['cg', 'rec', 'bar']
+      : [duplicateConfig.unidade as 'cg' | 'rec' | 'bar'];
 
-    setConfirmState({
-      isOpen: true,
-      title: 'Confirmar Duplicação',
-      message: `Deseja duplicar os lançamentos da unidade ${unitLabel} de ${fromLabel} para ${toLabel}?`,
-      onConfirm: async () => {
-        try {
-          let count = 0;
-          if (duplicateConfig.unidade === 'todos') {
-            const results = await Promise.all([
-              api.duplicateLancamentos({ fromFolhaId: fromFolha.id, toFolhaId: folhaAtual.id, unidade: 'cg' }),
-              api.duplicateLancamentos({ fromFolhaId: fromFolha.id, toFolhaId: folhaAtual.id, unidade: 'rec' }),
-              api.duplicateLancamentos({ fromFolhaId: fromFolha.id, toFolhaId: folhaAtual.id, unidade: 'bar' })
-            ]);
-            count = results.reduce((a, b) => a + b, 0);
-          } else {
-            count = await api.duplicateLancamentos({ 
-              fromFolhaId: fromFolha.id, 
-              toFolhaId: folhaAtual.id, 
-              unidade: duplicateConfig.unidade as any 
-            });
+    try {
+      const preflight = await api.preflightDuplicateLancamentos({
+        fromFolhaId: fromFolha.id,
+        toFolhaId: folhaAtual.id,
+        unidades,
+      });
+
+      if (!preflight.pode_duplicar) {
+        const ambiguos = Array.isArray(preflight.ambiguos)
+          ? preflight.ambiguos
+          : (Array.isArray(preflight.ambiguidades) ? preflight.ambiguidades : []);
+        const conflitos = Array.isArray(preflight.conflitos) ? preflight.conflitos : [];
+        const describeIssue = (issue: unknown) => {
+          if (typeof issue === 'string') return issue;
+          if (issue && typeof issue === 'object') {
+            return Object.entries(issue as Record<string, unknown>)
+              .map(([key, value]) => {
+                const displayValue = value && typeof value === 'object'
+                  ? JSON.stringify(value)
+                  : String(value);
+                return `${key.replace(/_/g, ' ')}: ${displayValue}`;
+              })
+              .join(', ');
           }
-          await loadMonthData(folhaAtual.id, folhas);
-          setIsDuplicateModalOpen(false);
-          // Show a custom alert/success instead of native alert if possible, or just let it be for now
-          // We can add a toast later.
-        } catch (err: any) {
-          setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao duplicar: ' + err.message, variant: 'danger' });
-        }
+          return String(issue);
+        };
+        const issueSummary = [
+          ...ambiguos.map((issue, index) => `Ambíguo ${index + 1}: ${describeIssue(issue)}`),
+          ...conflitos.map((issue, index) => `Conflito ${index + 1}: ${describeIssue(issue)}`),
+        ];
+
+        setAlertState({
+          isOpen: true,
+          title: 'Duplicação bloqueada',
+          message: `Nada foi gravado. ${issueSummary.length > 0
+            ? issueSummary.join(' | ')
+            : 'O preflight não autorizou a duplicação; revise os lançamentos de origem e destino.'}`,
+          variant: 'danger',
+        });
+        return;
       }
-    });
+
+      setConfirmState({
+        isOpen: true,
+        title: 'Confirmar Duplicação',
+        message: `Preflight aprovado sem ambiguidades ou conflitos. Deseja duplicar os lançamentos da unidade ${unitLabel} de ${fromLabel} para ${toLabel}?`,
+        onConfirm: async () => {
+          try {
+            await api.duplicateLancamentos({
+              fromFolhaId: fromFolha.id,
+              toFolhaId: folhaAtual.id,
+              unidades,
+              sourceHash: preflight.source_hash,
+            });
+            await loadMonthData(folhaAtual.id, folhas);
+            setIsDuplicateModalOpen(false);
+          } catch (err: any) {
+            setAlertState({ isOpen: true, title: 'Erro', message: 'Erro ao duplicar: ' + err.message, variant: 'danger' });
+          }
+        }
+      });
+    } catch (err: any) {
+      setAlertState({ isOpen: true, title: 'Erro', message: 'Erro no preflight da duplicação: ' + err.message, variant: 'danger' });
+    }
   };
 
   const openCreateLancamento = () => {
@@ -3458,7 +3524,14 @@ export default function App() {
                           const sumReembolso = lancs.reduce((acc, l) => acc + (l.reembolso || 0), 0);
                           const sumPassagem = lancs.reduce((acc, l) => acc + (l.passagem || 0), 0);
                           const sumInss = lancs.reduce((acc, l) => acc + (l.inss || 0), 0);
-                          const sumDescontos = lancs.reduce((acc, l) => acc + (l.descontos || 0), 0);
+                          const sumBistroLiquidado = lancs.reduce(
+                            (acc, l) => acc + (folhaBistroBreakdown.byLancamentoId[l.id]?.bistroLiquidado || 0),
+                            0,
+                          );
+                          const sumOutrosDescontos = lancs.reduce(
+                            (acc, l) => acc + (folhaBistroBreakdown.byLancamentoId[l.id]?.outrosDescontos || 0),
+                            0,
+                          );
                           const subtotal = lancs.reduce((acc, l) => acc + (l.total || 0), 0);
                           
                           return (
@@ -3483,9 +3556,10 @@ export default function App() {
                               
                               {expandedDept[dept] && lancs.map(l => {
                                 const colab = l.colaboradores || {} as Colaborador;
-                                const bistroMeta = (l.detalhamento as any)?.__bistro as any;
-                                const bistroVal = typeof bistroMeta?.valor === 'number' ? bistroMeta.valor : Number(bistroMeta?.valor) || 0;
-                                const bistroRefYm = typeof bistroMeta?.ref_ym === 'string' ? bistroMeta.ref_ym : null;
+                                const bistroBreakdown = folhaBistroBreakdown.byLancamentoId[l.id];
+                                const bistroVal = bistroBreakdown?.bistroLiquidado || 0;
+                                const outrosDescontos = bistroBreakdown?.outrosDescontos || 0;
+                                const bistroRefYm = bistroBreakdown?.bistroRefYm || null;
                                 return (
                                   <tr key={l.id} className="border-b border-line-strong/30 hover:bg-surface-2/30 transition-colors group">
                                     <td className="py-3 px-4">
@@ -3605,9 +3679,9 @@ export default function App() {
                                       <Tooltip
                                         content={
                                           <div className="space-y-1">
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-success">Desconto Bistrô</div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-success">Bistrô liquidado</div>
                                             <div className="text-xs text-secondary">
-                                              {bistroRefYm ? `Ref. ${bistroRefYm}` : 'Não aplicado'}
+                                              {bistroRefYm ? `Ref. ${bistroRefYm}` : 'Sem liquidação nesta folha'}
                                             </div>
                                             <div className="text-xs text-secondary font-black">{formatCurrency(bistroVal)}</div>
                                           </div>
@@ -3621,9 +3695,9 @@ export default function App() {
                                     </td>
                                     <td className="py-3 px-1 text-danger/80">
                                       <CellInput 
-                                        value={l.descontos} 
+                                        value={outrosDescontos}
                                         disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
-                                        onSave={(val) => saveLancamentoPatch(l, { descontos: val })} 
+                                        onSave={(val) => saveLancamentoPatch(l, { descontos: val + bistroVal })}
                                       />
                                     </td>
                                     <td className="py-3 px-4 text-right">
@@ -3690,7 +3764,10 @@ export default function App() {
                                      <span className="text-xs font-mono font-bold">{formatCurrency(sumInss)}</span>
                                    </td>
                                    <td className="py-3 px-1 text-right text-danger/80">
-                                     <span className="text-xs font-mono font-bold">{formatCurrency(sumDescontos)}</span>
+                                     <span className="text-xs font-mono font-bold">{formatCurrency(sumBistroLiquidado)}</span>
+                                   </td>
+                                   <td className="py-3 px-1 text-right text-danger/80">
+                                     <span className="text-xs font-mono font-bold">{formatCurrency(sumOutrosDescontos)}</span>
                                    </td>
                                    <td className={`py-3 px-4 text-right font-mono font-bold text-sm ${deptColors[dept]}`}>
                                      <div className="flex flex-col items-end">
@@ -3786,6 +3863,9 @@ export default function App() {
                                   const colab = (l.colaboradores || {}) as Colaborador;
                                   const tipo = (colab.tipo || '') as any;
                                   const tipoLabel = tipoLabels[tipo] || (tipo ? String(tipo).slice(0, 3) : '—');
+                                  const bistroBreakdown = folhaBistroBreakdown.byLancamentoId[l.id];
+                                  const bistroLiquidado = bistroBreakdown?.bistroLiquidado || 0;
+                                  const outrosDescontos = bistroBreakdown?.outrosDescontos || 0;
 
                                   const badge = (label: string, val: number, variant?: 'muted' | 'pos' | 'neg') => (
                                     <div
@@ -3842,7 +3922,8 @@ export default function App() {
                                         {badge('Bônus', l.bonus, l.bonus ? 'pos' : 'muted')}
                                         {badge('Comissão', l.comissao, l.comissao ? 'pos' : 'muted')}
                                         {badge('INSS', l.inss, l.inss ? 'neg' : 'muted')}
-                                        {badge('Descontos', l.descontos, l.descontos ? 'neg' : 'muted')}
+                                        {badge('Bistrô liquidado', bistroLiquidado, bistroLiquidado ? 'neg' : 'muted')}
+                                        {badge('Descontos', outrosDescontos, outrosDescontos ? 'neg' : 'muted')}
                                         {badge('Passagem', l.passagem, l.passagem ? 'pos' : 'muted')}
                                       </div>
                                     </button>
@@ -3993,6 +4074,22 @@ export default function App() {
                         );
                       })()}
 
+                      {(() => {
+                        const bistroBreakdown = folhaBistroBreakdown.byLancamentoId[mobileLancDetail.id];
+                        const bistroLiquidado = bistroBreakdown?.bistroLiquidado || 0;
+                        return (
+                          <div className="flex items-center justify-between gap-4 bg-success/10 border border-success/25 rounded-3xl px-4 py-3">
+                            <div>
+                              <div className="text-xs font-black uppercase tracking-widest text-success">Bistrô liquidado</div>
+                              <div className="mt-1 text-[10px] font-bold text-muted">
+                                {bistroBreakdown?.bistroRefYm ? `Referência ${bistroBreakdown.bistroRefYm}` : 'Sem liquidação nesta folha'}
+                              </div>
+                            </div>
+                            <div className="font-mono font-black text-success">{bistroLiquidado ? formatCurrency(bistroLiquidado) : '—'}</div>
+                          </div>
+                        );
+                      })()}
+
                       <div className="grid grid-cols-1 gap-3">
                         {([
                           { k: 'salario', label: 'Salário', neg: false },
@@ -4007,10 +4104,20 @@ export default function App() {
                             <div className="text-xs font-black uppercase tracking-widest text-secondary">{label}</div>
                             <div className="w-[170px]">
                               <CellInput
-                                value={(mobileLancDetail as any)[k] || 0}
+                                value={
+                                  k === 'descontos'
+                                    ? (folhaBistroBreakdown.byLancamentoId[mobileLancDetail.id]?.outrosDescontos || 0)
+                                    : ((mobileLancDetail as any)[k] || 0)
+                                }
                                 disabled={unidadeFiltro === 'todos' || statusFolha !== 'rascunho'}
                                 colorClass={neg ? 'text-danger' : 'text-secondary'}
-                                onSave={(val) => saveLancamentoPatch(mobileLancDetail, { [k]: val } as any)}
+                                onSave={(val) =>
+                                  saveLancamentoPatch(mobileLancDetail, {
+                                    [k]: k === 'descontos'
+                                      ? val + (folhaBistroBreakdown.byLancamentoId[mobileLancDetail.id]?.bistroLiquidado || 0)
+                                      : val,
+                                  } as any)
+                                }
                               />
                             </div>
                           </div>
@@ -4072,6 +4179,7 @@ export default function App() {
                   statusFolha={statusFolha}
                   colaboradores={colaboradores}
                   lancamentosFolha={lancamentos}
+                  dreSnapshotRows={folhaDreSnapshot}
                   onRefreshLancamentos={async () => {
                     await refetchLancamentosSilent();
                   }}
