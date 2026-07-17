@@ -25,25 +25,41 @@ test('NavigationGroups renderiza disabled e nomes acessiveis de status e badge',
 
   const loaded = await vite.ssrLoadModule('/components/NavigationGroups.tsx');
   const NavigationGroups = loaded.NavigationGroups as ComponentType<NavigationGroupsProps>;
-  const render = (ferias: NavigationBadge) =>
+  const render = (badges: Partial<Record<NavigationItemId, NavigationBadge>>) =>
     renderToStaticMarkup(
       React.createElement(NavigationGroups, {
         current: { module: 'folha', page: 'dashboard' },
-        badges: { ferias },
+        badges,
         onNavigate: () => undefined,
       }),
     );
 
-  const dangerMarkup = render({ count: 2, variant: 'danger', pulse: true });
+  const dangerMarkup = render({
+    ferias: {
+      count: 1,
+      variant: 'danger',
+      pulse: true,
+      accessibleLabel: '1 colaborador com férias vencidas',
+    },
+  });
   assert.match(
     dangerMarkup,
     /<button[^>]*disabled=""[^>]*aria-label="Dashboard financeiro, Em breve"/,
   );
   assert.equal((dangerMarkup.match(/<button[^>]*disabled=""/g) ?? []).length, 8);
-  assert.match(dangerMarkup, /aria-label="Férias CLT, 2 férias vencidas"/);
+  assert.match(
+    dangerMarkup,
+    /aria-label="Férias CLT, 1 colaborador com férias vencidas"/,
+  );
 
-  const warningMarkup = render({ count: 3, variant: 'warning' });
-  assert.match(warningMarkup, /aria-label="Férias CLT, 3 férias próximas"/);
+  const genericMarkup = render({
+    notificacoes: {
+      count: 4,
+      variant: 'danger',
+      accessibleLabel: '4 notificações não lidas',
+    },
+  });
+  assert.match(genericMarkup, /aria-label="Notificações, 4 notificações não lidas"/);
 });
 
 test('Sidebar usa o renderer compartilhado e nao conserva modo drawer legado', () => {

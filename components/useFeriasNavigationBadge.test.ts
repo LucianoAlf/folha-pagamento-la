@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   createFeriasBadgeStore,
   createSessionAwareFeriasBadgeCache,
+  toFeriasNavigationBadge,
   type FeriasBadgeCounts,
   type FeriasBadgeStore,
 } from './useFeriasNavigationBadge.ts';
@@ -20,6 +21,32 @@ function deferred<T>() {
 const counts = (vencidos: number, proximos = 0): FeriasBadgeCounts => ({
   vencidos,
   proximos,
+});
+
+test('origem descreve colaboradores com singular e plural para cada estado', () => {
+  assert.deepEqual(toFeriasNavigationBadge(counts(1)), {
+    count: 1,
+    variant: 'danger',
+    pulse: true,
+    accessibleLabel: '1 colaborador com férias vencidas',
+  });
+  assert.deepEqual(toFeriasNavigationBadge(counts(2)), {
+    count: 2,
+    variant: 'danger',
+    pulse: true,
+    accessibleLabel: '2 colaboradores com férias vencidas',
+  });
+  assert.deepEqual(toFeriasNavigationBadge(counts(0, 1)), {
+    count: 1,
+    variant: 'warning',
+    accessibleLabel: '1 colaborador com férias a vencer em até 30 dias',
+  });
+  assert.deepEqual(toFeriasNavigationBadge(counts(0, 3)), {
+    count: 3,
+    variant: 'warning',
+    accessibleLabel: '3 colaboradores com férias a vencer em até 30 dias',
+  });
+  assert.equal(toFeriasNavigationBadge(counts(0)), undefined);
 });
 
 test('cache separa sessoes e reaproveita apenas dados da mesma sessao', async () => {
@@ -141,13 +168,28 @@ test('store compartilha auth, limpa imediatamente e ignora resposta da sessao an
   assert.equal(firstSeen.at(-1), undefined);
   assert.equal(secondSeen.at(-1), undefined);
   await new Promise<void>((resolve) => setImmediate(resolve));
-  assert.deepEqual(firstSeen.at(-1), { count: 2, variant: 'danger', pulse: true });
-  assert.deepEqual(secondSeen.at(-1), { count: 2, variant: 'danger', pulse: true });
+  assert.deepEqual(firstSeen.at(-1), {
+    count: 2,
+    variant: 'danger',
+    pulse: true,
+    accessibleLabel: '2 colaboradores com férias vencidas',
+  });
+  assert.deepEqual(secondSeen.at(-1), {
+    count: 2,
+    variant: 'danger',
+    pulse: true,
+    accessibleLabel: '2 colaboradores com férias vencidas',
+  });
   assert.equal(loads, 2);
 
   oldSession.resolve(counts(8));
   await new Promise<void>((resolve) => setImmediate(resolve));
-  assert.deepEqual(firstSeen.at(-1), { count: 2, variant: 'danger', pulse: true });
+  assert.deepEqual(firstSeen.at(-1), {
+    count: 2,
+    variant: 'danger',
+    pulse: true,
+    accessibleLabel: '2 colaboradores com férias vencidas',
+  });
 
   bootstrap.resolve(null);
   unsubscribeFirst();

@@ -11,7 +11,19 @@ import {
   isMoreNavigationActive,
   isNavigationItemActive,
 } from './navigation.ts';
-import type { NavigationItem } from './navigation.ts';
+import type { NavigationBadge, NavigationItem } from './navigation.ts';
+
+// @ts-expect-error navigation badges must explain their count accessibly
+const badgeWithoutAccessibleLabel: NavigationBadge = {
+  count: 2,
+  variant: 'danger',
+};
+
+const accessibleBadge: NavigationBadge = {
+  count: 2,
+  variant: 'danger',
+  accessibleLabel: '2 pendências críticas',
+};
 
 // @ts-expect-error active navigation items must declare a destination
 const activeItemWithoutDestination: NavigationItem = {
@@ -49,6 +61,7 @@ const futureItemWithExcludedPages: NavigationItem = {
 };
 
 test('mantem o inventario aprovado e Contas a Pagar aparece uma unica vez', () => {
+  assert.equal(accessibleBadge.accessibleLabel, '2 pendências críticas');
   assert.deepEqual(
     NAVIGATION_GROUPS.map((group) => [group.label, group.items.map((item) => item.label)]),
     [

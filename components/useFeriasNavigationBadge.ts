@@ -101,12 +101,32 @@ export interface FeriasBadgeStore {
   refresh: () => Promise<void>;
 }
 
-function toNavigationBadge({ vencidos, proximos }: FeriasBadgeCounts) {
-  return vencidos > 0
-    ? ({ count: vencidos, variant: 'danger', pulse: true } satisfies NavigationBadge)
-    : proximos > 0
-      ? ({ count: proximos, variant: 'warning' } satisfies NavigationBadge)
-      : undefined;
+export function toFeriasNavigationBadge({
+  vencidos,
+  proximos,
+}: FeriasBadgeCounts): NavigationBadge | undefined {
+  if (vencidos > 0) {
+    return {
+      count: vencidos,
+      variant: 'danger',
+      pulse: true,
+      accessibleLabel:
+        vencidos === 1
+          ? '1 colaborador com férias vencidas'
+          : `${vencidos} colaboradores com férias vencidas`,
+    };
+  }
+  if (proximos > 0) {
+    return {
+      count: proximos,
+      variant: 'warning',
+      accessibleLabel:
+        proximos === 1
+          ? '1 colaborador com férias a vencer em até 30 dias'
+          : `${proximos} colaboradores com férias a vencer em até 30 dias`,
+    };
+  }
+  return undefined;
 }
 
 export function createFeriasBadgeStore(options: FeriasBadgeStoreOptions): FeriasBadgeStore {
@@ -138,7 +158,7 @@ export function createFeriasBadgeStore(options: FeriasBadgeStoreOptions): Ferias
         requestRevision === revision &&
         sessionUserId === currentSessionUserId
       ) {
-        publish(toNavigationBadge(counts));
+        publish(toFeriasNavigationBadge(counts));
       }
     } catch (error) {
       if (

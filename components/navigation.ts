@@ -54,6 +54,7 @@ export interface NavigationDestination {
 export interface NavigationBadge {
   count: number;
   variant: 'danger' | 'warning';
+  accessibleLabel: string;
   pulse?: boolean;
 }
 
