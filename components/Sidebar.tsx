@@ -1,91 +1,28 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Badge, Modal, CustomSelect, Tooltip } from './UI';
-import {
-  LayoutDashboard,
-  Users,
-  TrendingUp,
-  CreditCard,
-  Calendar,
-  CalendarCheck,
-  Bell,
-  UserCheck,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  WalletCards,
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { NavigationGroups } from './NavigationGroups';
+import type { NavigationDestination } from './navigation';
+import { Tooltip } from './UI';
+import { useFeriasNavigationBadge } from './useFeriasNavigationBadge';
 
 const SIDEBAR_COLLAPSED_KEY = 'la-music-sidebar-collapsed';
-const FERIAS_BADGE_TTL_MS = 60_000;
-
-let feriasBadgeCache: { at: number; vencidos: number; proximos: number } | null = null;
-let feriasBadgeInFlight: Promise<{ vencidos: number; proximos: number }> | null = null;
-
-const getFeriasBadgeCounts = async (): Promise<{ vencidos: number; proximos: number }> => {
-  const now = Date.now();
-  if (feriasBadgeCache && now - feriasBadgeCache.at < FERIAS_BADGE_TTL_MS) {
-    return { vencidos: feriasBadgeCache.vencidos, proximos: feriasBadgeCache.proximos };
-  }
-
-  if (feriasBadgeInFlight) return feriasBadgeInFlight;
-
-  feriasBadgeInFlight = (async () => {
-    const { feriasService } = await import('../services/feriasService');
-    const colaboradores = await feriasService.fetchColaboradoresStatus();
-
-    const vencidos = colaboradores.filter((c) => c.tem_ferias_vencidas).length;
-    const proximos = colaboradores.filter((c) => {
-      if (c.tem_ferias_vencidas || !c.proxima_expiracao) return false;
-      const diasRestantes = Math.ceil(
-        (new Date(c.proxima_expiracao).getTime() - Date.now()) /
-          (1000 * 60 * 60 * 24)
-      );
-      return diasRestantes > 0 && diasRestantes <= 30;
-    }).length;
-
-    feriasBadgeCache = { at: Date.now(), vencidos, proximos };
-    return { vencidos, proximos };
-  })();
-
-  try {
-    return await feriasBadgeInFlight;
-  } finally {
-    feriasBadgeInFlight = null;
-  }
-};
-
-type ModuleId = 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
-type FolhaPageId = 'dashboard' | 'colaboradores' | 'lancamentos' | 'comparativo';
-
-export interface SidebarNavigate {
-  module: ModuleId;
-  page?: FolhaPageId | string;
-}
 
 export interface SidebarProps {
-  current: SidebarNavigate;
-  onNavigate: (next: SidebarNavigate) => void;
-  isMobileDrawer?: boolean;
-  onCloseMobileDrawer?: () => void;
+  current: NavigationDestination;
+  onNavigate: (next: NavigationDestination) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  current,
-  onNavigate,
-  isMobileDrawer = false,
-  onCloseMobileDrawer,
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ current, onNavigate }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [feriasVencidas, setFeriasVencidas] = useState(0);
-  const [feriasProximasVencer, setFeriasProximasVencer] = useState(0);
+  const feriasBadge = useFeriasNavigationBadge();
 
   useEffect(() => {
     try {
-      const v = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-      if (v === '1') setCollapsed(true);
-      if (v === '0') setCollapsed(false);
+      const value = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (value === '1') setCollapsed(true);
+      if (value === '0') setCollapsed(false);
     } catch {
-      // ignore
+      // Ignore unavailable storage and keep the expanded default.
     }
   }, []);
 
@@ -94,220 +31,70 @@ export const Sidebar: React.FC<SidebarProps> = ({
     try {
       localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0');
     } catch {
-      // ignore
+      // Ignore unavailable storage after updating the current session.
     }
   };
 
-  // Fetch vacation status for badges
-  useEffect(() => {
-    const fetchFeriasStatus = async () => {
-      try {
-        const { vencidos, proximos } = await getFeriasBadgeCounts();
-        setFeriasVencidas(vencidos);
-        setFeriasProximasVencer(proximos);
-      } catch (err) {
-        // Silently fail - badges won't show
-        console.error('Erro ao buscar status de férias:', err);
-      }
-    };
-
-    fetchFeriasStatus();
-
-    // Refresh every 5 minutes
-    const interval = setInterval(fetchFeriasStatus, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const modules = useMemo(
-    () => [
-      {
-        id: 'folha' as const,
-        label: 'Folha de Pagamento',
-        icon: Users,
-        disabled: false,
-      },
-      {
-        id: 'contas' as const,
-        label: 'Contas a Pagar',
-        icon: CreditCard,
-        disabled: false,
-      },
-      {
-        id: 'cartoes' as const,
-        label: 'Cartões',
-        icon: WalletCards,
-        disabled: false,
-      },
-      {
-        id: 'agenda' as const,
-        label: 'Agenda',
-        icon: Calendar,
-        disabled: false,
-      },
-      {
-        id: 'ferias' as const,
-        label: 'Férias CLT',
-        icon: CalendarCheck,
-        disabled: false,
-        badge:
-          feriasVencidas > 0
-            ? { count: feriasVencidas, variant: 'danger' as const, pulse: true }
-            : feriasProximasVencer > 0
-              ? { count: feriasProximasVencer, variant: 'warning' as const }
-              : undefined,
-      },
-      {
-        id: 'notificacoes' as const,
-        label: 'Notificações',
-        icon: Bell,
-        disabled: false,
-      },
-      {
-        id: 'rh' as const,
-        label: 'Jornada RH',
-        icon: UserCheck,
-        disabled: false,
-      },
-    ],
-    [feriasVencidas, feriasProximasVencer]
-  );
-
-  const containerClass = [
-    collapsed ? 'w-20' : 'w-72',
-    'h-full relative flex flex-col transition-all duration-300',
-    'app-sidebar bg-surface dark:bg-[#0a0d14] border-r border-line-strong dark:border-line',
-    isMobileDrawer ? 'shadow-2xl shadow-black/60' : '',
-  ].join(' ');
-
-  const handleNav = (next: SidebarNavigate) => {
-    onNavigate(next);
-    onCloseMobileDrawer?.();
-  };
-
-  const activeModuleId: ModuleId = current.module || 'folha';
-
   return (
     <div className="relative h-full overflow-visible">
-    <aside className={containerClass} aria-label="Navegação principal">
-      {/* Logo Area */}
-      <div className="relative z-10 p-5 border-b border-line-strong/70 bg-surface-2/50 dark:border-line/80 dark:bg-transparent">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 flex items-center justify-center shrink-0 rounded-2xl bg-transparent">
-            <img
-              src="/logo-LA-light.png"
-              alt="LA"
-              className="w-10 h-10 object-contain dark:hidden"
-            />
-            <img
-              src="/logo-LA-colapsed.png"
-              alt="LA"
-              className="w-10 h-10 object-contain hidden dark:block"
-            />
+      <aside
+        className={[
+          collapsed ? 'w-20' : 'w-72',
+          'app-sidebar relative flex h-full flex-col border-r border-line-strong bg-surface transition-all duration-300 dark:border-line dark:bg-[#0a0d14]',
+        ].join(' ')}
+        aria-label="Navegação principal"
+      >
+        <div className="relative z-10 border-b border-line-strong/70 bg-surface-2/50 p-5 dark:border-line/80 dark:bg-transparent">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-transparent">
+              <img
+                src="/logo-LA-light.png"
+                alt="LA"
+                className="h-10 w-10 object-contain dark:hidden"
+              />
+              <img
+                src="/logo-LA-colapsed.png"
+                alt="LA"
+                className="hidden h-10 w-10 object-contain dark:block"
+              />
+            </div>
+            {!collapsed && (
+              <div className="min-w-0">
+                <div className="truncate text-[11px] font-bold uppercase leading-tight tracking-[0.15em] text-primary">
+                  SUPER FOLHA SYSTEM
+                </div>
+                <div className="truncate text-[10px] font-bold tracking-wider text-muted opacity-80">
+                  Sistema Inteligente
+                </div>
+              </div>
+            )}
           </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <div className="text-primary font-bold leading-tight truncate uppercase tracking-[0.15em] text-[11px]">
-                SUPER FOLHA SYSTEM
-              </div>
-              <div className="text-[10px] text-muted font-bold truncate tracking-wider opacity-80">
-                Sistema Inteligente
-              </div>
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="relative z-10 flex-1 p-4 space-y-2 overflow-y-auto">
-        {modules.map((module) => {
-          const ModuleIcon = module.icon;
-          const isActiveModule = activeModuleId === module.id;
+        <nav className="relative z-10 flex-1 overflow-y-auto p-4">
+          <NavigationGroups
+            current={current}
+            collapsed={collapsed}
+            badges={{ ferias: feriasBadge }}
+            onNavigate={onNavigate}
+          />
+        </nav>
+      </aside>
 
-          const button = (
-            <button
-              type="button"
-              onClick={() => {
-                if (module.disabled) return;
-                handleNav({ module: module.id });
-              }}
-              disabled={module.disabled}
-              className={[
-                'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 relative',
-                module.disabled
-                  ? 'opacity-50 cursor-not-allowed text-muted'
-                  : isActiveModule
-                    ? 'bg-accent/12 text-accent border border-accent/25 shadow-sm shadow-accent/10'
-                    : 'text-secondary hover:bg-surface-2 hover:text-primary border border-transparent',
-              ].join(' ')}
-            >
-              <ModuleIcon className="w-5 h-5 shrink-0" />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left text-sm font-bold">{module.label}</span>
-                  {module.disabled && (
-                    <span className="text-[10px] bg-surface-2 px-2 py-0.5 rounded-full font-bold text-secondary">
-                      Em breve
-                    </span>
-                  )}
-                  {(module as any).badge && (
-                    <span
-                      className={[
-                        'min-w-[22px] h-[22px] flex items-center justify-center text-[10px] px-1.5 rounded-full font-black',
-                        (module as any).badge.variant === 'danger'
-                          ? 'bg-danger/20 text-danger border border-danger/40'
-                          : 'bg-warning/20 text-warning border border-warning/40',
-                        (module as any).badge.pulse && 'animate-pulse',
-                      ].join(' ')}
-                    >
-                      {(module as any).badge.count}
-                    </span>
-                  )}
-                </>
-              )}
-              {collapsed && (module as any).badge && (
-                <span
-                  className={[
-                    'absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[9px] px-1 rounded-full font-black',
-                    (module as any).badge.variant === 'danger'
-                      ? 'bg-danger text-white border-2 border-bg'
-                      : 'bg-warning text-white border-2 border-bg',
-                    (module as any).badge.pulse && 'animate-pulse',
-                  ].join(' ')}
-                >
-                  {(module as any).badge.count}
-                </span>
-              )}
-            </button>
-          );
-
-          return (
-            <div key={module.id}>
-              {collapsed ? (
-                <Tooltip content={module.label} side="right">
-                  {button}
-                </Tooltip>
-              ) : (
-                button
-              )}
-            </div>
-          );
-        })}
-      </nav>
-
-    </aside>
-
-      {!isMobileDrawer && (
-        <Tooltip content={collapsed ? 'Expandir' : 'Recolher'} side="right">
-          <button
-            type="button"
-            onClick={() => setCollapsedPersisted(!collapsed)}
-            className="absolute top-1/2 -right-3.5 -translate-y-1/2 w-7 h-7 bg-surface border-2 border-line-strong rounded-full flex items-center justify-center text-secondary hover:text-primary hover:border-accent/40 shadow-md dark:shadow-black/40 transition-colors z-50"
-            aria-label={collapsed ? 'Expandir' : 'Recolher'}
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-        </Tooltip>
-      )}
+      <Tooltip content={collapsed ? 'Expandir' : 'Recolher'} side="right">
+        <button
+          type="button"
+          onClick={() => setCollapsedPersisted(!collapsed)}
+          className="absolute -right-3.5 top-1/2 z-50 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border-2 border-line-strong bg-surface text-secondary shadow-md transition-colors hover:border-accent/40 hover:text-primary dark:shadow-black/40"
+          aria-label={collapsed ? 'Expandir' : 'Recolher'}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+      </Tooltip>
     </div>
   );
 };
