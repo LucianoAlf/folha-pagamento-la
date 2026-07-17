@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect, useMemo, useDeferredValue, useRef, useTransition } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useMemo, useDeferredValue, useRef, useTransition, useCallback } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { api, formatCurrency, getMesNome } from './services/api';
 import { supabase } from './services/supabase';
@@ -16,7 +16,7 @@ import {
   Calendar, CalendarCheck, Bell, BarChart3, FileText, 
   TrendingUp, TrendingDown, Filter, Clock, XCircle, ChevronDown, ChevronUp, Database, ShieldCheck, CreditCard,
   LineChart as LineChartIcon,
-  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, ChefHat, LogOut, Menu, X, UserCheck, WalletCards
+  Copy, Plus, Search, Check, Loader2, Trash2, LayoutGrid, List, Music, Edit2, UserX, Sparkles, Lightbulb, Coins, ChefHat, LogOut, X, UserCheck, WalletCards
 } from 'lucide-react';
 import { 
   CollaboratorCard, 
@@ -30,6 +30,14 @@ import {
   cn
 } from './components/CollaboratorComponents';
 import { Sidebar } from './components/Sidebar';
+import { BottomNavigation } from './components/BottomNavigation';
+import { MobileNavigationDrawer } from './components/MobileNavigationDrawer';
+import {
+  getDefaultPage,
+  isModuleId,
+  type ModuleId,
+  type NavigationDestination,
+} from './components/navigation';
 import { ThemeToggle } from './components/ThemeToggle';
 import { AvatarCropper } from './components/AvatarCropper';
 import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
@@ -212,10 +220,13 @@ export default function App() {
     return null;
   };
 
-  const [currentModule, setCurrentModule] = useState<'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh'>(() =>
+  const [currentModule, setCurrentModule] = useState<ModuleId>(() =>
     window.location.pathname === '/cartoes' || window.location.pathname === '/faturas' ? 'cartoes' : 'folha'
   );
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+  const openMobileNavigation = useCallback(() => setMobileNavigationOpen(true), []);
+  const closeMobileNavigation = useCallback(() => setMobileNavigationOpen(false), []);
   const [lancamentosView, setLancamentosView] = useState<LancamentosView>('folha');
   const [unidadeFiltro, setUnidadeFiltro] = useState('todos');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -341,48 +352,22 @@ export default function App() {
       if (!detail?.module) return;
 
       const requestedModule = detail.module === 'faturas' ? 'cartoes' : detail.module;
-      const mod = requestedModule as 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
-      setCurrentModule(mod);
-
-      if (detail.page) {
-        setActiveTab(detail.page);
-      } else {
-        if (mod === 'folha') setActiveTab('dashboard');
-        if (mod === 'contas') setActiveTab('dashboard');
-        if (mod === 'cartoes') setActiveTab('cartoes');
-        if (mod === 'agenda') setActiveTab('agenda');
-        if (mod === 'notificacoes') setActiveTab('notificacoes');
-        if (mod === 'ferias') setActiveTab('ferias');
-        if (mod === 'rh') setActiveTab('dashboard');
-      }
-
-      if (mod === 'folha') setUnidadeFiltro('todos');
+      if (!isModuleId(requestedModule)) return;
+      handleNavigate({ module: requestedModule, page: detail.page });
     };
 
     window.addEventListener('la:navigate', handler as EventListener);
     return () => window.removeEventListener('la:navigate', handler as EventListener);
   }, []);
 
-  const handleNavigate = (module: string, page?: string) => {
-    const mod = module as 'folha' | 'contas' | 'cartoes' | 'agenda' | 'notificacoes' | 'ferias' | 'rh';
-    setCurrentModule(mod);
-    
-    if (page) {
-      setActiveTab(page);
-    } else {
-      if (mod === 'folha') setActiveTab('dashboard');
-      if (mod === 'contas') setActiveTab('dashboard');
-      if (mod === 'cartoes') setActiveTab('cartoes');
-      if (mod === 'agenda') setActiveTab('agenda');
-      if (mod === 'notificacoes') setActiveTab('notificacoes');
-      if (mod === 'ferias') setActiveTab('ferias');
-      if (mod === 'rh') setActiveTab('dashboard');
-    }
-    
-    if (mod === 'folha') setUnidadeFiltro('todos');
+  const handleNavigate = (next: NavigationDestination) => {
+    setCurrentModule(next.module);
+    setActiveTab(next.page ?? getDefaultPage(next.module));
+
+    if (next.module === 'folha') setUnidadeFiltro('todos');
 
     try {
-      const targetPath = mod === 'cartoes' ? '/cartoes' : '/';
+      const targetPath = next.module === 'cartoes' ? '/cartoes' : '/';
       if (window.location.pathname !== targetPath) {
         window.history.pushState({}, '', `${targetPath}${window.location.search || ''}${window.location.hash || ''}`);
       }
@@ -395,7 +380,7 @@ export default function App() {
   useEffect(() => {
     try {
       if (window.location.pathname === '/cartoes') {
-        handleNavigate('cartoes');
+        handleNavigate({ module: 'cartoes' });
         return;
       }
       if (window.location.pathname === '/faturas') {
@@ -403,7 +388,7 @@ export default function App() {
         params.set('tab', 'faturas');
         const nextSearch = params.toString();
         window.history.replaceState({}, '', `/cartoes${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || ''}`);
-        handleNavigate('cartoes');
+        handleNavigate({ module: 'cartoes' });
         return;
       }
 
@@ -417,12 +402,12 @@ export default function App() {
         params.set('tab', 'faturas');
         const nextSearch = params.toString();
         window.history.replaceState({}, '', `/cartoes${nextSearch ? `?${nextSearch}` : ''}${window.location.hash || ''}`);
-        handleNavigate('cartoes');
+        handleNavigate({ module: 'cartoes' });
         return;
       }
 
-      if (moduleParam === 'folha' || moduleParam === 'contas' || moduleParam === 'cartoes' || moduleParam === 'agenda' || moduleParam === 'notificacoes' || moduleParam === 'ferias' || moduleParam === 'rh') {
-        handleNavigate(moduleParam, pageParam || undefined);
+      if (isModuleId(moduleParam)) {
+        handleNavigate({ module: moduleParam, page: pageParam || undefined });
 
         // Keep URL clean (remove only module/page)
         params.delete('module');
@@ -1917,8 +1902,8 @@ export default function App() {
       {/* Desktop Sidebar */}
       <div className="hidden lg:block h-screen sticky top-0 z-40 overflow-visible shrink-0">
         <Sidebar
-          current={{ module: currentModule as any, page: activeTab as any }}
-          onNavigate={(next) => handleNavigate(next.module, next.page)}
+          current={{ module: currentModule, page: activeTab }}
+          onNavigate={handleNavigate}
         />
       </div>
 
@@ -4165,7 +4150,7 @@ export default function App() {
                     lancamentos={lancamentos}
                     onLancamentosChanged={refetchLancamentosForRateio}
                     onFolhaChanged={refetchFolhaForRateio}
-                    onOpenContasPagar={() => handleNavigate('contas')}
+                    onOpenContasPagar={() => handleNavigate({ module: 'contas' })}
                   />
                 ) : null}
               </div>
@@ -4773,47 +4758,18 @@ export default function App() {
         </div>
       </main>
       
-      {/* Mobile Bottom Navbar (4 módulos) */}
-      <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-[10500] border-t border-line/70 bg-surface"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 10px)' }}
-        aria-label="Navegação inferior"
-      >
-        <div className="px-4 pt-2">
-          <div className="grid grid-cols-6 gap-1">
-            {([
-              { id: 'folha', label: 'Folha', icon: Users },
-              { id: 'contas', label: 'Contas', icon: CreditCard },
-              { id: 'cartoes', label: 'Cartões', icon: WalletCards },
-              { id: 'agenda', label: 'Agenda', icon: Calendar },
-              { id: 'notificacoes', label: 'Notif.', icon: Bell },
-              { id: 'rh', label: 'RH', icon: UserCheck },
-            ] as const).map((item) => {
-              const active = currentModule === item.id;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleNavigate(item.id)}
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-1.5 py-3 transition-all',
-                    active
-                      ? 'text-accent'
-                      : 'text-muted hover:text-secondary'
-                  )}
-                  aria-label={item.label}
-                >
-                  <Icon className={cn("w-6 h-6 transition-all", active && "scale-110 drop-shadow-[0_0_8px_rgba(167,139,250,0.4)]")} />
-                  <span className={cn("text-[11px] font-medium transition-colors", active ? "text-accent" : "text-muted")}>
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-            </div>
-        </div>
-      </nav>
+      <MobileNavigationDrawer
+        open={mobileNavigationOpen}
+        current={{ module: currentModule, page: activeTab }}
+        onNavigate={handleNavigate}
+        onClose={closeMobileNavigation}
+      />
+      <BottomNavigation
+        current={{ module: currentModule, page: activeTab }}
+        moreOpen={mobileNavigationOpen}
+        onNavigate={handleNavigate}
+        onOpenMore={openMobileNavigation}
+      />
 
       {/* PWA Install Prompt (mobile-friendly, sits above bottom navbar) */}
       <InstallPWAPrompt />
