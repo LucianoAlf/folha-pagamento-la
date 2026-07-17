@@ -19,7 +19,7 @@ test('entrega folha e refresh real ao painel de contas pagadoras', () => {
   assert.match(appSource, /onLancamentosChanged=\{refetchLancamentosForRateio\}/);
   assert.match(appSource, /folhaStatus=\{folhaAtual\.status\}/);
   assert.match(appSource, /onFolhaChanged=\{refetchFolhaForRateio\}/);
-  assert.match(appSource, /onOpenContasPagar=\{\(\) => handleNavigate\('contas'\)\}/);
+  assert.match(appSource, /onOpenContasPagar=\{\(\) => handleNavigate\(\{ module: 'contas' \}\)\}/);
 });
 
 test('renders the closed status from the refreshed sheet record', () => {
