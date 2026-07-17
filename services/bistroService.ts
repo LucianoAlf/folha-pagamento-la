@@ -18,7 +18,66 @@ export type BistroConsumo = {
   competencia_id: string;
   colaborador_id: number;
   valor: number;
+  valor_pago_direto: number;
   observacoes: string | null;
+};
+
+export type BistroFolhaSugestaoLinha = {
+  lancamento_id: number;
+  unidade: string;
+  categoria: string;
+  conta_pagadora_id: string | null;
+  descontos_atual: number;
+  bistro_anterior: number;
+  outros_descontos: number;
+  base_disponivel: number;
+  bistro_novo: number;
+  descontos_novo: number;
+};
+
+export type BistroFolhaSugestaoPessoa = {
+  colaborador_id: number;
+  nome: string;
+  valor_consumo: number;
+  valor_pago_direto: number;
+  valor_aplicavel: number;
+  ja_aplicado: number;
+  outros_descontos: number;
+  divergencia: number;
+  status: string;
+  desconto_sem_origem: boolean;
+  motivo?: string | null;
+  source_hash: string;
+  linhas: BistroFolhaSugestaoLinha[];
+};
+
+export type BistroFolhaSugestoesResponse = {
+  success: boolean;
+  folha_id: number;
+  folha_status: string;
+  bistro_competencia_id: string | null;
+  ref_ym: string;
+  resumo: {
+    pessoas: number;
+    total_bruto: number;
+    pago_direto: number;
+    aplicavel: number;
+    ja_aplicado: number;
+    outros_descontos: number;
+    divergencia: number;
+  };
+  pessoas: BistroFolhaSugestaoPessoa[];
+};
+
+export type BistroFolhaAplicacaoResponse = {
+  success: boolean;
+  status: string;
+  folha_id: number;
+  colaborador_id: number;
+  source_hash: string;
+  total_antes: number;
+  total_depois: number;
+  audit_id?: string | number | null;
 };
 
 export type BistroVendasResumo = {
@@ -311,94 +370,50 @@ export function getBistroMetaFromDetalhamento(det: LancamentoDetalhamento | null
   return { valor, ref_ym };
 }
 
-export async function applyBistroDiscountsToFolha(input: { folhaId: number; refYm: string; unidade?: BistroUnidade }) {
-  const unidade: BistroUnidade = input.unidade || 'cg';
-  const competencia = await getOrCreateBistroCompetencia({ ym: input.refYm, unidade });
-  const consumos = await fetchBistroConsumos(competencia.id);
-  const consumoByColab = new Map<number, number>(consumos.map((c) => [c.colaborador_id, Number(c.valor) || 0]));
-
-  const { data: lancs, error } = await supabase
-    .from('lancamentos_folha')
-    .select('id, colaborador_id, descontos, detalhamento')
-    .eq('folha_id', input.folhaId);
+export async function fetchBistroFolhaSugestoes(folhaId: number) {
+  const { data, error } = await supabase.rpc('folha_sugerir_desconto_bistro', {
+    p_folha_id: folhaId,
+  });
   if (error) throw error;
-
-  const updates: Array<{ id: number; descontos: number; detalhamento: any }> = [];
-  for (const row of (lancs || []) as any[]) {
-    const id = Number(row.id);
-    const colaboradorId = Number(row.colaborador_id);
-    const descontosAtual = safeNumber(row.descontos);
-    const det = (row.detalhamento || {}) as LancamentoDetalhamento;
-
-    const oldMeta = getBistroMetaFromDetalhamento(det);
-    const oldBistro = oldMeta.valor;
-    const newBistro = safeNumber(consumoByColab.get(colaboradorId) || 0);
-
-    if (Math.abs(newBistro - oldBistro) < 0.00001 && oldMeta.ref_ym === input.refYm) continue;
-
-    const nextDescontos = Math.max(0, descontosAtual - oldBistro + newBistro);
-    const nextDet = {
-      ...(det || {}),
-      __bistro: {
-        ref_ym: input.refYm,
-        valor: newBistro,
-        updated_at: new Date().toISOString(),
-      },
-    };
-
-    updates.push({ id, descontos: nextDescontos, detalhamento: nextDet });
-  }
-
-  for (const u of updates) {
-    const { error: upErr } = await supabase
-      .from('lancamentos_folha')
-      .update({ descontos: u.descontos, detalhamento: u.detalhamento, updated_at: new Date().toISOString() } as any)
-      .eq('id', u.id);
-    if (upErr) throw upErr;
-  }
-
-  return { updated: updates.length, competencia_id: competencia.id };
+  return data as BistroFolhaSugestoesResponse;
 }
 
-export async function revertBistroDiscountsFromFolha(input: { folhaId: number; refYm: string }) {
-  const { data: lancs, error } = await supabase
-    .from('lancamentos_folha')
-    .select('id, descontos, detalhamento')
-    .eq('folha_id', input.folhaId);
+export async function applyBistroFolhaSugestao(input: {
+  folhaId: number;
+  colaboradorId: number;
+  acao: 'aplicar' | 'remover';
+  sourceHash: string;
+}) {
+  const { data, error } = await supabase.rpc('folha_aplicar_sugestao_bistro', {
+    p_folha_id: input.folhaId,
+    p_colaborador_id: input.colaboradorId,
+    p_acao: input.acao,
+    p_source_hash_esperado: input.sourceHash,
+    p_ator: {},
+  });
   if (error) throw error;
+  return data as BistroFolhaAplicacaoResponse;
+}
 
-  const updates: Array<{ id: number; descontos: number; detalhamento: any }> = [];
-
-  for (const row of (lancs || []) as any[]) {
-    const id = Number(row.id);
-    const descontosAtual = safeNumber(row.descontos);
-    const det = (row.detalhamento || {}) as any;
-
-    const meta = getBistroMetaFromDetalhamento(det as any);
-    if (!meta.ref_ym || meta.ref_ym !== input.refYm) continue;
-
-    const oldBistro = safeNumber(meta.valor);
-    const nextDescontos = Math.max(0, descontosAtual - oldBistro);
-    const nextDet = { ...(det || {}) };
-    // Remove somente a marca do Bistrô, preservando outros detalhamentos do lançamento
-    try {
-      delete (nextDet as any).__bistro;
-    } catch {
-      // ignore
-    }
-
-    updates.push({ id, descontos: nextDescontos, detalhamento: nextDet });
-  }
-
-  for (const u of updates) {
-    const { error: upErr } = await supabase
-      .from('lancamentos_folha')
-      .update({ descontos: u.descontos, detalhamento: u.detalhamento, updated_at: new Date().toISOString() } as any)
-      .eq('id', u.id);
-    if (upErr) throw upErr;
-  }
-
-  return { reverted: updates.length };
+export async function saveBistroPagamentoDireto(input: {
+  consumoId: string;
+  valorEsperado: number;
+  valorPagoDireto: number;
+  motivo: string;
+}) {
+  const { data, error } = await supabase.rpc('bistro_consumo_pagamento_direto_salvar', {
+    p_consumo_id: input.consumoId,
+    p_valor_esperado: input.valorEsperado,
+    p_valor_pago_direto: input.valorPagoDireto,
+    p_ator: { motivo: input.motivo },
+  });
+  if (error) throw error;
+  return data as {
+    success: boolean;
+    consumo_id: string;
+    valor_pago_direto: number;
+    audit_id?: string | number | null;
+  };
 }
 
 export function formatMoneyBR(value: number) {
@@ -461,13 +476,23 @@ export function computeVendasResumo(v: BistroVendasResumo | null, colaboradoresB
   // Regra de negócio: "Colaboradores" entra no total de vendas do mês,
   // porém NÃO gera taxa de maquininha (desconto acontece via folha).
   const colab = safeNumber(colaboradoresBruto);
-  const totalBruto = pix + deb + cred + din + colab;
+  const vendasCanaisBruto = pix + deb + cred + din;
+  const totalBruto = vendasCanaisBruto + colab;
   const taxaPix = pix * safeNumber(v?.pix_taxa_pct ?? 0.0099);
   const taxaDeb = deb * safeNumber(v?.debito_taxa_pct ?? 0.0168);
   const taxaCred = cred * safeNumber(v?.credito_taxa_pct ?? 0.0368);
   const totalTaxas = taxaPix + taxaDeb + taxaCred;
   const recebLiquido = totalBruto - totalTaxas;
-  return { totalBruto, totalTaxas, recebLiquido, taxaPix, taxaDeb, taxaCred };
+  return {
+    vendasCanaisBruto,
+    colaboradoresBruto: colab,
+    totalBruto,
+    totalTaxas,
+    recebLiquido,
+    taxaPix,
+    taxaDeb,
+    taxaCred,
+  };
 }
 
 export function computeLuciaPagamento(input: {

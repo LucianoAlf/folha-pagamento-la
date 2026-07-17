@@ -78,6 +78,7 @@ export type BistroDescontoMeta = {
   ref_ym: string; // yyyy-mm (mês de consumo)
   valor: number;
   updated_at?: string;
+  source_hash?: string;
 };
 
 export type LancamentoDetalhamento = {

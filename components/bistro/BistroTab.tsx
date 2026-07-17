@@ -1,25 +1,27 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Copy, Loader2, Pencil, Plus, Save, Trash2, Undo2, X } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Copy, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
 import type { Colaborador, FolhaMensal, Lancamento } from '../../types';
 import { Badge, Card, ConfirmDialog, CustomSelect, DatePicker, Modal, Tooltip } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { supabase } from '../../services/supabase';
 import { api } from '../../services/api';
+import { buildBistroReconciliation, type FolhaDreSnapshotRow } from './folhaBistroModel';
 import {
   addMonthsToYM,
-  applyBistroDiscountsToFolha,
+  applyBistroFolhaSugestao,
   computeLuciaPagamento,
   computeVendasResumo,
   fetchBistroMovimentacoes,
   fetchBistroParametros,
   fetchBistroCompetenciaByYM,
   fetchBistroConsumos,
+  fetchBistroFolhaSugestoes,
   fetchBistroVendasResumo,
   formatMoneyBR,
   getOrCreateBistroCompetencia,
   normalizeName,
   parseConsumosText,
-  revertBistroDiscountsFromFolha,
+  saveBistroPagamentoDireto,
   upsertBistroConsumos,
   deleteBistroConsumo,
   upsertBistroParametros,
@@ -33,6 +35,8 @@ import {
   type BistroMovimentacaoTipo,
   type BistroParametros,
   type BistroVendasResumo,
+  type BistroConsumo,
+  type BistroFolhaSugestoesResponse,
 } from '../../services/bistroService';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
 
@@ -207,8 +211,9 @@ export const BistroTab: React.FC<{
   statusFolha: string;
   colaboradores: Colaborador[];
   lancamentosFolha: Lancamento[];
+  dreSnapshotRows: FolhaDreSnapshotRow[];
   onRefreshLancamentos: () => Promise<void> | void;
-}> = ({ folhaAtual, statusFolha, colaboradores, lancamentosFolha, onRefreshLancamentos }) => {
+}> = ({ folhaAtual, statusFolha, colaboradores, lancamentosFolha, dreSnapshotRows, onRefreshLancamentos }) => {
   const ymRef = useMemo(() => ymFromFolhaRef(folhaAtual), [folhaAtual]);
   const ymFolha = useMemo(() => `${folhaAtual.ano}-${String(folhaAtual.mes).padStart(2, '0')}`, [folhaAtual]);
 
@@ -221,7 +226,8 @@ export const BistroTab: React.FC<{
   const [competenciaId, setCompetenciaId] = useState<string | null>(null);
   const [saldoInicialEmla, setSaldoInicialEmla] = useState<number>(0);
 
-  const [consumos, setConsumos] = useState<Array<{ colaborador_id: number; valor: number }>>([]);
+  const [consumos, setConsumos] = useState<BistroConsumo[]>([]);
+  const [consumosExpanded, setConsumosExpanded] = useState(false);
   const [vendas, setVendas] = useState<BistroVendasResumo | null>(null);
   const [movs, setMovs] = useState<BistroMovimentacao[]>([]);
   const [params, setParams] = useState<BistroParametros | null>(null);
@@ -250,6 +256,18 @@ export const BistroTab: React.FC<{
   const canEdit = statusFolha === 'rascunho';
 
   const consumoTotal = useMemo(() => consumos.reduce((acc, c) => acc + (Number(c.valor) || 0), 0), [consumos]);
+  const consumosOrdenados = useMemo(
+    () => consumos.slice().sort((a, b) => {
+      const nomeA = colaboradores.find((colaborador) => colaborador.id === a.colaborador_id)?.nome || '';
+      const nomeB = colaboradores.find((colaborador) => colaborador.id === b.colaborador_id)?.nome || '';
+      return nomeA.localeCompare(nomeB);
+    }),
+    [consumos, colaboradores],
+  );
+  const bistroReconciliation = useMemo(
+    () => buildBistroReconciliation({ consumos, colaboradores, snapshotRows: dreSnapshotRows }),
+    [consumos, colaboradores, dreSnapshotRows],
+  );
 
   const movTotals = useMemo(() => {
     const sum = (tipo: BistroMovimentacaoTipo) => movs.filter((m) => m.tipo === tipo).reduce((acc, m) => acc + (Number(m.valor) || 0), 0);
@@ -472,7 +490,11 @@ export const BistroTab: React.FC<{
         fetchBistroVendasResumo(comp.id),
         fetchBistroParametros('cg'),
       ]);
-      setConsumos(rowsConsumo.map((r) => ({ colaborador_id: r.colaborador_id, valor: Number(r.valor) || 0 })));
+      setConsumos(rowsConsumo.map((r) => ({
+        ...r,
+        valor: Number(r.valor) || 0,
+        valor_pago_direto: Number(r.valor_pago_direto) || 0,
+      })));
       setMovs(rowsMov);
       setParams(rowParams);
 
@@ -765,45 +787,74 @@ export const BistroTab: React.FC<{
     );
   }
 
-  const [applyLoading, setApplyLoading] = useState(false);
-  const [revertOpen, setRevertOpen] = useState(false);
-  const [revertLoading, setRevertLoading] = useState(false);
-  const [revertOk, setRevertOk] = useState(false);
-  async function applyDiscounts() {
-    if (!competenciaId) return;
-    setApplyLoading(true);
-    await run(
-      async () => {
-        await applyBistroDiscountsToFolha({ folhaId: folhaAtual.id, refYm: ymRef, unidade: 'cg' });
-        await onRefreshLancamentos();
-        await loadAll();
-      },
-      { success: 'Descontos aplicados à folha.', error: 'Não foi possível aplicar os descontos à folha.' }
-    );
-    setApplyLoading(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviewData, setReviewData] = useState<BistroFolhaSugestoesResponse | null>(null);
+  const [confirmarOutrosDescontos, setConfirmarOutrosDescontos] = useState(false);
+
+  async function loadReview(preferredColaboradorId?: number) {
+    setReviewLoading(true);
+    try {
+      const data = await fetchBistroFolhaSugestoes(folhaAtual.id);
+      setReviewData(data);
+      setReviewIndex((current) => {
+        if (preferredColaboradorId) {
+          const found = data.pessoas.findIndex((pessoa) => pessoa.colaborador_id === preferredColaboradorId);
+          if (found >= 0) return found;
+        }
+        return Math.min(current, Math.max(0, data.pessoas.length - 1));
+      });
+      setConfirmarOutrosDescontos(false);
+    } finally {
+      setReviewLoading(false);
+    }
   }
 
-  async function revertDiscounts() {
-    if (!competenciaId) return;
-    setRevertLoading(true);
-    setRevertOk(false);
+  async function openReview() {
+    setReviewOpen(true);
+    setReviewIndex(0);
+    setConfirmarOutrosDescontos(false);
+    await run(
+      () => loadReview(),
+      { error: 'Não foi possível carregar as sugestões do Bistrô.' },
+    );
+  }
+
+  async function applyReviewAction(acao: 'aplicar' | 'remover') {
+    const pessoa = reviewData?.pessoas[reviewIndex];
+    if (!pessoa) return;
+    setReviewSaving(true);
     await run(
       async () => {
-        await revertBistroDiscountsFromFolha({ folhaId: folhaAtual.id, refYm: ymRef });
+        await applyBistroFolhaSugestao({
+          folhaId: folhaAtual.id,
+          colaboradorId: pessoa.colaborador_id,
+          acao,
+          sourceHash: pessoa.source_hash,
+        });
         await onRefreshLancamentos();
         await loadAll();
+        await loadReview(pessoa.colaborador_id);
       },
       {
-        success: 'Descontos revertidos da folha.',
-        error: 'Não foi possível reverter os descontos.',
-        onSuccess: () => {
-          setRevertOk(true);
-          window.setTimeout(() => setRevertOk(false), 1800);
-        },
-      }
+        success: acao === 'aplicar' ? 'Sugestão aplicada à folha.' : 'Parcela do Bistrô removida da folha.',
+        error: acao === 'aplicar' ? 'Não foi possível aplicar a sugestão.' : 'Não foi possível remover a parcela do Bistrô.',
+      },
     );
-    setRevertLoading(false);
+    setReviewSaving(false);
   }
+
+  const reviewPessoa = reviewData?.pessoas[reviewIndex] || null;
+  const reviewPessoaBloqueada = !reviewPessoa?.source_hash || [
+    'sem_lancamento',
+    'metadata mista',
+    'consumo maior que a base disponivel',
+    'sem_competencia',
+  ].includes(reviewPessoa.status || '');
+  const reviewPessoaPodeAplicar = reviewPessoa?.status === 'pronto_aplicar'
+    || reviewPessoa?.status === 'desconto_sem_origem';
 
   const [reportOpen, setReportOpen] = useState(false);
   const [copyOk, setCopyOk] = useState<null | 'financeiro' | 'repasses'>(null);
@@ -830,9 +881,14 @@ export const BistroTab: React.FC<{
   // CRUD Consumos (editar/excluir)
   const [consumoEditOpen, setConsumoEditOpen] = useState(false);
   const [consumoEditDraft, setConsumoEditDraft] = useState<{
+    id: string;
     colaborador_id: number;
     nome: string;
     valor: string;
+    valor_esperado: number;
+    valor_pago_direto: string;
+    valor_pago_direto_esperado: number;
+    motivo_pagamento_direto: string;
   } | null>(null);
   const [consumoEditSaving, setConsumoEditSaving] = useState(false);
 
@@ -915,9 +971,14 @@ export const BistroTab: React.FC<{
     const nome = col?.nome || `#${colaborador_id}`;
     const row = consumos.find((x) => x.colaborador_id === colaborador_id);
     setConsumoEditDraft({
+      id: row?.id || '',
       colaborador_id,
       nome,
       valor: String(row?.valor ?? '').replace('.', ','),
+      valor_esperado: Number(row?.valor) || 0,
+      valor_pago_direto: String(row?.valor_pago_direto ?? 0).replace('.', ','),
+      valor_pago_direto_esperado: Number(row?.valor_pago_direto) || 0,
+      motivo_pagamento_direto: '',
     });
     setConsumoEditOpen(true);
   }
@@ -927,13 +988,37 @@ export const BistroTab: React.FC<{
     setConsumoEditSaving(true);
     await run(
       async () => {
-        await upsertBistroConsumos([
-          {
-            competencia_id: competenciaId,
-            colaborador_id: consumoEditDraft.colaborador_id,
-            valor: parseMoneyBR(consumoEditDraft.valor),
-          },
-        ]);
+        const valor = parseMoneyBR(consumoEditDraft.valor);
+        const valorPagoDireto = parseMoneyBR(consumoEditDraft.valor_pago_direto);
+        if (valorPagoDireto < 0 || valorPagoDireto > valor) {
+          throw new Error('O valor pago diretamente deve ficar entre R$ 0,00 e o consumo bruto.');
+        }
+        const mudouPagamentoDireto = Math.abs(valorPagoDireto - consumoEditDraft.valor_pago_direto_esperado) > 0.004;
+        const mudouValor = Math.abs(valor - consumoEditDraft.valor_esperado) > 0.004;
+        if (mudouPagamentoDireto && mudouValor) {
+          throw new Error('Altere o consumo bruto e o pagamento direto em salvamentos separados para manter a auditoria atômica.');
+        }
+        if (mudouPagamentoDireto && !consumoEditDraft.motivo_pagamento_direto.trim()) {
+          throw new Error('Informe o motivo da alteração do pagamento direto.');
+        }
+        if (mudouValor) {
+          await upsertBistroConsumos([
+            {
+              competencia_id: competenciaId,
+              colaborador_id: consumoEditDraft.colaborador_id,
+              valor,
+            },
+          ]);
+        }
+        if (mudouPagamentoDireto) {
+          if (!consumoEditDraft.id) throw new Error('Salve o consumo antes de registrar pagamento direto.');
+          await saveBistroPagamentoDireto({
+            consumoId: consumoEditDraft.id,
+            valorEsperado: consumoEditDraft.valor_pago_direto_esperado,
+            valorPagoDireto,
+            motivo: consumoEditDraft.motivo_pagamento_direto.trim(),
+          });
+        }
         setConsumoEditOpen(false);
         setConsumoEditDraft(null);
         await loadAll();
@@ -993,8 +1078,8 @@ export const BistroTab: React.FC<{
 
   return (
     <div className="space-y-6">
-      <Card className="p-5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <Card className="border-line-strong bg-surface-2 p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
           <div>
             <div className="text-primary font-black text-lg">Bistrô (Campo Grande)</div>
             <div className="text-xs text-secondary font-bold mt-1">
@@ -1003,16 +1088,16 @@ export const BistroTab: React.FC<{
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 lg:flex lg:w-auto lg:flex-wrap lg:items-center">
             <button
               type="button"
               onClick={() => setPasteOpen(true)}
               disabled={!canEdit}
               className={cn(
-                'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
+                'order-2 flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-center text-[10px] font-black uppercase leading-tight tracking-widest transition-all disabled:opacity-80 lg:order-1 lg:px-4',
                 canEdit
-                  ? 'bg-accent hover:bg-accent text-primary border-accent/30'
-                  : 'bg-surface/30 text-muted border-line/50 cursor-not-allowed'
+                  ? 'border-accent/30 bg-accent text-white shadow-sm hover:bg-accent'
+                  : 'cursor-not-allowed border-line-strong bg-surface-3 text-secondary'
               )}
             >
               <Plus className="w-4 h-4" /> Lançar Consumos
@@ -1020,63 +1105,212 @@ export const BistroTab: React.FC<{
             <button
               type="button"
               onClick={() => setReportOpen(true)}
-              className="px-4 py-2 rounded-xl bg-info hover:bg-info text-primary text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+              className="order-1 col-span-2 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-info px-4 py-2 text-center text-[10px] font-black uppercase leading-tight tracking-widest text-white shadow-sm transition-all hover:bg-info lg:order-2 lg:col-span-1"
             >
               <Copy className="w-4 h-4" /> Gerar Relatório (Copiar)
             </button>
-            <Tooltip content={!canEdit ? 'A folha precisa estar em rascunho para aplicar descontos.' : 'Aplicar desconto na coluna Descontos (com meta __bistro)'}>
+            <Tooltip content={!canEdit ? 'A folha precisa estar em rascunho para revisar sugestões.' : 'Revise e confirme cada pessoa antes de alterar a folha'}>
               <button
                 type="button"
-                onClick={() => void applyDiscounts()}
-                disabled={!canEdit || applyLoading}
+                onClick={() => void openReview()}
+                disabled={!canEdit || reviewLoading}
                 className={cn(
-                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
+                  'order-3 col-span-2 flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-center text-[10px] font-black uppercase leading-tight tracking-widest transition-all disabled:opacity-80 lg:col-span-1 lg:px-4',
                   !canEdit
-                    ? 'bg-surface/30 text-muted border-line/50 cursor-not-allowed'
-                    : 'bg-success hover:bg-success text-primary border-success/30',
-                  applyLoading && 'opacity-70'
+                    ? 'cursor-not-allowed border-line-strong bg-surface-3 text-secondary'
+                    : 'border-success/30 bg-success text-white shadow-sm hover:bg-success',
+                  reviewLoading && 'opacity-70'
                 )}
               >
-                {applyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Aplicar descontos na Folha ({monthLabelPt(ymFolha)})
+                {reviewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Revisar sugestões do Bistrô
               </button>
             </Tooltip>
-            <Tooltip content={!canEdit ? 'A folha precisa estar em rascunho para desfazer.' : 'Remove somente os descontos aplicados automaticamente pelo Bistrô'}>
-              <button
-                type="button"
-                onClick={() => setRevertOpen(true)}
-                disabled={!canEdit || revertLoading}
-                className={cn(
-                  'px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 border disabled:opacity-60',
-                  !canEdit
-                    ? 'bg-surface/30 text-muted border-line/50 cursor-not-allowed'
-                    : 'bg-danger hover:bg-danger text-primary border-danger/30',
-                  revertLoading && 'opacity-70'
-                )}
-              >
-                {revertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
-                Desfazer descontos
-              </button>
-            </Tooltip>
-            {revertOk ? (
-              <div className="text-[10px] text-success font-black flex items-center gap-2">
-                <CheckCircle2 size={14} /> Desfeito
-              </div>
-            ) : null}
           </div>
         </div>
       </Card>
 
-      <ConfirmDialog
-        isOpen={revertOpen}
-        onClose={() => setRevertOpen(false)}
-        onConfirm={() => void revertDiscounts()}
-        title="Desfazer descontos do Bistrô?"
-        message={`Isso vai remover somente os descontos aplicados automaticamente pelo Bistrô na folha de ${monthLabelPt(ymFolha)} (referência ${monthLabelPt(ymRef)}). Descontos manuais permanecem.`}
-        confirmLabel="Desfazer"
-        cancelLabel="Cancelar"
-        variant="danger"
-      />
+      <Modal
+        isOpen={reviewOpen}
+        onClose={() => {
+          if (reviewSaving) return;
+          setReviewOpen(false);
+          setReviewData(null);
+        }}
+        title="Revisar sugestões do Bistrô"
+        subtitle={`Conferência pessoa por pessoa · Folha ${monthLabelPt(ymFolha)}`}
+        className="max-w-5xl"
+        footer={
+          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              onClick={() => {
+                setReviewOpen(false);
+                setReviewData(null);
+              }}
+              disabled={reviewSaving}
+              className="min-h-11 rounded-xl border border-line-strong bg-surface px-4 py-2 font-black text-secondary transition-colors hover:bg-surface-3 disabled:opacity-60"
+            >
+              Fechar
+            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => void applyReviewAction('remover')}
+                disabled={!reviewPessoa || reviewSaving || reviewPessoaBloqueada || reviewPessoa.ja_aplicado <= 0}
+                className="min-h-11 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 font-black text-danger transition-colors hover:bg-danger/15 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Remover parcela do Bistrô
+              </button>
+              <button
+                type="button"
+                onClick={() => void applyReviewAction('aplicar')}
+                disabled={
+                  !reviewPessoa ||
+                  reviewSaving ||
+                  reviewPessoaBloqueada ||
+                  !reviewPessoaPodeAplicar ||
+                  (reviewPessoa.desconto_sem_origem && !confirmarOutrosDescontos)
+                }
+                className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-success/30 bg-success px-4 py-2 font-black text-white shadow-sm transition-colors hover:bg-success disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {reviewSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Aplicar nesta pessoa
+              </button>
+            </div>
+          </div>
+        }
+      >
+        {reviewLoading ? (
+          <div className="flex min-h-72 items-center justify-center gap-3 text-secondary">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="font-black">Calculando sugestões auditadas...</span>
+          </div>
+        ) : !reviewData || reviewData.pessoas.length === 0 ? (
+          <div className="rounded-2xl border border-line-strong bg-surface-2 p-8 text-center">
+            <CheckCircle2 className="mx-auto h-9 w-9 text-success" />
+            <div className="mt-3 font-black text-primary">Nenhuma pessoa para revisar</div>
+            <div className="mt-1 text-sm font-bold text-secondary">A folha não possui sugestões do Bistrô nesta competência.</div>
+          </div>
+        ) : reviewPessoa ? (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="rounded-2xl border border-line-strong bg-surface-2 p-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted">Consumo bruto</div>
+                <div className="mt-1 font-mono font-black text-primary">{formatMoneyBR(reviewData.resumo.total_bruto)}</div>
+              </div>
+              <div className="rounded-2xl border border-info/30 bg-info/10 p-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-info">Pago direto</div>
+                <div className="mt-1 font-mono font-black text-info">{formatMoneyBR(reviewData.resumo.pago_direto)}</div>
+              </div>
+              <div className="rounded-2xl border border-success/25 bg-success/10 p-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-success">Aplicável à folha</div>
+                <div className="mt-1 font-mono font-black text-success">{formatMoneyBR(reviewData.resumo.aplicavel)}</div>
+              </div>
+              <div className="rounded-2xl border border-line-strong bg-surface-2 p-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted">Revisão</div>
+                <div className="mt-1 font-black text-primary">{reviewIndex + 1} de {reviewData.pessoas.length}</div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-line-strong bg-surface-2 p-4 sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-muted">Colaborador</div>
+                  <div className="mt-1 break-words text-lg font-black text-primary">{reviewPessoa.nome}</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant="info">{reviewPessoa.status || 'Em revisão'}</Badge>
+                    <Badge variant="default">Consumo {formatMoneyBR(reviewPessoa.valor_consumo)}</Badge>
+                    {reviewPessoa.valor_pago_direto > 0 ? (
+                      <Badge variant="info">Pago direto {formatMoneyBR(reviewPessoa.valor_pago_direto)}</Badge>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="grid min-w-64 grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-line-strong bg-surface px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-muted">Na folha</div>
+                    <div className="mt-1 font-mono font-black text-primary">{formatMoneyBR(reviewPessoa.ja_aplicado)}</div>
+                  </div>
+                  <div className="rounded-xl border border-success/25 bg-success/10 px-3 py-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-success">Sugestão</div>
+                    <div className="mt-1 font-mono font-black text-success">{formatMoneyBR(reviewPessoa.valor_aplicavel)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {reviewPessoa.motivo ? (
+                <div className="mt-4 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-sm font-bold text-warning">
+                  {reviewPessoa.motivo}
+                </div>
+              ) : null}
+
+              {reviewPessoa.desconto_sem_origem ? (
+                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-warning/30 bg-warning/10 p-3">
+                  <input
+                    type="checkbox"
+                    checked={confirmarOutrosDescontos}
+                    onChange={(event) => setConfirmarOutrosDescontos(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
+                  />
+                  <span className="text-sm font-bold text-secondary">
+                    Confirmo que o desconto sem origem comprovada deve permanecer como outro desconto. Nada será apagado silenciosamente.
+                  </span>
+                </label>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted">Distribuição calculada</div>
+              {reviewPessoa.linhas.map((linha) => (
+                <div key={linha.lancamento_id} className="grid grid-cols-2 gap-3 rounded-2xl border border-line-strong bg-surface p-4 sm:grid-cols-4">
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-muted">Origem</div>
+                    <div className="mt-1 font-bold text-primary">{linha.unidade.toUpperCase()} · {linha.categoria}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-muted">Base disponível</div>
+                    <div className="mt-1 font-mono font-black text-primary">{formatMoneyBR(linha.base_disponivel)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-muted">Bistrô anterior</div>
+                    <div className="mt-1 font-mono font-black text-secondary">{formatMoneyBR(linha.bistro_anterior)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-success">Bistrô novo</div>
+                    <div className="mt-1 font-mono font-black text-success">{formatMoneyBR(linha.bistro_novo)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 border-t border-line-strong pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setReviewIndex((current) => Math.max(0, current - 1));
+                  setConfirmarOutrosDescontos(false);
+                }}
+                disabled={reviewIndex === 0 || reviewSaving}
+                className="min-h-10 rounded-xl border border-line-strong bg-surface px-4 py-2 font-black text-secondary disabled:opacity-40"
+              >
+                Anterior
+              </button>
+              <span className="text-center text-xs font-bold text-muted">Revise e confirme pessoa por pessoa.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setReviewIndex((current) => Math.min(reviewData.pessoas.length - 1, current + 1));
+                  setConfirmarOutrosDescontos(false);
+                }}
+                disabled={reviewIndex >= reviewData.pessoas.length - 1 || reviewSaving}
+                className="min-h-10 rounded-xl border border-line-strong bg-surface px-4 py-2 font-black text-secondary disabled:opacity-40"
+              >
+                Próxima
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       {/* Edit Consumo */}
       <Modal
@@ -1125,7 +1359,7 @@ export const BistroTab: React.FC<{
                 {consumoEditDraft.nome}
               </div>
             </div>
-            <div className="md:col-span-2">
+            <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Valor (mês)</div>
               <input
                 value={consumoEditDraft.valor}
@@ -1135,6 +1369,28 @@ export const BistroTab: React.FC<{
                 inputMode="decimal"
               />
             </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Pago diretamente ao Bistrô</div>
+              <input
+                value={consumoEditDraft.valor_pago_direto}
+                onChange={(e) => setConsumoEditDraft((p) => (p ? ({ ...p, valor_pago_direto: e.target.value } as any) : p))}
+                className={inputBase}
+                placeholder="0,00"
+                inputMode="decimal"
+              />
+              <div className="mt-1 text-[11px] font-bold text-muted">Valor explícito: não é inferido pela diferença da folha.</div>
+            </div>
+            {Math.abs(parseMoneyBR(consumoEditDraft.valor_pago_direto) - consumoEditDraft.valor_pago_direto_esperado) > 0.004 ? (
+              <div className="md:col-span-2">
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted mb-1">Motivo da alteração *</div>
+                <textarea
+                  value={consumoEditDraft.motivo_pagamento_direto}
+                  onChange={(e) => setConsumoEditDraft((p) => (p ? ({ ...p, motivo_pagamento_direto: e.target.value } as any) : p))}
+                  className={`${inputBase} min-h-24 resize-y`}
+                  placeholder="Ex.: pagamento recebido diretamente na conta do Bistrô"
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
       </Modal>
@@ -1160,10 +1416,117 @@ export const BistroTab: React.FC<{
               <div className="text-primary font-black">Consumo por colaborador</div>
               <div className="text-xs text-muted font-bold mt-1">1 valor por pessoa (mês)</div>
             </div>
-            <Badge variant="info">{formatMoneyBR(consumoTotal)}</Badge>
+            <div className="flex shrink-0 items-center gap-2">
+              <Badge variant="info">{formatMoneyBR(consumoTotal)}</Badge>
+              <button
+                type="button"
+                onClick={() => setConsumosExpanded((current) => !current)}
+                aria-expanded={consumosExpanded}
+                aria-controls="bistro-consumos-lista"
+                aria-label={consumosExpanded ? 'Recolher lista de colaboradores' : 'Expandir lista de colaboradores'}
+                title={consumosExpanded ? 'Recolher colaboradores' : 'Ver colaboradores'}
+                className="flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-line-strong bg-surface text-secondary transition-colors hover:bg-surface-3 hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/30"
+              >
+                <ChevronDown className={cn('h-5 w-5 transition-transform', consumosExpanded && 'rotate-180')} />
+              </button>
+            </div>
           </div>
 
-          <div className="mt-4 overflow-auto rounded-xl border border-line">
+          {bistroReconciliation.pagoDireto > 0.009 ? (
+            <div className="mt-4 rounded-2xl border border-info/30 bg-info/10 p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-info" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-black text-primary">Conciliação com a folha</div>
+                  <div className="mt-1 text-xs font-bold text-secondary">
+                    A diferença foi paga diretamente ao Bistrô e não passa pelos descontos da folha desta competência.
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="rounded-xl border border-line-strong bg-surface-2 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted">Consumo bruto</div>
+                      <div className="mt-1 font-mono font-black text-primary">{formatMoneyBR(bistroReconciliation.consumoBruto)}</div>
+                    </div>
+                    <div className="rounded-xl border border-success/25 bg-success/10 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-success">Liquidado na folha</div>
+                      <div className="mt-1 font-mono font-black text-success">{formatMoneyBR(bistroReconciliation.liquidadoFolha)}</div>
+                    </div>
+                    <div className="rounded-xl border border-info/30 bg-info/10 px-3 py-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-info">Pago diretamente ao Bistrô</div>
+                      <div className="mt-1 font-mono font-black text-info">{formatMoneyBR(bistroReconciliation.pagoDireto)}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {bistroReconciliation.pagamentosDiretos.map((item) => (
+                      <span key={item.colaboradorId} className="rounded-full border border-info/25 bg-surface-2 px-3 py-1 text-xs font-bold text-secondary">
+                        {item.nome}: {formatMoneyBR(item.valor)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : bistroReconciliation.consumoBruto > 0 ? (
+            <div className="mt-4 flex items-center gap-2 rounded-2xl border border-success/25 bg-success/10 px-4 py-3 text-sm font-bold text-success">
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
+              Todo o consumo deste mês foi liquidado na folha.
+            </div>
+          ) : null}
+
+          {consumosExpanded ? (
+            <div id="bistro-consumos-lista">
+          <div className="mt-4 overflow-hidden rounded-xl border border-line-strong bg-surface-2 lg:hidden">
+            {consumosOrdenados.length > 0 ? (
+              <div className="divide-y divide-line-strong">
+                {consumosOrdenados.map((consumo) => {
+                  const colaborador = colaboradores.find((item) => item.id === consumo.colaborador_id);
+                  const nome = colaborador?.nome || `#${consumo.colaborador_id}`;
+                  return (
+                    <div key={consumo.colaborador_id} className="bg-surface-2 px-4 py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 break-words text-sm font-black text-primary">{nome}</div>
+                        <div className="shrink-0 font-mono text-sm font-black text-primary">{formatMoneyBR(consumo.valor)}</div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold text-muted">Consumo do mês</span>
+                          {Number(consumo.valor_pago_direto) > 0 ? (
+                            <Badge variant="info">Direto {formatMoneyBR(consumo.valor_pago_direto)}</Badge>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditConsumo(consumo.colaborador_id)}
+                            className="flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-line-strong bg-surface text-secondary transition-colors hover:bg-surface-3 hover:text-primary"
+                            aria-label={`Editar consumo de ${nome}`}
+                            title="Editar"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConsumoToDelete({ colaborador_id: consumo.colaborador_id, nome, valor: Number(consumo.valor) || 0 });
+                              setConsumoDeleteOpen(true);
+                            }}
+                            className="flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-danger/30 bg-danger/10 text-danger transition-colors hover:bg-danger/15"
+                            aria-label={`Excluir consumo de ${nome}`}
+                            title="Excluir"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="px-4 py-6 text-center text-sm font-bold text-muted">Nenhum consumo lançado ainda.</div>
+            )}
+          </div>
+
+          <div className="mt-4 hidden lg:block overflow-auto rounded-xl border border-line">
             <table className="w-full text-left">
               <thead className="bg-bg/40">
                 <tr className="text-[10px] font-black uppercase tracking-widest text-muted">
@@ -1173,19 +1536,17 @@ export const BistroTab: React.FC<{
                 </tr>
               </thead>
               <tbody>
-                {consumos
-                  .slice()
-                  .sort((a, b) => {
-                    const na = colaboradores.find((c) => c.id === a.colaborador_id)?.nome || '';
-                    const nb = colaboradores.find((c) => c.id === b.colaborador_id)?.nome || '';
-                    return na.localeCompare(nb);
-                  })
-                  .map((c) => {
+                {consumosOrdenados.map((c) => {
                     const col = colaboradores.find((x) => x.id === c.colaborador_id);
                     return (
                       <tr key={c.colaborador_id} className="border-t border-line/60">
                         <td className="px-4 py-3 text-secondary font-bold">{col?.nome || `#${c.colaborador_id}`}</td>
-                        <td className="px-4 py-3 text-right text-secondary font-mono font-bold">{formatMoneyBR(c.valor)}</td>
+                        <td className="px-4 py-3 text-right text-secondary font-mono font-bold">
+                          <div>{formatMoneyBR(c.valor)}</div>
+                          {Number(c.valor_pago_direto) > 0 ? (
+                            <div className="mt-1 text-[10px] font-black text-info">Direto {formatMoneyBR(c.valor_pago_direto)}</div>
+                          ) : null}
+                        </td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center gap-2">
                             <button
@@ -1223,6 +1584,8 @@ export const BistroTab: React.FC<{
               </tbody>
             </table>
           </div>
+            </div>
+          ) : null}
         </Card>
 
         <div className="space-y-6">
@@ -1455,7 +1818,15 @@ export const BistroTab: React.FC<{
             ))}
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+            <div className="text-muted font-bold">Vendas por canais</div>
+            <div className="text-secondary font-black">{formatMoneyBR(vendasCalc.vendasCanaisBruto)}</div>
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-3 text-sm">
+            <div className="text-muted font-bold">Consumo de colaboradores</div>
+            <div className="text-secondary font-black">{formatMoneyBR(vendasCalc.colaboradoresBruto)}</div>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3 border-t border-line pt-2">
             <div className="text-secondary font-bold">Total bruto</div>
             <div className="text-primary font-black">{formatMoneyBR(vendasCalc.totalBruto)}</div>
           </div>
