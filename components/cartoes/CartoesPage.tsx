@@ -593,6 +593,16 @@ export const CartoesPage: React.FC = () => {
     load();
   }, []);
 
+  useEffect(() => {
+    const syncTabFromLocation = () => {
+      setActiveTab(getInitialCartoesTab());
+      setFaturasCartaoId(getInitialFaturasCartaoId());
+    };
+
+    window.addEventListener('popstate', syncTabFromLocation);
+    return () => window.removeEventListener('popstate', syncTabFromLocation);
+  }, []);
+
   const activeCards = useMemo(() => cartoes.filter((cartao) => cartao.ativo), [cartoes]);
   const filteredCards = useMemo(
     () =>

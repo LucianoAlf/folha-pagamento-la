@@ -18,3 +18,11 @@ test('CartoesPage owns the Faturas tab and card shortcut', () => {
   assert.match(cartoesSource, /params\.set\('tab',\s*'faturas'\)/);
   assert.doesNotMatch(cartoesSource, /module:\s*'faturas'/);
 });
+
+test('CartoesPage reapplies Cartoes/Faturas state when browser history moves', () => {
+  assert.match(cartoesSource, /const syncTabFromLocation\s*=\s*\(\)\s*=>/);
+  assert.match(cartoesSource, /setActiveTab\(getInitialCartoesTab\(\)\)/);
+  assert.match(cartoesSource, /setFaturasCartaoId\(getInitialFaturasCartaoId\(\)\)/);
+  assert.match(cartoesSource, /window\.addEventListener\('popstate',\s*syncTabFromLocation\)/);
+  assert.match(cartoesSource, /window\.removeEventListener\('popstate',\s*syncTabFromLocation\)/);
+});
