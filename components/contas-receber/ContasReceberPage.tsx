@@ -35,6 +35,7 @@ import {
   buildContasReceberFonteStatus,
   buildContasReceberResumo,
   filterContasReceber,
+  resolveContasReceberFonteTimestamp,
 } from './contasReceberSelectors.ts';
 
 const UNIDADE_LABELS = { cg: 'Campo Grande', rec: 'Recreio', bar: 'Barra' } as const;
@@ -156,7 +157,7 @@ export const ContasReceberPage: React.FC = () => {
   const filtered = useMemo(() => filterContasReceber(contas, filters), [contas, filters]);
   const lastSourceSync = contas.map((conta) => conta.source_synced_at).filter(Boolean).sort().at(-1) ?? null;
   const fonteStatus = buildContasReceberFonteStatus(
-    preflight?.manifesto.source_synced_at ?? lastSourceSync,
+    resolveContasReceberFonteTimestamp(preflight?.manifesto, lastSourceSync),
   );
 
   const runPreflight = async () => {

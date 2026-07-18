@@ -5,6 +5,7 @@ import {
   buildContasReceberFonteStatus,
   buildContasReceberResumo,
   filterContasReceber,
+  resolveContasReceberFonteTimestamp,
 } from './contasReceberSelectors.ts';
 
 const contas = [
@@ -41,4 +42,17 @@ test('fonte usa o timestamp do manifesto e sinaliza dado antigo', () => {
     },
   );
   assert.equal(buildContasReceberFonteStatus(null, new Date('2026-07-17T13:00:00Z')).stale, true);
+});
+
+test('fonte prioriza a conclusao do sync novo antes dos timestamps legados', () => {
+  assert.equal(
+    resolveContasReceberFonteTimestamp(
+      {
+        sync_completed_at: '2026-07-18T20:03:04Z',
+        source_synced_at: null,
+      },
+      '2026-07-17T10:00:00Z',
+    ),
+    '2026-07-18T20:03:04Z',
+  );
 });

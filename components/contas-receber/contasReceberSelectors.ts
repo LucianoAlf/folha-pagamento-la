@@ -1,6 +1,17 @@
-import type { ContaReceber, ContaReceberFilters } from '../../types/contasReceber.ts';
+import type {
+  ContaReceber,
+  ContaReceberFilters,
+  ContasReceberManifesto,
+} from '../../types/contasReceber.ts';
 
 const money = (value: number | null | undefined) => Number(value ?? 0);
+
+export function resolveContasReceberFonteTimestamp(
+  manifesto: Pick<ContasReceberManifesto, 'sync_completed_at' | 'source_synced_at'> | null | undefined,
+  lastSourceSync: string | null | undefined,
+) {
+  return manifesto?.sync_completed_at ?? manifesto?.source_synced_at ?? lastSourceSync ?? null;
+}
 
 export function buildContasReceberFonteStatus(
   sourceSyncedAt: string | null | undefined,

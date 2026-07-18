@@ -67,6 +67,7 @@ export interface ContasReceberManifesto {
   competencia: string;
   sync_run_id: string;
   latest_complete_sync_run_id?: string;
+  sync_completed_at?: string | null;
   snapshot_complete: boolean;
   manifest_hash: string;
   total_linhas: number;
@@ -77,8 +78,8 @@ export interface ContasReceberManifesto {
     nao_encontrado: number;
     duplicado: number;
   };
-  source_updated_at: string | null;
-  source_synced_at: string | null;
+  source_updated_at?: string | null;
+  source_synced_at?: string | null;
 }
 
 export interface ContasReceberPreflight {
