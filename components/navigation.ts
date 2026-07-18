@@ -19,6 +19,7 @@ import {
 export const MODULE_IDS = [
   'folha',
   'contas',
+  'contas-receber',
   'cartoes',
   'agenda',
   'notificacoes',
@@ -110,7 +111,8 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
         id: 'contas-receber',
         label: 'Contas a Receber',
         icon: CircleDollarSign,
-        status: 'future',
+        status: 'active',
+        destination: { module: 'contas-receber' },
       },
       {
         id: 'fluxo-caixa',
@@ -215,6 +217,7 @@ export const BOTTOM_NAVIGATION_IDS = ['folha', 'contas', 'cartoes', 'agenda'] as
 const DEFAULT_PAGE: Record<ModuleId, string> = {
   folha: 'dashboard',
   contas: 'dashboard',
+  'contas-receber': 'dashboard',
   cartoes: 'cartoes',
   agenda: 'agenda',
   notificacoes: 'notificacoes',

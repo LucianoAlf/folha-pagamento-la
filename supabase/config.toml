@@ -40,3 +40,7 @@ verify_jwt = false
 
 [functions.rh-ai-journey-insights]
 verify_jwt = false
+
+[functions.contas-receber-sync]
+# O gateway fica aberto e a funcao valida Authorization com auth.getUser.
+verify_jwt = false
