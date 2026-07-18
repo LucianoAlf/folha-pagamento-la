@@ -52,6 +52,9 @@ import InstallPWAPrompt from './components/ui/InstallPWAPrompt';
 const ContasPagarPage = lazy(() =>
   import('./components/contas/ContasPagarPage').then((m) => ({ default: m.ContasPagarPage }))
 );
+const ContasReceberPage = lazy(() =>
+  import('./components/contas-receber/ContasReceberPage').then((m) => ({ default: m.ContasReceberPage }))
+);
 const CartoesPage = lazy(() =>
   import('./components/cartoes/CartoesPage').then((m) => ({ default: m.CartoesPage }))
 );
@@ -311,6 +314,12 @@ export default function App() {
       subtitle: 'CONTROLE OPERACIONAL DE DESPESAS',
       icon: CreditCard,
       tabs: [] // Tabs gerenciadas internamente pelo ContasPagarPage (evita re-render do App)
+    },
+    'contas-receber': {
+      title: 'Contas a Receber',
+      subtitle: 'RECEITAS, BAIXAS E CLASSIFICACAO',
+      icon: DollarSign,
+      tabs: []
     },
     cartoes: {
       title: 'Cartões',
@@ -2223,6 +2232,10 @@ export default function App() {
                 competenciaYM={contasCompetenciaYM}
                 onCompetenciaYMChange={setContasCompetenciaYM}
               />
+            </Suspense>
+          ) : currentModule === 'contas-receber' ? (
+            <Suspense fallback={<LoadingSpinner />}>
+              <ContasReceberPage />
             </Suspense>
           ) : currentModule === 'cartoes' ? (
             <Suspense fallback={<LoadingSpinner />}>

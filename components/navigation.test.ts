@@ -97,7 +97,7 @@ test('itens futuros nao possuem destino', () => {
     .flatMap((group) => group.items)
     .filter((item) => item.status === 'future');
 
-  assert.equal(futureItems.length, 9);
+  assert.equal(futureItems.length, 8);
   assert.ok(futureItems.every((item) => item.destination === undefined));
 });
 
@@ -109,7 +109,7 @@ test('mantem ids, status e destinos aprovados no mapa central', () => {
     [
       { id: 'dashboard-financeiro', status: 'future', destination: undefined },
       { id: 'contas', status: 'active', destination: { module: 'contas' } },
-      { id: 'contas-receber', status: 'future', destination: undefined },
+      { id: 'contas-receber', status: 'active', destination: { module: 'contas-receber' } },
       { id: 'fluxo-caixa', status: 'future', destination: undefined },
       { id: 'dre', status: 'future', destination: undefined },
       { id: 'conciliacao', status: 'future', destination: undefined },
