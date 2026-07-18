@@ -3,10 +3,16 @@ import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const migrationPath = new URL('./20260717_1_contas_receber_sync.sql', import.meta.url);
+const freshnessMigrationPath = new URL('./20260718_1_contas_receber_frescor.sql', import.meta.url);
 
 function sql() {
   assert.equal(existsSync(migrationPath), true, 'migration de contas a receber deve existir');
   return readFileSync(migrationPath, 'utf8');
+}
+
+function freshnessSql() {
+  assert.equal(existsSync(freshnessMigrationPath), true, 'migration de frescor deve existir');
+  return readFileSync(freshnessMigrationPath, 'utf8');
 }
 
 test('schema preserva identidade natural, fatos da origem e julgamento manual', () => {
@@ -69,4 +75,48 @@ test('preflight nao e persistido e log registra apenas apply', () => {
   assert.match(source, /manifest_hash/i);
   assert.match(source, /modo[\s\S]*check[\s\S]*apply/i);
   assert.doesNotMatch(source, /modo[\s\S]*preflight/i);
+});
+
+test('frescor preserva a mesma fatura em competencias diferentes', () => {
+  const source = freshnessSql();
+  assert.match(source, /unique\s*\(\s*la_report_unidade_id\s*,\s*emusys_fatura_id\s*,\s*competencia\s*\)/i);
+  assert.match(source, /on conflict\s*\(\s*la_report_unidade_id\s*,\s*emusys_fatura_id\s*,\s*competencia\s*\)/i);
+  assert.doesNotMatch(source, /competencia\s*=\s*excluded\.competencia/i);
+});
+
+test('frescor espelha ausencia da origem e preserva o motivo sem hashear timestamps', () => {
+  const source = freshnessSql();
+  assert.match(source, /source_missing\s+boolean/i);
+  assert.match(source, /source_missing_reason\s+text/i);
+  assert.match(source, /source_last_seen_at\s+timestamptz/i);
+  assert.match(source, /source_missing_detected_at\s+timestamptz/i);
+  assert.match(source, /source_missing[\s\S]*status[\s\S]*revisar/i);
+});
+
+test('preflight server-side expira, vincula usuario e run e e consumido atomicamente', () => {
+  const source = freshnessSql();
+  assert.match(source, /create table public\.contas_receber_preflight_provas/i);
+  assert.match(source, /user_id\s+uuid\s+not null/i);
+  assert.match(source, /sync_run_id\s+uuid\s+not null/i);
+  assert.match(source, /expires_at\s+timestamptz\s+not null/i);
+  assert.match(source, /consumed_at\s+timestamptz/i);
+  assert.match(source, /for update/i);
+  assert.match(source, /expires_at\s*<=\s*now\(\)/i);
+  assert.match(source, /consumed_result/i);
+  assert.match(
+    source,
+    /consumed_at\s+is\s+not\s+null\s+and\s+consumed_result\s+is\s+not\s+null/i,
+  );
+});
+
+test('apply aceita somente service role e exige a prova persistida', () => {
+  const source = freshnessSql();
+  assert.match(source, /contas_receber_preflight_registrar/i);
+  assert.match(source, /contas_receber_preflight_obter/i);
+  assert.match(source, /contas_receber_sync_aplicar/i);
+  assert.match(source, /p_preflight_id\s+uuid/i);
+  assert.match(source, /sincronizacao de contas a receber exige service_role/i);
+  const grant = source.match(/grant execute on function public\.contas_receber_sync_aplicar\([^;]+;/i)?.[0] ?? '';
+  assert.match(grant, /to service_role/i);
+  assert.doesNotMatch(grant, /authenticated/i);
 });

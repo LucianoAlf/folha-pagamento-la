@@ -20,11 +20,44 @@ test('orquestrador autentica usuario e mantem segredo fora do navegador', () => 
   assert.match(code, /acesso financeiro nao autorizado/i);
 });
 
-test('preflight e read-only e apply exige o mesmo manifest apos nova leitura', () => {
+test('preflight e read-only e apply exige a mesma prova e o mesmo manifest apos nova leitura', () => {
   const code = source();
   assert.match(code, /preflight/i);
   assert.match(code, /apply/i);
-  assert.match(code, /manifest_hash_esperado/i);
-  assert.match(code, /manifest_hash[\s\S]*!==[\s\S]*manifest_hash_esperado/i);
+  assert.match(code, /preflight_id_esperado/i);
+  assert.match(code, /manifesto\.manifest_hash[\s\S]*!==[\s\S]*proof\.manifest_hash/i);
   assert.match(code, /contas_receber_sync_aplicar/i);
+});
+
+test('preflight atualiza a origem, exporta o run exato e persiste prova curta no servidor', () => {
+  const code = source();
+  assert.match(code, /LA_REPORT_CONTAS_RECEBER_REFRESH_URL/i);
+  assert.match(code, /refreshLaReport/i);
+  assert.match(code, /sync_run_id/i);
+  assert.match(code, /snapshot_complete/i);
+  assert.match(code, /contas_receber_preflight_registrar/i);
+  assert.match(code, /preflight_id/i);
+});
+
+test('apply usa a prova persistida e nao confia no manifest enviado pelo navegador', () => {
+  const code = source();
+  assert.match(code, /preflight_id_esperado/i);
+  assert.match(code, /contas_receber_preflight_obter/i);
+  assert.match(code, /require_latest/i);
+  assert.match(code, /latest_complete_sync_run_id obrigatorio/i);
+  assert.match(code, /quantidade de itens diverge do manifesto/i);
+  assert.match(code, /proof\?\.consumed_result/i);
+  assert.match(code, /idempotent_retry:\s*true/i);
+  assert.match(code, /proof\.competencia\s*!==\s*competencia/i);
+  assert.doesNotMatch(code, /payload\?\.manifest_hash_esperado/i);
+});
+
+test('preflight separa recebido, aberto, rateio e cancelado sem alterar o manifesto', () => {
+  const code = source();
+  assert.match(code, /resumo/i);
+  assert.match(code, /recebido/i);
+  assert.match(code, /em_aberto/i);
+  assert.match(code, /excluido_rateio/i);
+  assert.match(code, /cancelado/i);
+  assert.match(code, /valor_pago/i);
 });

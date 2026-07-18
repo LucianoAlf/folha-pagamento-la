@@ -37,9 +37,9 @@ export async function preflightContasReceber(competencia: string): Promise<Conta
   return data as ContasReceberPreflight;
 }
 
-export async function applyContasReceber(competencia: string, manifestHash: string) {
+export async function applyContasReceber(competencia: string, preflightId: string) {
   const { data, error } = await supabase.functions.invoke('contas-receber-sync', {
-    body: { action: 'apply', competencia, manifest_hash_esperado: manifestHash },
+    body: { action: 'apply', competencia, preflight_id_esperado: preflightId },
   });
   if (error) throw error;
   if (!data?.success) throw new Error(data?.error ?? 'Nao foi possivel sincronizar o LA Report.');
