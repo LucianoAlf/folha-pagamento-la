@@ -52,12 +52,9 @@ test('apply usa a prova persistida e nao confia no manifest enviado pelo navegad
   assert.doesNotMatch(code, /payload\?\.manifest_hash_esperado/i);
 });
 
-test('preflight separa recebido, aberto, rateio e cancelado sem alterar o manifesto', () => {
+test('preflight delega os buckets ao helper sem alterar o manifesto', () => {
   const code = source();
-  assert.match(code, /resumo/i);
-  assert.match(code, /recebido/i);
-  assert.match(code, /em_aberto/i);
-  assert.match(code, /excluido_rateio/i);
-  assert.match(code, /cancelado/i);
-  assert.match(code, /valor_pago/i);
+  assert.match(code, /buildContasReceberPreflightBuckets/i);
+  assert.match(code, /const\s+\{\s*classificacao,\s*resumo\s*\}/i);
+  assert.match(code, /manifesto:\s*source\.manifesto/i);
 });

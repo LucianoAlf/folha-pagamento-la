@@ -287,13 +287,26 @@ export const ContasReceberPage: React.FC = () => {
           </div>
         ) : null}
         {preflight ? (
-          <div className="grid gap-3 border-t border-line bg-surface-2/45 p-5 sm:grid-cols-3 xl:grid-cols-5">
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Linhas</p><p className="mt-1 font-black text-primary">{preflight.manifesto.total_linhas}</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Recebido</p><p className="mt-1 font-black text-success">{formatCurrency(preflight.resumo.recebido)}</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Em aberto</p><p className="mt-1 font-black text-info">{formatCurrency(preflight.resumo.em_aberto)}</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Em revisao</p><p className="mt-1 font-black text-warning">{formatCurrency(preflight.resumo.em_revisao)}</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Excluido (rateio)</p><p className="mt-1 font-black text-secondary">{formatCurrency(preflight.resumo.excluido_rateio)}</p></div>
-            {preflight.resumo.cancelado > 0 ? <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Cancelado</p><p className="mt-1 font-black text-secondary">{formatCurrency(preflight.resumo.cancelado)}</p></div> : null}
+          <div className="border-t border-line bg-surface-2/45 p-5">
+            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
+              <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Linhas</p><p className="mt-1 font-black text-primary">{preflight.manifesto.total_linhas}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Recebido</p><p className="mt-1 font-black text-success">{formatCurrency(preflight.resumo.recebido)}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Em aberto</p><p className="mt-1 font-black text-info">{formatCurrency(preflight.resumo.em_aberto)}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Em revisao</p><p className="mt-1 font-black text-warning">{formatCurrency(preflight.resumo.em_revisao)}</p></div>
+              <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Excluido (rateio)</p><p className="mt-1 font-black text-secondary">{formatCurrency(preflight.resumo.excluido_rateio)}</p></div>
+              {preflight.resumo.cancelado > 0 ? <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Cancelado</p><p className="mt-1 font-black text-secondary">{formatCurrency(preflight.resumo.cancelado)}</p></div> : null}
+            </div>
+            <div className="mt-5 border-t border-line/70 pt-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted">Composicao das linhas</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge variant="default">Mensalidades: {preflight.classificacao.mensalidades}</Badge>
+                <Badge variant="default">Matriculas e passaportes: {preflight.classificacao.matriculas_passaportes}</Badge>
+                <Badge variant="default">Locacoes: {preflight.classificacao.locacoes}</Badge>
+                <Badge variant="info">Vendas avulsas: {preflight.classificacao.vendas_avulsas}</Badge>
+                <Badge variant="info">Receitas operacionais: {preflight.classificacao.receitas_operacionais}</Badge>
+                {preflight.classificacao.pendentes_manuais > 0 ? <Badge variant="warning">Sem regra: {preflight.classificacao.pendentes_manuais}</Badge> : null}
+              </div>
+            </div>
           </div>
         ) : null}
       </Card>

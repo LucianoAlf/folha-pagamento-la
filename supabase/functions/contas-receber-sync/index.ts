@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { buildContasReceberPreflightBuckets } from "../_shared/contasReceberPreflight.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -115,35 +116,6 @@ async function readLaReport(
   return body as SourceResponse;
 }
 
-function normalizeDescription(value: unknown) {
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-function money(value: unknown) {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function mappedStatus(item: SourceItem) {
-  if (item.source_missing === true) return "revisar";
-  switch (String(item.status_origem ?? "").trim().toLowerCase()) {
-    case "paga":
-    case "pago":
-      return "recebido";
-    case "aberta":
-    case "pendente":
-      return "pendente";
-    case "cancelada":
-    case "cancelado":
-      return "cancelado";
-    default:
-      return "revisar";
-  }
-}
-
 function buildPreflight(
   source: SourceResponse,
   options: {
@@ -152,52 +124,7 @@ function buildPreflight(
     refreshError?: string | null;
   },
 ) {
-  const classificacao = {
-    mensalidades: 0,
-    matriculas_passaportes: 0,
-    locacoes: 0,
-    rateios_excluidos: 0,
-    pendentes_manuais: 0,
-  };
-  const resumo = {
-    recebido: 0,
-    em_aberto: 0,
-    em_revisao: 0,
-    excluido_rateio: 0,
-    cancelado: 0,
-  };
-
-  for (const item of source.itens) {
-    const descricao = normalizeDescription(item.descricao);
-    const rateio = /rateio/.test(descricao);
-    if (/^\s*parcela/.test(descricao)) classificacao.mensalidades += 1;
-    else if (/(passaporte|matricula)/.test(descricao)) classificacao.matriculas_passaportes += 1;
-    else if (/locacao/.test(descricao)) classificacao.locacoes += 1;
-    else if (rateio) classificacao.rateios_excluidos += 1;
-    else classificacao.pendentes_manuais += 1;
-
-    if (rateio) {
-      resumo.excluido_rateio += money(item.valor_liquido);
-      continue;
-    }
-    switch (mappedStatus(item)) {
-      case "recebido":
-        resumo.recebido += money(item.valor_pago);
-        break;
-      case "pendente":
-        resumo.em_aberto += money(item.valor_liquido);
-        break;
-      case "cancelado":
-        resumo.cancelado += money(item.valor_liquido);
-        break;
-      default:
-        resumo.em_revisao += money(item.valor_liquido);
-    }
-  }
-
-  for (const key of Object.keys(resumo) as Array<keyof typeof resumo>) {
-    resumo[key] = Number(resumo[key].toFixed(2));
-  }
+  const { classificacao, resumo } = buildContasReceberPreflightBuckets(source.itens);
 
   return {
     success: true,

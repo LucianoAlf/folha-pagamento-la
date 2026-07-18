@@ -100,6 +100,8 @@ export interface ContasReceberPreflight {
     mensalidades: number;
     matriculas_passaportes: number;
     locacoes: number;
+    vendas_avulsas: number;
+    receitas_operacionais: number;
     rateios_excluidos: number;
     pendentes_manuais: number;
   };

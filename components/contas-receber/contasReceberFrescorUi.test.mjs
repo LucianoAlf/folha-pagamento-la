@@ -29,3 +29,10 @@ test('preflight mostra buckets financeiros sem substituir o manifesto', () => {
   assert.match(types, /refresh_ok:\s*boolean/i);
   assert.match(types, /apply_allowed:\s*boolean/i);
 });
+
+test('preflight distingue receita sem matricula de pendencia financeira', () => {
+  assert.match(page, /Vendas avulsas/i);
+  assert.match(page, /Receitas operacionais/i);
+  assert.match(types, /vendas_avulsas:\s*number/i);
+  assert.match(types, /receitas_operacionais:\s*number/i);
+});
