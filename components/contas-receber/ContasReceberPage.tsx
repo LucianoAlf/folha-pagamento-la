@@ -173,10 +173,10 @@ export const ContasReceberPage: React.FC = () => {
   };
 
   const runApply = async () => {
-    if (!preflight) return;
+    if (!preflight?.preflight_id || !preflight.apply_allowed) return;
     setSyncBusy('apply');
     try {
-      await applyContasReceber(competencia, preflight.manifesto.manifest_hash);
+      await applyContasReceber(competencia, preflight.preflight_id);
       toast.success('Contas a receber atualizadas sem alterar classificacoes manuais.');
       setPreflight(null);
       await load();
@@ -237,9 +237,10 @@ export const ContasReceberPage: React.FC = () => {
         </div>
       </section>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         <KpiCard label="Recebido" value={formatCurrency(resumo.recebido)} helper="Valor efetivamente pago" icon={CheckCircle2} tone="success" />
         <KpiCard label="Em aberto" value={formatCurrency(resumo.emAberto)} helper="Saldo liquido a receber" icon={Clock3} tone="info" />
+        <KpiCard label="Em revisao" value={formatCurrency(resumo.emRevisao)} helper="Aguardando confirmacao da origem" icon={FileWarning} tone="warning" />
         <KpiCard label="Percentual recebido" value={`${resumo.percentualRecebido.toFixed(1)}%`} helper={`De ${formatCurrency(resumo.totalReceita)}`} icon={CircleDollarSign} tone="accent" />
         <KpiCard label="Revisao manual" value={String(resumo.pendentesClassificacao)} helper={`${resumo.excluidos} rateio(s) fora da receita`} icon={FileWarning} tone="warning" />
       </div>
@@ -269,21 +270,30 @@ export const ContasReceberPage: React.FC = () => {
               Conferir atualizacao
             </Button>
             {preflight ? (
-              <Button variant="primary" onClick={() => void runApply()} disabled={syncBusy !== null}>
+              <Button variant="primary" onClick={() => void runApply()} disabled={syncBusy !== null || !preflight.apply_allowed || !preflight.preflight_id}>
                 <ShieldCheck size={16} />
                 Aplicar conferencia
               </Button>
             ) : null}
           </div>
         </div>
+        {preflight && !preflight.refresh_ok ? (
+          <div className="flex items-start gap-3 border-t border-warning/25 bg-warning/10 px-5 py-4 text-sm font-semibold text-secondary">
+            <AlertCircle className="mt-0.5 shrink-0 text-warning" size={18} />
+            <div>
+              <p className="font-black text-primary">A origem nao confirmou uma atualizacao completa.</p>
+              <p className="mt-1">{preflight.refresh_error || 'Os ultimos dados disponiveis continuam visiveis, mas nao podem ser aplicados.'}</p>
+            </div>
+          </div>
+        ) : null}
         {preflight ? (
-          <div className="grid gap-3 border-t border-line bg-surface-2/45 p-5 sm:grid-cols-3 xl:grid-cols-6">
+          <div className="grid gap-3 border-t border-line bg-surface-2/45 p-5 sm:grid-cols-3 xl:grid-cols-5">
             <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Linhas</p><p className="mt-1 font-black text-primary">{preflight.manifesto.total_linhas}</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Valor liquido</p><p className="mt-1 font-black text-primary">{formatCurrency(preflight.manifesto.total_valor_liquido)}</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Mensalidades</p><p className="mt-1 font-black text-primary">{preflight.classificacao.mensalidades}</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Matriculas</p><p className="mt-1 font-black text-primary">{preflight.classificacao.matriculas_passaportes}</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Rateios fora</p><p className="mt-1 font-black text-primary">{preflight.classificacao.rateios_excluidos}</p></div>
-            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Revisao manual</p><p className="mt-1 font-black text-warning">{preflight.classificacao.pendentes_manuais}</p></div>
+            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Recebido</p><p className="mt-1 font-black text-success">{formatCurrency(preflight.resumo.recebido)}</p></div>
+            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Em aberto</p><p className="mt-1 font-black text-info">{formatCurrency(preflight.resumo.em_aberto)}</p></div>
+            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Em revisao</p><p className="mt-1 font-black text-warning">{formatCurrency(preflight.resumo.em_revisao)}</p></div>
+            <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Excluido (rateio)</p><p className="mt-1 font-black text-secondary">{formatCurrency(preflight.resumo.excluido_rateio)}</p></div>
+            {preflight.resumo.cancelado > 0 ? <div><p className="text-[10px] font-black uppercase tracking-widest text-muted">Cancelado</p><p className="mt-1 font-black text-secondary">{formatCurrency(preflight.resumo.cancelado)}</p></div> : null}
           </div>
         ) : null}
       </Card>
@@ -323,8 +333,12 @@ export const ContasReceberPage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="truncate font-black text-primary">{conta.aluno_nome || conta.descricao}</h4>
                     {conta.cadastro_match_status !== 'unico' ? <Badge variant="warning">{conta.cadastro_match_status === 'duplicado' ? 'Cadastro duplicado' : 'Sem cadastro'}</Badge> : null}
+                    {conta.source_missing ? <Badge variant="warning">Nao confirmada na origem</Badge> : null}
                   </div>
                   <p className="mt-1 truncate text-xs font-semibold text-secondary">{conta.descricao}</p>
+                  {conta.source_missing ? (
+                    <p className="mt-1 text-xs font-semibold text-warning">{conta.source_missing_reason || 'Ausente no ultimo snapshot completo do Emusys.'}</p>
+                  ) : null}
                   <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-muted">Emusys #{conta.emusys_fatura_id}{conta.curso_nome ? ` · ${conta.curso_nome}` : ''}</p>
                 </div>
                 <div><span className="text-[10px] font-black uppercase tracking-widest text-muted lg:hidden">Unidade · </span><span className="text-sm font-bold text-secondary">{UNIDADE_LABELS[conta.unidade]}</span></div>

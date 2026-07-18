@@ -11,15 +11,17 @@ const contas = [
   { id: '1', unidade: 'cg', status: 'recebido', valor_pago: 100, valor_liquido: 100, excluido_da_receita: false, classificacao_status: 'confirmada', aluno_nome: 'Alice' },
   { id: '2', unidade: 'rec', status: 'pendente', valor_pago: null, valor_liquido: 80, excluido_da_receita: false, classificacao_status: 'pendente', aluno_nome: 'Bruno' },
   { id: '3', unidade: 'bar', status: 'pendente', valor_pago: null, valor_liquido: 50, excluido_da_receita: true, classificacao_status: 'excluida', aluno_nome: 'Rateio interno' },
+  { id: '4', unidade: 'cg', status: 'revisar', valor_pago: null, valor_liquido: 68.5, excluido_da_receita: false, classificacao_status: 'pendente', aluno_nome: 'Origem nao confirmou' },
 ] as any[];
 
-test('resumo usa valor pago no recebido e valor liquido no aberto', () => {
+test('resumo separa recebido, pendente e revisar sem inflar o em aberto', () => {
   assert.deepEqual(buildContasReceberResumo(contas), {
     recebido: 100,
     emAberto: 80,
+    emRevisao: 68.5,
     totalReceita: 180,
     percentualRecebido: 55.56,
-    pendentesClassificacao: 1,
+    pendentesClassificacao: 2,
     excluidos: 1,
   });
 });

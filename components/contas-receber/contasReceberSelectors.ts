@@ -20,13 +20,17 @@ export function buildContasReceberResumo(contas: ContaReceber[]) {
     .filter((conta) => conta.status === 'recebido')
     .reduce((sum, conta) => sum + money(conta.valor_pago), 0);
   const emAberto = validas
-    .filter((conta) => conta.status !== 'recebido')
+    .filter((conta) => conta.status === 'pendente')
+    .reduce((sum, conta) => sum + money(conta.valor_liquido), 0);
+  const emRevisao = validas
+    .filter((conta) => conta.status === 'revisar')
     .reduce((sum, conta) => sum + money(conta.valor_liquido), 0);
   const totalReceita = recebido + emAberto;
 
   return {
     recebido: Number(recebido.toFixed(2)),
     emAberto: Number(emAberto.toFixed(2)),
+    emRevisao: Number(emRevisao.toFixed(2)),
     totalReceita: Number(totalReceita.toFixed(2)),
     percentualRecebido: totalReceita > 0 ? Number(((recebido / totalReceita) * 100).toFixed(2)) : 0,
     pendentesClassificacao: contas.filter(

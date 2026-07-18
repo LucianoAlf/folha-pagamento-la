@@ -42,6 +42,13 @@ export interface ContaReceber {
   classificado_em: string | null;
   row_source_hash: string;
   manifest_hash: string;
+  source_missing: boolean;
+  source_missing_reason: string | null;
+  source_missing_detected_at: string | null;
+  source_missing_resolved_at: string | null;
+  source_last_seen_at: string | null;
+  source_sync_run_id: string | null;
+  source_sync_run_item_id: string | null;
   source_updated_at: string | null;
   source_synced_at: string | null;
   imported_at: string;
@@ -58,6 +65,9 @@ export interface ContaReceberFilters {
 
 export interface ContasReceberManifesto {
   competencia: string;
+  sync_run_id: string;
+  latest_complete_sync_run_id?: string;
+  snapshot_complete: boolean;
   manifest_hash: string;
   total_linhas: number;
   total_valor_liquido: number;
@@ -74,7 +84,18 @@ export interface ContasReceberManifesto {
 export interface ContasReceberPreflight {
   success: true;
   action: 'preflight';
+  preflight_id: string | null;
+  apply_allowed: boolean;
+  refresh_ok: boolean;
+  refresh_error: string | null;
   manifesto: ContasReceberManifesto;
+  resumo: {
+    recebido: number;
+    em_aberto: number;
+    em_revisao: number;
+    excluido_rateio: number;
+    cancelado: number;
+  };
   classificacao: {
     mensalidades: number;
     matriculas_passaportes: number;
