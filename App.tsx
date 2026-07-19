@@ -55,6 +55,9 @@ const ContasPagarPage = lazy(() =>
 const ContasReceberPage = lazy(() =>
   import('./components/contas-receber/ContasReceberPage').then((m) => ({ default: m.ContasReceberPage }))
 );
+const DrePage = lazy(() =>
+  import('./components/dre/DrePage').then((m) => ({ default: m.DrePage }))
+);
 const CartoesPage = lazy(() =>
   import('./components/cartoes/CartoesPage').then((m) => ({ default: m.CartoesPage }))
 );
@@ -319,6 +322,12 @@ export default function App() {
       title: 'Contas a Receber',
       subtitle: 'RECEITAS, BAIXAS E CLASSIFICACAO',
       icon: DollarSign,
+      tabs: []
+    },
+    dre: {
+      title: 'DRE',
+      subtitle: 'RESULTADO E RECONCILIACAO FINANCEIRA',
+      icon: BarChart3,
       tabs: []
     },
     cartoes: {
@@ -2236,6 +2245,10 @@ export default function App() {
           ) : currentModule === 'contas-receber' ? (
             <Suspense fallback={<LoadingSpinner />}>
               <ContasReceberPage />
+            </Suspense>
+          ) : currentModule === 'dre' ? (
+            <Suspense fallback={<LoadingSpinner />}>
+              <DrePage />
             </Suspense>
           ) : currentModule === 'cartoes' ? (
             <Suspense fallback={<LoadingSpinner />}>
