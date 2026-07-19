@@ -30,7 +30,17 @@ import type {
   ContasReceberPreflight,
   PlanoContaEntrada,
 } from '../../types/contasReceber.ts';
-import { Badge, Button, Card, CustomSelect, ErrorState, LoadingSpinner, Modal } from '../UI.tsx';
+import {
+  Badge,
+  Button,
+  Card,
+  CompetenciaPicker,
+  CustomSelect,
+  ErrorState,
+  LoadingSpinner,
+  Modal,
+  StatCard,
+} from '../UI.tsx';
 import {
   buildContasReceberFonteStatus,
   buildContasReceberResumo,
@@ -85,33 +95,6 @@ function classificacaoBadge(conta: ContaReceber) {
   if (conta.classificacao_status === 'excluida') return <Badge variant="default">Fora da receita</Badge>;
   return <Badge variant="warning">Classificar</Badge>;
 }
-
-const KpiCard: React.FC<{
-  label: string;
-  value: string;
-  helper: string;
-  icon: React.ElementType;
-  tone: 'accent' | 'success' | 'info' | 'warning';
-}> = ({ label, value, helper, icon: Icon, tone }) => {
-  const toneClass = {
-    accent: 'bg-accent/15 text-accent border-accent/20',
-    success: 'bg-success/15 text-success border-success/20',
-    info: 'bg-info/15 text-info border-info/20',
-    warning: 'bg-warning/15 text-warning border-warning/20',
-  }[tone];
-  return (
-    <Card className="min-h-[152px] p-5 flex flex-col justify-between">
-      <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${toneClass}`}>
-        <Icon size={19} />
-      </div>
-      <div className="mt-5 min-w-0">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted">{label}</p>
-        <p className="mt-1 text-2xl font-black text-primary truncate">{value}</p>
-        <p className="mt-1 text-xs font-semibold text-secondary">{helper}</p>
-      </div>
-    </Card>
-  );
-};
 
 export const ContasReceberPage: React.FC = () => {
   const toast = useToast();
@@ -223,26 +206,25 @@ export const ContasReceberPage: React.FC = () => {
             Receita dos alunos consolidada por competencia, com classificacao preservada no Super Folha.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <label className="text-[10px] font-black uppercase tracking-[0.16em] text-muted" htmlFor="contas-receber-month">
+        <label className="flex flex-col gap-2">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-muted">
             Competencia
-          </label>
-          <input
-            id="contas-receber-month"
-            type="month"
+          </span>
+          <CompetenciaPicker
             value={month}
-            onChange={(event) => setMonth(event.target.value)}
-            className="h-11 min-w-[170px] rounded-xl border border-line-strong bg-surface px-4 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-accent/50"
+            onValueChange={setMonth}
+            ariaLabel="Competência de Contas a Receber"
+            className="rounded-xl px-4"
           />
-        </div>
+        </label>
       </section>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-        <KpiCard label="Recebido" value={formatCurrency(resumo.recebido)} helper="Valor efetivamente pago" icon={CheckCircle2} tone="success" />
-        <KpiCard label="Em aberto" value={formatCurrency(resumo.emAberto)} helper="Saldo liquido a receber" icon={Clock3} tone="info" />
-        <KpiCard label="Em revisao" value={formatCurrency(resumo.emRevisao)} helper="Aguardando confirmacao da origem" icon={FileWarning} tone="warning" />
-        <KpiCard label="Percentual recebido" value={`${resumo.percentualRecebido.toFixed(1)}%`} helper={`De ${formatCurrency(resumo.totalReceita)}`} icon={CircleDollarSign} tone="accent" />
-        <KpiCard label="Revisao manual" value={String(resumo.pendentesClassificacao)} helper={`${resumo.excluidos} rateio(s) fora da receita`} icon={FileWarning} tone="warning" />
+        <StatCard label="Recebido" value={formatCurrency(resumo.recebido)} helper="Valor efetivamente pago" icon={CheckCircle2} tone="success" />
+        <StatCard label="Em aberto" value={formatCurrency(resumo.emAberto)} helper="Saldo liquido a receber" icon={Clock3} tone="info" />
+        <StatCard label="Em revisao" value={formatCurrency(resumo.emRevisao)} helper="Aguardando confirmacao da origem" icon={FileWarning} tone="warning" />
+        <StatCard label="Percentual recebido" value={`${resumo.percentualRecebido.toFixed(1)}%`} helper={`De ${formatCurrency(resumo.totalReceita)}`} icon={CircleDollarSign} tone="accent" />
+        <StatCard label="Revisao manual" value={String(resumo.pendentesClassificacao)} helper={`${resumo.excluidos} rateio(s) fora da receita`} icon={FileWarning} tone="warning" />
       </div>
 
       <Card className="overflow-hidden">

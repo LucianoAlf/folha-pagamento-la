@@ -26,7 +26,18 @@ import type {
   DreModoVisual,
   DreRegime,
 } from '../../types/dre.ts';
-import { Badge, Button, Card, CustomSelect, ErrorState, LoadingSpinner, Modal } from '../UI.tsx';
+import {
+  Badge,
+  Button,
+  Card,
+  CompetenciaPicker,
+  CustomSelect,
+  ErrorState,
+  LoadingSpinner,
+  Modal,
+  SegmentedControl,
+  StatCard,
+} from '../UI.tsx';
 import {
   buildDreCoverageMessage,
   buildDreReconciliationTotals,
@@ -73,36 +84,6 @@ function formatDate(value: string | null) {
   const [year, month, day] = value.slice(0, 10).split('-');
   return `${day}/${month}/${year}`;
 }
-
-const KpiCard: React.FC<{
-  label: string;
-  value: number;
-  helper: string;
-  icon: React.ElementType;
-  tone: 'success' | 'info' | 'accent' | 'warning' | 'neutral';
-  signed?: boolean;
-}> = ({ label, value, helper, icon: Icon, tone, signed = false }) => {
-  const toneClass = {
-    success: 'border-success/25 bg-success/10 text-success',
-    info: 'border-info/25 bg-info/10 text-info',
-    accent: 'border-accent/25 bg-accent/10 text-accent',
-    warning: 'border-warning/25 bg-warning/10 text-warning',
-    neutral: 'border-line-strong bg-surface-2 text-secondary',
-  }[tone];
-
-  return (
-    <Card className="min-h-[142px] p-5">
-      <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${toneClass}`}>
-        <Icon size={19} />
-      </div>
-      <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-muted">{label}</p>
-      <p className="mt-1 whitespace-nowrap text-lg font-black leading-tight text-primary sm:text-xl">
-        {signed ? formatSignedCurrency(value) : formatCurrency(Math.abs(value))}
-      </p>
-      <p className="mt-1 text-xs font-semibold text-secondary">{helper}</p>
-    </Card>
-  );
-};
 
 export const DrePage: React.FC = () => {
   const [month, setMonth] = useState(currentMonth);
@@ -212,44 +193,37 @@ export const DrePage: React.FC = () => {
         <div className="grid gap-3 sm:grid-cols-[170px_auto_auto] sm:items-end">
           <label className="block">
             <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-muted">Competência</span>
-            <input
-              type="month"
+            <CompetenciaPicker
               value={month}
-              onChange={(event) => setMonth(event.target.value)}
-              className="h-11 w-full rounded-lg border border-line-strong bg-surface px-3 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-accent/50"
+              onValueChange={setMonth}
+              ariaLabel="Competência do DRE"
             />
           </label>
           <div>
             <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-muted">Regime</span>
-            <div className="grid h-11 grid-cols-2 rounded-lg border border-line-strong bg-surface-2 p-1" aria-label="Regime do DRE">
-              {(['competencia', 'caixa'] as DreRegime[]).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setRegime(option)}
-                  className={`min-w-[108px] rounded-md px-3 text-xs font-black transition-colors ${regime === option ? 'bg-surface text-accent shadow-sm' : 'text-secondary hover:text-primary'}`}
-                  aria-pressed={regime === option}
-                >
-                  {option === 'competencia' ? 'Competência' : 'Caixa'}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl<DreRegime>
+              value={regime}
+              onValueChange={setRegime}
+              ariaLabel="Regime do DRE"
+              className="min-w-[224px]"
+              options={[
+                { value: 'competencia', label: 'Competência' },
+                { value: 'caixa', label: 'Caixa' },
+              ] satisfies { value: DreRegime; label: string }[]}
+            />
           </div>
           <div>
             <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-muted">Visão</span>
-            <div className="grid h-11 grid-cols-2 rounded-lg border border-line-strong bg-surface-2 p-1" aria-label="Nível de detalhe">
-              {(['simples', 'sofisticado'] as DreModoVisual[]).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setModo(option)}
-                  className={`min-w-[100px] rounded-md px-3 text-xs font-black transition-colors ${modo === option ? 'bg-surface text-accent shadow-sm' : 'text-secondary hover:text-primary'}`}
-                  aria-pressed={modo === option}
-                >
-                  {option === 'simples' ? 'Simples' : 'Analítico'}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl<DreModoVisual>
+              value={modo}
+              onValueChange={setModo}
+              ariaLabel="Nível de detalhe"
+              className="min-w-[208px]"
+              options={[
+                { value: 'simples', label: 'Simples' },
+                { value: 'sofisticado', label: 'Analítico' },
+              ] satisfies { value: DreModoVisual; label: string }[]}
+            />
           </div>
         </div>
       </section>
@@ -295,13 +269,13 @@ export const DrePage: React.FC = () => {
             </div>
           </Card>
 
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
-            <KpiCard label="Receita" value={dre.kpis.receita} helper="Entradas classificadas" icon={ArrowUpRight} tone="success" />
-            <KpiCard label="Despesas" value={dre.kpis.despesa} helper="Variáveis e fixas" icon={ArrowDownRight} tone="info" />
-            <KpiCard label="Lucro operacional" value={dre.kpis.lucro_operacional} helper={`Margem ${margin.toFixed(1)}%`} icon={TrendingUp} tone="accent" signed />
-            <KpiCard label="Investimentos" value={dre.kpis.investimentos} helper="Grupo 6" icon={Landmark} tone="warning" />
-            <KpiCard label="Não operacional" value={dre.kpis.entradas_nao_operacionais - dre.kpis.saidas_nao_operacionais} helper="Entradas menos saídas" icon={WalletCards} tone="neutral" signed />
-            <KpiCard label="Lucro líquido" value={dre.kpis.lucro_liquido} helper="Resultado final" icon={CircleDollarSign} tone={dre.kpis.lucro_liquido >= 0 ? 'success' : 'warning'} signed />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
+            <StatCard density="compact" label="Receita" value={formatCurrency(Math.abs(dre.kpis.receita))} helper="Entradas classificadas" icon={ArrowUpRight} tone="success" />
+            <StatCard density="compact" label="Despesas" value={formatCurrency(Math.abs(dre.kpis.despesa))} helper="Variáveis e fixas" icon={ArrowDownRight} tone="info" />
+            <StatCard density="compact" label="Lucro operacional" value={formatSignedCurrency(dre.kpis.lucro_operacional)} helper={`Margem ${margin.toFixed(1)}%`} icon={TrendingUp} tone="accent" />
+            <StatCard density="compact" label="Investimentos" value={formatCurrency(Math.abs(dre.kpis.investimentos))} helper="Grupo 6" icon={Landmark} tone="warning" />
+            <StatCard density="compact" label="Não operacional" value={formatSignedCurrency(dre.kpis.entradas_nao_operacionais - dre.kpis.saidas_nao_operacionais)} helper="Entradas menos saídas" icon={WalletCards} tone="neutral" />
+            <StatCard density="compact" label="Lucro líquido" value={formatSignedCurrency(dre.kpis.lucro_liquido)} helper="Resultado final" icon={CircleDollarSign} tone={dre.kpis.lucro_liquido >= 0 ? 'success' : 'warning'} />
           </div>
 
           <Card className="overflow-hidden">
