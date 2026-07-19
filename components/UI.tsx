@@ -43,6 +43,233 @@ export const Tooltip: React.FC<{
   </TooltipPrimitive.Provider>
 );
 
+const COMPETENCIA_MONTHS = Array.from({ length: 12 }, (_, month) => ({
+  value: String(month + 1).padStart(2, '0'),
+  shortLabel: new Intl.DateTimeFormat('pt-BR', { month: 'short' })
+    .format(new Date(2020, month, 1))
+    .replace('.', ''),
+  label: new Intl.DateTimeFormat('pt-BR', { month: 'long' })
+    .format(new Date(2020, month, 1)),
+}));
+
+export const CompetenciaPicker: React.FC<{
+  value: string; // yyyy-mm
+  onValueChange: (value: string) => void;
+  className?: string;
+  disabled?: boolean;
+  fromYear?: number;
+  toYear?: number;
+  ariaLabel?: string;
+}> = ({
+  value,
+  onValueChange,
+  className,
+  disabled = false,
+  fromYear,
+  toYear,
+  ariaLabel = 'Selecionar competência',
+}) => {
+  const [open, setOpen] = useState(false);
+  const now = new Date();
+  const match = /^(\d{4})-(\d{2})$/.exec(value);
+  const selectedYear = match ? Number(match[1]) : now.getFullYear();
+  const selectedMonth = match ? match[2] : String(now.getMonth() + 1).padStart(2, '0');
+  const minYear = fromYear ?? now.getFullYear() - 10;
+  const maxYear = toYear ?? now.getFullYear() + 5;
+  const [displayYear, setDisplayYear] = useState(selectedYear);
+
+  useEffect(() => {
+    if (open) setDisplayYear(selectedYear);
+  }, [open, selectedYear]);
+
+  const selectedLabel = new Intl.DateTimeFormat('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/Sao_Paulo',
+  }).format(new Date(selectedYear, Number(selectedMonth) - 1, 1));
+  const displayLabel = selectedLabel.charAt(0).toUpperCase() + selectedLabel.slice(1);
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          aria-label={ariaLabel}
+          className={cn(
+            'flex h-11 w-full min-w-[170px] items-center justify-between gap-3 rounded-lg border border-line-strong bg-surface px-3 text-left text-sm font-bold text-primary outline-none transition-colors',
+            'hover:bg-surface-2/50 focus:ring-2 focus:ring-accent/50 disabled:cursor-not-allowed disabled:opacity-50',
+            className,
+          )}
+        >
+          <span>{displayLabel}</span>
+          <Calendar size={16} className="shrink-0 text-muted" aria-hidden="true" />
+        </button>
+      </Popover.Trigger>
+
+      <Popover.Portal>
+        <Popover.Content
+          sideOffset={8}
+          align="start"
+          className="la-popover-content z-popover w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-line bg-surface p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        >
+          <div className="flex items-center justify-between border-b border-line pb-3">
+            <button
+              type="button"
+              aria-label="Ano anterior"
+              disabled={displayYear <= minYear}
+              onClick={() => setDisplayYear((year) => Math.max(minYear, year - 1))}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface-2 text-secondary transition-colors hover:bg-surface-3 disabled:opacity-35"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-sm font-black text-primary">{displayYear}</span>
+            <button
+              type="button"
+              aria-label="Próximo ano"
+              disabled={displayYear >= maxYear}
+              onClick={() => setDisplayYear((year) => Math.min(maxYear, year + 1))}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface-2 text-secondary transition-colors hover:bg-surface-3 disabled:opacity-35"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {COMPETENCIA_MONTHS.map((month) => {
+              const selected = displayYear === selectedYear && month.value === selectedMonth;
+              return (
+                <button
+                  key={month.value}
+                  type="button"
+                  aria-label={`${month.label} de ${displayYear}`}
+                  aria-pressed={selected}
+                  onClick={() => {
+                    onValueChange(`${displayYear}-${month.value}`);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    'h-10 rounded-lg border px-2 text-xs font-black capitalize transition-colors focus:outline-none focus:ring-2 focus:ring-accent/50',
+                    selected
+                      ? 'border-accent bg-accent text-[rgb(var(--on-accent))] shadow-sm'
+                      : 'border-line bg-surface-2/45 text-secondary hover:border-line-strong hover:bg-surface-2 hover:text-primary',
+                  )}
+                >
+                  {month.shortLabel}
+                </button>
+              );
+            })}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+};
+
+export type SegmentedControlOption<T extends string = string> = {
+  value: T;
+  label: React.ReactNode;
+  disabled?: boolean;
+};
+
+export type SegmentedControlProps<T extends string = string> = {
+  value: T;
+  onValueChange: (value: T) => void;
+  options: readonly SegmentedControlOption<T>[];
+  ariaLabel: string;
+  className?: string;
+  optionClassName?: string;
+};
+
+export const SegmentedControl = <T extends string,>({
+  value,
+  onValueChange,
+  options,
+  ariaLabel,
+  className,
+  optionClassName,
+}: SegmentedControlProps<T>) => (
+  <div
+    role="group"
+    aria-label={ariaLabel}
+    className={cn(
+      'grid h-11 rounded-lg border border-line-strong bg-surface-2 p-1',
+      className,
+    )}
+    style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+  >
+    {options.map((option) => (
+      <button
+        key={option.value}
+        type="button"
+        disabled={option.disabled}
+        aria-pressed={value === option.value}
+        onClick={() => onValueChange(option.value)}
+        className={cn(
+          'rounded-md px-3 text-xs font-black transition-colors focus:outline-none focus:ring-2 focus:ring-accent/45 disabled:cursor-not-allowed disabled:opacity-50',
+          value === option.value
+            ? 'bg-surface text-accent shadow-sm'
+            : 'text-secondary hover:text-primary',
+          optionClassName,
+        )}
+      >
+        {option.label}
+      </button>
+    ))}
+  </div>
+);
+
+export type StatCardTone = 'accent' | 'success' | 'info' | 'warning' | 'danger' | 'neutral';
+
+export const StatCard: React.FC<{
+  label: React.ReactNode;
+  value: React.ReactNode;
+  helper?: React.ReactNode;
+  icon: React.ElementType;
+  tone?: StatCardTone;
+  density?: 'comfortable' | 'compact';
+  className?: string;
+  valueClassName?: string;
+}> = ({
+  label,
+  value,
+  helper,
+  icon: Icon,
+  tone = 'neutral',
+  density = 'comfortable',
+  className,
+  valueClassName,
+}) => {
+  const toneClass: Record<StatCardTone, string> = {
+    accent: 'border-accent/25 bg-accent/10 text-accent',
+    success: 'border-success/25 bg-success/10 text-success',
+    info: 'border-info/25 bg-info/10 text-info',
+    warning: 'border-warning/25 bg-warning/10 text-warning',
+    danger: 'border-danger/25 bg-danger/10 text-danger',
+    neutral: 'border-line-strong bg-surface-2 text-secondary',
+  };
+  const compact = density === 'compact';
+
+  return (
+    <Card className={cn(compact ? 'min-h-[142px] p-5' : 'flex min-h-[152px] flex-col justify-between p-5', className)}>
+      <div className={cn('flex h-10 w-10 items-center justify-center border', compact ? 'rounded-lg' : 'rounded-xl', toneClass[tone])}>
+        <Icon size={19} aria-hidden="true" />
+      </div>
+      <div className={compact ? 'mt-4 min-w-0' : 'mt-5 min-w-0'}>
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted">{label}</p>
+        <p className={cn(
+          'mt-1 font-black leading-tight text-primary',
+          compact ? 'whitespace-nowrap text-lg sm:text-xl' : 'truncate text-xl',
+          valueClassName,
+        )}>
+          {value}
+        </p>
+        {helper ? <p className="mt-1 text-xs font-semibold text-secondary">{helper}</p> : null}
+      </div>
+    </Card>
+  );
+};
+
 export const DatePicker: React.FC<{
   value?: string; // yyyy-mm-dd
   onChange: (next?: string) => void;
@@ -304,13 +531,9 @@ export const DatePicker: React.FC<{
           <style>{`
             .rdp-modern {
               --rdp-cell-size: 40px;
-              --rdp-accent-color: #7c3aed;
-              --rdp-background-color: #7c3aed20;
-              --rdp-accent-color-foreground: #ffffff;
-            }
-            .dark .rdp-modern {
-              --rdp-accent-color: #8b5cf6;
-              --rdp-background-color: #8b5cf630;
+              --rdp-accent-color: rgb(var(--accent));
+              --rdp-background-color: rgb(var(--accent) / 0.14);
+              --rdp-accent-color-foreground: rgb(var(--on-accent));
             }
             .rdp {
               margin: 0;
@@ -323,7 +546,7 @@ export const DatePicker: React.FC<{
               font-size: 10px;
               font-weight: 900;
               text-transform: uppercase;
-              color: #64748b;
+              color: rgb(var(--text-3));
               padding-bottom: 0.5rem;
             }
             .rdp-day {
@@ -333,13 +556,13 @@ export const DatePicker: React.FC<{
             }
             .rdp-day_selected {
               background-color: var(--rdp-accent-color) !important;
-              color: white;
+              color: var(--rdp-accent-color-foreground);
               font-weight: 900;
             }
             .rdp-day_today {
-              color: #f43f5e;
+              color: rgb(var(--danger));
               font-weight: 900;
-              border: 2px solid #f43f5e40;
+              border: 2px solid rgb(var(--danger) / 0.25);
             }
             .rdp-day:hover:not(.rdp-day_selected) {
               background-color: var(--rdp-background-color);

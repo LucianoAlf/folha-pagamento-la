@@ -97,7 +97,7 @@ test('itens futuros nao possuem destino', () => {
     .flatMap((group) => group.items)
     .filter((item) => item.status === 'future');
 
-  assert.equal(futureItems.length, 8);
+  assert.equal(futureItems.length, 7);
   assert.ok(futureItems.every((item) => item.destination === undefined));
 });
 
@@ -111,7 +111,7 @@ test('mantem ids, status e destinos aprovados no mapa central', () => {
       { id: 'contas', status: 'active', destination: { module: 'contas' } },
       { id: 'contas-receber', status: 'active', destination: { module: 'contas-receber' } },
       { id: 'fluxo-caixa', status: 'future', destination: undefined },
-      { id: 'dre', status: 'future', destination: undefined },
+      { id: 'dre', status: 'active', destination: { module: 'dre' } },
       { id: 'conciliacao', status: 'future', destination: undefined },
       { id: 'cartoes', status: 'active', destination: { module: 'cartoes' } },
       {
@@ -170,6 +170,8 @@ test('barra inferior possui quatro destinos fixos e defaults validos', () => {
   assert.ok(BOTTOM_NAVIGATION_IDS.every((id) => getNavigationItem(id).status === 'active'));
   assert.equal(getDefaultPage('cartoes'), 'cartoes');
   assert.equal(getDefaultPage('rh'), 'dashboard');
+  assert.equal(getDefaultPage('dre'), 'dashboard');
+  assert.equal(isModuleId('dre'), true);
   assert.equal(isModuleId('notificacoes'), true);
   assert.equal(isModuleId('dashboard-financeiro'), false);
 });
