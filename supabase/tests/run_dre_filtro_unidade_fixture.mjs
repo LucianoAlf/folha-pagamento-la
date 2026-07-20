@@ -248,6 +248,28 @@ function requireSuccess(result, label) {
   return result;
 }
 
+function assertCleanupSucceeded(result) {
+  if (result.status === 0 || /No such container/i.test(result.stderr ?? '')) {
+    return;
+  }
+
+  throw new Error([
+    `cleanup do container falhou (exit ${result.status ?? 'desconhecido'}).`,
+    result.stdout?.trim(),
+    result.stderr?.trim(),
+  ].filter(Boolean).join('\n'));
+}
+
+assert.throws(
+  () => assertCleanupSucceeded({ status: 1, stderr: 'permission denied' }),
+  /cleanup do container falhou/i,
+  'cleanup deve falhar fechado quando docker rm falha',
+);
+assert.doesNotThrow(
+  () => assertCleanupSucceeded({ status: 1, stderr: 'No such container' }),
+  'cleanup pode ignorar somente container ja inexistente',
+);
+
 function runPsql(sql, label, extraArgs = []) {
   return requireSuccess(runDocker([
     'exec', '-i', container,
@@ -333,6 +355,27 @@ try {
     'fixture recusou sem explicar o marcador local/CI obrigatorio',
   );
 
+  const nullRequiredMetric = runDocker([
+    'exec', '-i', container,
+    'env',
+    'PGOPTIONS=-c app.dre_fixture_guard=local_ci_only -c app.dre_fixture_mutation=null_folha_sem_alocacao_valor_origem',
+    'psql',
+    '--username', 'postgres',
+    '--dbname', database,
+    '--no-psqlrc',
+    '--set', 'ON_ERROR_STOP=1',
+  ], { input: fixtureSql });
+  assert.notEqual(
+    nullRequiredMetric.status,
+    0,
+    'fixture deveria falhar quando valor_origem obrigatorio e removido',
+  );
+  assert.match(
+    `${nullRequiredMetric.stdout}\n${nullRequiredMetric.stderr}`,
+    /cenario C competencia: folha_sem_alocacao obrigatoria ausente ou incompleta/i,
+    'fixture nao explicou qual estrutura obrigatoria ficou nula',
+  );
+
   const fixtureResult = runPsql(
     fixtureSql,
     'fixture comportamental DRE',
@@ -344,10 +387,6 @@ try {
 } finally {
   if (containerAttempted) {
     const cleanup = runDocker(['rm', '--force', container]);
-    if (cleanup.status !== 0 && !/No such container/i.test(cleanup.stderr ?? '')) {
-      process.stderr.write(
-        `[dre-fixture] aviso: cleanup do container falhou: ${cleanup.stderr}\n`,
-      );
-    }
+    assertCleanupSucceeded(cleanup);
   }
 }

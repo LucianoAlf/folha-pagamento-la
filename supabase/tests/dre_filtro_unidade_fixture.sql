@@ -28,12 +28,31 @@ values
   ('00000000-0000-0000-0000-000000000003', 'bar', 'Barra');
 
 insert into public.plano_contas (id, codigo, nome, nome_completo)
-values (
-  '00000000-0000-0000-0000-000000000100',
-  '5.1.01',
-  'Pessoal',
-  'Despesas fixas > Pessoal'
-);
+values
+  (
+    '00000000-0000-0000-0000-000000000100',
+    '5.1.01', 'Pessoal', 'Despesas fixas > Pessoal'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000101',
+    '3.1.01', 'Mensalidades', 'Receitas > Mensalidades'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000102',
+    '4.1.01', 'Material didatico', 'Despesas variaveis > Material didatico'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000103',
+    '6.1.01', 'Equipamentos', 'Investimentos > Equipamentos'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000104',
+    '7.1.01', 'Entrada nao operacional', 'Nao operacional > Entradas'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000105',
+    '7.2.01', 'Saida nao operacional', 'Nao operacional > Saidas'
+  );
 
 insert into public.financeiro_empresas (
   id, razao_social, nome_fantasia, label_operacional
@@ -53,12 +72,15 @@ values (
 );
 
 insert into public.folhas_mensais (id, ano, mes, status)
-values (910001, 2026, 6, 'fechada');
+values
+  (910001, 2026, 6, 'fechada'),
+  (910002, 2026, 6, 'fechada');
 
 insert into public.colaboradores (id, nome, nome_completo)
 values
   (930001, 'Colaborador Rateado', 'Colaborador Rateado'),
-  (930002, 'Colaborador Sem Rateio', 'Colaborador Sem Rateio');
+  (930002, 'Colaborador Sem Rateio', 'Colaborador Sem Rateio'),
+  (930003, 'Colaborador Sem Titulo', 'Colaborador Sem Titulo');
 
 insert into public.folha_classificacao_dre (
   folha_id,
@@ -81,6 +103,13 @@ values
     'bonus',
     2,
     '00000000-0000-0000-0000-000000000300'
+  ),
+  (
+    910002,
+    920003,
+    'salario',
+    1,
+    null
   );
 
 insert into public.fixture_folha_alocacao_dre_resolvida (
@@ -119,7 +148,7 @@ values
   (
     910001, 920001, 1, 930001, date '2026-06-01',
     'professor', 'clt', 'professor', 'salario', 'provento',
-    300.00, 300.00, 100.00,
+    300.03, 300.03, 100.01,
     '00000000-0000-0000-0000-000000000100',
     '5.1.01', 'Despesas fixas > Pessoal',
     'automatico', 'operacional', null, 1, 'fixture rateado',
@@ -131,7 +160,7 @@ values
   (
     910001, 920001, 1, 930001, date '2026-06-01',
     'professor', 'clt', 'professor', 'salario', 'provento',
-    300.00, 300.00, 100.00,
+    300.03, 300.03, 100.01,
     '00000000-0000-0000-0000-000000000100',
     '5.1.01', 'Despesas fixas > Pessoal',
     'automatico', 'operacional', null, 1, 'fixture rateado',
@@ -143,7 +172,7 @@ values
   (
     910001, 920001, 1, 930001, date '2026-06-01',
     'professor', 'clt', 'professor', 'salario', 'provento',
-    300.00, 300.00, 100.00,
+    300.03, 300.03, 100.01,
     '00000000-0000-0000-0000-000000000100',
     '5.1.01', 'Despesas fixas > Pessoal',
     'automatico', 'operacional', null, 1, 'fixture rateado',
@@ -155,12 +184,24 @@ values
   (
     910001, 920002, 2, 930002, date '2026-06-01',
     'administrativo', 'clt', 'administrativo', 'bonus', 'provento',
-    90.00, 90.00, 90.00,
+    90.03, 90.03, 90.03,
     '00000000-0000-0000-0000-000000000100',
     '5.1.01', 'Despesas fixas > Pessoal',
     'automatico', 'operacional', null, 1, 'fixture sem rateio',
     null, '2026-06', repeat('d', 64),
     null, null, null, repeat('e', 64), null, 'sem_alocacao'
+  ),
+  (
+    910002, 920003, 1, 930003, date '2026-06-01',
+    'professor', 'clt', 'professor', 'salario', 'provento',
+    15.06, 15.06, 15.06,
+    '00000000-0000-0000-0000-000000000100',
+    '5.1.01', 'Despesas fixas > Pessoal',
+    'automatico', 'operacional', null, 1, 'fixture sem titulo financeiro',
+    null, '2026-06', repeat('f', 64),
+    'cg', 100.000000,
+    '00000000-0000-0000-0000-000000000602',
+    repeat('1', 64), repeat('2', 64), 'pronto'
   );
 
 -- Tres candidatos da mesma folha/conta: o pago de julho e o unico elegivel
@@ -185,7 +226,7 @@ values
     '00000000-0000-0000-0000-000000000401',
     date '2026-06-01', timestamptz '2026-07-10 12:00:00+00',
     '00000000-0000-0000-0000-000000000300',
-    'Folha paga em julho', 'folha_pagamento', '910001', 390.00, 'pago',
+    'Folha paga em julho', 'folha_pagamento', '910001', 390.06, 'pago',
     null, '00000000-0000-0000-0000-000000000001', null,
     timestamptz '2026-07-10 13:00:00+00'
   ),
@@ -193,7 +234,7 @@ values
     '00000000-0000-0000-0000-000000000402',
     date '2026-06-01', timestamptz '2026-08-02 12:00:00+00',
     '00000000-0000-0000-0000-000000000300',
-    'Folha concorrente paga em agosto', 'folha_pagamento', '910001', 390.00, 'pago',
+    'Folha concorrente paga em agosto', 'folha_pagamento', '910001', 390.06, 'pago',
     null, '00000000-0000-0000-0000-000000000001', null,
     timestamptz '2026-09-01 13:00:00+00'
   ),
@@ -209,7 +250,7 @@ values
     '00000000-0000-0000-0000-000000000404',
     date '2026-06-01', timestamptz '2026-07-08 12:00:00+00',
     '00000000-0000-0000-0000-000000000300',
-    'Fornecedor CG', 'fornecedor', 'fornecedor-cg', 60.00, 'pago',
+    'Fornecedor CG', 'fornecedor', 'fornecedor-cg', 60.02, 'pago',
     '00000000-0000-0000-0000-000000000100',
     '00000000-0000-0000-0000-000000000001', null,
     timestamptz '2026-07-08 13:00:00+00'
@@ -218,9 +259,36 @@ values
     '00000000-0000-0000-0000-000000000405',
     date '2026-06-01', timestamptz '2026-07-09 12:00:00+00',
     '00000000-0000-0000-0000-000000000300',
-    'Fatura cartao', 'cartao', 'fatura-fixture', 40.00, 'pago',
+    'Fatura cartao', 'cartao', 'fatura-fixture', 40.04, 'pago',
     null, '00000000-0000-0000-0000-000000000002', null,
     timestamptz '2026-07-09 13:00:00+00'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000406',
+    date '2026-06-01', timestamptz '2026-07-11 12:00:00+00',
+    '00000000-0000-0000-0000-000000000300',
+    'Material Barra', 'fornecedor', 'material-barra', 10.04, 'pago',
+    '00000000-0000-0000-0000-000000000102',
+    '00000000-0000-0000-0000-000000000003', null,
+    timestamptz '2026-07-11 13:00:00+00'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000407',
+    date '2026-06-01', timestamptz '2026-07-12 12:00:00+00',
+    '00000000-0000-0000-0000-000000000300',
+    'Equipamento Recreio', 'fornecedor', 'equipamento-rec', 30.07, 'pago',
+    '00000000-0000-0000-0000-000000000103',
+    '00000000-0000-0000-0000-000000000002', null,
+    timestamptz '2026-07-12 13:00:00+00'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000408',
+    date '2026-06-01', timestamptz '2026-07-13 12:00:00+00',
+    '00000000-0000-0000-0000-000000000300',
+    'Saida nao operacional sem unidade', 'fornecedor', 'sem-unidade', 20.05, 'pago',
+    '00000000-0000-0000-0000-000000000105',
+    null, null,
+    timestamptz '2026-07-13 13:00:00+00'
   );
 
 insert into public.financeiro_cartoes (id, conta_pagadora_id, apelido)
@@ -258,11 +326,46 @@ values (
   '00000000-0000-0000-0000-000000000500',
   'Compra nao confirmada',
   'Loja fixture',
-  40.00,
+  40.04,
   '00000000-0000-0000-0000-000000000100',
   '00000000-0000-0000-0000-000000000002',
   'pendente'
 );
+
+insert into public.contas_receber (
+  id,
+  competencia,
+  data_recebimento,
+  descricao,
+  aluno_nome,
+  emusys_fatura_id,
+  valor_pago,
+  valor_liquido,
+  status,
+  excluido_da_receita,
+  classificacao_status,
+  cadastro_match_status,
+  plano_conta_id,
+  centro_custo_id,
+  unidade
+)
+values
+  (
+    '00000000-0000-0000-0000-000000000701',
+    date '2026-06-01', date '2026-07-06',
+    'Mensalidade CG', 'Aluno CG', 970001,
+    200.11, 200.11, 'recebido', false, 'confirmada', 'unico',
+    '00000000-0000-0000-0000-000000000101',
+    '00000000-0000-0000-0000-000000000001', 'cg'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000702',
+    date '2026-06-01', date '2026-07-07',
+    'Entrada nao operacional Barra', 'Aluno Barra', 970002,
+    50.09, 50.09, 'recebido', false, 'confirmada', 'unico',
+    '00000000-0000-0000-0000-000000000104',
+    '00000000-0000-0000-0000-000000000003', 'bar'
+  );
 
 do $$
 declare
@@ -276,15 +379,15 @@ begin
      and cp.fonte_identificador = '910001'
      and cp.conta_pagadora_id = '00000000-0000-0000-0000-000000000300';
 
-  if v_count <> 3 then
+  if v_count is distinct from 3 then
     raise exception 'cenario A invalido: esperados 3 candidatos de folha, encontrados %', v_count;
   end if;
 
-  if not (
+  if (
     (select updated_at from public.contas_pagar where id = '00000000-0000-0000-0000-000000000402')
     >
     (select updated_at from public.contas_pagar where id = '00000000-0000-0000-0000-000000000401')
-  ) then
+  ) is distinct from true then
     raise exception 'cenario A invalido: o candidato fora do mes deveria ser mais novo';
   end if;
 
@@ -293,7 +396,7 @@ begin
     from public.dre_linhas_normalizadas(date '2026-07-01', 'caixa') l
    where l.fonte = 'folha';
 
-  if v_count <> 4 then
+  if v_count is distinct from 4 then
     raise exception 'cenario A caixa: esperadas 4 linhas de folha, encontradas %', v_count;
   end if;
 
@@ -303,9 +406,9 @@ begin
    where l.fonte = 'folha'
      and l.origem_id = '920001'
      and l.data_caixa = date '2026-07-10'
-     and l.valor_origem = 100.00;
+     and l.valor_origem = 100.01;
 
-  if v_count <> 3 then
+  if v_count is distinct from 3 then
     raise exception
       'cenario A caixa: as 3 fatias exatas do pagamento de julho nao foram preservadas; encontradas %',
       v_count;
@@ -345,22 +448,58 @@ begin
     into v_count
     from public.dre_linhas_normalizadas(date '2026-06-01', 'competencia') l
    where l.fonte = 'folha'
+     and l.origem_id in ('920001', '920002')
      and l.data_referencia = date '2026-06-01';
 
-  if v_count <> 4 then
+  if v_count is distinct from 4 then
     raise exception
       'cenario A competencia: folha economica de junho dependeu indevidamente do pagamento; linhas %',
       v_count;
   end if;
 
-  select public.dre_consultar(date '2026-07-01', 'caixa') into v_result;
-  if (v_result #>> '{kpis,lucro_liquido}')::numeric <> -450.00 then
+  if exists (
+    select 1
+      from public.contas_pagar cp
+     where cp.fonte_tipo = 'folha_pagamento'
+       and cp.fonte_identificador = '910002'
+  ) then
+    raise exception 'cenario competencia sem titulo: folha 910002 recebeu conta a pagar indevida';
+  end if;
+
+  select count(*)
+    into v_count
+    from public.dre_linhas_normalizadas(date '2026-06-01', 'competencia') l
+   where l.fonte = 'folha'
+     and l.origem_id = '920003'
+     and l.data_caixa is null
+     and l.data_referencia = date '2026-06-01'
+     and l.valor_origem = 15.06
+     and l.unidade_operacional = 'cg';
+
+  if v_count is distinct from 1 then
     raise exception
-      'cenario A dre_consultar: lucro liquido caixa esperado -450.00, recebido %',
+      'cenario competencia sem titulo: folha 910002 deveria aparecer uma vez sem pagamento; apareceu %',
+      v_count;
+  end if;
+
+  if exists (
+    select 1
+      from public.dre_linhas_normalizadas(date '2026-07-01', 'caixa') l
+     where l.fonte = 'folha'
+       and l.origem_id = '920003'
+  ) then
+    raise exception 'cenario competencia sem titulo: folha sem pagamento vazou para Caixa';
+  end if;
+
+  select public.dre_consultar(date '2026-07-01', 'caixa') into v_result;
+  if (v_result #>> '{kpis,lucro_liquido}')::numeric is distinct from -260.04 then
+    raise exception
+      'cenario A dre_consultar: lucro liquido caixa esperado -260.04, recebido %',
       v_result #>> '{kpis,lucro_liquido}';
   end if;
 
-  raise notice 'PASS cenario A: caixa escolheu julho antes do LIMIT e competencia permaneceu economica';
+  raise notice
+    'PASS cenario A: caixa escolheu julho antes do LIMIT e competencia incluiu folha sem titulo';
 end;
 $$;
 
@@ -390,7 +529,7 @@ begin
       1
     );
 
-    if jsonb_array_length(v_page->'itens') <> 1 then
+    if jsonb_array_length(v_page->'itens') is distinct from 1 then
       raise exception
         'cenario B paginacao: pagina % deveria conter 1 item; resposta %',
         v_pages,
@@ -401,10 +540,10 @@ begin
     v_items := v_items + 1;
 
     if v_item->>'unidade_operacional' is not null then
-      if v_item->>'plano_codigo' <> '5.1.01'
-         or v_item->>'fonte' <> 'folha'
-         or v_item->>'origem_id' <> '920001'
-         or v_item->>'origem_sequencia' <> '000001:salario' then
+      if v_item->>'plano_codigo' is distinct from '5.1.01'
+         or v_item->>'fonte' is distinct from 'folha'
+         or v_item->>'origem_id' is distinct from '920001'
+         or v_item->>'origem_sequencia' is distinct from '000001:salario' then
         raise exception
           'cenario B paginacao: fatia perdeu identidade comum plano/fonte/origem/sequencia: %',
           v_item;
@@ -414,33 +553,33 @@ begin
     end if;
 
     v_cursor := v_page->'next_cursor';
-    exit when v_cursor = 'null'::jsonb;
+    exit when v_cursor is not distinct from 'null'::jsonb;
   end loop;
 
-  if v_items <> 4 then
+  if v_items is distinct from 4 then
     raise exception
       'cenario B paginacao: esperadas 3 fatias e 1 linha sem unidade, encontrados % itens',
       v_items;
   end if;
 
-  if cardinality(v_units) <> 3 then
+  if cardinality(v_units) is distinct from 3 then
     raise exception
       'cenario B paginacao: esperadas 3 unidades, recebido %',
       v_units;
   end if;
 
   select count(*) into v_count from unnest(v_units) u(unit) where u.unit = 'cg';
-  if v_count <> 1 then
+  if v_count is distinct from 1 then
     raise exception 'cenario B paginacao: CG apareceu % vezes', v_count;
   end if;
 
   select count(*) into v_count from unnest(v_units) u(unit) where u.unit = 'rec';
-  if v_count <> 1 then
+  if v_count is distinct from 1 then
     raise exception 'cenario B paginacao: REC apareceu % vezes', v_count;
   end if;
 
   select count(*) into v_count from unnest(v_units) u(unit) where u.unit = 'bar';
-  if v_count <> 1 then
+  if v_count is distinct from 1 then
     raise exception 'cenario B paginacao: Barra apareceu % vezes', v_count;
   end if;
 
@@ -454,17 +593,23 @@ do $$
 declare
   v_regime text;
   v_competencia date;
+  v_kpi text;
   v_cons jsonb;
   v_cg jsonb;
   v_rec jsonb;
   v_bar jsonb;
+  v_sem_kpis jsonb;
+  v_expected_kpis jsonb;
+  v_folha_sem_alocacao jsonb;
   v_total numeric;
   v_units_total numeric;
   v_sem_total numeric;
   v_group_total numeric;
   v_group_units numeric;
+  v_group_sem numeric;
   v_plan_total numeric;
   v_plan_units numeric;
+  v_plan_sem numeric;
 begin
   foreach v_regime in array array['competencia', 'caixa'] loop
     v_competencia := case
@@ -476,6 +621,27 @@ begin
     v_cg := public.dre_consultar(v_competencia, v_regime, 'cg');
     v_rec := public.dre_consultar(v_competencia, v_regime, 'rec');
     v_bar := public.dre_consultar(v_competencia, v_regime, 'bar');
+
+    v_expected_kpis := case
+      when v_regime = 'competencia' then jsonb_build_object(
+        'receita', 200.11::numeric,
+        'despesa', 475.18::numeric,
+        'lucro_operacional', -275.07::numeric,
+        'investimentos', 30.07::numeric,
+        'entradas_nao_operacionais', 50.09::numeric,
+        'saidas_nao_operacionais', 20.05::numeric,
+        'lucro_liquido', -275.10::numeric
+      )
+      else jsonb_build_object(
+        'receita', 200.11::numeric,
+        'despesa', 460.12::numeric,
+        'lucro_operacional', -260.01::numeric,
+        'investimentos', 30.07::numeric,
+        'entradas_nao_operacionais', 50.09::numeric,
+        'saidas_nao_operacionais', 20.05::numeric,
+        'lucro_liquido', -260.04::numeric
+      )
+    end;
 
     if v_cons->'cobertura' is distinct from v_cg->'cobertura'
        or v_cons->'cobertura' is distinct from v_rec->'cobertura'
@@ -495,31 +661,97 @@ begin
       raise exception 'cenario C %: diagnostico sem unidade mudou entre filtros', v_regime;
     end if;
 
-    v_total := (v_cons #>> '{kpis,lucro_liquido}')::numeric;
-    v_units_total :=
-      (v_cg #>> '{kpis,lucro_liquido}')::numeric
-      + (v_rec #>> '{kpis,lucro_liquido}')::numeric
-      + (v_bar #>> '{kpis,lucro_liquido}')::numeric;
-    v_sem_total := (v_cons #>> '{sem_unidade_operacional,valor_resultado}')::numeric;
+    select jsonb_build_object(
+      'receita', coalesce(sum(l.valor_resultado) filter (where l.grupo_codigo = '3'), 0),
+      'despesa', -coalesce(sum(l.valor_resultado) filter (where l.grupo_codigo in ('4', '5')), 0),
+      'lucro_operacional', coalesce(sum(l.valor_resultado) filter (where l.grupo_codigo in ('3', '4', '5')), 0),
+      'investimentos', -coalesce(sum(l.valor_resultado) filter (where l.grupo_codigo = '6'), 0),
+      'entradas_nao_operacionais', coalesce(sum(l.valor_resultado) filter (
+        where l.grupo_codigo = '7' and l.natureza = 'entrada'
+      ), 0),
+      'saidas_nao_operacionais', -coalesce(sum(l.valor_resultado) filter (
+        where l.grupo_codigo = '7' and l.natureza = 'saida'
+      ), 0),
+      'lucro_liquido', coalesce(sum(l.valor_resultado), 0)
+    )
+      into v_sem_kpis
+      from public.dre_linhas_normalizadas(v_competencia, v_regime) l
+     where l.unidade_operacional is null;
 
-    if v_total <> v_units_total + v_sem_total then
-      raise exception
-        'cenario C %: CG + REC + Barra + sem unidade = %, consolidado = %',
-        v_regime,
-        v_units_total + v_sem_total,
-        v_total;
+    foreach v_kpi in array array[
+      'receita',
+      'despesa',
+      'lucro_operacional',
+      'investimentos',
+      'entradas_nao_operacionais',
+      'saidas_nao_operacionais',
+      'lucro_liquido'
+    ] loop
+      if v_cons #>> array['kpis', v_kpi] is null
+         or v_cg #>> array['kpis', v_kpi] is null
+         or v_rec #>> array['kpis', v_kpi] is null
+         or v_bar #>> array['kpis', v_kpi] is null
+         or v_sem_kpis->>v_kpi is null
+         or v_expected_kpis->>v_kpi is null then
+        raise exception
+          'cenario C %: KPI obrigatorio % ausente ou nulo',
+          v_regime,
+          v_kpi;
+      end if;
+
+      v_total := (v_cons #>> array['kpis', v_kpi])::numeric;
+      v_units_total :=
+        (v_cg #>> array['kpis', v_kpi])::numeric
+        + (v_rec #>> array['kpis', v_kpi])::numeric
+        + (v_bar #>> array['kpis', v_kpi])::numeric;
+      v_sem_total := (v_sem_kpis->>v_kpi)::numeric;
+
+      if v_total is distinct from (v_expected_kpis->>v_kpi)::numeric then
+        raise exception
+          'cenario C %: KPI % esperado %, recebido %',
+          v_regime,
+          v_kpi,
+          v_expected_kpis->>v_kpi,
+          v_total;
+      end if;
+
+      if v_total is distinct from v_units_total + v_sem_total then
+        raise exception
+          'cenario C % KPI %: CG + REC + Barra + sem unidade = %, consolidado = %',
+          v_regime,
+          v_kpi,
+          v_units_total + v_sem_total,
+          v_total;
+      end if;
+    end loop;
+
+    v_folha_sem_alocacao := v_cons
+      #> '{sem_unidade_operacional,por_motivo,folha_sem_alocacao}';
+
+    if v_regime is not distinct from 'competencia'
+       and current_setting('app.dre_fixture_mutation', true)
+         is not distinct from 'null_folha_sem_alocacao_valor_origem' then
+      v_folha_sem_alocacao := v_folha_sem_alocacao - 'valor_origem';
     end if;
 
-    if (v_cons #>> '{sem_unidade_operacional,por_motivo,folha_sem_alocacao,valor_origem}')::numeric
-       <> 90.00
-       or (v_cons #>> '{sem_unidade_operacional,por_motivo,folha_sem_alocacao,valor_resultado}')::numeric
-       <> -90.00
-       or (v_cons #>> '{sem_unidade_operacional,por_motivo,folha_sem_alocacao,linhas}')::integer
-       <> 1 then
+    if jsonb_typeof(v_folha_sem_alocacao) is distinct from 'object'
+       or (v_folha_sem_alocacao ?& array[
+         'valor_origem', 'valor_resultado', 'linhas', 'colaboradores_folha'
+       ]) is distinct from true then
       raise exception
-        'cenario C %: valor de folha sem alocacao nao permaneceu no consolidado: %',
+        'cenario C %: folha_sem_alocacao obrigatoria ausente ou incompleta: %',
         v_regime,
-        v_cons->'sem_unidade_operacional';
+        v_folha_sem_alocacao;
+    end if;
+
+    if (v_folha_sem_alocacao->>'valor_origem')::numeric is distinct from 90.03
+       or (v_folha_sem_alocacao->>'valor_resultado')::numeric is distinct from -90.03
+       or (v_folha_sem_alocacao->>'linhas')::integer is distinct from 1
+       or (v_folha_sem_alocacao->>'colaboradores_folha')::integer is distinct from 1 then
+      raise exception
+        'cenario C %: metricas folha_sem_alocacao invalidas: %',
+        v_regime,
+        v_folha_sem_alocacao;
     end if;
 
     select (g->>'valor_resultado')::numeric
@@ -538,12 +770,19 @@ begin
       ) unidades
      where g->>'codigo' = '5';
 
-    if v_group_total <> v_group_units + v_sem_total then
+    select coalesce(sum(l.valor_resultado), 0)
+      into v_group_sem
+      from public.dre_linhas_normalizadas(v_competencia, v_regime) l
+     where l.unidade_operacional is null
+       and l.grupo_codigo = '5'
+       and l.status_classificacao = 'classificado_dre';
+
+    if v_group_total is distinct from v_group_units + v_group_sem then
       raise exception
         'cenario C %: grupo 5 nao fecha por particao; unidades %, sem %, consolidado %',
         v_regime,
         v_group_units,
-        v_sem_total,
+        v_group_sem,
         v_group_total;
     end if;
 
@@ -563,12 +802,19 @@ begin
       ) unidades
      where p->>'plano_codigo' = '5.1.01';
 
-    if v_plan_total <> v_plan_units + v_sem_total then
+    select coalesce(sum(l.valor_resultado), 0)
+      into v_plan_sem
+      from public.dre_linhas_normalizadas(v_competencia, v_regime) l
+     where l.unidade_operacional is null
+       and l.plano_codigo = '5.1.01'
+       and l.status_classificacao = 'classificado_dre';
+
+    if v_plan_total is distinct from v_plan_units + v_plan_sem then
       raise exception
         'cenario C %: plano 5.1.01 nao fecha por particao; unidades %, sem %, consolidado %',
         v_regime,
         v_plan_units,
-        v_sem_total,
+        v_plan_sem,
         v_plan_total;
     end if;
 
@@ -600,7 +846,7 @@ begin
        and l.unidade_operacional = 'cg'
        and l.qualidade_unidade = 'aproximada_fiscal_pagadora';
 
-    if v_count <> 1 then
+    if v_count is distinct from 1 then
       raise exception
         'qualidade da fonte %: conta a pagar aproximada deveria aparecer uma vez, apareceu %',
         v_regime,
@@ -617,7 +863,7 @@ begin
        and l.motivo_sem_unidade = 'cartao_nao_confirmado'
        and l.status_classificacao = 'em_revisao';
 
-    if v_count <> 1 then
+    if v_count is distinct from 1 then
       raise exception
         'qualidade da fonte %: cartao nao confirmado deveria ficar sem unidade, apareceu %',
         v_regime,
@@ -628,15 +874,15 @@ begin
   v_result := public.dre_detalhes(
     date '2026-07-01', 'caixa', '5.1.01', 'cartao', 'rec', null, 10
   );
-  if jsonb_array_length(v_result->'itens') <> 0 then
+  if jsonb_array_length(v_result->'itens') is distinct from 0 then
     raise exception 'cartao nao confirmado apareceu no filtro explicito REC: %', v_result;
   end if;
 
   v_result := public.dre_consultar(date '2026-07-01', 'caixa', 'consolidado');
-  if not (v_result ?& array[
+  if (v_result ?& array[
     'success', 'competencia', 'regime', 'unidade', 'kpis', 'grupos', 'planos',
     'cobertura', 'reconciliacao', 'sem_unidade_operacional'
-  ]) then
+  ]) is distinct from true then
     raise exception 'estrutura de resposta dre_consultar incompleta: %', v_result;
   end if;
 
@@ -654,26 +900,26 @@ begin
   v_default := public.dre_consultar(date '2026-07-01', 'caixa');
   v_explicit := public.dre_consultar(date '2026-07-01', 'caixa', 'consolidado');
 
-  if v_default->>'unidade' <> 'consolidado'
+  if v_default->>'unidade' is distinct from 'consolidado'
      or v_default->'kpis' is distinct from v_explicit->'kpis' then
     raise exception 'default de dre_consultar nao equivale ao consolidado explicito';
   end if;
 
   v_details := public.dre_detalhes(date '2026-07-01', 'caixa', '5.1.01', 'folha');
-  if v_details->>'unidade' <> 'consolidado'
-     or jsonb_array_length(v_details->'itens') <> 4 then
+  if v_details->>'unidade' is distinct from 'consolidado'
+     or jsonb_array_length(v_details->'itens') is distinct from 4 then
     raise exception 'default de dre_detalhes nao equivale ao consolidado: %', v_details;
   end if;
 
   if jsonb_array_length(
     public.dre_detalhes(date '2026-07-01', 'caixa', '5.1.01', 'folha', 'cg')->'itens'
-  ) <> 1
+  ) is distinct from 1
      or jsonb_array_length(
        public.dre_detalhes(date '2026-07-01', 'caixa', '5.1.01', 'folha', 'rec')->'itens'
-     ) <> 1
+     ) is distinct from 1
      or jsonb_array_length(
        public.dre_detalhes(date '2026-07-01', 'caixa', '5.1.01', 'folha', 'bar')->'itens'
-     ) <> 1 then
+     ) is distinct from 1 then
     raise exception 'filtros explicitos de unidade nao retornaram exatamente uma fatia de folha';
   end if;
 
@@ -687,7 +933,7 @@ begin
      and p.prosecdef
      and p.proconfig @> array['search_path=public, pg_temp'];
 
-  if v_proc_count <> 3 then
+  if v_proc_count is distinct from 3 then
     raise exception
       'seguranca DRE: esperadas 3 funcoes STABLE/SECURITY DEFINER/search_path fixo, encontradas %',
       v_proc_count;
