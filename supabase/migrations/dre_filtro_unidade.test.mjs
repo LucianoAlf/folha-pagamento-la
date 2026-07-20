@@ -26,14 +26,7 @@ if (migrationExists) {
     return match[0];
   };
 
-  const cteBody = (body, name) => {
-    const match = new RegExp(
-      `\\b${name}\\s+as\\s+(?:materialized\\s+)?\\(`,
-      'i',
-    ).exec(body);
-    assert.ok(match, `CTE ${name} must exist`);
-
-    const openIndex = match.index + match[0].lastIndexOf('(');
+  const parenthesizedBody = (body, openIndex, label) => {
     let depth = 0;
     let inString = false;
 
@@ -55,7 +48,29 @@ if (migrationExists) {
       if (depth === 0) return body.slice(openIndex + 1, index);
     }
 
-    assert.fail(`CTE ${name} must have balanced parentheses`);
+    assert.fail(`${label} must have balanced parentheses`);
+  };
+
+  const cteBody = (body, name) => {
+    const match = new RegExp(
+      `\\b${name}\\s+as\\s+(?:materialized\\s+)?\\(`,
+      'i',
+    ).exec(body);
+    assert.ok(match, `CTE ${name} must exist`);
+
+    const openIndex = match.index + match[0].lastIndexOf('(');
+    return parenthesizedBody(body, openIndex, `CTE ${name}`);
+  };
+
+  const jsonbObjectValue = (body, key) => {
+    const match = new RegExp(
+      `'${key}'\\s*,\\s*jsonb_build_object\\s*\\(`,
+      'i',
+    ).exec(body);
+    assert.ok(match, `JSON field ${key} must contain an object`);
+
+    const openIndex = match.index + match[0].lastIndexOf('(');
+    return parenthesizedBody(body, openIndex, `JSON object ${key}`);
   };
 
   const normalizadas = functionBody('dre_linhas_normalizadas');
@@ -132,25 +147,30 @@ if (migrationExists) {
     assert.match(consultar, /linhas_filtradas\s+as\s+materialized/i);
     assert.match(consultar, /'sem_unidade_operacional'/i);
 
+    const semUnidade = cteBody(consultar, 'sem_unidade_operacional');
+    assert.match(semUnidade, /\blinhas_base\b/i);
+    const summaryFields = [
+      'valor_origem',
+      'valor_resultado',
+      'linhas',
+      'colaboradores_folha',
+    ];
+
+    for (const field of [...summaryFields, 'por_motivo']) {
+      assert.match(semUnidade, new RegExp(`'${field}'`, 'i'));
+    }
+
+    const porMotivo = jsonbObjectValue(semUnidade, 'por_motivo');
     for (const reason of [
       'folha_sem_alocacao',
       'folha_desatualizada',
       'cartao_nao_confirmado',
       'fonte_sem_unidade',
     ]) {
-      assert.match(consultar, new RegExp(`'${reason}'`, 'i'));
-    }
-
-    const semUnidade = cteBody(consultar, 'sem_unidade_operacional');
-    assert.match(semUnidade, /\blinhas_base\b/i);
-    for (const field of [
-      'valor_origem',
-      'valor_resultado',
-      'linhas',
-      'colaboradores_folha',
-      'por_motivo',
-    ]) {
-      assert.match(semUnidade, new RegExp(`'${field}'`, 'i'));
+      const reasonObject = jsonbObjectValue(porMotivo, reason);
+      for (const field of summaryFields) {
+        assert.match(reasonObject, new RegExp(`'${field}'`, 'i'));
+      }
     }
   });
 
