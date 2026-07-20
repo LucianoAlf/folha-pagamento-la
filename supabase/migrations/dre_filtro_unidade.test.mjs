@@ -93,6 +93,7 @@ if (migrationExists) {
       folhasAlvo,
       /select\s+distinct[\s\S]*fonte_identificador[\s\S]*from\s+public\.contas_pagar[\s\S]*p_regime\s*=\s*'caixa'/i,
     );
+    assert.match(folhasAlvo, /fonte_tipo\s*=\s*'folha_pagamento'/i);
     assert.match(folhasAlvo, /status\s*=\s*'pago'/i);
     assert.match(
       folhasAlvo,
@@ -105,10 +106,10 @@ if (migrationExists) {
   });
 
   test('rejoins each resolved payroll slice to its exact classification and payable', () => {
-    assert.match(normalizadas, /d\.folha_id\s*=\s*r\.folha_id/i);
-    assert.match(normalizadas, /d\.lancamento_folha_id\s*=\s*r\.lancamento_folha_id/i);
-    assert.match(normalizadas, /d\.componente\s*=\s*r\.componente/i);
-    assert.match(normalizadas, /d\.sequencia\s*=\s*r\.sequencia/i);
+    assert.match(
+      normalizadas,
+      /join\s+public\.folha_classificacao_dre\s+d\s+on\s+d\.folha_id\s*=\s*r\.folha_id[\s\S]*?d\.lancamento_folha_id\s*=\s*r\.lancamento_folha_id[\s\S]*?d\.componente\s*=\s*r\.componente[\s\S]*?d\.sequencia\s*=\s*r\.sequencia/i,
+    );
     assert.match(normalizadas, /cp_folha\.fonte_tipo\s*=\s*'folha_pagamento'/i);
     assert.match(normalizadas, /cp_folha\.fonte_identificador\s*=\s*d\.folha_id::text/i);
     assert.match(
@@ -139,12 +140,42 @@ if (migrationExists) {
     ]) {
       assert.match(consultar, new RegExp(`'${reason}'`, 'i'));
     }
+
+    const semUnidade = cteBody(consultar, 'sem_unidade_operacional');
+    assert.match(semUnidade, /\blinhas_base\b/i);
+    for (const field of [
+      'valor_origem',
+      'valor_resultado',
+      'linhas',
+      'colaboradores_folha',
+      'por_motivo',
+    ]) {
+      assert.match(semUnidade, new RegExp(`'${field}'`, 'i'));
+    }
   });
 
   test('derives units only from each approved source and limits them to cg, rec or bar', () => {
+    const folha = cteBody(normalizadas, 'folha_raw');
     const cartao = cteBody(normalizadas, 'cartao_raw');
     const contasPagar = cteBody(normalizadas, 'contas_pagar_raw');
     const contasReceber = cteBody(normalizadas, 'contas_receber_raw');
+
+    assert.match(
+      folha,
+      /case\s+when\s+r\.estado_alocacao\s*=\s*'pronto'\s+then\s+r\.unidade_dre[\s\S]*?else\s+null[\s\S]*?end\s+as\s+unidade_operacional/i,
+    );
+    assert.match(
+      folha,
+      /case\s+when\s+r\.estado_alocacao\s*=\s*'pronto'[\s\S]*?then\s+'exata'[\s\S]*?end\s+as\s+qualidade_unidade/i,
+    );
+    assert.match(
+      folha,
+      /when\s+r\.estado_alocacao\s*=\s*'sem_alocacao'\s+then\s+'folha_sem_alocacao'/i,
+    );
+    assert.match(
+      folha,
+      /when\s+r\.estado_alocacao\s*=\s*'desatualizada'\s+then\s+'folha_desatualizada'/i,
+    );
 
     assert.match(cartao, /t\.centro_custo_id/i);
     assert.match(
@@ -152,9 +183,21 @@ if (migrationExists) {
       /case\s+when\s+t\.classificacao_status\s*=\s*'confirmada'[\s\S]*?\.codigo[\s\S]*?else\s+null[\s\S]*?end\s+as\s+unidade_operacional/i,
     );
     assert.doesNotMatch(cartao, /\.codigo\s+as\s+unidade_operacional/i);
+    assert.match(
+      cartao,
+      /case\s+when\s+t\.classificacao_status\s*=\s*'confirmada'[\s\S]*?then\s+'exata'[\s\S]*?end\s+as\s+qualidade_unidade/i,
+    );
+    assert.match(
+      cartao,
+      /when\s+t\.classificacao_status\s+is\s+distinct\s+from\s+'confirmada'\s+then\s+'cartao_nao_confirmado'/i,
+    );
 
     assert.match(contasPagar, /cp\.centro_custo_id/i);
     assert.match(contasPagar, /cp\.unidade/i);
+    assert.match(
+      contasPagar,
+      /coalesce\s*\([\s\S]*?\.codigo[\s\S]*?cp\.unidade[\s\S]*?\)/i,
+    );
     assert.match(contasPagar, /'aproximada_fiscal_pagadora'/i);
 
     assert.match(contasReceber, /cr\.centro_custo_id/i);
@@ -173,10 +216,25 @@ if (migrationExists) {
   });
 
   test('uses the operational unit in every details cursor direction and ordering', () => {
-    assert.match(detalhes, /p_cursor->>'unidade_operacional'/i);
     assert.match(
       detalhes,
-      /order\s+by[\s\S]*origem_sequencia[\s\S]*unidade_operacional/i,
+      /\(\s*coalesce\s*\(\s*l\.plano_codigo[\s\S]*?l\.fonte[\s\S]*?l\.origem_id[\s\S]*?l\.origem_sequencia[\s\S]*?l\.unidade_operacional[\s\S]*?\)\s*>\s*\([\s\S]*?p_cursor->>'plano_codigo'[\s\S]*?p_cursor->>'fonte'[\s\S]*?p_cursor->>'origem_id'[\s\S]*?p_cursor->>'origem_sequencia'[\s\S]*?p_cursor->>'unidade_operacional'/i,
+    );
+
+    for (const name of ['ordenadas', 'pagina']) {
+      assert.match(
+        cteBody(detalhes, name),
+        /order\s+by[\s\S]*?origem_sequencia(?:\s+asc)?[\s\S]*?unidade_operacional(?:\s+asc)?/i,
+      );
+    }
+
+    assert.match(
+      cteBody(detalhes, 'ultimo'),
+      /order\s+by[\s\S]*?origem_sequencia\s+desc[\s\S]*?unidade_operacional\s+desc/i,
+    );
+    assert.match(
+      detalhes,
+      /jsonb_agg\s*\([\s\S]*?order\s+by[\s\S]*?p\.origem_sequencia(?:\s+asc)?[\s\S]*?p\.unidade_operacional(?:\s+asc)?/i,
     );
     assert.match(
       detalhes,
@@ -212,16 +270,18 @@ if (migrationExists) {
 
     assert.match(
       sql,
-      /revoke\s+all\s+on\s+function\s+public\.dre_linhas_normalizadas\(date,\s*text\)[\s\S]*?from\s+[^;]*\bpublic\b[^;]*\banon\b[^;]*\bauthenticated\b[^;]*;/i,
+      /revoke\s+all\s+on\s+function\s+public\.dre_linhas_normalizadas\(date,\s*text\)\s+from\s+public\s*,\s*anon\s*,\s*authenticated\s*,\s*maria_operacional\s*,\s*maria_leitura\s*;/i,
     );
-    assert.match(
-      sql,
-      /grant\s+execute\s+on\s+function\s+public\.dre_linhas_normalizadas\(date,\s*text\)\s+to\s+service_role\s*;/i,
+
+    const normalizerGrants = sql.match(
+      /grant\s+(?:execute|all(?:\s+privileges)?)\s+on\s+function\s+public\.dre_linhas_normalizadas\(date,\s*text\)[^;]*;/gi,
+    ) ?? [];
+    assert.equal(
+      normalizerGrants.length,
+      1,
+      'normalizer must have exactly one grant statement',
     );
-    assert.doesNotMatch(
-      sql,
-      /grant\s+execute\s+on\s+function\s+public\.dre_linhas_normalizadas\(date,\s*text\)\s+to\s+[^;]*\bauthenticated\b/i,
-    );
+    assert.match(normalizerGrants[0], /\bto\s+service_role\s*;/i);
 
     assert.match(
       sql,
@@ -248,6 +308,12 @@ if (migrationExists) {
         /p_unidade\s+not\s+in\s*\(\s*'consolidado'\s*,\s*'cg'\s*,\s*'rec'\s*,\s*'bar'\s*\)/i,
       );
     }
+
+    const detalhesFiltradas = cteBody(detalhes, 'filtradas');
+    assert.match(
+      detalhesFiltradas,
+      /p_unidade\s*=\s*'consolidado'[\s\S]*?l\.unidade_operacional\s*=\s*p_unidade/i,
+    );
 
     const linhasFiltradas = cteBody(consultar, 'linhas_filtradas');
     assert.match(linhasFiltradas, /from\s+linhas_base/i);
