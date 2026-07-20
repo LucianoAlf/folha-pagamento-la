@@ -121,6 +121,8 @@ if (migrationExists) {
   });
 
   test('rejoins each resolved payroll slice to its exact classification and payable', () => {
+    const folha = cteBody(normalizadas, 'folha_raw');
+
     assert.match(
       normalizadas,
       /join\s+public\.folha_classificacao_dre\s+d\s+on\s+d\.folha_id\s*=\s*r\.folha_id[\s\S]*?d\.lancamento_folha_id\s*=\s*r\.lancamento_folha_id[\s\S]*?d\.componente\s*=\s*r\.componente[\s\S]*?d\.sequencia\s*=\s*r\.sequencia/i,
@@ -131,10 +133,9 @@ if (migrationExists) {
       normalizadas,
       /cp_folha\.conta_pagadora_id\s*=\s*d\.conta_pagadora_id_usada/i,
     );
-    assert.match(normalizadas, /cp_folha\.status\s*=\s*'pago'/i);
     assert.match(
-      normalizadas,
-      /cp_folha\.data_pagamento::date\s*>=\s*p\.inicio[\s\S]*cp_folha\.data_pagamento::date\s*<\s*p\.fim/i,
+      folha,
+      /where\s*\(\s*p_regime\s*=\s*'competencia'[\s\S]*?r\.competencia\s*>=\s*p\.inicio[\s\S]*?r\.competencia\s*<\s*p\.fim\s*\)\s*or\s*\(\s*p_regime\s*=\s*'caixa'\s+and\s+cp_folha\.status\s*=\s*'pago'\s+and\s+cp_folha\.data_pagamento::date\s*>=\s*p\.inicio\s+and\s+cp_folha\.data_pagamento::date\s*<\s*p\.fim\s*\)/i,
     );
     assert.match(
       normalizadas,
@@ -148,7 +149,10 @@ if (migrationExists) {
     assert.match(consultar, /'sem_unidade_operacional'/i);
 
     const semUnidade = cteBody(consultar, 'sem_unidade_operacional');
-    assert.match(semUnidade, /\blinhas_base\b/i);
+    assert.match(
+      semUnidade,
+      /from\s+linhas_base\s+l\s+where\s+l\.unidade_operacional\s+is\s+null/i,
+    );
     const summaryFields = [
       'valor_origem',
       'valor_resultado',
@@ -171,6 +175,24 @@ if (migrationExists) {
       for (const field of summaryFields) {
         assert.match(reasonObject, new RegExp(`'${field}'`, 'i'));
       }
+
+      const reasonFilter = `l\\.motivo_sem_unidade\\s*=\\s*'${reason}'`;
+      assert.match(
+        reasonObject,
+        new RegExp(`'valor_origem'\\s*,\\s*coalesce\\s*\\(\\s*sum\\s*\\(\\s*l\\.valor_origem\\s*\\)\\s*filter\\s*\\(\\s*where\\s+${reasonFilter}\\s*\\)`, 'i'),
+      );
+      assert.match(
+        reasonObject,
+        new RegExp(`'valor_resultado'\\s*,\\s*coalesce\\s*\\(\\s*sum\\s*\\(\\s*l\\.valor_resultado\\s*\\)\\s*filter\\s*\\(\\s*where\\s+${reasonFilter}\\s*\\)`, 'i'),
+      );
+      assert.match(
+        reasonObject,
+        new RegExp(`'linhas'\\s*,\\s*count\\s*\\(\\s*\\*\\s*\\)\\s*filter\\s*\\(\\s*where\\s+${reasonFilter}\\s*\\)`, 'i'),
+      );
+      assert.match(
+        reasonObject,
+        new RegExp(`'colaboradores_folha'\\s*,\\s*count\\s*\\(\\s*distinct\\s+l\\.colaborador_id\\s*\\)\\s*filter\\s*\\(\\s*where\\s+l\\.fonte\\s*=\\s*'folha'\\s+and\\s+${reasonFilter}\\s*\\)`, 'i'),
+      );
     }
   });
 
@@ -179,14 +201,25 @@ if (migrationExists) {
     const cartao = cteBody(normalizadas, 'cartao_raw');
     const contasPagar = cteBody(normalizadas, 'contas_pagar_raw');
     const contasReceber = cteBody(normalizadas, 'contas_receber_raw');
+    const allowlist = `\\s+in\\s*\\(\\s*'cg'\\s*,\\s*'rec'\\s*,\\s*'bar'\\s*\\)`;
+    const notAllowlist = `\\s+not\\s+in\\s*\\(\\s*'cg'\\s*,\\s*'rec'\\s*,\\s*'bar'\\s*\\)`;
+    const centerUnit = (alias) => (
+      `lower\\s*\\(\\s*nullif\\s*\\(\\s*trim\\s*\\(\\s*${alias}\\.codigo\\s*\\)\\s*,\\s*''\\s*\\)\\s*\\)`
+    );
+    const fallbackUnit = (centerAlias, sourceAlias) => (
+      `lower\\s*\\(\\s*coalesce\\s*\\(\\s*nullif\\s*\\(\\s*trim\\s*\\(\\s*${centerAlias}\\.codigo\\s*\\)\\s*,\\s*''\\s*\\)\\s*,\\s*nullif\\s*\\(\\s*trim\\s*\\(\\s*${sourceAlias}\\.unidade\\s*\\)\\s*,\\s*''\\s*\\)\\s*\\)\\s*\\)`
+    );
+    const cardUnit = centerUnit('cc_cartao');
+    const payableUnit = fallbackUnit('cc_cp', 'cp');
+    const receivableUnit = fallbackUnit('cc_cr', 'cr');
 
     assert.match(
       folha,
-      /case\s+when\s+r\.estado_alocacao\s*=\s*'pronto'\s+then\s+r\.unidade_dre[\s\S]*?else\s+null[\s\S]*?end\s+as\s+unidade_operacional/i,
+      new RegExp(`case\\s+when\\s+r\\.estado_alocacao\\s*=\\s*'pronto'\\s+and\\s+r\\.unidade_dre${allowlist}\\s+then\\s+r\\.unidade_dre\\s+else\\s+null\\s+end\\s+as\\s+unidade_operacional`, 'i'),
     );
     assert.match(
       folha,
-      /case\s+when\s+r\.estado_alocacao\s*=\s*'pronto'[\s\S]*?then\s+'exata'[\s\S]*?end\s+as\s+qualidade_unidade/i,
+      new RegExp(`case\\s+when\\s+r\\.estado_alocacao\\s*=\\s*'pronto'\\s+and\\s+r\\.unidade_dre${allowlist}\\s+then\\s+'exata'[\\s\\S]*?end\\s+as\\s+qualidade_unidade`, 'i'),
     );
     assert.match(
       folha,
@@ -196,38 +229,65 @@ if (migrationExists) {
       folha,
       /when\s+r\.estado_alocacao\s*=\s*'desatualizada'\s+then\s+'folha_desatualizada'/i,
     );
-
-    assert.match(cartao, /t\.centro_custo_id/i);
     assert.match(
-      cartao,
-      /case\s+when\s+t\.classificacao_status\s*=\s*'confirmada'[\s\S]*?\.codigo[\s\S]*?else\s+null[\s\S]*?end\s+as\s+unidade_operacional/i,
+      folha,
+      new RegExp(`when\\s+r\\.estado_alocacao\\s*=\\s*'pronto'\\s+and\\s*\\(\\s*r\\.unidade_dre\\s+is\\s+null\\s+or\\s+r\\.unidade_dre${notAllowlist}\\s*\\)\\s+then\\s+'fonte_sem_unidade'`, 'i'),
     );
-    assert.doesNotMatch(cartao, /\.codigo\s+as\s+unidade_operacional/i);
+
     assert.match(
       cartao,
-      /case\s+when\s+t\.classificacao_status\s*=\s*'confirmada'[\s\S]*?then\s+'exata'[\s\S]*?end\s+as\s+qualidade_unidade/i,
+      /left\s+join\s+public\.centros_custo\s+cc_cartao\s+on\s+cc_cartao\.id\s*=\s*t\.centro_custo_id/i,
+    );
+    assert.match(
+      cartao,
+      new RegExp(`case\\s+when\\s+t\\.classificacao_status\\s*=\\s*'confirmada'\\s+and\\s+${cardUnit}${allowlist}\\s+then\\s+${cardUnit}\\s+else\\s+null\\s+end\\s+as\\s+unidade_operacional`, 'i'),
+    );
+    assert.match(
+      cartao,
+      new RegExp(`case\\s+when\\s+t\\.classificacao_status\\s*=\\s*'confirmada'\\s+and\\s+${cardUnit}${allowlist}\\s+then\\s+'exata'[\\s\\S]*?end\\s+as\\s+qualidade_unidade`, 'i'),
     );
     assert.match(
       cartao,
       /when\s+t\.classificacao_status\s+is\s+distinct\s+from\s+'confirmada'\s+then\s+'cartao_nao_confirmado'/i,
     );
+    assert.match(
+      cartao,
+      new RegExp(`when\\s+t\\.classificacao_status\\s*=\\s*'confirmada'\\s+and\\s*\\(\\s*${cardUnit}\\s+is\\s+null\\s+or\\s+${cardUnit}${notAllowlist}\\s*\\)\\s+then\\s+'fonte_sem_unidade'`, 'i'),
+    );
 
-    assert.match(contasPagar, /cp\.centro_custo_id/i);
-    assert.match(contasPagar, /cp\.unidade/i);
     assert.match(
       contasPagar,
-      /coalesce\s*\([\s\S]*?\.codigo[\s\S]*?cp\.unidade[\s\S]*?\)/i,
+      /left\s+join\s+public\.centros_custo\s+cc_cp\s+on\s+cc_cp\.id\s*=\s*cp\.centro_custo_id/i,
     );
-    assert.match(contasPagar, /'aproximada_fiscal_pagadora'/i);
+    assert.match(
+      contasPagar,
+      new RegExp(`case\\s+when\\s+${payableUnit}${allowlist}\\s+then\\s+${payableUnit}\\s+else\\s+null\\s+end\\s+as\\s+unidade_operacional`, 'i'),
+    );
+    assert.match(
+      contasPagar,
+      new RegExp(`case\\s+when\\s+${payableUnit}${allowlist}\\s+then\\s+'aproximada_fiscal_pagadora'[\\s\\S]*?end\\s+as\\s+qualidade_unidade`, 'i'),
+    );
+    assert.match(
+      contasPagar,
+      new RegExp(`case\\s+when\\s+${payableUnit}\\s+is\\s+null\\s+or\\s+${payableUnit}${notAllowlist}\\s+then\\s+'fonte_sem_unidade'[\\s\\S]*?end\\s+as\\s+motivo_sem_unidade`, 'i'),
+    );
 
-    assert.match(contasReceber, /cr\.centro_custo_id/i);
-    assert.match(contasReceber, /cr\.unidade/i);
     assert.match(
       contasReceber,
-      /coalesce\s*\([\s\S]*?\.codigo[\s\S]*?cr\.unidade[\s\S]*?\)/i,
+      /left\s+join\s+public\.centros_custo\s+cc_cr\s+on\s+cc_cr\.id\s*=\s*cr\.centro_custo_id/i,
     );
-    assert.match(contasReceber, /'exata'/i);
-    assert.match(contasReceber, /unidade_operacional/i);
+    assert.match(
+      contasReceber,
+      new RegExp(`case\\s+when\\s+${receivableUnit}${allowlist}\\s+then\\s+${receivableUnit}\\s+else\\s+null\\s+end\\s+as\\s+unidade_operacional`, 'i'),
+    );
+    assert.match(
+      contasReceber,
+      new RegExp(`case\\s+when\\s+${receivableUnit}${allowlist}\\s+then\\s+'exata'[\\s\\S]*?end\\s+as\\s+qualidade_unidade`, 'i'),
+    );
+    assert.match(
+      contasReceber,
+      new RegExp(`case\\s+when\\s+${receivableUnit}\\s+is\\s+null\\s+or\\s+${receivableUnit}${notAllowlist}\\s+then\\s+'fonte_sem_unidade'[\\s\\S]*?end\\s+as\\s+motivo_sem_unidade`, 'i'),
+    );
 
     assert.match(
       normalizadas,
@@ -238,23 +298,23 @@ if (migrationExists) {
   test('uses the operational unit in every details cursor direction and ordering', () => {
     assert.match(
       detalhes,
-      /\(\s*coalesce\s*\(\s*l\.plano_codigo[\s\S]*?l\.fonte[\s\S]*?l\.origem_id[\s\S]*?l\.origem_sequencia[\s\S]*?l\.unidade_operacional[\s\S]*?\)\s*>\s*\([\s\S]*?p_cursor->>'plano_codigo'[\s\S]*?p_cursor->>'fonte'[\s\S]*?p_cursor->>'origem_id'[\s\S]*?p_cursor->>'origem_sequencia'[\s\S]*?p_cursor->>'unidade_operacional'/i,
+      /\(\s*coalesce\s*\(\s*l\.plano_codigo\s*,\s*'~'\s*\)\s*,\s*l\.fonte\s*,\s*l\.origem_id\s*,\s*l\.origem_sequencia\s*,\s*coalesce\s*\(\s*l\.unidade_operacional\s*,\s*'~'\s*\)\s*\)\s*>\s*\(\s*coalesce\s*\(\s*p_cursor->>'plano_codigo'\s*,\s*'~'\s*\)\s*,\s*coalesce\s*\(\s*p_cursor->>'fonte'\s*,\s*''\s*\)\s*,\s*coalesce\s*\(\s*p_cursor->>'origem_id'\s*,\s*''\s*\)\s*,\s*coalesce\s*\(\s*p_cursor->>'origem_sequencia'\s*,\s*''\s*\)\s*,\s*coalesce\s*\(\s*p_cursor->>'unidade_operacional'\s*,\s*'~'\s*\)\s*\)/i,
     );
 
     for (const name of ['ordenadas', 'pagina']) {
       assert.match(
         cteBody(detalhes, name),
-        /order\s+by[\s\S]*?origem_sequencia(?:\s+asc)?[\s\S]*?unidade_operacional(?:\s+asc)?/i,
+        /order\s+by\s+coalesce\s*\(\s*(?:[a-z]+\.)?plano_codigo\s*,\s*'~'\s*\)(?:\s+asc)?\s*,\s*(?:[a-z]+\.)?fonte(?:\s+asc)?\s*,\s*(?:[a-z]+\.)?origem_id(?:\s+asc)?\s*,\s*(?:[a-z]+\.)?origem_sequencia(?:\s+asc)?\s*,\s*coalesce\s*\(\s*(?:[a-z]+\.)?unidade_operacional\s*,\s*'~'\s*\)(?:\s+asc)?/i,
       );
     }
 
     assert.match(
       cteBody(detalhes, 'ultimo'),
-      /order\s+by[\s\S]*?origem_sequencia\s+desc[\s\S]*?unidade_operacional\s+desc/i,
+      /order\s+by\s+coalesce\s*\(\s*(?:[a-z]+\.)?plano_codigo\s*,\s*'~'\s*\)\s+desc\s*,\s*(?:[a-z]+\.)?fonte\s+desc\s*,\s*(?:[a-z]+\.)?origem_id\s+desc\s*,\s*(?:[a-z]+\.)?origem_sequencia\s+desc\s*,\s*coalesce\s*\(\s*(?:[a-z]+\.)?unidade_operacional\s*,\s*'~'\s*\)\s+desc/i,
     );
     assert.match(
       detalhes,
-      /jsonb_agg\s*\([\s\S]*?order\s+by[\s\S]*?p\.origem_sequencia(?:\s+asc)?[\s\S]*?p\.unidade_operacional(?:\s+asc)?/i,
+      /jsonb_agg\s*\([\s\S]*?order\s+by\s+coalesce\s*\(\s*p\.plano_codigo\s*,\s*'~'\s*\)(?:\s+asc)?\s*,\s*p\.fonte(?:\s+asc)?\s*,\s*p\.origem_id(?:\s+asc)?\s*,\s*p\.origem_sequencia(?:\s+asc)?\s*,\s*coalesce\s*\(\s*p\.unidade_operacional\s*,\s*'~'\s*\)(?:\s+asc)?/i,
     );
     assert.match(
       detalhes,
