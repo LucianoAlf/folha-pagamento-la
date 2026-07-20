@@ -286,7 +286,7 @@ if (migrationExists) {
     );
     assert.match(
       contasPagar,
-      new RegExp(`case\\s+when\\s+${payableUnit}${allowlist}\\s+then\\s+'aproximada_fiscal_pagadora'[\\s\\S]*?end\\s+as\\s+qualidade_unidade`, 'i'),
+      new RegExp(`case\\s+when\\s+${payableUnit}${allowlist}\\s+then\\s+'aproximada_conta_pagadora'[\\s\\S]*?end\\s+as\\s+qualidade_unidade`, 'i'),
     );
     assert.match(
       contasPagar,

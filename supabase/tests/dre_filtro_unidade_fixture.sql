@@ -1297,7 +1297,7 @@ begin
      where l.fonte = 'contas_pagar'
        and l.origem_id = '00000000-0000-0000-0000-000000000404'
        and l.unidade_operacional = 'cg'
-       and l.qualidade_unidade = 'aproximada_fiscal_pagadora';
+       and l.qualidade_unidade = 'aproximada_conta_pagadora';
 
     if v_count is distinct from 1 then
       raise exception

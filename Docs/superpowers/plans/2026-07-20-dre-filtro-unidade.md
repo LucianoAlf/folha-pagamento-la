@@ -91,7 +91,7 @@ Posicionar `parametros` antes do lateral de Conta a Pagar e restringir o lateral
 
 - [ ] **Step 4: Mapear as outras três fontes**
 
-Contas a Pagar usa centro/unidade com qualidade `aproximada_fiscal_pagadora`; Cartão usa centro da transação somente quando confirmado; Contas a Receber usa centro/unidade confirmado. Toda unidade fora de `cg|rec|bar` vira `null` com motivo.
+Contas a Pagar usa centro/unidade com qualidade `aproximada_conta_pagadora`; Cartão usa centro da transação somente quando confirmado; Contas a Receber usa centro/unidade confirmado. Toda unidade fora de `cg|rec|bar` vira `null` com motivo.
 
 - [ ] **Step 5: Implementar `dre_consultar`**
 

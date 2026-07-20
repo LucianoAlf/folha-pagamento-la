@@ -524,16 +524,16 @@ export const DrePage: React.FC = () => {
                         </Badge>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{item.status_financeiro}</span>
                         {item.unidade_operacional ? (
-                          <Badge variant={item.qualidade_unidade === 'aproximada_fiscal_pagadora' ? 'warning' : 'info'}>
+                          <Badge variant={item.qualidade_unidade === 'aproximada_conta_pagadora' ? 'warning' : 'info'}>
                             Unidade {getDreUnidadeLabel(item.unidade_operacional)}
                           </Badge>
                         ) : (
                           <Badge>Sem unidade operacional</Badge>
                         )}
                       </div>
-                      {item.qualidade_unidade === 'aproximada_fiscal_pagadora' ? (
+                      {item.qualidade_unidade === 'aproximada_conta_pagadora' ? (
                         <div className="mt-2 flex w-fit items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-warning">
-                          <AlertTriangle size={13} /> Unidade fiscal/pagadora aproximada
+                          <AlertTriangle size={13} /> Unidade pela conta pagadora (aproximada)
                         </div>
                       ) : null}
                       <h4 className="mt-2 truncate font-black text-primary">{item.contraparte}</h4>

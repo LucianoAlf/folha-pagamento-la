@@ -5,7 +5,7 @@ export type DreNatureza = 'entrada' | 'saida';
 export type DreCoberturaEstado = 'ok' | 'sem_dados';
 export type DreUnidade = 'consolidado' | 'cg' | 'rec' | 'bar';
 export type DreUnidadeOperacional = Exclude<DreUnidade, 'consolidado'>;
-export type DreQualidadeUnidade = 'exata' | 'aproximada_fiscal_pagadora';
+export type DreQualidadeUnidade = 'exata' | 'aproximada_conta_pagadora';
 export type DreSemUnidadeMotivo =
   | 'folha_sem_alocacao'
   | 'folha_desatualizada'

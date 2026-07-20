@@ -25,7 +25,7 @@ Ficam fora de escopo a tela de confirmação da Ana, mudanças em `folha_fechar`
 | Cartão confirmado | `financeiro_cartao_transacoes.centro_custo_id -> centros_custo.codigo` | `exata` | `fonte_sem_unidade` se a referência estiver ausente |
 | Cartão não confirmado | `null` | `null` | `cartao_nao_confirmado` |
 | Contas a Receber | `centro_custo_id -> centros_custo.codigo`, com fallback para `unidade` | `exata` | `fonte_sem_unidade` |
-| Contas a Pagar | `centro_custo_id -> centros_custo.codigo`, com fallback para `unidade` | `aproximada_fiscal_pagadora` | `fonte_sem_unidade` |
+| Contas a Pagar | `centro_custo_id -> centros_custo.codigo`, com fallback para `unidade` | `aproximada_conta_pagadora` | `fonte_sem_unidade` |
 
 `unidade_operacional` só pode conter `cg`, `rec`, `bar` ou `null`. A qualidade de Contas a Pagar descreve a natureza fiscal/pagadora da fonte inteira; não atribui conta pagadora às linhas que não a possuem.
 
@@ -93,7 +93,7 @@ O cursor e a ordenação incluem `unidade_operacional` depois de `origem_sequenc
 
 A página acrescenta um `SegmentedControl` com Consolidado, CG, Recreio e Barra ao lado de Competência, Regime e Visão. A unidade participa das dependências das consultas principal e de detalhes. Alterar a unidade limpa os detalhes/cursor anteriores.
 
-O drill-down mostra a unidade e alerta quando `qualidade_unidade` for `aproximada_fiscal_pagadora`. O resumo de reconciliação mostra `sem_unidade_operacional` mesmo com uma unidade filtrada.
+O drill-down mostra a unidade e alerta quando `qualidade_unidade` for `aproximada_conta_pagadora`. O resumo de reconciliação mostra `sem_unidade_operacional` mesmo com uma unidade filtrada.
 
 ## Testes e rito
 

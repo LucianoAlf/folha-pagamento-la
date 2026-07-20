@@ -224,7 +224,7 @@ as $$
       end as unidade_operacional,
       case
         when lower(coalesce(nullif(trim(cc_cp.codigo), ''), nullif(trim(cp.unidade), ''))) in ('cg', 'rec', 'bar')
-          then 'aproximada_fiscal_pagadora'
+          then 'aproximada_conta_pagadora'
         else null
       end as qualidade_unidade,
       case
