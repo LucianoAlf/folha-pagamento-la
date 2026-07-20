@@ -5,15 +5,18 @@ import type {
   DreDetalhesPagina,
   DreFonte,
   DreRegime,
+  DreUnidade,
 } from '../types/dre.ts';
 
 export async function fetchDreConsulta(
   competencia: string,
   regime: DreRegime,
+  unidade: DreUnidade,
 ): Promise<DreConsulta> {
   const { data, error } = await supabase.rpc('dre_consultar', {
     p_competencia: competencia,
     p_regime: regime,
+    p_unidade: unidade,
   });
   if (error) throw error;
   if (!data?.success) throw new Error('Nao foi possivel montar o DRE.');
@@ -23,6 +26,7 @@ export async function fetchDreConsulta(
 export async function fetchDreDetalhes(args: {
   competencia: string;
   regime: DreRegime;
+  unidade: DreUnidade;
   planoCodigo?: string | null;
   fonte?: DreFonte | null;
   cursor?: DreCursor | null;
@@ -32,6 +36,7 @@ export async function fetchDreDetalhes(args: {
   const { data, error } = await supabase.rpc('dre_detalhes', {
     p_competencia: args.competencia,
     p_regime: args.regime,
+    p_unidade: args.unidade,
     p_plano_codigo: args.planoCodigo ?? null,
     p_fonte: args.fonte ?? null,
     p_cursor: cursor,
