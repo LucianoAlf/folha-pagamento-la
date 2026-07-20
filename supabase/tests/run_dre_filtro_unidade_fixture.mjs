@@ -376,6 +376,48 @@ try {
     'fixture nao explicou qual estrutura obrigatoria ficou nula',
   );
 
+  const missingGroupFive = runDocker([
+    'exec', '-i', container,
+    'env',
+    'PGOPTIONS=-c app.dre_fixture_guard=local_ci_only -c app.dre_fixture_mutation=missing_group_5',
+    'psql',
+    '--username', 'postgres',
+    '--dbname', database,
+    '--no-psqlrc',
+    '--set', 'ON_ERROR_STOP=1',
+  ], { input: fixtureSql });
+  assert.notEqual(
+    missingGroupFive.status,
+    0,
+    'fixture deveria falhar quando grupo 5 obrigatorio e removido',
+  );
+  assert.match(
+    `${missingGroupFive.stdout}\n${missingGroupFive.stderr}`,
+    /cenario C competencia: grupo 5 obrigatorio ausente ou nulo no consolidado/i,
+    'fixture nao explicou qual grupo obrigatorio ficou ausente',
+  );
+
+  const missingPlanFive = runDocker([
+    'exec', '-i', container,
+    'env',
+    'PGOPTIONS=-c app.dre_fixture_guard=local_ci_only -c app.dre_fixture_mutation=missing_plan_5_1_01',
+    'psql',
+    '--username', 'postgres',
+    '--dbname', database,
+    '--no-psqlrc',
+    '--set', 'ON_ERROR_STOP=1',
+  ], { input: fixtureSql });
+  assert.notEqual(
+    missingPlanFive.status,
+    0,
+    'fixture deveria falhar quando plano 5.1.01 obrigatorio e removido',
+  );
+  assert.match(
+    `${missingPlanFive.stdout}\n${missingPlanFive.stderr}`,
+    /cenario C competencia: plano 5\.1\.01 obrigatorio ausente ou nulo no consolidado/i,
+    'fixture nao explicou qual plano obrigatorio ficou ausente',
+  );
+
   const fixtureResult = runPsql(
     fixtureSql,
     'fixture comportamental DRE',

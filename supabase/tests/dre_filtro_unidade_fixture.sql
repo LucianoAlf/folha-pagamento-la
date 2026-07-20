@@ -604,10 +604,17 @@ declare
   v_total numeric;
   v_units_total numeric;
   v_sem_total numeric;
+  v_required_count integer;
   v_group_total numeric;
+  v_group_cg numeric;
+  v_group_rec numeric;
+  v_group_bar numeric;
   v_group_units numeric;
   v_group_sem numeric;
   v_plan_total numeric;
+  v_plan_cg numeric;
+  v_plan_rec numeric;
+  v_plan_bar numeric;
   v_plan_units numeric;
   v_plan_sem numeric;
 begin
@@ -754,21 +761,59 @@ begin
         v_folha_sem_alocacao;
     end if;
 
-    select (g->>'valor_resultado')::numeric
-      into v_group_total
+    if v_regime is not distinct from 'competencia'
+       and current_setting('app.dre_fixture_mutation', true)
+         is not distinct from 'missing_group_5' then
+      v_cons := jsonb_set(
+        v_cons,
+        '{grupos}',
+        coalesce((
+          select jsonb_agg(g order by g->>'codigo')
+            from jsonb_array_elements(v_cons->'grupos') g
+           where g->>'codigo' is distinct from '5'
+        ), '[]'::jsonb)
+      );
+    end if;
+
+    select count(*), max((g->>'valor_resultado')::numeric)
+      into v_required_count, v_group_total
       from jsonb_array_elements(v_cons->'grupos') g
      where g->>'codigo' = '5';
 
-    select sum((g->>'valor_resultado')::numeric)
-      into v_group_units
-      from (
-        select jsonb_array_elements(v_cg->'grupos') as g
-        union all
-        select jsonb_array_elements(v_rec->'grupos') as g
-        union all
-        select jsonb_array_elements(v_bar->'grupos') as g
-      ) unidades
+    if v_required_count is distinct from 1 or v_group_total is null then
+      raise exception
+        'cenario C %: grupo 5 obrigatorio ausente ou nulo no consolidado',
+        v_regime;
+    end if;
+
+    select count(*), max((g->>'valor_resultado')::numeric)
+      into v_required_count, v_group_cg
+      from jsonb_array_elements(v_cg->'grupos') g
      where g->>'codigo' = '5';
+
+    if v_required_count is distinct from 1 or v_group_cg is null then
+      raise exception 'cenario C %: grupo 5 obrigatorio ausente ou nulo em CG', v_regime;
+    end if;
+
+    select count(*), max((g->>'valor_resultado')::numeric)
+      into v_required_count, v_group_rec
+      from jsonb_array_elements(v_rec->'grupos') g
+     where g->>'codigo' = '5';
+
+    if v_required_count is distinct from 1 or v_group_rec is null then
+      raise exception 'cenario C %: grupo 5 obrigatorio ausente ou nulo em REC', v_regime;
+    end if;
+
+    select count(*), max((g->>'valor_resultado')::numeric)
+      into v_required_count, v_group_bar
+      from jsonb_array_elements(v_bar->'grupos') g
+     where g->>'codigo' = '5';
+
+    if v_required_count is distinct from 1 or v_group_bar is null then
+      raise exception 'cenario C %: grupo 5 obrigatorio ausente ou nulo em Barra', v_regime;
+    end if;
+
+    v_group_units := v_group_cg + v_group_rec + v_group_bar;
 
     select coalesce(sum(l.valor_resultado), 0)
       into v_group_sem
@@ -786,21 +831,59 @@ begin
         v_group_total;
     end if;
 
-    select (p->>'valor_resultado')::numeric
-      into v_plan_total
+    if v_regime is not distinct from 'competencia'
+       and current_setting('app.dre_fixture_mutation', true)
+         is not distinct from 'missing_plan_5_1_01' then
+      v_cons := jsonb_set(
+        v_cons,
+        '{planos}',
+        coalesce((
+          select jsonb_agg(p order by p->>'plano_codigo')
+            from jsonb_array_elements(v_cons->'planos') p
+           where p->>'plano_codigo' is distinct from '5.1.01'
+        ), '[]'::jsonb)
+      );
+    end if;
+
+    select count(*), max((p->>'valor_resultado')::numeric)
+      into v_required_count, v_plan_total
       from jsonb_array_elements(v_cons->'planos') p
      where p->>'plano_codigo' = '5.1.01';
 
-    select sum((p->>'valor_resultado')::numeric)
-      into v_plan_units
-      from (
-        select jsonb_array_elements(v_cg->'planos') as p
-        union all
-        select jsonb_array_elements(v_rec->'planos') as p
-        union all
-        select jsonb_array_elements(v_bar->'planos') as p
-      ) unidades
+    if v_required_count is distinct from 1 or v_plan_total is null then
+      raise exception
+        'cenario C %: plano 5.1.01 obrigatorio ausente ou nulo no consolidado',
+        v_regime;
+    end if;
+
+    select count(*), max((p->>'valor_resultado')::numeric)
+      into v_required_count, v_plan_cg
+      from jsonb_array_elements(v_cg->'planos') p
      where p->>'plano_codigo' = '5.1.01';
+
+    if v_required_count is distinct from 1 or v_plan_cg is null then
+      raise exception 'cenario C %: plano 5.1.01 obrigatorio ausente ou nulo em CG', v_regime;
+    end if;
+
+    select count(*), max((p->>'valor_resultado')::numeric)
+      into v_required_count, v_plan_rec
+      from jsonb_array_elements(v_rec->'planos') p
+     where p->>'plano_codigo' = '5.1.01';
+
+    if v_required_count is distinct from 1 or v_plan_rec is null then
+      raise exception 'cenario C %: plano 5.1.01 obrigatorio ausente ou nulo em REC', v_regime;
+    end if;
+
+    select count(*), max((p->>'valor_resultado')::numeric)
+      into v_required_count, v_plan_bar
+      from jsonb_array_elements(v_bar->'planos') p
+     where p->>'plano_codigo' = '5.1.01';
+
+    if v_required_count is distinct from 1 or v_plan_bar is null then
+      raise exception 'cenario C %: plano 5.1.01 obrigatorio ausente ou nulo em Barra', v_regime;
+    end if;
+
+    v_plan_units := v_plan_cg + v_plan_rec + v_plan_bar;
 
     select coalesce(sum(l.valor_resultado), 0)
       into v_plan_sem
