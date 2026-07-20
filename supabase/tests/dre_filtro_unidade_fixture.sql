@@ -512,6 +512,9 @@ declare
   v_pages integer := 0;
   v_items integer := 0;
   v_count integer;
+  v_expected_unit text;
+  v_requested_unit text;
+  v_detail jsonb;
 begin
   loop
     v_pages := v_pages + 1;
@@ -583,8 +586,56 @@ begin
     raise exception 'cenario B paginacao: Barra apareceu % vezes', v_count;
   end if;
 
+  foreach v_expected_unit in array array['cg', 'rec', 'bar'] loop
+    v_requested_unit := case
+      when current_setting('app.dre_fixture_mutation', true)
+        is not distinct from 'rotate_dre_detalhes_units' then case v_expected_unit
+          when 'cg' then 'rec'
+          when 'rec' then 'bar'
+          else 'cg'
+        end
+      else v_expected_unit
+    end;
+
+    v_detail := public.dre_detalhes(
+      date '2026-07-01',
+      'caixa',
+      '5.1.01',
+      'folha',
+      v_requested_unit,
+      null,
+      10
+    );
+
+    if v_detail->>'unidade' is distinct from v_expected_unit then
+      raise exception
+        'cenario B detalhes: unidade % recebeu %',
+        v_expected_unit,
+        v_detail->>'unidade';
+    end if;
+
+    if jsonb_array_length(v_detail->'itens') is distinct from 1 then
+      raise exception
+        'cenario B detalhes: unidade % deveria ter 1 item, resposta %',
+        v_expected_unit,
+        v_detail;
+    end if;
+
+    v_item := v_detail->'itens'->0;
+    if v_item->>'unidade_operacional' is distinct from v_expected_unit
+       or v_item->>'origem_id' is distinct from '920001'
+       or v_item->>'origem_sequencia' is distinct from '000001:salario'
+       or (v_item->>'valor_origem')::numeric is distinct from 100.01
+       or (v_item->>'valor_resultado')::numeric is distinct from -100.01 then
+      raise exception
+        'cenario B detalhes: identidade/valor incorreto para unidade %: %',
+        v_expected_unit,
+        v_item;
+    end if;
+  end loop;
+
   raise notice
-    'PASS cenario B: cursor percorreu % paginas sem pular/duplicar CG, REC e Barra',
+    'PASS cenario B: cursor e detalhes por unidade preservaram CG, REC e Barra em % paginas',
     v_pages;
 end;
 $$;
@@ -600,17 +651,33 @@ declare
   v_bar jsonb;
   v_sem_kpis jsonb;
   v_expected_kpis jsonb;
+  v_expected_cg_kpis jsonb;
+  v_expected_rec_kpis jsonb;
+  v_expected_bar_kpis jsonb;
+  v_expected_sem_kpis jsonb;
+  v_expected_groups jsonb;
+  v_expected_cg_groups jsonb;
+  v_expected_rec_groups jsonb;
+  v_expected_bar_groups jsonb;
+  v_expected_sem_groups jsonb;
+  v_expected_plans jsonb;
+  v_expected_cg_plans jsonb;
+  v_expected_rec_plans jsonb;
+  v_expected_bar_plans jsonb;
+  v_expected_sem_plans jsonb;
   v_folha_sem_alocacao jsonb;
   v_total numeric;
   v_units_total numeric;
   v_sem_total numeric;
   v_required_count integer;
+  v_group_codigo text;
   v_group_total numeric;
   v_group_cg numeric;
   v_group_rec numeric;
   v_group_bar numeric;
   v_group_units numeric;
   v_group_sem numeric;
+  v_plan_codigo text;
   v_plan_total numeric;
   v_plan_cg numeric;
   v_plan_rec numeric;
@@ -625,9 +692,16 @@ begin
     end;
 
     v_cons := public.dre_consultar(v_competencia, v_regime, 'consolidado');
-    v_cg := public.dre_consultar(v_competencia, v_regime, 'cg');
-    v_rec := public.dre_consultar(v_competencia, v_regime, 'rec');
-    v_bar := public.dre_consultar(v_competencia, v_regime, 'bar');
+    if current_setting('app.dre_fixture_mutation', true)
+         is not distinct from 'rotate_dre_consultar_units' then
+      v_cg := public.dre_consultar(v_competencia, v_regime, 'rec');
+      v_rec := public.dre_consultar(v_competencia, v_regime, 'bar');
+      v_bar := public.dre_consultar(v_competencia, v_regime, 'cg');
+    else
+      v_cg := public.dre_consultar(v_competencia, v_regime, 'cg');
+      v_rec := public.dre_consultar(v_competencia, v_regime, 'rec');
+      v_bar := public.dre_consultar(v_competencia, v_regime, 'bar');
+    end if;
 
     v_expected_kpis := case
       when v_regime = 'competencia' then jsonb_build_object(
@@ -649,6 +723,150 @@ begin
         'lucro_liquido', -260.04::numeric
       )
     end;
+
+    v_expected_cg_kpis := case
+      when v_regime = 'competencia' then jsonb_build_object(
+        'receita', 200.11::numeric,
+        'despesa', 175.09::numeric,
+        'lucro_operacional', 25.02::numeric,
+        'investimentos', 0::numeric,
+        'entradas_nao_operacionais', 0::numeric,
+        'saidas_nao_operacionais', 0::numeric,
+        'lucro_liquido', 25.02::numeric
+      )
+      else jsonb_build_object(
+        'receita', 200.11::numeric,
+        'despesa', 160.03::numeric,
+        'lucro_operacional', 40.08::numeric,
+        'investimentos', 0::numeric,
+        'entradas_nao_operacionais', 0::numeric,
+        'saidas_nao_operacionais', 0::numeric,
+        'lucro_liquido', 40.08::numeric
+      )
+    end;
+
+    v_expected_rec_kpis := jsonb_build_object(
+      'receita', 0::numeric,
+      'despesa', 100.01::numeric,
+      'lucro_operacional', -100.01::numeric,
+      'investimentos', 30.07::numeric,
+      'entradas_nao_operacionais', 0::numeric,
+      'saidas_nao_operacionais', 0::numeric,
+      'lucro_liquido', -130.08::numeric
+    );
+
+    v_expected_bar_kpis := jsonb_build_object(
+      'receita', 0::numeric,
+      'despesa', 110.05::numeric,
+      'lucro_operacional', -110.05::numeric,
+      'investimentos', 0::numeric,
+      'entradas_nao_operacionais', 50.09::numeric,
+      'saidas_nao_operacionais', 0::numeric,
+      'lucro_liquido', -59.96::numeric
+    );
+
+    v_expected_sem_kpis := jsonb_build_object(
+      'receita', 0::numeric,
+      'despesa', 90.03::numeric,
+      'lucro_operacional', -90.03::numeric,
+      'investimentos', 0::numeric,
+      'entradas_nao_operacionais', 0::numeric,
+      'saidas_nao_operacionais', 20.05::numeric,
+      'lucro_liquido', -110.08::numeric
+    );
+
+    v_expected_groups := case
+      when v_regime = 'competencia' then jsonb_build_object(
+        '3', 200.11::numeric,
+        '4', -10.04::numeric,
+        '5', -465.14::numeric,
+        '6', -30.07::numeric,
+        '7', 30.04::numeric
+      )
+      else jsonb_build_object(
+        '3', 200.11::numeric,
+        '4', -10.04::numeric,
+        '5', -450.08::numeric,
+        '6', -30.07::numeric,
+        '7', 30.04::numeric
+      )
+    end;
+
+    v_expected_cg_groups := case
+      when v_regime = 'competencia' then jsonb_build_object(
+        '3', 200.11::numeric, '4', 0::numeric, '5', -175.09::numeric,
+        '6', 0::numeric, '7', 0::numeric
+      )
+      else jsonb_build_object(
+        '3', 200.11::numeric, '4', 0::numeric, '5', -160.03::numeric,
+        '6', 0::numeric, '7', 0::numeric
+      )
+    end;
+
+    v_expected_rec_groups := jsonb_build_object(
+      '3', 0::numeric, '4', 0::numeric, '5', -100.01::numeric,
+      '6', -30.07::numeric, '7', 0::numeric
+    );
+
+    v_expected_bar_groups := jsonb_build_object(
+      '3', 0::numeric, '4', -10.04::numeric, '5', -100.01::numeric,
+      '6', 0::numeric, '7', 50.09::numeric
+    );
+
+    v_expected_sem_groups := jsonb_build_object(
+      '3', 0::numeric, '4', 0::numeric, '5', -90.03::numeric,
+      '6', 0::numeric, '7', -20.05::numeric
+    );
+
+    v_expected_plans := case
+      when v_regime = 'competencia' then jsonb_build_object(
+        '3.1.01', 200.11::numeric,
+        '4.1.01', -10.04::numeric,
+        '5.1.01', -465.14::numeric,
+        '6.1.01', -30.07::numeric,
+        '7.1.01', 50.09::numeric,
+        '7.2.01', -20.05::numeric
+      )
+      else jsonb_build_object(
+        '3.1.01', 200.11::numeric,
+        '4.1.01', -10.04::numeric,
+        '5.1.01', -450.08::numeric,
+        '6.1.01', -30.07::numeric,
+        '7.1.01', 50.09::numeric,
+        '7.2.01', -20.05::numeric
+      )
+    end;
+
+    v_expected_cg_plans := case
+      when v_regime = 'competencia' then jsonb_build_object(
+        '3.1.01', 200.11::numeric, '4.1.01', 0::numeric,
+        '5.1.01', -175.09::numeric, '6.1.01', 0::numeric,
+        '7.1.01', 0::numeric, '7.2.01', 0::numeric
+      )
+      else jsonb_build_object(
+        '3.1.01', 200.11::numeric, '4.1.01', 0::numeric,
+        '5.1.01', -160.03::numeric, '6.1.01', 0::numeric,
+        '7.1.01', 0::numeric, '7.2.01', 0::numeric
+      )
+    end;
+
+    v_expected_rec_plans := jsonb_build_object(
+      '3.1.01', 0::numeric, '4.1.01', 0::numeric,
+      '5.1.01', -100.01::numeric, '6.1.01', -30.07::numeric,
+      '7.1.01', 0::numeric, '7.2.01', 0::numeric
+    );
+
+    v_expected_bar_plans := jsonb_build_object(
+      '3.1.01', 0::numeric, '4.1.01', -10.04::numeric,
+      '5.1.01', -100.01::numeric, '6.1.01', 0::numeric,
+      '7.1.01', 50.09::numeric, '7.2.01', 0::numeric
+    );
+
+    v_expected_sem_plans := jsonb_build_object(
+      '3.1.01', 0::numeric, '4.1.01', 0::numeric,
+      '5.1.01', -90.03::numeric, '6.1.01', 0::numeric,
+      '7.1.01', 0::numeric, '7.2.01', -20.05::numeric
+    );
 
     if v_cons->'cobertura' is distinct from v_cg->'cobertura'
        or v_cons->'cobertura' is distinct from v_rec->'cobertura'
@@ -699,7 +917,11 @@ begin
          or v_rec #>> array['kpis', v_kpi] is null
          or v_bar #>> array['kpis', v_kpi] is null
          or v_sem_kpis->>v_kpi is null
-         or v_expected_kpis->>v_kpi is null then
+         or v_expected_kpis->>v_kpi is null
+         or v_expected_cg_kpis->>v_kpi is null
+         or v_expected_rec_kpis->>v_kpi is null
+         or v_expected_bar_kpis->>v_kpi is null
+         or v_expected_sem_kpis->>v_kpi is null then
         raise exception
           'cenario C %: KPI obrigatorio % ausente ou nulo',
           v_regime,
@@ -712,6 +934,45 @@ begin
         + (v_rec #>> array['kpis', v_kpi])::numeric
         + (v_bar #>> array['kpis', v_kpi])::numeric;
       v_sem_total := (v_sem_kpis->>v_kpi)::numeric;
+
+      if (v_cg #>> array['kpis', v_kpi])::numeric
+           is distinct from (v_expected_cg_kpis->>v_kpi)::numeric then
+        raise exception
+          'cenario C %: KPI % da unidade cg esperado %, recebido %',
+          v_regime,
+          v_kpi,
+          v_expected_cg_kpis->>v_kpi,
+          v_cg #>> array['kpis', v_kpi];
+      end if;
+
+      if (v_rec #>> array['kpis', v_kpi])::numeric
+           is distinct from (v_expected_rec_kpis->>v_kpi)::numeric then
+        raise exception
+          'cenario C %: KPI % da unidade rec esperado %, recebido %',
+          v_regime,
+          v_kpi,
+          v_expected_rec_kpis->>v_kpi,
+          v_rec #>> array['kpis', v_kpi];
+      end if;
+
+      if (v_bar #>> array['kpis', v_kpi])::numeric
+           is distinct from (v_expected_bar_kpis->>v_kpi)::numeric then
+        raise exception
+          'cenario C %: KPI % da unidade bar esperado %, recebido %',
+          v_regime,
+          v_kpi,
+          v_expected_bar_kpis->>v_kpi,
+          v_bar #>> array['kpis', v_kpi];
+      end if;
+
+      if v_sem_total is distinct from (v_expected_sem_kpis->>v_kpi)::numeric then
+        raise exception
+          'cenario C %: KPI % sem unidade esperado %, recebido %',
+          v_regime,
+          v_kpi,
+          v_expected_sem_kpis->>v_kpi,
+          v_sem_total;
+      end if;
 
       if v_total is distinct from (v_expected_kpis->>v_kpi)::numeric then
         raise exception
@@ -731,6 +992,17 @@ begin
           v_total;
       end if;
     end loop;
+
+    if v_cg->>'unidade' is distinct from 'cg'
+       or v_rec->>'unidade' is distinct from 'rec'
+       or v_bar->>'unidade' is distinct from 'bar' then
+      raise exception
+        'cenario C %: labels de unidade da consulta incorretos: cg %, rec %, bar %',
+        v_regime,
+        v_cg->>'unidade',
+        v_rec->>'unidade',
+        v_bar->>'unidade';
+    end if;
 
     v_folha_sem_alocacao := v_cons
       #> '{sem_unidade_operacional,por_motivo,folha_sem_alocacao}';
@@ -762,143 +1034,241 @@ begin
     end if;
 
     if v_regime is not distinct from 'competencia'
-       and current_setting('app.dre_fixture_mutation', true)
-         is not distinct from 'missing_group_5' then
+       and current_setting('app.dre_fixture_mutation', true) in (
+         'missing_group_4', 'missing_group_5'
+       ) then
+      v_group_codigo := case current_setting('app.dre_fixture_mutation', true)
+        when 'missing_group_4' then '4'
+        else '5'
+      end;
       v_cons := jsonb_set(
         v_cons,
         '{grupos}',
         coalesce((
           select jsonb_agg(g order by g->>'codigo')
             from jsonb_array_elements(v_cons->'grupos') g
-           where g->>'codigo' is distinct from '5'
+           where g->>'codigo' is distinct from v_group_codigo
         ), '[]'::jsonb)
       );
     end if;
 
-    select count(*), max((g->>'valor_resultado')::numeric)
-      into v_required_count, v_group_total
-      from jsonb_array_elements(v_cons->'grupos') g
-     where g->>'codigo' = '5';
+    foreach v_group_codigo in array array['3', '4', '5', '6', '7'] loop
+      select count(*), max((g->>'valor_resultado')::numeric)
+        into v_required_count, v_group_total
+        from jsonb_array_elements(v_cons->'grupos') g
+       where g->>'codigo' = v_group_codigo;
 
-    if v_required_count is distinct from 1 or v_group_total is null then
-      raise exception
-        'cenario C %: grupo 5 obrigatorio ausente ou nulo no consolidado',
-        v_regime;
-    end if;
+      if v_required_count is distinct from 1 or v_group_total is null then
+        raise exception
+          'cenario C %: grupo % obrigatorio ausente ou nulo no consolidado',
+          v_regime,
+          v_group_codigo;
+      end if;
 
-    select count(*), max((g->>'valor_resultado')::numeric)
-      into v_required_count, v_group_cg
-      from jsonb_array_elements(v_cg->'grupos') g
-     where g->>'codigo' = '5';
+      select count(*), max((g->>'valor_resultado')::numeric)
+        into v_required_count, v_group_cg
+        from jsonb_array_elements(v_cg->'grupos') g
+       where g->>'codigo' = v_group_codigo;
 
-    if v_required_count is distinct from 1 or v_group_cg is null then
-      raise exception 'cenario C %: grupo 5 obrigatorio ausente ou nulo em CG', v_regime;
-    end if;
+      if v_required_count is distinct from 1 or v_group_cg is null then
+        raise exception
+          'cenario C %: grupo % obrigatorio ausente ou nulo em CG',
+          v_regime,
+          v_group_codigo;
+      end if;
 
-    select count(*), max((g->>'valor_resultado')::numeric)
-      into v_required_count, v_group_rec
-      from jsonb_array_elements(v_rec->'grupos') g
-     where g->>'codigo' = '5';
+      select count(*), max((g->>'valor_resultado')::numeric)
+        into v_required_count, v_group_rec
+        from jsonb_array_elements(v_rec->'grupos') g
+       where g->>'codigo' = v_group_codigo;
 
-    if v_required_count is distinct from 1 or v_group_rec is null then
-      raise exception 'cenario C %: grupo 5 obrigatorio ausente ou nulo em REC', v_regime;
-    end if;
+      if v_required_count is distinct from 1 or v_group_rec is null then
+        raise exception
+          'cenario C %: grupo % obrigatorio ausente ou nulo em REC',
+          v_regime,
+          v_group_codigo;
+      end if;
 
-    select count(*), max((g->>'valor_resultado')::numeric)
-      into v_required_count, v_group_bar
-      from jsonb_array_elements(v_bar->'grupos') g
-     where g->>'codigo' = '5';
+      select count(*), max((g->>'valor_resultado')::numeric)
+        into v_required_count, v_group_bar
+        from jsonb_array_elements(v_bar->'grupos') g
+       where g->>'codigo' = v_group_codigo;
 
-    if v_required_count is distinct from 1 or v_group_bar is null then
-      raise exception 'cenario C %: grupo 5 obrigatorio ausente ou nulo em Barra', v_regime;
-    end if;
+      if v_required_count is distinct from 1 or v_group_bar is null then
+        raise exception
+          'cenario C %: grupo % obrigatorio ausente ou nulo em Barra',
+          v_regime,
+          v_group_codigo;
+      end if;
 
-    v_group_units := v_group_cg + v_group_rec + v_group_bar;
+      select coalesce(sum(l.valor_resultado), 0)
+        into v_group_sem
+        from public.dre_linhas_normalizadas(v_competencia, v_regime) l
+       where l.unidade_operacional is null
+         and l.grupo_codigo = v_group_codigo
+         and l.status_classificacao = 'classificado_dre';
 
-    select coalesce(sum(l.valor_resultado), 0)
-      into v_group_sem
-      from public.dre_linhas_normalizadas(v_competencia, v_regime) l
-     where l.unidade_operacional is null
-       and l.grupo_codigo = '5'
-       and l.status_classificacao = 'classificado_dre';
+      if v_group_total is distinct from (v_expected_groups->>v_group_codigo)::numeric
+         or v_group_cg is distinct from (v_expected_cg_groups->>v_group_codigo)::numeric
+         or v_group_rec is distinct from (v_expected_rec_groups->>v_group_codigo)::numeric
+         or v_group_bar is distinct from (v_expected_bar_groups->>v_group_codigo)::numeric
+         or v_group_sem is distinct from (v_expected_sem_groups->>v_group_codigo)::numeric then
+        raise exception
+          'cenario C %: valores do grupo % divergiram: total %, cg %, rec %, bar %, sem %',
+          v_regime,
+          v_group_codigo,
+          v_group_total,
+          v_group_cg,
+          v_group_rec,
+          v_group_bar,
+          v_group_sem;
+      end if;
 
-    if v_group_total is distinct from v_group_units + v_group_sem then
-      raise exception
-        'cenario C %: grupo 5 nao fecha por particao; unidades %, sem %, consolidado %',
-        v_regime,
-        v_group_units,
-        v_group_sem,
-        v_group_total;
-    end if;
+      v_group_units := v_group_cg + v_group_rec + v_group_bar;
+      if v_group_total is distinct from v_group_units + v_group_sem then
+        raise exception
+          'cenario C %: grupo % nao fecha por particao; unidades %, sem %, consolidado %',
+          v_regime,
+          v_group_codigo,
+          v_group_units,
+          v_group_sem,
+          v_group_total;
+      end if;
+    end loop;
 
     if v_regime is not distinct from 'competencia'
-       and current_setting('app.dre_fixture_mutation', true)
-         is not distinct from 'missing_plan_5_1_01' then
+       and current_setting('app.dre_fixture_mutation', true) in (
+         'missing_plan_5_1_01', 'missing_plan_6_1_01'
+       ) then
+      v_plan_codigo := case current_setting('app.dre_fixture_mutation', true)
+        when 'missing_plan_6_1_01' then '6.1.01'
+        else '5.1.01'
+      end;
       v_cons := jsonb_set(
         v_cons,
         '{planos}',
         coalesce((
           select jsonb_agg(p order by p->>'plano_codigo')
             from jsonb_array_elements(v_cons->'planos') p
-           where p->>'plano_codigo' is distinct from '5.1.01'
+           where p->>'plano_codigo' is distinct from v_plan_codigo
         ), '[]'::jsonb)
       );
     end if;
 
-    select count(*), max((p->>'valor_resultado')::numeric)
-      into v_required_count, v_plan_total
-      from jsonb_array_elements(v_cons->'planos') p
-     where p->>'plano_codigo' = '5.1.01';
+    foreach v_plan_codigo in array array[
+      '3.1.01', '4.1.01', '5.1.01', '6.1.01', '7.1.01', '7.2.01'
+    ] loop
+      if v_expected_plans->>v_plan_codigo is null
+         or v_expected_cg_plans->>v_plan_codigo is null
+         or v_expected_rec_plans->>v_plan_codigo is null
+         or v_expected_bar_plans->>v_plan_codigo is null
+         or v_expected_sem_plans->>v_plan_codigo is null then
+        raise exception 'cenario C %: expectativa ausente para plano %', v_regime, v_plan_codigo;
+      end if;
 
-    if v_required_count is distinct from 1 or v_plan_total is null then
+      select count(*), max((p->>'valor_resultado')::numeric)
+        into v_required_count, v_plan_total
+        from jsonb_array_elements(v_cons->'planos') p
+       where p->>'plano_codigo' = v_plan_codigo;
+
+      if v_required_count is distinct from 1 or v_plan_total is null then
+        raise exception
+          'cenario C %: plano % obrigatorio ausente ou nulo no consolidado',
+          v_regime,
+          v_plan_codigo;
+      end if;
+
+      select count(*), max((p->>'valor_resultado')::numeric)
+        into v_required_count, v_plan_cg
+        from jsonb_array_elements(v_cg->'planos') p
+       where p->>'plano_codigo' = v_plan_codigo;
+
+      if (v_expected_cg_plans->>v_plan_codigo)::numeric = 0 then
+        if v_required_count is distinct from 0 then
+          raise exception 'cenario C %: plano % inesperado em CG', v_regime, v_plan_codigo;
+        end if;
+        v_plan_cg := 0;
+      elsif v_required_count is distinct from 1 or v_plan_cg is null then
+        raise exception
+          'cenario C %: plano % obrigatorio ausente ou nulo em CG',
+          v_regime,
+          v_plan_codigo;
+      end if;
+
+      select count(*), max((p->>'valor_resultado')::numeric)
+        into v_required_count, v_plan_rec
+        from jsonb_array_elements(v_rec->'planos') p
+       where p->>'plano_codigo' = v_plan_codigo;
+
+      if (v_expected_rec_plans->>v_plan_codigo)::numeric = 0 then
+        if v_required_count is distinct from 0 then
+          raise exception 'cenario C %: plano % inesperado em REC', v_regime, v_plan_codigo;
+        end if;
+        v_plan_rec := 0;
+      elsif v_required_count is distinct from 1 or v_plan_rec is null then
+        raise exception
+          'cenario C %: plano % obrigatorio ausente ou nulo em REC',
+          v_regime,
+          v_plan_codigo;
+      end if;
+
+      select count(*), max((p->>'valor_resultado')::numeric)
+        into v_required_count, v_plan_bar
+        from jsonb_array_elements(v_bar->'planos') p
+       where p->>'plano_codigo' = v_plan_codigo;
+
+      if (v_expected_bar_plans->>v_plan_codigo)::numeric = 0 then
+        if v_required_count is distinct from 0 then
+          raise exception 'cenario C %: plano % inesperado em Barra', v_regime, v_plan_codigo;
+        end if;
+        v_plan_bar := 0;
+      elsif v_required_count is distinct from 1 or v_plan_bar is null then
+        raise exception
+          'cenario C %: plano % obrigatorio ausente ou nulo em Barra',
+          v_regime,
+          v_plan_codigo;
+      end if;
+
+      select coalesce(sum(l.valor_resultado), 0)
+        into v_plan_sem
+        from public.dre_linhas_normalizadas(v_competencia, v_regime) l
+       where l.unidade_operacional is null
+         and l.plano_codigo = v_plan_codigo
+         and l.status_classificacao = 'classificado_dre';
+
+      if v_plan_total is distinct from (v_expected_plans->>v_plan_codigo)::numeric
+         or v_plan_cg is distinct from (v_expected_cg_plans->>v_plan_codigo)::numeric
+         or v_plan_rec is distinct from (v_expected_rec_plans->>v_plan_codigo)::numeric
+         or v_plan_bar is distinct from (v_expected_bar_plans->>v_plan_codigo)::numeric
+         or v_plan_sem is distinct from (v_expected_sem_plans->>v_plan_codigo)::numeric then
+        raise exception
+          'cenario C %: valores do plano % divergiram: total %, cg %, rec %, bar %, sem %',
+          v_regime,
+          v_plan_codigo,
+          v_plan_total,
+          v_plan_cg,
+          v_plan_rec,
+          v_plan_bar,
+          v_plan_sem;
+      end if;
+
+      v_plan_units := v_plan_cg + v_plan_rec + v_plan_bar;
+      if v_plan_total is distinct from v_plan_units + v_plan_sem then
+        raise exception
+          'cenario C %: plano % nao fecha por particao; unidades %, sem %, consolidado %',
+          v_regime,
+          v_plan_codigo,
+          v_plan_units,
+          v_plan_sem,
+          v_plan_total;
+      end if;
+    end loop;
+
+    if jsonb_array_length(v_cons->'planos') is distinct from 6 then
       raise exception
-        'cenario C %: plano 5.1.01 obrigatorio ausente ou nulo no consolidado',
-        v_regime;
-    end if;
-
-    select count(*), max((p->>'valor_resultado')::numeric)
-      into v_required_count, v_plan_cg
-      from jsonb_array_elements(v_cg->'planos') p
-     where p->>'plano_codigo' = '5.1.01';
-
-    if v_required_count is distinct from 1 or v_plan_cg is null then
-      raise exception 'cenario C %: plano 5.1.01 obrigatorio ausente ou nulo em CG', v_regime;
-    end if;
-
-    select count(*), max((p->>'valor_resultado')::numeric)
-      into v_required_count, v_plan_rec
-      from jsonb_array_elements(v_rec->'planos') p
-     where p->>'plano_codigo' = '5.1.01';
-
-    if v_required_count is distinct from 1 or v_plan_rec is null then
-      raise exception 'cenario C %: plano 5.1.01 obrigatorio ausente ou nulo em REC', v_regime;
-    end if;
-
-    select count(*), max((p->>'valor_resultado')::numeric)
-      into v_required_count, v_plan_bar
-      from jsonb_array_elements(v_bar->'planos') p
-     where p->>'plano_codigo' = '5.1.01';
-
-    if v_required_count is distinct from 1 or v_plan_bar is null then
-      raise exception 'cenario C %: plano 5.1.01 obrigatorio ausente ou nulo em Barra', v_regime;
-    end if;
-
-    v_plan_units := v_plan_cg + v_plan_rec + v_plan_bar;
-
-    select coalesce(sum(l.valor_resultado), 0)
-      into v_plan_sem
-      from public.dre_linhas_normalizadas(v_competencia, v_regime) l
-     where l.unidade_operacional is null
-       and l.plano_codigo = '5.1.01'
-       and l.status_classificacao = 'classificado_dre';
-
-    if v_plan_total is distinct from v_plan_units + v_plan_sem then
-      raise exception
-        'cenario C %: plano 5.1.01 nao fecha por particao; unidades %, sem %, consolidado %',
+        'cenario C %: consolidado deveria conter exatamente 6 planos, recebeu %',
         v_regime,
-        v_plan_units,
-        v_plan_sem,
-        v_plan_total;
+        jsonb_array_length(v_cons->'planos');
     end if;
 
     raise notice

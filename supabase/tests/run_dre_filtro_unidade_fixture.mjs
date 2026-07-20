@@ -10,6 +10,8 @@ const fixturePath = fileURLToPath(fixtureUrl);
 const migrationPath = fileURLToPath(migrationUrl);
 const database = 'dre_filtro_unidade_fixture';
 const container = `dre-filtro-unidade-${process.pid}-${randomUUID().slice(0, 8)}`;
+const containerLabel = 'com.la-music.fixture=dre-filtro-unidade-postgres';
+const postgresImage = 'postgres:17.10-alpine';
 
 const setupSql = String.raw`
 \set ON_ERROR_STOP on
@@ -260,6 +262,22 @@ function assertCleanupSucceeded(result) {
   ].filter(Boolean).join('\n'));
 }
 
+function createIdempotentContainerCleanup(runDockerFn, containerName) {
+  let cleaned = false;
+
+  return (reason) => {
+    if (cleaned) return;
+
+    const result = runDockerFn(['rm', '--force', containerName]);
+    try {
+      assertCleanupSucceeded(result);
+      cleaned = true;
+    } catch (error) {
+      throw new Error(`[cleanup:${reason}] ${error.message}`, { cause: error });
+    }
+  };
+}
+
 assert.throws(
   () => assertCleanupSucceeded({ status: 1, stderr: 'permission denied' }),
   /cleanup do container falhou/i,
@@ -269,6 +287,22 @@ assert.doesNotThrow(
   () => assertCleanupSucceeded({ status: 1, stderr: 'No such container' }),
   'cleanup pode ignorar somente container ja inexistente',
 );
+assert.doesNotThrow(() => {
+  const calls = [];
+  const cleanup = createIdempotentContainerCleanup(
+    (args) => {
+      calls.push(args);
+      return { status: 0, stdout: '', stderr: '' };
+    },
+    'dre-fixture-cleanup-test',
+  );
+  cleanup('signal:SIGINT');
+  cleanup('signal:SIGTERM');
+  cleanup('finally');
+  assert.deepEqual(calls, [[
+    'rm', '--force', 'dre-fixture-cleanup-test',
+  ]]);
+}, 'cleanup por sinal/finally deve ser idempotente');
 
 function runPsql(sql, label, extraArgs = []) {
   return requireSuccess(runDocker([
@@ -310,15 +344,30 @@ const dockerInfo = runDocker(['info', '--format', '{{.ServerVersion}}']);
 requireSuccess(dockerInfo, 'Docker daemon');
 
 let containerAttempted = false;
+const cleanupContainer = createIdempotentContainerCleanup(runDocker, container);
+const handleTerminationSignal = (signal) => {
+  let exitCode = signal === 'SIGINT' ? 130 : 143;
+  try {
+    cleanupContainer(`signal:${signal}`);
+  } catch (error) {
+    exitCode = 1;
+    process.stderr.write(`[dre-fixture] ${error.message}\n`);
+  }
+  process.exit(exitCode);
+};
+process.once('SIGINT', () => handleTerminationSignal('SIGINT'));
+process.once('SIGTERM', () => handleTerminationSignal('SIGTERM'));
+
 try {
   containerAttempted = true;
   const start = runDocker([
     'run', '--detach', '--rm',
     '--name', container,
+    '--label', containerLabel,
     '--env', 'POSTGRES_PASSWORD=fixture-only',
     '--env', `POSTGRES_DB=${database}`,
     '--env', 'PGOPTIONS=-c app.dre_fixture_guard=local_ci_only',
-    'postgres:17-alpine',
+    postgresImage,
   ]);
   requireSuccess(start, 'criacao do PostgreSQL 17 efemero');
 
@@ -376,6 +425,48 @@ try {
     'fixture nao explicou qual estrutura obrigatoria ficou nula',
   );
 
+  const rotatedDreDetails = runDocker([
+    'exec', '-i', container,
+    'env',
+    'PGOPTIONS=-c app.dre_fixture_guard=local_ci_only -c app.dre_fixture_mutation=rotate_dre_detalhes_units',
+    'psql',
+    '--username', 'postgres',
+    '--dbname', database,
+    '--no-psqlrc',
+    '--set', 'ON_ERROR_STOP=1',
+  ], { input: fixtureSql });
+  assert.notEqual(
+    rotatedDreDetails.status,
+    0,
+    'fixture deveria falhar quando filtros de dre_detalhes sao rotacionados',
+  );
+  assert.match(
+    `${rotatedDreDetails.stdout}\n${rotatedDreDetails.stderr}`,
+    /cenario B detalhes: unidade cg recebeu rec/i,
+    'fixture nao discriminou a unidade errada retornada por dre_detalhes',
+  );
+
+  const rotatedDreConsult = runDocker([
+    'exec', '-i', container,
+    'env',
+    'PGOPTIONS=-c app.dre_fixture_guard=local_ci_only -c app.dre_fixture_mutation=rotate_dre_consultar_units',
+    'psql',
+    '--username', 'postgres',
+    '--dbname', database,
+    '--no-psqlrc',
+    '--set', 'ON_ERROR_STOP=1',
+  ], { input: fixtureSql });
+  assert.notEqual(
+    rotatedDreConsult.status,
+    0,
+    'fixture deveria falhar quando filtros de dre_consultar sao rotacionados',
+  );
+  assert.match(
+    `${rotatedDreConsult.stdout}\n${rotatedDreConsult.stderr}`,
+    /cenario C competencia: KPI receita da unidade cg esperado 200\.11, recebido 0/i,
+    'fixture nao discriminou os KPIs da unidade errada em dre_consultar',
+  );
+
   const missingGroupFive = runDocker([
     'exec', '-i', container,
     'env',
@@ -395,6 +486,27 @@ try {
     `${missingGroupFive.stdout}\n${missingGroupFive.stderr}`,
     /cenario C competencia: grupo 5 obrigatorio ausente ou nulo no consolidado/i,
     'fixture nao explicou qual grupo obrigatorio ficou ausente',
+  );
+
+  const missingGroupFour = runDocker([
+    'exec', '-i', container,
+    'env',
+    'PGOPTIONS=-c app.dre_fixture_guard=local_ci_only -c app.dre_fixture_mutation=missing_group_4',
+    'psql',
+    '--username', 'postgres',
+    '--dbname', database,
+    '--no-psqlrc',
+    '--set', 'ON_ERROR_STOP=1',
+  ], { input: fixtureSql });
+  assert.notEqual(
+    missingGroupFour.status,
+    0,
+    'fixture deveria falhar quando grupo 4 obrigatorio e removido',
+  );
+  assert.match(
+    `${missingGroupFour.stdout}\n${missingGroupFour.stderr}`,
+    /cenario C competencia: grupo 4 obrigatorio ausente ou nulo no consolidado/i,
+    'fixture nao detectou remocao fora do grupo 5',
   );
 
   const missingPlanFive = runDocker([
@@ -418,17 +530,56 @@ try {
     'fixture nao explicou qual plano obrigatorio ficou ausente',
   );
 
+  const missingPlanSix = runDocker([
+    'exec', '-i', container,
+    'env',
+    'PGOPTIONS=-c app.dre_fixture_guard=local_ci_only -c app.dre_fixture_mutation=missing_plan_6_1_01',
+    'psql',
+    '--username', 'postgres',
+    '--dbname', database,
+    '--no-psqlrc',
+    '--set', 'ON_ERROR_STOP=1',
+  ], { input: fixtureSql });
+  assert.notEqual(
+    missingPlanSix.status,
+    0,
+    'fixture deveria falhar quando plano 6.1.01 obrigatorio e removido',
+  );
+  assert.match(
+    `${missingPlanSix.stdout}\n${missingPlanSix.stderr}`,
+    /cenario C competencia: plano 6\.1\.01 obrigatorio ausente ou nulo no consolidado/i,
+    'fixture nao detectou remocao fora do plano 5.1.01',
+  );
+
   const fixtureResult = runPsql(
     fixtureSql,
     'fixture comportamental DRE',
   );
+  const rollbackProof = runPsql(String.raw`
+select
+  (select count(*) from public.folhas_mensais where id in (910001, 910002))
+  + (select count(*) from public.colaboradores where id in (930001, 930002, 930003))
+  + (select count(*) from public.folha_classificacao_dre where folha_id in (910001, 910002))
+  + (select count(*) from public.fixture_folha_alocacao_dre_resolvida where folha_id in (910001, 910002))
+  + (select count(*) from public.contas_pagar where id::text like '00000000-0000-0000-0000-0000000004%')
+  + (select count(*) from public.financeiro_cartao_transacoes where id = '00000000-0000-0000-0000-000000000502')
+  + (select count(*) from public.contas_receber where id in (
+      '00000000-0000-0000-0000-000000000701',
+      '00000000-0000-0000-0000-000000000702'
+    ));
+`, 'prova pos-rollback dos IDs sentinela', ['--tuples-only', '--no-align']);
+  assert.equal(
+    rollbackProof.stdout.trim(),
+    '0',
+    `ROLLBACK deixou linhas sentinela persistidas: ${rollbackProof.stdout.trim()}`,
+  );
 
   process.stdout.write(`[dre-fixture] PostgreSQL ${version}\n`);
+  process.stdout.write('[dre-fixture] rollback_sentinel_rows=0\n');
   process.stdout.write(fixtureResult.stdout);
   process.stderr.write(fixtureResult.stderr);
 } finally {
   if (containerAttempted) {
-    const cleanup = runDocker(['rm', '--force', container]);
-    assertCleanupSucceeded(cleanup);
+    cleanupContainer('finally');
   }
 }
