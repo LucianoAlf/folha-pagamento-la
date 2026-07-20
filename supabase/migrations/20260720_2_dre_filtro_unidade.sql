@@ -289,6 +289,9 @@ as $$
         else 'classificado_dre'
       end as status_classificacao,
       null::integer as colaborador_id,
+      -- O Cartao usa o centro confirmado da propria transacao, estruturalmente
+      -- independente da conta pagadora. As 58 transacoes observadas em julho/2026
+      -- coincidiram com a conta, mas essa coincidencia nao define a regra.
       case
         when t.classificacao_status = 'confirmada'
           and lower(nullif(trim(cc_cartao.codigo), '')) in ('cg', 'rec', 'bar')

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -10,6 +11,15 @@ import {
   getDreUnidadeLabel,
 } from './dreSelectors.ts';
 import type { DreResumoSemUnidadeOperacional } from '../../types/dre.ts';
+
+const drePageSource = readFileSync(new URL('./DrePage.tsx', import.meta.url), 'utf8');
+
+test('unit selector forces compact single-line options on narrow screens', () => {
+  assert.match(
+    drePageSource,
+    /ariaLabel="Unidade operacional do DRE"[\s\S]*?optionClassName="!px-0\.5 !text-\[9px\] whitespace-nowrap sm:!px-2 sm:!text-xs"/,
+  );
+});
 
 const dre = {
   grupos: [

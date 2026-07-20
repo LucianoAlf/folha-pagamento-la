@@ -259,7 +259,7 @@ export const DrePage: React.FC = () => {
               onValueChange={handleUnidadeChange}
               ariaLabel="Unidade operacional do DRE"
               className="w-full"
-              optionClassName="px-1 text-[10px] sm:px-2 sm:text-xs"
+              optionClassName="!px-0.5 !text-[9px] whitespace-nowrap sm:!px-2 sm:!text-xs"
               options={[
                 { value: 'consolidado', label: 'Consolidado' },
                 { value: 'cg', label: 'CG' },
