@@ -1,8 +1,12 @@
 import type {
   DreConsulta,
   DreCoberturaFonte,
+  DreMetricasUnidade,
   DreModoVisual,
   DreReconciliacaoFonte,
+  DreResumoSemUnidadeOperacional,
+  DreSemUnidadeMotivo,
+  DreUnidade,
 } from '../../types/dre.ts';
 
 export interface DreDisplayRow {
@@ -13,6 +17,42 @@ export interface DreDisplayRow {
   valorResultado: number;
   valorExibido: number;
   linhasClassificadas?: number;
+}
+
+export interface DreSemUnidadeReasonRow extends DreMetricasUnidade {
+  motivo: DreSemUnidadeMotivo;
+  label: string;
+}
+
+const DRE_UNIDADE_LABELS: Record<DreUnidade, string> = {
+  consolidado: 'Consolidado',
+  cg: 'CG',
+  rec: 'Recreio',
+  bar: 'Barra',
+};
+
+const DRE_SEM_UNIDADE_REASON_LABELS: ReadonlyArray<{
+  motivo: DreSemUnidadeMotivo;
+  label: string;
+}> = [
+  { motivo: 'folha_sem_alocacao', label: 'Folha sem alocação' },
+  { motivo: 'folha_desatualizada', label: 'Folha desatualizada' },
+  { motivo: 'cartao_nao_confirmado', label: 'Cartão não confirmado' },
+  { motivo: 'fonte_sem_unidade', label: 'Fonte sem unidade' },
+];
+
+export function getDreUnidadeLabel(unidade: DreUnidade): string {
+  return DRE_UNIDADE_LABELS[unidade];
+}
+
+export function getDreSemUnidadeReasonRows(
+  resumo: DreResumoSemUnidadeOperacional,
+): DreSemUnidadeReasonRow[] {
+  return DRE_SEM_UNIDADE_REASON_LABELS.map(({ motivo, label }) => ({
+    motivo,
+    label,
+    ...resumo.por_motivo[motivo],
+  }));
 }
 
 export function getDreDisplayRows(

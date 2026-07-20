@@ -25,6 +25,7 @@ import type {
   DreFonte,
   DreModoVisual,
   DreRegime,
+  DreUnidade,
 } from '../../types/dre.ts';
 import {
   Badge,
@@ -43,6 +44,8 @@ import {
   buildDreReconciliationTotals,
   getDreErrorMessage,
   getDreDisplayRows,
+  getDreSemUnidadeReasonRows,
+  getDreUnidadeLabel,
   type DreDisplayRow,
 } from './dreSelectors.ts';
 
@@ -89,6 +92,7 @@ export const DrePage: React.FC = () => {
   const [month, setMonth] = useState(currentMonth);
   const [regime, setRegime] = useState<DreRegime>('competencia');
   const [modo, setModo] = useState<DreModoVisual>('simples');
+  const [unidade, setUnidade] = useState<DreUnidade>('consolidado');
   const [dre, setDre] = useState<DreConsulta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +104,7 @@ export const DrePage: React.FC = () => {
   const [nextCursor, setNextCursor] = useState<DreCursor | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const detailRequestId = useRef(0);
 
   const competencia = toCompetencia(month);
 
@@ -109,7 +114,7 @@ export const DrePage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchDreConsulta(competencia, regime);
+      const result = await fetchDreConsulta(competencia, regime, unidade);
       if (requestId.current !== nextRequestId) return;
       setDre(result);
     } catch (loadError) {
@@ -120,7 +125,7 @@ export const DrePage: React.FC = () => {
     } finally {
       if (requestId.current === nextRequestId) setLoading(false);
     }
-  }, [competencia, regime]);
+  }, [competencia, regime, unidade]);
 
   useEffect(() => {
     void load();
@@ -135,31 +140,40 @@ export const DrePage: React.FC = () => {
     () => dre ? buildDreReconciliationTotals(dre.reconciliacao) : null,
     [dre],
   );
+  const semUnidadeReasonRows = useMemo(
+    () => dre ? getDreSemUnidadeReasonRows(dre.sem_unidade_operacional) : [],
+    [dre],
+  );
   const margin = dre && dre.kpis.receita !== 0
     ? (dre.kpis.lucro_operacional / dre.kpis.receita) * 100
     : 0;
 
   const loadDetails = useCallback(async (append: boolean, cursor: DreCursor | null = null) => {
     if (!selectedRow) return;
+    const nextDetailRequestId = detailRequestId.current + 1;
+    detailRequestId.current = nextDetailRequestId;
     setDetailLoading(true);
     setDetailError(null);
     try {
       const result = await fetchDreDetalhes({
         competencia,
         regime,
+        unidade,
         planoCodigo: selectedRow.codigo,
         fonte: detailSource === 'all' ? null : detailSource,
         cursor,
       });
+      if (detailRequestId.current !== nextDetailRequestId) return;
       setDetails((current) => append ? [...current, ...result.itens] : result.itens);
       setNextCursor(result.next_cursor);
     } catch (loadError) {
+      if (detailRequestId.current !== nextDetailRequestId) return;
       console.error('Falha ao carregar detalhes da DRE:', loadError);
       setDetailError(getDreErrorMessage(loadError));
     } finally {
-      setDetailLoading(false);
+      if (detailRequestId.current === nextDetailRequestId) setDetailLoading(false);
     }
-  }, [competencia, detailSource, regime, selectedRow]);
+  }, [competencia, detailSource, regime, selectedRow, unidade]);
 
   useEffect(() => {
     if (!selectedRow) return;
@@ -168,29 +182,42 @@ export const DrePage: React.FC = () => {
     void loadDetails(false);
   }, [loadDetails, selectedRow]);
 
-  const closeDetails = () => {
+  const closeDetails = useCallback(() => {
+    detailRequestId.current += 1;
     setSelectedRow(null);
     setDetailSource('all');
     setDetails([]);
     setNextCursor(null);
+    setDetailLoading(false);
     setDetailError(null);
+  }, []);
+
+  const handleUnidadeChange = (nextUnidade: DreUnidade) => {
+    if (nextUnidade === unidade) return;
+    requestId.current += 1;
+    closeDetails();
+    setLoading(true);
+    setUnidade(nextUnidade);
   };
 
   return (
     <div className="w-full space-y-5 pb-28 lg:pb-10">
-      <section className="flex flex-col gap-4 border-b border-line/60 pb-5 xl:flex-row xl:items-end xl:justify-between">
+      <section className="flex flex-col gap-4 border-b border-line/60 pb-5">
         <div>
           <div className="flex items-center gap-2 text-accent">
             <BarChart3 size={18} />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Financeiro</span>
           </div>
-          <h2 className="mt-2 text-2xl font-black text-primary">DRE</h2>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <h2 className="text-2xl font-black text-primary">DRE</h2>
+            <Badge variant="purple">Unidade · {getDreUnidadeLabel(unidade)}</Badge>
+          </div>
           <p className="mt-1 max-w-2xl text-sm font-semibold text-secondary">
-            Resultado consolidado das receitas, despesas, investimentos e movimentos não operacionais.
+            Resultado de receitas, despesas, investimentos e movimentos não operacionais no recorte selecionado.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-[170px_auto_auto] sm:items-end">
+        <div className="grid w-full gap-3 sm:grid-cols-2 sm:items-end 2xl:grid-cols-[170px_minmax(0,1fr)_minmax(0,1fr)_minmax(320px,1.35fr)]">
           <label className="block">
             <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-muted">Competência</span>
             <CompetenciaPicker
@@ -205,7 +232,7 @@ export const DrePage: React.FC = () => {
               value={regime}
               onValueChange={setRegime}
               ariaLabel="Regime do DRE"
-              className="min-w-[224px]"
+              className="w-full"
               options={[
                 { value: 'competencia', label: 'Competência' },
                 { value: 'caixa', label: 'Caixa' },
@@ -218,11 +245,27 @@ export const DrePage: React.FC = () => {
               value={modo}
               onValueChange={setModo}
               ariaLabel="Nível de detalhe"
-              className="min-w-[208px]"
+              className="w-full"
               options={[
                 { value: 'simples', label: 'Simples' },
                 { value: 'sofisticado', label: 'Analítico' },
               ] satisfies { value: DreModoVisual; label: string }[]}
+            />
+          </div>
+          <div>
+            <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-muted">Unidade</span>
+            <SegmentedControl<DreUnidade>
+              value={unidade}
+              onValueChange={handleUnidadeChange}
+              ariaLabel="Unidade operacional do DRE"
+              className="w-full"
+              optionClassName="px-1 text-[10px] sm:px-2 sm:text-xs"
+              options={[
+                { value: 'consolidado', label: 'Consolidado' },
+                { value: 'cg', label: 'CG' },
+                { value: 'rec', label: 'Recreio' },
+                { value: 'bar', label: 'Barra' },
+              ] satisfies { value: DreUnidade; label: string }[]}
             />
           </div>
         </div>
@@ -244,8 +287,10 @@ export const DrePage: React.FC = () => {
                     <Badge variant={coverageMessage ? 'warning' : 'success'}>
                       {coverageMessage ? 'Cobertura incompleta' : 'Fontes disponíveis'}
                     </Badge>
+                    <Badge>Consolidado · todas as unidades</Badge>
                   </div>
                   <p className="mt-1 text-xs font-semibold text-secondary">
+                    Cobertura consolidada entre todas as unidades.{' '}
                     {coverageMessage ?? 'As quatro fontes possuem dados no período selecionado.'}
                   </p>
                 </div>
@@ -289,7 +334,10 @@ export const DrePage: React.FC = () => {
                   {modo === 'simples' ? 'Grupos consolidados do plano de contas.' : 'Folhas analíticas classificadas por plano.'}
                 </p>
               </div>
-              <Badge variant="info">{regime === 'caixa' ? 'Movimento pago/recebido' : 'Competência econômica'}</Badge>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="purple">Unidade · {getDreUnidadeLabel(unidade)}</Badge>
+                <Badge variant="info">{regime === 'caixa' ? 'Movimento pago/recebido' : 'Competência econômica'}</Badge>
+              </div>
             </div>
 
             <div className="divide-y divide-line">
@@ -336,7 +384,7 @@ export const DrePage: React.FC = () => {
                 <h3 className="font-black text-primary">Reconciliação</h3>
               </div>
               <p className="mt-1 text-xs font-semibold text-secondary">
-                O total de cada fonte permanece visível, inclusive o que não participa dos KPIs.
+                Reconciliação consolidada entre todas as unidades. O total de cada fonte permanece visível, inclusive o que não participa dos KPIs.
               </p>
             </div>
 
@@ -363,6 +411,60 @@ export const DrePage: React.FC = () => {
                 </div>
               ))}
             </div>
+            <div className="border-t border-line bg-surface-2/20 p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AlertTriangle className="text-warning" size={17} />
+                    <h4 className="font-black text-primary">Sem unidade operacional</h4>
+                    <Badge variant="warning">Consolidado · todas as unidades</Badge>
+                  </div>
+                  <p className="mt-1 text-xs font-semibold text-secondary">
+                    Valores sem atribuição operacional permanecem explícitos e não são redistribuídos por estimativa.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {[
+                  ['Valor da origem', formatCurrency(dre.sem_unidade_operacional.valor_origem)],
+                  ['Efeito no DRE', formatSignedCurrency(dre.sem_unidade_operacional.valor_resultado)],
+                  ['Linhas', String(dre.sem_unidade_operacional.linhas)],
+                  ['Colaboradores da folha', String(dre.sem_unidade_operacional.colaboradores_folha)],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-lg border border-line bg-surface px-3 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-muted">{label}</p>
+                    <p className="mt-1 text-sm font-black text-primary">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
+                {semUnidadeReasonRows.map((reason) => (
+                  <div key={reason.motivo} className="rounded-lg border border-line bg-surface p-4">
+                    <p className="text-xs font-black text-primary">{reason.label}</p>
+                    <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-wider text-muted">Origem</p>
+                        <p className="mt-0.5 text-xs font-bold text-secondary">{formatCurrency(reason.valor_origem)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-wider text-muted">Efeito no DRE</p>
+                        <p className="mt-0.5 text-xs font-bold text-secondary">{formatSignedCurrency(reason.valor_resultado)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-wider text-muted">Linhas</p>
+                        <p className="mt-0.5 text-xs font-bold text-secondary">{reason.linhas}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-wider text-muted">Colab. folha</p>
+                        <p className="mt-0.5 text-xs font-bold text-secondary">{reason.colaboradores_folha}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
             {reconciliationTotals ? (
               <div className="grid gap-3 border-t border-line-strong bg-surface-2/55 p-5 sm:grid-cols-3 xl:grid-cols-6">
                 <div><p className="text-[10px] font-black uppercase tracking-wider text-muted">Classificado</p><p className="mt-1 font-black text-primary">{formatCurrency(reconciliationTotals.classificadoDre)}</p></div>
@@ -381,7 +483,7 @@ export const DrePage: React.FC = () => {
         isOpen={Boolean(selectedRow)}
         onClose={closeDetails}
         title={selectedRow ? `${selectedRow.codigo} · ${selectedRow.nome}` : 'Detalhes do DRE'}
-        subtitle={selectedRow ? `${month.split('-').reverse().join('/')} · ${regime === 'caixa' ? 'Regime de caixa' : 'Regime de competência'}` : undefined}
+        subtitle={selectedRow ? `${month.split('-').reverse().join('/')} · ${regime === 'caixa' ? 'Regime de caixa' : 'Regime de competência'} · Unidade ${getDreUnidadeLabel(unidade)}` : undefined}
         headerIcon={<ListTree className="text-accent" size={20} />}
         size="xl"
       >
@@ -414,14 +516,26 @@ export const DrePage: React.FC = () => {
             <div className="overflow-hidden rounded-lg border border-line">
               <div className="divide-y divide-line">
                 {details.map((item) => (
-                  <article key={`${item.fonte}:${item.origem_id}:${item.origem_sequencia}`} className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1.4fr)_160px_150px] lg:items-center">
+                  <article key={`${item.fonte}:${item.origem_id}:${item.origem_sequencia}:${item.unidade_operacional ?? 'sem-unidade'}`} className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1.4fr)_160px_150px] lg:items-center">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant={item.status_classificacao === 'classificado_dre' ? 'success' : item.status_classificacao === 'em_revisao' || item.status_classificacao === 'sem_plano' ? 'warning' : 'default'}>
                           {SOURCE_LABELS[item.fonte]}
                         </Badge>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{item.status_financeiro}</span>
+                        {item.unidade_operacional ? (
+                          <Badge variant={item.qualidade_unidade === 'aproximada_fiscal_pagadora' ? 'warning' : 'info'}>
+                            Unidade {getDreUnidadeLabel(item.unidade_operacional)}
+                          </Badge>
+                        ) : (
+                          <Badge>Sem unidade operacional</Badge>
+                        )}
                       </div>
+                      {item.qualidade_unidade === 'aproximada_fiscal_pagadora' ? (
+                        <div className="mt-2 flex w-fit items-center gap-1.5 rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-warning">
+                          <AlertTriangle size={13} /> Unidade fiscal/pagadora aproximada
+                        </div>
+                      ) : null}
                       <h4 className="mt-2 truncate font-black text-primary">{item.contraparte}</h4>
                       <p className="mt-1 truncate text-xs font-semibold text-secondary">{item.descricao}</p>
                       {item.conta_pagadora_label ? <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-muted">{item.conta_pagadora_label}</p> : null}

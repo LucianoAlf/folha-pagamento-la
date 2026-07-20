@@ -6,7 +6,10 @@ import {
   buildDreReconciliationTotals,
   getDreErrorMessage,
   getDreDisplayRows,
+  getDreSemUnidadeReasonRows,
+  getDreUnidadeLabel,
 } from './dreSelectors.ts';
+import type { DreResumoSemUnidadeOperacional } from '../../types/dre.ts';
 
 const dre = {
   grupos: [
@@ -61,4 +64,81 @@ test('technical RPC failures become an operational message', () => {
     getDreErrorMessage(new Error('network request failed')),
     'Não foi possível carregar a DRE. Tente novamente.',
   );
+});
+
+test('unit labels cover the consolidated and operational scopes', () => {
+  assert.equal(getDreUnidadeLabel('consolidado'), 'Consolidado');
+  assert.equal(getDreUnidadeLabel('cg'), 'CG');
+  assert.equal(getDreUnidadeLabel('rec'), 'Recreio');
+  assert.equal(getDreUnidadeLabel('bar'), 'Barra');
+});
+
+test('missing-unit reasons keep a stable order and preserve zero-valued metrics', () => {
+  const resumo = {
+    valor_origem: 1500,
+    valor_resultado: -1500,
+    linhas: 6,
+    colaboradores_folha: 3,
+    por_motivo: {
+      folha_sem_alocacao: {
+        valor_origem: 1000,
+        valor_resultado: -1000,
+        linhas: 3,
+        colaboradores_folha: 2,
+      },
+      folha_desatualizada: {
+        valor_origem: 500,
+        valor_resultado: -500,
+        linhas: 2,
+        colaboradores_folha: 1,
+      },
+      cartao_nao_confirmado: {
+        valor_origem: 0,
+        valor_resultado: 0,
+        linhas: 0,
+        colaboradores_folha: 0,
+      },
+      fonte_sem_unidade: {
+        valor_origem: 0,
+        valor_resultado: 0,
+        linhas: 1,
+        colaboradores_folha: 0,
+      },
+    },
+  } satisfies DreResumoSemUnidadeOperacional;
+
+  assert.deepEqual(getDreSemUnidadeReasonRows(resumo), [
+    {
+      motivo: 'folha_sem_alocacao',
+      label: 'Folha sem alocação',
+      valor_origem: 1000,
+      valor_resultado: -1000,
+      linhas: 3,
+      colaboradores_folha: 2,
+    },
+    {
+      motivo: 'folha_desatualizada',
+      label: 'Folha desatualizada',
+      valor_origem: 500,
+      valor_resultado: -500,
+      linhas: 2,
+      colaboradores_folha: 1,
+    },
+    {
+      motivo: 'cartao_nao_confirmado',
+      label: 'Cartão não confirmado',
+      valor_origem: 0,
+      valor_resultado: 0,
+      linhas: 0,
+      colaboradores_folha: 0,
+    },
+    {
+      motivo: 'fonte_sem_unidade',
+      label: 'Fonte sem unidade',
+      valor_origem: 0,
+      valor_resultado: 0,
+      linhas: 1,
+      colaboradores_folha: 0,
+    },
+  ]);
 });
