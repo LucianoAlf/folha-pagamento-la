@@ -118,6 +118,7 @@ export interface DreDetalhe {
 
 export interface DreDetalhesPagina {
   success: boolean;
+  unidade: DreUnidade;
   itens: DreDetalhe[];
   next_cursor: DreCursor | null;
 }
