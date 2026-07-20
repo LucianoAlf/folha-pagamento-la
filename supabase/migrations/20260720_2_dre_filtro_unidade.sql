@@ -144,6 +144,7 @@ as $$
     left join public.colaboradores c on c.id = r.colaborador_id
     left join public.financeiro_contas_bancarias fcb on fcb.id = d.conta_pagadora_id_usada
     left join public.financeiro_empresas fe on fe.id = fcb.empresa_id
+    cross join parametros p
     left join lateral (
       select cp_folha.*
       from public.contas_pagar cp_folha
@@ -151,13 +152,21 @@ as $$
         and cp_folha.fonte_identificador = d.folha_id::text
         and cp_folha.conta_pagadora_id = d.conta_pagadora_id_usada
         and cp_folha.status <> 'cancelado'
+        and (
+          p_regime = 'competencia'
+          or (
+            p_regime = 'caixa'
+            and cp_folha.status = 'pago'
+            and cp_folha.data_pagamento::date >= p.inicio
+            and cp_folha.data_pagamento::date < p.fim
+          )
+        )
       order by
         case when cp_folha.status = 'pago' then 0 else 1 end,
         cp_folha.updated_at desc nulls last,
         cp_folha.id
       limit 1
     ) cp_folha on true
-    cross join parametros p
     where (
       p_regime = 'competencia'
       and r.competencia >= p.inicio

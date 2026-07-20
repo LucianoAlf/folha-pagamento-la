@@ -120,8 +120,25 @@ if (migrationExists) {
     );
   });
 
-  test('rejoins each resolved payroll slice to its exact classification and payable', () => {
+  test('rejoins each resolved payroll slice and filters its cash payable before limit 1', () => {
     const folha = cteBody(normalizadas, 'folha_raw');
+    const payableLateralMatch = /left\s+join\s+lateral\s*\(/i.exec(folha);
+    assert.ok(payableLateralMatch, 'folha_raw must have an exact payable lateral');
+
+    const payableOpenIndex = payableLateralMatch.index
+      + payableLateralMatch[0].lastIndexOf('(');
+    const payableLateral = parenthesizedBody(
+      folha,
+      payableOpenIndex,
+      'payroll payable lateral',
+    );
+    const parametrosIndex = folha.search(/cross\s+join\s+parametros\s+p/i);
+
+    assert.ok(parametrosIndex >= 0, 'folha_raw must expose parametros as p');
+    assert.ok(
+      parametrosIndex < payableLateralMatch.index,
+      'parametros p must be visible before the payable lateral',
+    );
 
     assert.match(
       normalizadas,
@@ -132,6 +149,10 @@ if (migrationExists) {
     assert.match(
       normalizadas,
       /cp_folha\.conta_pagadora_id\s*=\s*d\.conta_pagadora_id_usada/i,
+    );
+    assert.match(
+      payableLateral,
+      /and\s*\(\s*p_regime\s*=\s*'competencia'\s+or\s*\(\s*p_regime\s*=\s*'caixa'\s+and\s+cp_folha\.status\s*=\s*'pago'\s+and\s+cp_folha\.data_pagamento::date\s*>=\s*p\.inicio\s+and\s+cp_folha\.data_pagamento::date\s*<\s*p\.fim\s*\)\s*\)\s*order\s+by/i,
     );
     assert.match(
       folha,
