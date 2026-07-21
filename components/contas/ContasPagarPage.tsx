@@ -1436,7 +1436,7 @@ export const ContasPagarPage: React.FC<{
                 setCalendarioDiaSelecionado(undefined);
               }}
               icon={Calendar}
-              className="w-[7.25rem] px-2.5 py-2 text-[11px] font-black uppercase tracking-wide bg-surface/60 border-line/70 shadow-sm"
+              className="!w-[7.25rem] !px-2.5 py-2 text-[11px] font-black uppercase tracking-wide bg-surface/60 border-line/70 shadow-sm"
               options={competenciaOptionsCompact}
             />
           </div>
