@@ -6,7 +6,6 @@
 -- - service_role nao recebe grants diretos nas tabelas; escreve/le via RPCs/views allowlisted.
 -- - Historico financeiro e append-only por trigger, com excecoes por flags locais separadas.
 
-create extension if not exists pgcrypto;
 create extension if not exists pg_cron;
 
 -- =====================================================
@@ -38,7 +37,7 @@ create table if not exists public.maria_email_sources (
 create table if not exists public.maria_email_processing_runs (
   id uuid primary key default gen_random_uuid(),
   source_id uuid not null references public.maria_email_sources(id) on delete restrict,
-  run_kind text not null check (run_kind in ('autopush','manual_query','backfill','reprocess')),
+  run_kind text not null check (run_kind in ('autopush','manual_query','backfill','reprocess','retention')),
   started_at timestamptz not null default now(),
   finished_at timestamptz null,
   status text not null default 'running' check (status in ('running','success','partial','error')),
@@ -88,7 +87,7 @@ create table if not exists public.maria_email_messages (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint maria_email_messages_uid_uniq unique (source_id, uidvalidity, imap_uid),
-  constraint maria_email_messages_hash_version_check check (hash_version = 'hmac-sha256-v1'),
+  constraint maria_email_messages_hash_version_check check (hash_version ~ '^hmac-sha256-v[0-9]+$'),
   constraint maria_email_messages_from_hash_shape check (from_email_hash is null or from_email_hash ~ '^[a-f0-9]{64}$'),
   constraint maria_email_messages_body_hash_shape check (body_hash is null or body_hash ~ '^[a-f0-9]{64}$')
 );
@@ -130,7 +129,7 @@ create table if not exists public.maria_email_extracted_payables (
   raw_extraction_sanitized jsonb null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint maria_email_payables_hash_version_check check (hash_version = 'hmac-sha256-v1'),
+  constraint maria_email_payables_hash_version_check check (hash_version ~ '^hmac-sha256-v[0-9]+$'),
   constraint maria_email_payables_fornecedor_hash_shape check (fornecedor_documento_hash is null or fornecedor_documento_hash ~ '^[a-f0-9]{64}$'),
   constraint maria_email_payables_payer_hash_shape check (payer_name_hash is null or payer_name_hash ~ '^[a-f0-9]{64}$'),
   constraint maria_email_payables_barcode_hash_shape check (barcode_hash is null or barcode_hash ~ '^[a-f0-9]{64}$'),
@@ -416,22 +415,20 @@ begin
 
   if v_rpc then
     if (to_jsonb(new) - array[
-          'status','review_reason','centro_custo_id','unidade_snapshot','plano_conta_id','plano_snapshot',
-          'empresa_id','confidence','supersedes_payable_id','updated_at'
+          'status','review_reason','plano_conta_id','plano_snapshot','confidence','supersedes_payable_id','updated_at'
         ])
        is distinct from
        (to_jsonb(old) - array[
-          'status','review_reason','centro_custo_id','unidade_snapshot','plano_conta_id','plano_snapshot',
-          'empresa_id','confidence','supersedes_payable_id','updated_at'
+          'status','review_reason','plano_conta_id','plano_snapshot','confidence','supersedes_payable_id','updated_at'
         ]) then
       raise exception 'MARIA_EMAIL_IMUTAVEL: fato financeiro/dedupe nao pode mudar pela trilha operacional' using errcode = '42501';
     end if;
   end if;
 
   if v_redaction then
-    if (to_jsonb(new) - array['payer_name_masked','payer_name_hash','person_data_redaction_status','updated_at'])
+    if (to_jsonb(new) - array['fornecedor_nome','payer_name_masked','payer_name_hash','raw_extraction_sanitized','person_data_redaction_status','updated_at'])
        is distinct from
-       (to_jsonb(old) - array['payer_name_masked','payer_name_hash','person_data_redaction_status','updated_at']) then
+       (to_jsonb(old) - array['fornecedor_nome','payer_name_masked','payer_name_hash','raw_extraction_sanitized','person_data_redaction_status','updated_at']) then
       raise exception 'MARIA_EMAIL_REDACAO_ESCOPO: expurgo so toca campos pessoais do payable' using errcode = '42501';
     end if;
 
@@ -440,7 +437,7 @@ begin
     end if;
 
     if new.person_data_redaction_status = 'expurgado'
-       and (new.payer_name_masked is not null or new.payer_name_hash is not null) then
+       and (new.fornecedor_nome is not null or new.payer_name_masked is not null or new.payer_name_hash is not null or new.raw_extraction_sanitized is not null) then
       raise exception 'MARIA_EMAIL_REDACAO_INCOMPLETA: expurgo deve anular campos pessoais do payable' using errcode = '42501';
     end if;
   end if;
@@ -995,12 +992,16 @@ begin
     raise exception 'payable nao encontrado' using errcode = '22023';
   end if;
 
+  if (p_centro_custo_id is not null and p_centro_custo_id is distinct from v_before.centro_custo_id)
+     or (p_empresa_id is not null and p_empresa_id is distinct from v_before.empresa_id)
+     or (nullif(trim(p_unidade_snapshot), '') is not null and nullif(trim(p_unidade_snapshot), '') is distinct from v_before.unidade_snapshot) then
+    raise exception 'MARIA_EMAIL_DEDUPE_VERSIONAR: centro_custo, empresa ou unidade podem alterar a base de dedupe; crie novo payable e marque o anterior como substituido'
+      using errcode = '42501';
+  end if;
+
   perform set_config('app.maria_email_rpc', 'on', true);
   update public.maria_email_extracted_payables
-     set centro_custo_id = coalesce(p_centro_custo_id, centro_custo_id),
-         plano_conta_id = coalesce(p_plano_conta_id, plano_conta_id),
-         empresa_id = coalesce(p_empresa_id, empresa_id),
-         unidade_snapshot = coalesce(nullif(trim(p_unidade_snapshot), ''), unidade_snapshot),
+     set plano_conta_id = coalesce(p_plano_conta_id, plano_conta_id),
          plano_snapshot = coalesce(nullif(trim(p_plano_snapshot), ''), plano_snapshot),
          confidence = coalesce(p_confidence, confidence),
          review_reason = coalesce(nullif(trim(p_motivo), ''), review_reason)
@@ -1074,48 +1075,136 @@ set search_path = public, pg_temp
 as $$
 declare
   v_limit integer := least(greatest(coalesce(p_limit, 500), 1), 5000);
-  v_messages integer := 0;
-  v_payables integer := 0;
+  v_source record;
+  v_run_id uuid;
+  v_messages integer;
+  v_payables integer;
+  v_total_messages integer := 0;
+  v_total_payables integer := 0;
 begin
-  perform set_config('app.maria_email_redaction', 'on', true);
+  for v_source in
+    select s.id as source_id, s.source_key, s.last_known_uidvalidity
+      from public.maria_email_sources s
+     where exists (
+       select 1
+         from public.maria_email_messages m
+        where m.source_id = s.id
+          and m.person_data_redaction_status = 'pendente'
+          and (
+            m.created_at < now() - interval '90 days'
+            or exists (
+              select 1
+                from public.maria_email_extracted_payables p
+                join public.maria_email_payable_matches mt on mt.email_payable_id = p.id
+               where p.message_id = m.id
+                 and mt.match_status = 'confirmado_humano'
+            )
+          )
+     )
+     or exists (
+       select 1
+         from public.maria_email_extracted_payables p
+         join public.maria_email_messages m on m.id = p.message_id
+        where m.source_id = s.id
+          and p.person_data_redaction_status = 'pendente'
+          and (
+            p.created_at < now() - interval '90 days'
+            or exists (
+              select 1
+                from public.maria_email_payable_matches mt
+               where mt.email_payable_id = p.id
+                 and mt.match_status = 'confirmado_humano'
+            )
+          )
+     )
+  loop
+    insert into public.maria_email_processing_runs (
+      source_id, run_kind, uidvalidity_before, parser_version, code_version
+    ) values (
+      v_source.source_id, 'retention', v_source.last_known_uidvalidity, 'maria_email_retencao_aplicar', 'sql-migration-20260724_1'
+    ) returning id into v_run_id;
 
-  with alvo as (
-    select id
-      from public.maria_email_messages
-     where person_data_redaction_status in ('pendente','retido_por_regra_operacional')
-       and created_at < now() - interval '90 days'
-     order by created_at
-     limit v_limit
-  ), upd as (
-    update public.maria_email_messages m
-       set subject = null,
-           snippet = null,
-           from_name = null,
-           from_email_masked = null,
-           person_data_redaction_status = 'expurgado'
-      from alvo
-     where m.id = alvo.id
-     returning m.id
-  ) select count(*) into v_messages from upd;
+    perform set_config('app.maria_email_redaction', 'on', true);
 
-  with alvo as (
-    select id
-      from public.maria_email_extracted_payables
-     where person_data_redaction_status in ('pendente','retido_por_regra_operacional')
-       and created_at < now() - interval '90 days'
-     order by created_at
-     limit v_limit
-  ), upd as (
-    update public.maria_email_extracted_payables p
-       set payer_name_masked = null,
-           payer_name_hash = null,
-           person_data_redaction_status = 'expurgado'
-      from alvo
-     where p.id = alvo.id
-     returning p.id
-  ) select count(*) into v_payables from upd;
+    with alvo as (
+      select m.id
+        from public.maria_email_messages m
+       where m.source_id = v_source.source_id
+         and m.person_data_redaction_status = 'pendente'
+         and (
+           m.created_at < now() - interval '90 days'
+           or exists (
+             select 1
+               from public.maria_email_extracted_payables p
+               join public.maria_email_payable_matches mt on mt.email_payable_id = p.id
+              where p.message_id = m.id
+                and mt.match_status = 'confirmado_humano'
+           )
+         )
+       order by m.created_at
+       limit v_limit
+    ), upd as (
+      update public.maria_email_messages m
+         set subject = null,
+             snippet = null,
+             from_name = null,
+             from_email_masked = null,
+             person_data_redaction_status = 'expurgado'
+        from alvo
+       where m.id = alvo.id
+       returning m.id
+    ) select count(*) into v_messages from upd;
 
-  return jsonb_build_object('success', true, 'messages_expurgadas', v_messages, 'payables_expurgados', v_payables);
+    with alvo as (
+      select p.id
+        from public.maria_email_extracted_payables p
+        join public.maria_email_messages m on m.id = p.message_id
+       where m.source_id = v_source.source_id
+         and p.person_data_redaction_status = 'pendente'
+         and (
+           p.created_at < now() - interval '90 days'
+           or exists (
+             select 1
+               from public.maria_email_payable_matches mt
+              where mt.email_payable_id = p.id
+                and mt.match_status = 'confirmado_humano'
+           )
+         )
+       order by p.created_at
+       limit v_limit
+    ), upd as (
+      update public.maria_email_extracted_payables p
+         set fornecedor_nome = null,
+             payer_name_masked = null,
+             payer_name_hash = null,
+             raw_extraction_sanitized = null,
+             person_data_redaction_status = 'expurgado'
+        from alvo
+       where p.id = alvo.id
+       returning p.id
+    ) select count(*) into v_payables from upd;
+
+    perform set_config('app.maria_email_redaction', '', true);
+    perform set_config('app.maria_email_rpc', 'on', true);
+
+    update public.maria_email_processing_runs
+       set status = 'success',
+           finished_at = now(),
+           uidvalidity_after = v_source.last_known_uidvalidity,
+           uidvalidity_changed = false,
+           messages_seen = v_messages,
+           messages_processed = v_messages,
+           messages_ignored = 0,
+           payables_extracted = v_payables,
+           error_summary = null
+     where id = v_run_id;
+
+    perform set_config('app.maria_email_rpc', '', true);
+    v_total_messages := v_total_messages + v_messages;
+    v_total_payables := v_total_payables + v_payables;
+  end loop;
+
+  return jsonb_build_object('success', true, 'messages_expurgadas', v_total_messages, 'payables_expurgados', v_total_payables);
 end;
 $$;
 

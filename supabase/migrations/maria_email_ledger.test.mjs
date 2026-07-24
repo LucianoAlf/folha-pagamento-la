@@ -42,9 +42,9 @@ test('fecha acesso direto nas tabelas, incluindo service_role, e expoe apenas RP
   assert.match(sql, /grant select on public\.vw_maria_email_pendencias to service_role/i);
 });
 
-test('mantem HMAC no runtime: nao calcula pepper no banco apesar do pgcrypto', () => {
+test('mantem HMAC no runtime e nao cria pgcrypto nem recebe pepper no banco', () => {
   assert.match(sql, /Credenciais, pepper e HMAC sensivel ficam no runtime privado da Maria/i);
-  assert.match(sql, /create extension if not exists pgcrypto/i);
+  assert.doesNotMatch(sql, /create extension if not exists pgcrypto/i);
   assert.doesNotMatch(sql, /extensions\.hmac|\bhmac\s*\(/i);
   assert.doesNotMatch(sql, /p_pepper|pepper\s+text/i);
   assert.match(sql, /maria_email_assert_hmac_hex/i);
@@ -57,7 +57,7 @@ test('usa flags separadas, locais, e guarda trilhas de operacao e redacao', () =
   assert.match(sql, /MARIA_EMAIL_FLAG_INVALIDA/i);
   assert.match(sql, /maria_email_message_guard[\s\S]*to_jsonb\(new\) - array\['processing_status','relevance_status','ignored_reason','last_processed_at','processing_run_id','updated_at'\]/i);
   assert.match(sql, /maria_email_message_guard[\s\S]*to_jsonb\(new\) - array\['subject','snippet','from_name','from_email_masked','person_data_redaction_status','updated_at'\]/i);
-  assert.match(sql, /maria_email_payable_guard[\s\S]*to_jsonb\(new\) - array\['payer_name_masked','payer_name_hash','person_data_redaction_status','updated_at'\]/i);
+  assert.match(sql, /maria_email_payable_guard[\s\S]*to_jsonb\(new\) - array\['fornecedor_nome','payer_name_masked','payer_name_hash','raw_extraction_sanitized','person_data_redaction_status','updated_at'\]/i);
 });
 
 test('guards bloqueiam delete e falham fechados com to_jsonb menos campos permitidos', () => {
@@ -95,6 +95,9 @@ test('dedupe e segunda via ficam congelados/versionados', () => {
   assert.match(sql, /create unique index if not exists maria_email_payable_ativo_uniq[\s\S]*where status in \('vinculado', 'lancado', 'pago'\)[\s\S]*dedupe_group_quality in \('forte', 'media'\)/i);
   const payableGuard = functionBody('maria_email_payable_guard');
   assert.doesNotMatch(payableGuard, /dedupe_group_key'[,\]]/i, 'dedupe_group_key nao pode estar entre campos permitidos de update');
+  assert.doesNotMatch(payableGuard, /centro_custo_id'|empresa_id'|unidade_snapshot'/i, 'campos que podem compor dedupe nao podem mudar no lugar');
+  assert.match(sql, /MARIA_EMAIL_DEDUPE_VERSIONAR/i);
+  assert.match(sql, /p_centro_custo_id is not null[\s\S]*p_empresa_id is not null[\s\S]*p_unidade_snapshot/i);
   assert.match(sql, /supersedes_payable_id uuid null references public\.maria_email_extracted_payables\(id\) on delete restrict/i);
 });
 
@@ -107,11 +110,15 @@ test('resolve explicitamente a interacao do guard com on delete set null de cont
   assert.deepEqual(otherSetNull, [], 'SET NULL so deve existir no match com contas_pagar');
 });
 
-test('retencao usa pg_cron, redaction flag, e nao processa nao_aplicavel', () => {
+test('retencao usa pg_cron, redaction flag, match confirmado e nao processa nao_aplicavel/retido', () => {
+  const body = functionBody('maria_email_retencao_aplicar');
   assert.match(sql, /create or replace function public\.maria_email_retencao_aplicar\(p_limit integer default 500\)/i);
-  assert.match(sql, /perform set_config\('app\.maria_email_redaction', 'on', true\)/i);
-  assert.match(sql, /person_data_redaction_status in \('pendente','retido_por_regra_operacional'\)/i);
-  assert.doesNotMatch(functionBody('maria_email_retencao_aplicar'), /person_data_redaction_status in \([^)]*'nao_aplicavel'/i);
+  assert.match(body, /perform set_config\('app\.maria_email_redaction', 'on', true\)/i);
+  assert.match(body, /mt\.match_status = 'confirmado_humano'/i);
+  assert.match(body, /run_kind, uidvalidity_before, parser_version, code_version[\s\S]*'retention'/i);
+  assert.match(body, /fornecedor_nome = null[\s\S]*raw_extraction_sanitized = null/i);
+  assert.doesNotMatch(body, /person_data_redaction_status in \([^)]*'nao_aplicavel'/i);
+  assert.doesNotMatch(body, /person_data_redaction_status in \([^)]*'retido_por_regra_operacional'/i);
   assert.match(sql, /cron\.schedule\([\s\S]*'maria-email-retencao-diaria'[\s\S]*select public\.maria_email_retencao_aplicar\(500\)/i);
 });
 
@@ -145,4 +152,6 @@ test('views seguras nao expoem hashes/codigos sensiveis e status confiavel nao e
   assert.match(sql, /prioridade_conferencia/i);
   assert.match(sql, /match_score numeric\(5,4\) not null default 0 check \(match_score between 0 and 1\)/i);
   assert.match(sql, /confidence numeric\(5,4\) not null default 0 check \(confidence between 0 and 1\)/i);
+  assert.match(sql, /hash_version text not null default 'hmac-sha256-v1'/i);
+  assert.match(sql, /hash_version ~ '\^hmac-sha256-v\[0-9\]\+\$'/i);
 });
