@@ -156,6 +156,7 @@ declare
 begin
   select message_id into v_message_id from _maria_email_test_ids;
 
+  perform set_config('app.maria_email_rpc', '', true);
   perform set_config('app.maria_email_redaction', 'on', true);
   begin
     update public.maria_email_messages set processing_status = 'reprocessar' where id = v_message_id;
@@ -163,6 +164,7 @@ begin
   exception when insufficient_privilege then
     null;
   end;
+  perform set_config('app.maria_email_redaction', '', true);
 end $$;
 
 do $$
@@ -171,6 +173,7 @@ declare
 begin
   select message_id into v_message_id from _maria_email_test_ids;
 
+  perform set_config('app.maria_email_redaction', '', true);
   perform set_config('app.maria_email_rpc', 'on', true);
   begin
     update public.maria_email_messages set snippet = null where id = v_message_id;
@@ -178,6 +181,7 @@ begin
   exception when insufficient_privilege then
     null;
   end;
+  perform set_config('app.maria_email_rpc', '', true);
 end $$;
 
 -- 6. Expurgo real so toca campos pessoais e nao muda status.
@@ -200,6 +204,7 @@ begin
   if v_status <> 'processado' then
     raise exception 'FAIL: expurgo alterou processing_status para %', v_status;
   end if;
+  perform set_config('app.maria_email_redaction', '', true);
 end $$;
 
 -- 7. on delete set null de contas_pagar se comporta conforme decisao registrada.
