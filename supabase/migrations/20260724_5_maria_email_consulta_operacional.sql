@@ -93,6 +93,7 @@ begin
       mt.superfolha_valor_centavos_snapshot,
       mt.superfolha_vencimento_snapshot,
       c.status as conta_status_atual,
+      c.descricao as conta_descricao_atual,
       round((c.valor * 100)::numeric)::integer as conta_valor_centavos_atual,
       c.data_vencimento as conta_vencimento_atual,
       c.unidade as conta_unidade_atual
@@ -130,6 +131,7 @@ begin
     'match_score', match_score,
     'match_reason', match_reason,
     'superfolha_status_snapshot', coalesce(conta_status_atual, superfolha_status_snapshot),
+    'superfolha_descricao_snapshot', conta_descricao_atual,
     'superfolha_valor_centavos_snapshot', coalesce(conta_valor_centavos_atual, superfolha_valor_centavos_snapshot),
     'superfolha_vencimento_snapshot', coalesce(conta_vencimento_atual, superfolha_vencimento_snapshot),
     'superfolha_unidade_snapshot', conta_unidade_atual
