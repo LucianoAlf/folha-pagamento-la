@@ -41,6 +41,14 @@ test('versionamento marca antigo substituido e forca novo pendente_conferencia c
   assert.match(body, /versionamento exige dedupe_group_key recalculada no runtime/i);
 });
 
+test('quality fix exige dedupe_group_quality recalculada junto da chave', () => {
+  const fixSql = readFileSync(new URL('./20260724_3_maria_email_ledger_fase3a_quality_fix.sql', import.meta.url), 'utf8');
+  assert.match(fixSql, /versionamento exige dedupe_group_quality recalculada no runtime/i);
+  assert.match(fixSql, /p_payload_novo \? 'dedupe_group_quality'/i);
+  assert.match(fixSql, /dedupe_group_quality invalida no versionamento/i);
+  assert.match(fixSql, /not in \('forte', 'media', 'fraca'\)/i);
+});
+
 test('versionamento nao faz DELETE nem altera dedupe do antigo no lugar', () => {
   const body = functionBody('maria_email_payable_versionar');
   assert.doesNotMatch(body, /delete\s+from\s+public\.maria_email/i);

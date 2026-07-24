@@ -146,6 +146,34 @@ begin
   end if;
 end $$;
 
+-- 2b. Chave nova sem quality recalculada tambem deve falhar sem alterar antigo.
+do $$
+declare
+  v_old uuid;
+  v_status text;
+begin
+  select payable_id into v_old from _maria_email_fase3a_ids;
+
+  begin
+    perform public.maria_email_payable_versionar(
+      '550000000001',
+      'owner_full',
+      v_old,
+      jsonb_build_object('dedupe_group_key', 'test-fase3a-new-key-without-quality'),
+      'rollback teste sem quality',
+      'texto sintetico'
+    );
+    raise exception 'FAIL: versionamento sem dedupe_group_quality deveria falhar';
+  exception when invalid_parameter_value then
+    null;
+  end;
+
+  select status into v_status from public.maria_email_extracted_payables where id = v_old;
+  if v_status <> 'extraido' then
+    raise exception 'FAIL: falha sem quality alterou status antigo para %', v_status;
+  end if;
+end $$;
+
 -- 3. Versionamento atomico: antigo substituido, novo criado, status novo forcado e auditado.
 update _maria_email_fase3a_ids
    set payable_novo_id = (
