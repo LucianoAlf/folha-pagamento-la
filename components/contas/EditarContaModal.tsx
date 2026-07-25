@@ -8,6 +8,7 @@ import { hasCodigoPagamento } from '../../services/contasPagarCodigoMes';
 import { cn } from '../CollaboratorComponents';
 import { competenciaFromVencimento, formatCompetenciaLabel, toDateOnly } from '../../utils/dateOnly';
 import { ContaLembretesWhatsApp } from './ContaLembretesWhatsApp';
+import { ContaComprovantesCard } from './ContaComprovantesCard';
 import { CentroCustoSelect, PlanoContaTreeSelect } from './PlanoContaTreeSelect';
 import { centroCustoToUnidade } from './planoContasSelectors';
 
@@ -708,10 +709,13 @@ export const EditarContaModal: React.FC<{
             </div>
           </div>
 
-          {/* E) WhatsApp */}
+          {/* E) Comprovantes */}
+          <ContaComprovantesCard contaId={conta.id} />
+
+          {/* F) WhatsApp */}
           <div>
             <div className="text-xs font-black uppercase tracking-[0.25em] text-secondary flex items-center gap-3 mb-6">
-              <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">E</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-accent/10 text-accent text-[10px]">F</span>
               Notificações
             </div>
             <ContaLembretesWhatsApp contaId={conta.id} dense />
