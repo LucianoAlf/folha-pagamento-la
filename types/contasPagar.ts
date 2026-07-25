@@ -111,6 +111,37 @@ export interface ContaPagarRelatorioDia {
   updated_at: string;
 }
 
+export type FinanceiroDocumentoStatus = 'pendente_vinculo' | 'ativo' | 'rejeitado';
+
+export interface FinanceiroDocumentoContaPagar {
+  documento_id: string;
+  conta_pagar_id: string | null;
+  conta_descricao: string | null;
+  unidade: string | null;
+  conta_valor: number | null;
+  data_vencimento: string | null;
+  competencia: string | null;
+  tipo: string | null;
+  origem: string | null;
+  status_documento: FinanceiroDocumentoStatus;
+  nome_arquivo: string | null;
+  mime_type: string | null;
+  tamanho_bytes: number | null;
+  created_at: string;
+  rejeitado_em: string | null;
+  rejeitado_por: string | null;
+  rejeitado_motivo: string | null;
+  hash_parcial: string | null;
+  /** Caminho interno usado apenas para createSignedUrl; não exibir na UI. */
+  storage_path: string | null;
+  mensagem_origem_id: string | null;
+  canal_origem: string | null;
+  chat_id: string | null;
+  enviado_por: string | null;
+  confirmado_por: string | null;
+  pagamento_executado_pela_maria: boolean;
+}
+
 export interface ContaPagar {
   id: string;
   descricao: string;
@@ -184,4 +215,3 @@ export const FONTE_TIPOS = [
 export const PORTAL_SUGESTOES = [
   'light', 'cedae', 'claro', 'itau', 'bradesco', 'santander', 'vivo', 'tim', 'enel', 'outro',
 ] as const;
-

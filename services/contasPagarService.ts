@@ -3,6 +3,7 @@ import {
   CentroCusto,
   CodigoMesBadge,
   ContaCredencial,
+  FinanceiroDocumentoContaPagar,
   ContaPagar,
   ContaPagarCodigoMes,
   ContaPagarRelatorioDia,
@@ -536,6 +537,50 @@ export async function upsertContaPagarNotificacoesOverride(
 export async function deleteContaPagarNotificacoesOverride(contaId: string): Promise<void> {
   const { error } = await supabase.from('contas_pagar_notificacoes').delete().eq('conta_pagar_id', contaId);
   if (error) throw error;
+}
+
+// =============================================
+// COMPROVANTES / DOCUMENTOS FINANCEIROS
+// =============================================
+
+export async function fetchComprovantesContaPagar(contaId: string): Promise<FinanceiroDocumentoContaPagar[]> {
+  if (!contaId) return [];
+  const { data, error } = await supabase
+    .from('vw_financeiro_documentos_conta_pagar')
+    .select('*')
+    .eq('conta_pagar_id', contaId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data || []) as FinanceiroDocumentoContaPagar[];
+}
+
+export async function getFinanceiroDocumentoSignedUrl(storagePath: string): Promise<string> {
+  const normalizedPath = String(storagePath || '')
+    .replace(/^\/+/, '')
+    .replace(/^financeiro-documentos\//, '');
+
+  if (!normalizedPath) throw new Error('Caminho do comprovante não encontrado.');
+
+  const { data, error } = await supabase.storage
+    .from('financeiro-documentos')
+    .createSignedUrl(normalizedPath, 60 * 10);
+
+  if (error) throw error;
+  if (!data?.signedUrl) throw new Error('Não foi possível gerar link seguro do comprovante.');
+  return data.signedUrl;
+}
+
+export async function rejeitarComprovanteContaPagar(documentoId: string, motivo: string): Promise<void> {
+  const { data, error } = await supabase.rpc('financeiro_documento_rejeitar_ui', {
+    p_documento_id: documentoId,
+    p_motivo: motivo,
+  });
+
+  if (error) throw error;
+  if (data && data.ok === false) {
+    throw new Error(data.reason || 'Não foi possível rejeitar o comprovante.');
+  }
 }
 
 // Helpers
