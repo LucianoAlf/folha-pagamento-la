@@ -1,5 +1,6 @@
 import { Colaborador, FolhaMensal, Lancamento, UserProfile } from '../types';
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from './supabase';
+import { fetchRhRead } from './rhReadResilience';
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   // Cache curto para evitar chamar getSession em toda requisição.
@@ -59,23 +60,15 @@ export const api = {
     return Array.isArray(rows) && rows.length ? (rows[0] as UserProfile) : null;
   },
 
-  async upsertUserProfile(profile: Pick<UserProfile, 'id' | 'nome' | 'avatar_url' | 'role'>): Promise<UserProfile> {
-    const headers = await getAuthHeaders();
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles?on_conflict=id`, {
-      method: 'POST',
-      headers: {
-        ...headers,
-        Prefer: 'resolution=merge-duplicates,return=representation',
-      },
-      body: JSON.stringify(profile),
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      console.error('[avatar-save] FALHOU', res.status, res.statusText, '| body:', text, '| payloadKB:', Math.round(JSON.stringify(profile).length / 1024));
-      throw new Error(`Erro ${res.status} ao salvar perfil. ${text || res.statusText}`.trim());
-    }
-    const rows = await res.json();
-    return rows[0] as UserProfile;
+  async updateOwnUserProfile(profile: Pick<UserProfile, 'nome' | 'avatar_url'>): Promise<UserProfile> {
+    const { data, error } = await supabase
+      .rpc('user_profile_self_update', {
+        p_nome: profile.nome,
+        p_avatar_url: profile.avatar_url || null,
+      })
+      .single();
+    if (error) throw new Error(`Erro ao salvar perfil. ${error.message}`);
+    return data as UserProfile;
   },
 
   async fetchFolhaAiInsights(input: { folhaId: number; force?: boolean }): Promise<any> {
@@ -123,6 +116,22 @@ export const api = {
     const headers = await getAuthHeaders();
     const res = await fetch(`${SUPABASE_URL}/rest/v1/colaboradores?select=*&arquivado_em=is.null&order=nome`, { headers });
     if (!res.ok) throw new Error('Erro ao buscar colaboradores');
+    return res.json();
+  },
+
+  async fetchRhColaboradores(): Promise<Colaborador[]> {
+    const headers = await getAuthHeaders();
+    const res = await fetchRhRead(
+      `${SUPABASE_URL}/rest/v1/colaboradores?select=id%2Cnome%2Cfuncao%2Ctipo%2Cdepartamento%2Cunidade_fixa%2Cis_rateado%2Cativo%2Cdata_admissao%2Cstatus%2Carquivado_em&arquivado_em=is.null&order=nome`,
+      { headers },
+      { label: 'A lista de colaboradores do RH', timeoutMs: 7_000 },
+    );
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        throw new Error('Sua conta nao tem permissao para consultar os colaboradores do RH.');
+      }
+      throw new Error(`Erro ao buscar colaboradores do RH (${res.status}). Tente novamente.`);
+    }
     return res.json();
   },
 

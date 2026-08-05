@@ -352,7 +352,7 @@ export const rhJornadaService = {
   },
 
   async fetchColaboradores(): Promise<Colaborador[]> {
-    return api.fetchColaboradores();
+    return api.fetchRhColaboradores();
   },
 
   async fetchUserProfiles(): Promise<UserProfile[]> {
