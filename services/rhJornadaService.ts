@@ -4,6 +4,7 @@ import { rhAgendaSyncService } from './rhAgendaSyncService';
 import type {
   RhCandidate,
   RhCandidateApprovalInput,
+  RhCandidateApprovalResult,
   RhCandidateAiDraft,
   RhCandidateComparisonResult,
   RhCandidateCreateInput,
@@ -32,6 +33,7 @@ import type {
   RhGeneratedDocument,
   RhOffboarding,
   RhOffboardingCreateInput,
+  RhOnboardingDeletionResult,
   RhPendingDocumentView,
   RhPdiBadge,
   RhPdiCheckpoint,
@@ -1093,6 +1095,17 @@ export const rhJornadaService = {
     return (data || []) as RhTemplate[];
   },
 
+  async fetchEligibleOnboardingTemplates(): Promise<RhTemplate[]> {
+    const templates = (await this.fetchTemplates('onboarding')).filter((template) => template.ativo);
+    const withStages = await Promise.all(
+      templates.map(async (template) => ({
+        template,
+        stages: await this.fetchTemplateStages(template.id),
+      }))
+    );
+    return withStages.filter(({ stages }) => stages.length > 0).map(({ template }) => template);
+  },
+
   async fetchTemplateStages(templateId: string): Promise<RhTemplateStage[]> {
     const { data, error } = await supabase
       .from('rh_template_etapas')
@@ -1294,69 +1307,22 @@ export const rhJornadaService = {
     return data as RhCandidate;
   },
 
-  async approveCandidate(input: RhCandidateApprovalInput): Promise<{ candidate: RhCandidate; collaborator: Colaborador; onboardingProcess?: RhProcess | null }> {
-    const collaborator = await api.createColaborador({
-      nome: input.nome,
-      funcao: input.funcao,
-      departamento: input.departamento,
-      tipo: input.tipo,
-      salario_base: input.salario_base,
-      data_admissao: input.data_admissao || undefined,
-      unidade_fixa: input.is_rateado ? undefined : (input.unidade_fixa as any) || undefined,
-      is_rateado: input.is_rateado,
-      ativo: true,
-      status: 'active',
-      email: input.email || undefined,
-      telefone: input.telefone || undefined,
-      cpf: input.cpf || undefined,
+  async approveCandidate(input: RhCandidateApprovalInput): Promise<RhCandidateApprovalResult> {
+    const { reuseExistingCollaboratorId, ...payload } = input;
+    const { data, error } = await supabase.rpc('rh_candidato_aprovar', {
+      p_payload: payload,
+      p_reutilizar_colaborador_id: reuseExistingCollaboratorId || null,
     });
+    if (error) throw new Error(error.message || 'Não foi possível aprovar o candidato.');
 
-    const candidate = await this.updateCandidate(input.candidateId, {
-      status: 'aprovado',
-      aprovado_em: new Date().toISOString() as any,
-      colaborador_convertido_id: collaborator.id as any,
-    } as any);
-
-    let onboardingProcess: RhProcess | null = null;
-    if (input.createOnboardingNow && input.onboardingTemplateId) {
-      onboardingProcess = await this.createProcessFromTemplate({
-        tipo: 'onboarding',
-        template_id: input.onboardingTemplateId,
-        colaborador_id: collaborator.id,
-        data_inicio: input.onboardingDataInicio || new Date().toISOString().slice(0, 10),
-        data_fim_prevista: input.onboardingDataFimPrevista || null,
-        titulo: `Onboarding - ${collaborator.nome}`,
-        cargo: collaborator.funcao,
-        tipo_vinculo: collaborator.tipo,
-        unidade: collaborator.unidade_fixa || null,
-        observacoes: input.onboardingObservacoes || null,
-        metadata_json: {
-          origem: 'candidate_approval',
-          candidate_id: input.candidateId,
-        },
-      });
+    const result = data as RhCandidateApprovalResult;
+    if (result.status === 'aprovado' && result.onboardingProcess) {
+      const process = result.onboardingProcess;
+      const stages = await this.fetchStages(process.id);
+      await runRhAgendaSync(() => rhAgendaSyncService.syncProcessMirror(process));
+      await Promise.all(stages.map((stage) => runRhAgendaSync(() => rhAgendaSyncService.syncStageMirror(process, stage))));
     }
-
-    const { data: recrutamento } = await supabase
-      .from('rh_processos')
-      .select('id,status')
-      .eq('tipo', 'recrutamento')
-      .eq('candidato_id', input.candidateId)
-      .in('status', ['rascunho', 'em_andamento', 'aguardando_documentos', 'aguardando_avaliacao', 'aguardando_aprovacao'])
-      .maybeSingle();
-
-    if (recrutamento?.id) {
-      await this.updateProcessStatus(recrutamento.id, 'concluido');
-      await this.insertHistoryEvent({
-        processo_id: recrutamento.id,
-        entidade_tipo: 'rh_processos',
-        entidade_id: recrutamento.id,
-        acao: 'candidato_aprovado',
-        comentario: `Candidato ${input.nome} aprovado e convertido em colaborador.`,
-      });
-    }
-
-    return { candidate, collaborator, onboardingProcess };
+    return result;
   },
 
   async rejectCandidate(candidateId: string, motivo?: string | null): Promise<RhCandidate> {
@@ -1487,6 +1453,19 @@ export const rhJornadaService = {
     const { data: auth } = await supabase.auth.getUser();
     const userId = auth.user?.id;
     if (!userId) throw new Error('Usuário não autenticado.');
+
+    if (input.tipo === 'onboarding') {
+      const { data, error } = await supabase.rpc('rh_onboarding_criar', {
+        p_payload: input,
+      });
+      if (error) throw new Error(error.message || 'Não foi possível criar o onboarding.');
+
+      const process = data as RhProcess;
+      const stages = await this.fetchStages(process.id);
+      await runRhAgendaSync(() => rhAgendaSyncService.syncProcessMirror(process));
+      await Promise.all(stages.map((stage) => runRhAgendaSync(() => rhAgendaSyncService.syncStageMirror(process, stage))));
+      return process;
+    }
 
     const [templateStages, templateDocuments] = await Promise.all([
       this.fetchTemplateStages(input.template_id),
@@ -1659,6 +1638,15 @@ export const rhJornadaService = {
     await this.syncProcessLifecycle(process.id);
 
     return process as RhProcess;
+  },
+
+  async deleteOnboarding(processId: string, confirmationTitle: string): Promise<RhOnboardingDeletionResult> {
+    const { data, error } = await supabase.rpc('rh_onboarding_excluir_definitivo', {
+      p_processo_id: processId,
+      p_confirmacao_titulo: confirmationTitle,
+    });
+    if (error) throw new Error(error.message || 'Não foi possível excluir o onboarding.');
+    return data as RhOnboardingDeletionResult;
   },
 
   async fetchComments(processId: string, etapaId?: string | null): Promise<RhComment[]> {

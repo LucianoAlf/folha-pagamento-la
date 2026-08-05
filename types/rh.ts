@@ -230,6 +230,33 @@ export interface RhCandidateApprovalInput {
   onboardingDataInicio?: string | null;
   onboardingDataFimPrevista?: string | null;
   onboardingObservacoes?: string | null;
+  reuseExistingCollaboratorId?: number | null;
+}
+
+export interface RhExistingCollaboratorConflict {
+  status: 'cpf_existente';
+  colaborador_existente: {
+    id: number;
+    nome: string;
+    funcao: string;
+    email?: string | null;
+  };
+}
+
+export interface RhCandidateApprovedResult {
+  status: 'aprovado';
+  candidate: RhCandidate;
+  collaborator: import('../types').Colaborador;
+  onboardingProcess?: RhProcess | null;
+}
+
+export type RhCandidateApprovalResult = RhExistingCollaboratorConflict | RhCandidateApprovedResult;
+
+export interface RhOnboardingDeletionResult {
+  processo_id: string;
+  titulo: string;
+  etapas: number;
+  tarefas_removidas: number;
 }
 
 export interface RhTemplate {
