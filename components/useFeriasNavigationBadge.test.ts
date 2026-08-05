@@ -1,12 +1,38 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  createDeferredAuthStateListener,
   createFeriasBadgeStore,
   createSessionAwareFeriasBadgeCache,
   toFeriasNavigationBadge,
   type FeriasBadgeCounts,
   type FeriasBadgeStore,
 } from './useFeriasNavigationBadge.ts';
+
+test('listener de auth adia leituras e cancela callbacks desmontados', () => {
+  const scheduled: Array<{ active: boolean; run: () => void }> = [];
+  const seen: Array<[string, string | null]> = [];
+  const bridge = createDeferredAuthStateListener(
+    (event, userId) => seen.push([event, userId]),
+    (run) => {
+      const task = { active: true, run };
+      scheduled.push(task);
+      return () => {
+        task.active = false;
+      };
+    },
+  );
+
+  bridge.notify('INITIAL_SESSION', 'user-a');
+  assert.deepEqual(seen, [], 'callback Supabase nao pode iniciar leitura de forma sincrona');
+  if (scheduled[0]?.active) scheduled[0].run();
+  assert.deepEqual(seen, [['INITIAL_SESSION', 'user-a']]);
+
+  bridge.notify('TOKEN_REFRESHED', 'user-a');
+  bridge.dispose();
+  if (scheduled[1]?.active) scheduled[1].run();
+  assert.deepEqual(seen, [['INITIAL_SESSION', 'user-a']]);
+});
 
 function deferred<T>() {
   let resolve!: (value: T) => void;

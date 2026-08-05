@@ -85,6 +85,37 @@ export function createSessionAwareFeriasBadgeCache(
 
 type FeriasBadgeListener = (badge: NavigationBadge | undefined) => void;
 type AuthStateListener = (event: string, sessionUserId: string | null) => void;
+type DeferredAuthScheduler = (run: () => void) => () => void;
+
+const scheduleDeferredAuth: DeferredAuthScheduler = (run) => {
+  const timeout = globalThis.setTimeout(run, 0);
+  return () => globalThis.clearTimeout(timeout);
+};
+
+export function createDeferredAuthStateListener(
+  listener: AuthStateListener,
+  schedule: DeferredAuthScheduler = scheduleDeferredAuth,
+) {
+  const pending = new Set<() => void>();
+  let disposed = false;
+
+  return {
+    notify(event: string, sessionUserId: string | null) {
+      if (disposed) return;
+      let cancel = () => undefined;
+      cancel = schedule(() => {
+        pending.delete(cancel);
+        if (!disposed) listener(event, sessionUserId);
+      });
+      pending.add(cancel);
+    },
+    dispose() {
+      disposed = true;
+      pending.forEach((cancel) => cancel());
+      pending.clear();
+    },
+  };
+}
 
 interface FeriasBadgeStoreOptions {
   getSessionUserId: () => Promise<string | null>;
@@ -255,11 +286,12 @@ const sharedFeriasBadgeStore = createFeriasBadgeStore({
   subscribeAuthState(listener) {
     let active = true;
     let unsubscribe: (() => void) | undefined;
+    const deferredAuth = createDeferredAuthStateListener(listener);
     void import('../services/supabase')
       .then(({ supabase }) => {
         if (!active) return;
         const { data } = supabase.auth.onAuthStateChange((event, session) => {
-          listener(event, session?.user.id ?? null);
+          deferredAuth.notify(event, session?.user.id ?? null);
         });
         unsubscribe = () => data.subscription.unsubscribe();
       })
@@ -268,21 +300,13 @@ const sharedFeriasBadgeStore = createFeriasBadgeStore({
       });
     return () => {
       active = false;
+      deferredAuth.dispose();
       unsubscribe?.();
     };
   },
   async loadCounts() {
     const { feriasService } = await import('../services/feriasService');
-    const colaboradores = await feriasService.fetchColaboradoresStatus();
-    const vencidos = colaboradores.filter((item) => item.tem_ferias_vencidas).length;
-    const proximos = colaboradores.filter((item) => {
-      if (item.tem_ferias_vencidas || !item.proxima_expiracao) return false;
-      const dias = Math.ceil(
-        (new Date(item.proxima_expiracao).getTime() - Date.now()) / 86_400_000,
-      );
-      return dias > 0 && dias <= 30;
-    }).length;
-    return { vencidos, proximos };
+    return feriasService.fetchBadgeCounts();
   },
   scheduleRefresh(refresh) {
     const interval = window.setInterval(refresh, FERIAS_BADGE_REFRESH_MS);

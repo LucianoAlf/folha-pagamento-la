@@ -256,6 +256,25 @@ export const feriasService = {
   // STATUS DE COLABORADORES
   // =====================================================
 
+  async fetchBadgeCounts(): Promise<{ vencidos: number; proximos: number }> {
+    const headers = await getAuthHeaders();
+    const url = `${SUPABASE_URL}/rest/v1/rpc/ferias_badge_contadores`;
+    const res = await fetchRhRead(url, {
+      method: 'POST',
+      headers,
+      body: '{}',
+    }, {
+      label: 'Os indicadores de ferias',
+    });
+    if (!res.ok) throw new Error('Erro ao buscar indicadores de ferias');
+    const payload = await res.json();
+    const row = Array.isArray(payload) ? payload[0] : payload;
+    return {
+      vencidos: Number(row?.vencidos ?? 0),
+      proximos: Number(row?.proximos ?? 0),
+    };
+  },
+
   /**
    * Busca status consolidado de férias de colaboradores CLT
    */
@@ -263,7 +282,25 @@ export const feriasService = {
     filtros?: FeriasColaboradorFiltros
   ): Promise<FeriasColaboradorStatus[]> {
     const headers = await getAuthHeaders();
-    let url = `${SUPABASE_URL}/rest/v1/v_ferias_colaboradores_status?select=*`;
+    const statusColumns = [
+      'colaborador_id',
+      'nome',
+      'nome_completo',
+      'funcao',
+      'departamento',
+      'data_admissao',
+      'colaborador_status',
+      'salario_base',
+      'periodos_ativos',
+      'periodos_vencidos',
+      'total_dias_saldo',
+      'tem_ferias_vencidas',
+      'proxima_expiracao',
+      'ferias_programadas',
+      'proximas_ferias_inicio',
+      'status_ferias',
+    ];
+    let url = `${SUPABASE_URL}/rest/v1/v_ferias_colaboradores_status?select=${statusColumns.join(',')}`;
 
     // Ordenação padrão
     const ordenacao = filtros?.ordenacao || 'proxima_expiracao';
