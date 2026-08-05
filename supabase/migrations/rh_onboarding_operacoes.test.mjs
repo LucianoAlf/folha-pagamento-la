@@ -35,6 +35,17 @@ test('aprovacao valida template e CPF antes de escrever', () => {
   );
 });
 
+test('aprovacao conclui espelhos da Agenda do recrutamento encerrado', () => {
+  assert.match(
+    operations,
+    /update public\.tarefas[\s\S]*status\s*=\s*'concluida'[\s\S]*vinculo_tipo\s*=\s*'rh_processo'[\s\S]*v_recrutamento\.id/i,
+  );
+  assert.match(
+    operations,
+    /update public\.tarefas[\s\S]*vinculo_tipo\s*=\s*'rh_etapa'[\s\S]*public\.rh_processo_etapas/i,
+  );
+});
+
 test('ACLs fecham funcoes publicas para public e anon', () => {
   assert.match(
     operations,

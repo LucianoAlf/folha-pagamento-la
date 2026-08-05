@@ -109,7 +109,8 @@ create table public.rh_historico_eventos (
 );
 create table public.tarefas (
   id uuid primary key default gen_random_uuid(), titulo text not null,
-  vinculo_tipo text, vinculo_id uuid
+  vinculo_tipo text, vinculo_id uuid, status text default 'pendente',
+  data_conclusao timestamptz, updated_at timestamptz default now()
 );
 `;
 

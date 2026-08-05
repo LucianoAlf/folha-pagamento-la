@@ -477,6 +477,26 @@ begin
       'Candidato aprovado e convertido em colaborador.',
       v_user_id
     );
+
+    update public.tarefas
+       set status = 'concluida',
+           data_conclusao = coalesce(data_conclusao, now()),
+           updated_at = now()
+     where vinculo_tipo = 'rh_processo'
+       and vinculo_id = v_recrutamento.id
+       and status <> 'concluida';
+
+    update public.tarefas
+       set status = 'concluida',
+           data_conclusao = coalesce(data_conclusao, now()),
+           updated_at = now()
+     where vinculo_tipo = 'rh_etapa'
+       and vinculo_id in (
+         select e.id
+         from public.rh_processo_etapas e
+         where e.processo_id = v_recrutamento.id
+       )
+       and status <> 'concluida';
   end loop;
 
   return jsonb_build_object(
