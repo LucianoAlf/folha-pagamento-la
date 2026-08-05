@@ -7,6 +7,20 @@ begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '30s';
 
+create temporary table pg_temp.rh_tarefas_orfas_antes (
+  id uuid primary key
+) on commit drop;
+
+insert into pg_temp.rh_tarefas_orfas_antes (id)
+select t.id
+from public.tarefas t
+where (t.vinculo_tipo = 'rh_processo' and not exists (
+  select 1 from public.rh_processos p where p.id = t.vinculo_id
+))
+or (t.vinculo_tipo = 'rh_etapa' and not exists (
+  select 1 from public.rh_processo_etapas e where e.id = t.vinculo_id
+));
+
 do $$
 declare
   v_ref record;
@@ -168,16 +182,33 @@ begin
   end if;
 
   if exists (
-    select 1
+    select t.id
     from public.tarefas t
-    where (t.vinculo_tipo = 'rh_processo' and not exists (
-      select 1 from public.rh_processos p where p.id = t.vinculo_id
-    ))
-    or (t.vinculo_tipo = 'rh_etapa' and not exists (
-      select 1 from public.rh_processo_etapas e where e.id = t.vinculo_id
-    ))
+    where (
+      (t.vinculo_tipo = 'rh_processo' and not exists (
+        select 1 from public.rh_processos p where p.id = t.vinculo_id
+      ))
+      or (t.vinculo_tipo = 'rh_etapa' and not exists (
+        select 1 from public.rh_processo_etapas e where e.id = t.vinculo_id
+      ))
+    )
+    except
+    select id from pg_temp.rh_tarefas_orfas_antes
+  ) or exists (
+    select id from pg_temp.rh_tarefas_orfas_antes
+    except
+    select t.id
+    from public.tarefas t
+    where (
+      (t.vinculo_tipo = 'rh_processo' and not exists (
+        select 1 from public.rh_processos p where p.id = t.vinculo_id
+      ))
+      or (t.vinculo_tipo = 'rh_etapa' and not exists (
+        select 1 from public.rh_processo_etapas e where e.id = t.vinculo_id
+      ))
+    )
   ) then
-    raise exception 'REFUSED: reconciliacao deixou tarefa RH orfa.';
+    raise exception 'REFUSED: reconciliacao alterou o conjunto de tarefas RH orfas.';
   end if;
 
   if exists (select 1 from public.colaboradores where id in (108, 109)) then

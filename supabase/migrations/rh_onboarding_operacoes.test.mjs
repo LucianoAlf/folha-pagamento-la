@@ -78,4 +78,6 @@ test('CPF unico e criado somente depois da reconciliacao operacional', () => {
   );
   assert.match(reconcile, /REFUSED: vinculo novo/i);
   assert.match(reconcile, /REFUSED: reconciliacao terminou com CPF duplicado/i);
+  assert.match(reconcile, /create temporary table pg_temp\.rh_tarefas_orfas_antes/i);
+  assert.match(reconcile, /REFUSED: reconciliacao alterou o conjunto de tarefas RH orfas/i);
 });
