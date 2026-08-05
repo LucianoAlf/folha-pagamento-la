@@ -19,6 +19,7 @@ import {
   FeriasWhatsAppAlertasResponse,
 } from '../types';
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from './supabase';
+import { fetchRhRead } from './rhReadResilience';
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
@@ -285,7 +286,9 @@ export const feriasService = {
       // Busca por nome/função será feita no client-side para simplificar
     }
 
-    const res = await fetch(url, { headers });
+    const res = await fetchRhRead(url, { headers }, {
+      label: 'A lista de colaboradores de ferias',
+    });
     if (!res.ok) throw new Error('Erro ao buscar status de colaboradores');
     let colaboradores: FeriasColaboradorStatus[] = await res.json();
 
