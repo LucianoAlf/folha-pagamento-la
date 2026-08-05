@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Briefcase, FileBadge, Milestone, Plus, Route, TrendingUp, UploadCloud, Users } from 'lucide-react';
-import { Badge, Card, CustomSelect, ErrorState, LoadingSpinner, Modal } from '../../UI';
+import { Badge, Card, ConfirmDialog, CustomSelect, ErrorState, LoadingSpinner, Modal } from '../../UI';
 import { cn } from '../../CollaboratorComponents';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { Colaborador } from '../../../types';
@@ -34,6 +34,7 @@ export const ColaboradoresTab: React.FC = () => {
   const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
   const [achievementModalOpen, setAchievementModalOpen] = useState(false);
   const [movementModalOpen, setMovementModalOpen] = useState(false);
+  const [startJourneyConfirmationOpen, setStartJourneyConfirmationOpen] = useState(false);
   const [docDraft, setDocDraft] = useState<DocDraft>(emptyDocDraft);
   const [milestoneType, setMilestoneType] = useState(RH_MILESTONE_TYPES[0]);
   const [milestoneTitle, setMilestoneTitle] = useState('');
@@ -115,6 +116,24 @@ export const ColaboradoresTab: React.FC = () => {
     await loadSelected(selectedCollaboratorId);
   };
 
+  const startSelectedJourney = async () => {
+    const collaborator = selectedCollaborator;
+    if (!collaborator || selectedJourney) return;
+
+    setSaving(true);
+    try {
+      await run(async () => {
+        await rhJornadaService.ensureCollaboratorJourney({
+          colaborador_id: collaborator.id,
+          data_inicio: collaborator.data_admissao || new Date().toISOString().slice(0, 10),
+        });
+        await refreshSelected();
+      }, { success: 'Jornada iniciada.', error: 'Não foi possível iniciar a jornada.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={loadBase} />;
 
@@ -144,7 +163,7 @@ export const ColaboradoresTab: React.FC = () => {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div><div className="text-primary text-xl font-black">{selectedCollaborator?.nome || 'Selecione um colaborador'}</div><div className="mt-1 text-sm font-bold text-muted">{selectedCollaborator?.funcao || 'Sem funcao'} • {selectedCollaborator?.tipo || 'Sem vinculo'}</div></div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={!selectedCollaborator || saving || !!selectedJourney} onClick={async () => { const collaborator = selectedCollaborator; if (!collaborator) return; setSaving(true); await run(async () => { await rhJornadaService.ensureCollaboratorJourney({ colaborador_id: collaborator.id, data_inicio: collaborator.data_admissao || new Date().toISOString().slice(0, 10) }); await refreshSelected(); }, { success: 'Jornada iniciada.', error: 'Não foi possível iniciar a jornada.' }); setSaving(false); }} className={cn('px-4 py-2.5 rounded-2xl font-black', !selectedCollaborator || saving || !!selectedJourney ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-info hover:bg-info text-white')}>Iniciar jornada</button>
+                <button type="button" disabled={!selectedCollaborator || saving || !!selectedJourney} onClick={() => setStartJourneyConfirmationOpen(true)} className={cn('px-4 py-2.5 rounded-2xl font-black', !selectedCollaborator || saving || !!selectedJourney ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-info hover:bg-info text-white')}>Iniciar jornada</button>
                 <button type="button" disabled={!selectedCollaborator || saving} onClick={() => setDocModalOpen(true)} className={cn('px-4 py-2.5 rounded-2xl font-black', !selectedCollaborator || saving ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-accent hover:bg-accent text-white')}>Novo documento</button>
                 <button type="button" disabled={!selectedCollaborator || !selectedJourney || saving} onClick={() => setMilestoneModalOpen(true)} className={cn('px-4 py-2.5 rounded-2xl font-black', !selectedCollaborator || !selectedJourney || saving ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-warning hover:bg-warning text-white')}>Novo marco</button>
                 <button type="button" disabled={!selectedCollaborator || !selectedJourney || saving} onClick={() => setMovementModalOpen(true)} className={cn('px-4 py-2.5 rounded-2xl font-black', !selectedCollaborator || !selectedJourney || saving ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white')}>Movimentacao</button>
@@ -218,6 +237,15 @@ export const ColaboradoresTab: React.FC = () => {
       <Modal isOpen={movementModalOpen} onClose={() => setMovementModalOpen(false)} title="Movimentacao de carreira" className="max-w-xl" footer={<div className="flex justify-end gap-3"><button type="button" onClick={() => setMovementModalOpen(false)} className="px-5 py-3 rounded-2xl border border-line bg-surface/40 text-secondary font-black">Cancelar</button><button type="button" disabled={!selectedCollaborator || !selectedJourney || !movementTitle.trim() || !movementLevelId || saving} onClick={async () => { const collaborator = selectedCollaborator; const journey = selectedJourney; if (!collaborator || !journey || !movementLevelId) return; setSaving(true); await run(async () => { await rhJornadaService.createCareerMovement({ colaborador_id: collaborator.id, jornada_id: journey.id, nivel_origem_id: journey.nivel_carreira_id || null, nivel_destino_id: movementLevelId, titulo: movementTitle.trim(), motivo: movementReason.trim() || null, efetivado_em: new Date().toISOString().slice(0, 10), aprovado_por: null }); await refreshSelected(); }, { success: 'Movimentação registrada.', error: 'Não foi possível registrar a movimentação.', onSuccess: () => { setMovementModalOpen(false); setMovementLevelId(''); setMovementTitle(''); setMovementReason(''); } }); setSaving(false); }} className={cn('px-6 py-3 rounded-2xl font-black', !selectedCollaborator || !selectedJourney || !movementTitle.trim() || !movementLevelId || saving ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white')}>Salvar movimentacao</button></div>}><div className="space-y-4"><CustomSelect value={movementLevelId} onValueChange={setMovementLevelId} options={[{ value: '', label: 'Selecione o nivel de destino' }, ...careerLevels.map((item) => ({ value: item.id, label: `${item.titulo} • ${item.cargo_base}` }))]} /><input value={movementTitle} onChange={(e) => setMovementTitle(e.target.value)} placeholder="Titulo da movimentacao" className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40" /><textarea value={movementReason} onChange={(e) => setMovementReason(e.target.value)} rows={4} placeholder="Motivo ou contexto da progressao" className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none" /></div></Modal>
 
       <Modal isOpen={achievementModalOpen} onClose={() => setAchievementModalOpen(false)} title="Conceder conquista" className="max-w-xl" footer={<div className="flex justify-end gap-3"><button type="button" onClick={() => setAchievementModalOpen(false)} className="px-5 py-3 rounded-2xl border border-line bg-surface/40 text-secondary font-black">Cancelar</button><button type="button" disabled={!selectedCollaborator || !selectedJourney || saving || !achievementTitle.trim()} onClick={async () => { const collaborator = selectedCollaborator; const journey = selectedJourney; if (!collaborator || !journey) return; setSaving(true); await run(async () => { await rhJornadaService.grantAchievement({ jornada_id: journey.id, colaborador_id: collaborator.id, badge_id: badgeId || null, titulo: achievementTitle.trim(), descricao: achievementDescription.trim() || null, score_impacto: Number(achievementScore || 0) }); await refreshSelected(); }, { success: 'Conquista concedida.', error: 'Não foi possível conceder a conquista.', onSuccess: () => { setAchievementModalOpen(false); setBadgeId(''); setAchievementTitle(''); setAchievementDescription(''); setAchievementScore('10'); } }); setSaving(false); }} className={cn('px-6 py-3 rounded-2xl font-black', !selectedCollaborator || !selectedJourney || saving || !achievementTitle.trim() ? 'bg-surface-2 text-muted border border-line cursor-not-allowed' : 'bg-success hover:bg-success text-white')}>Salvar conquista</button></div>}><div className="space-y-4"><CustomSelect value={badgeId} onValueChange={setBadgeId} options={[{ value: '', label: 'Sem badge especifico' }, ...badges.map((item) => ({ value: item.id, label: item.nome }))]} /><input value={achievementTitle} onChange={(e) => setAchievementTitle(e.target.value)} placeholder="Titulo da conquista" className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40" /><input value={achievementScore} onChange={(e) => setAchievementScore(e.target.value)} placeholder="Score" className="w-full rounded-2xl border border-line bg-bg px-5 py-3.5 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40" /><textarea value={achievementDescription} onChange={(e) => setAchievementDescription(e.target.value)} rows={4} placeholder="Descricao da conquista" className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40 resize-none" /></div></Modal>
+
+      <ConfirmDialog
+        isOpen={startJourneyConfirmationOpen}
+        onClose={() => setStartJourneyConfirmationOpen(false)}
+        onConfirm={startSelectedJourney}
+        title="Iniciar jornada"
+        message={`Deseja iniciar a jornada de ${selectedCollaborator?.nome || 'este colaborador'}? A data inicial será a admissão cadastrada.`}
+        confirmLabel="Iniciar jornada"
+      />
 
       <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => setDocDraft((current) => ({ ...current, file: e.target.files?.[0] || null }))} />
     </div>

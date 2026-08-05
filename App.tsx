@@ -1034,14 +1034,10 @@ export default function App() {
     }
     if (profileSaving) return;
     const nome = (profileName || '').trim() || (isAna(userEmail) ? 'Ana Paula' : isLuciano(userEmail) ? 'Luciano Alf' : 'Usuário');
-    const role: UserProfile['role'] = isAna(userEmail) ? 'rh' : isLuciano(userEmail) ? 'admin' : 'user';
-
     setProfileSaving(true);
     try {
-      const saved = await api.upsertUserProfile({
-        id: userId,
+      const saved = await api.updateOwnUserProfile({
         nome,
-        role,
         avatar_url: profileAvatar || null,
       });
       setUserProfile(saved);
@@ -2754,83 +2750,6 @@ export default function App() {
                     className="flex-1 px-6 py-3 rounded-xl bg-accent hover:bg-accent text-white font-bold transition-all shadow-lg shadow-accent/20"
                   >
                     Duplicar Agora
-                  </button>
-                </div>
-              </div>
-            </Modal>
-
-            {/* Generic Confirm Dialog */}
-            <ConfirmDialog
-              isOpen={confirmState.isOpen}
-              onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
-              onConfirm={confirmState.onConfirm}
-              title={confirmState.title}
-              message={confirmState.message}
-              variant={confirmState.variant}
-            />
-
-            <AlertDialog
-              isOpen={alertState.isOpen}
-              onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
-              title={alertState.title}
-              message={alertState.message}
-              variant={alertState.variant}
-            />
-
-            {/* Profile Modal */}
-            <Modal
-              isOpen={isProfileOpen}
-              onClose={() => setIsProfileOpen(false)}
-              title="Editar perfil"
-              className="max-w-xl"
-            >
-              <div className="space-y-5">
-                <AvatarCropper
-                  value={profileAvatar}
-                  onChange={setProfileAvatar}
-                  fallbackSrc={getDefaultAvatarByEmail(userEmail) || '/logo-LA-colapsed.png'}
-                  disabled={profileSaving}
-                  onError={(message) => setAlertState({ isOpen: true, title: 'Arquivo inválido', message, variant: 'danger' })}
-                />
-
-                <div>
-                  <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
-                    Nome
-                  </label>
-                  <input
-                    value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
-                    className="w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-secondary outline-none focus:ring-2 focus:ring-accent/40"
-                    placeholder="Seu nome"
-                  />
-                  <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
-                    <span>Sua foto será exibida no header e nos relatórios.</span>
-                    {profileSaving ? (
-                      <span className="text-accent font-bold flex items-center gap-1">
-                        <Loader2 size={10} className="animate-spin" /> SALVANDO...
-                      </span>
-                    ) : profileSaved ? (
-                      <span className="text-success font-bold flex items-center gap-1">
-                        <CheckCircle size={10} /> SALVO
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => setIsProfileOpen(false)}
-                    className="flex-1 px-6 py-3 rounded-xl bg-surface-2 hover:bg-surface-3 text-primary font-bold transition-all"
-                    disabled={profileSaving}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={saveProfile}
-                    className="flex-1 px-6 py-3 rounded-xl bg-accent hover:bg-accent text-white font-black transition-all shadow-lg shadow-accent/20"
-                    disabled={profileSaving}
-                  >
-                    Salvar
                   </button>
                 </div>
               </div>
@@ -4814,6 +4733,82 @@ export default function App() {
         )}
         </div>
       </main>
+
+      {/* Global overlays must stay mounted for every module, including Jornada RH. */}
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        variant={confirmState.variant}
+      />
+
+      <AlertDialog
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        variant={alertState.variant}
+      />
+
+      <Modal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        title="Editar perfil"
+        className="max-w-xl"
+      >
+        <div className="space-y-5">
+          <AvatarCropper
+            value={profileAvatar}
+            onChange={setProfileAvatar}
+            fallbackSrc={getDefaultAvatarByEmail(userEmail) || '/logo-LA-colapsed.png'}
+            disabled={profileSaving}
+            onError={(message) => setAlertState({ isOpen: true, title: 'Arquivo inválido', message, variant: 'danger' })}
+          />
+
+          <div>
+            <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-2">
+              Nome
+            </label>
+            <input
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              className="w-full bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-secondary outline-none focus:ring-2 focus:ring-accent/40"
+              placeholder="Seu nome"
+            />
+            <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
+              <span>Sua foto será exibida no header e nos relatórios.</span>
+              {profileSaving ? (
+                <span className="text-accent font-bold flex items-center gap-1">
+                  <Loader2 size={10} className="animate-spin" /> SALVANDO...
+                </span>
+              ) : profileSaved ? (
+                <span className="text-success font-bold flex items-center gap-1">
+                  <CheckCircle size={10} /> SALVO
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setIsProfileOpen(false)}
+              className="flex-1 px-6 py-3 rounded-xl bg-surface-2 hover:bg-surface-3 text-primary font-bold transition-all"
+              disabled={profileSaving}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={saveProfile}
+              className="flex-1 px-6 py-3 rounded-xl bg-accent hover:bg-accent text-white font-black transition-all shadow-lg shadow-accent/20"
+              disabled={profileSaving}
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+      </Modal>
       
       <MobileNavigationDrawer
         open={mobileNavigationOpen}
