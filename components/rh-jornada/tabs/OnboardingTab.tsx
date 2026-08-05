@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, ClipboardList, Plus, Route, UserCheck, Users } from 'lucide-react';
+import { AlertTriangle, CalendarClock, ClipboardList, Plus, Route, Trash2, UserCheck, Users } from 'lucide-react';
 import { Badge, Card, CustomSelect, DatePicker, ErrorState, LoadingSpinner, Modal } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { Colaborador } from '../../../types';
@@ -127,6 +127,11 @@ const OnboardingCreateModal: React.FC<{
     >
       <div className="space-y-6">
         {error ? <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm font-bold text-danger">{error}</div> : null}
+        {templates.length === 0 ? (
+          <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-bold text-warning">
+            Nenhum modelo com etapas está pronto para uso. Complete um template antes de criar o onboarding.
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Colaborador *</div>
@@ -183,6 +188,10 @@ export const OnboardingTab: React.FC = () => {
   const [stages, setStages] = useState<RhStage[]>([]);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<RhProcessSummary | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const refreshSelectedProcess = async () => {
     if (!selectedProcessId) {
@@ -200,19 +209,24 @@ export const OnboardingTab: React.FC = () => {
     setSelectedStageId((prev) => (prev && nextStages.some((stage) => stage.id === prev) ? prev : nextStages[0]?.id || null));
   };
 
-  const loadData = async () => {
+  const loadData = async (preferredProcessId?: string | null) => {
     setLoading(true);
     setError(null);
     try {
       const [nextProcesses, nextTemplates, nextColaboradores] = await Promise.all([
         rhJornadaService.fetchProcesses({ tipo: 'onboarding' }),
-        rhJornadaService.fetchTemplates('onboarding'),
+        rhJornadaService.fetchEligibleOnboardingTemplates(),
         rhJornadaService.fetchColaboradores(),
       ]);
       setProcesses(nextProcesses);
       setTemplates(nextTemplates);
       setColaboradores(nextColaboradores);
-      setSelectedProcessId((prev) => prev || nextProcesses[0]?.id || null);
+      setSelectedProcessId((prev) => {
+        const preferred = preferredProcessId === undefined ? prev : preferredProcessId;
+        return preferred && nextProcesses.some((process) => process.id === preferred)
+          ? preferred
+          : nextProcesses[0]?.id || null;
+      });
     } catch (err: any) {
       setError(err?.message || 'Não foi possível carregar os onboardings.');
     } finally {
@@ -341,6 +355,20 @@ export const OnboardingTab: React.FC = () => {
                       {PROCESS_STATUS_META[selectedProcess.status]?.label || selectedProcess.status}
                     </Badge>
                     <Badge variant="info">{selectedProcess.prioridade}</Badge>
+                    {selectedProcess.status !== 'concluido' ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteTarget(selectedProcess);
+                          setDeleteConfirmation('');
+                          setDeleteError(null);
+                        }}
+                        className="ml-1 inline-flex items-center gap-2 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-black text-danger transition-colors hover:bg-danger/20"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Excluir onboarding
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -414,6 +442,99 @@ export const OnboardingTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => {
+          if (deleteSaving) return;
+          setDeleteTarget(null);
+          setDeleteConfirmation('');
+          setDeleteError(null);
+        }}
+        title="Excluir onboarding"
+        subtitle="Remova definitivamente um processo criado por engano."
+        className="max-w-xl"
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              disabled={deleteSaving}
+              onClick={() => {
+                setDeleteTarget(null);
+                setDeleteConfirmation('');
+                setDeleteError(null);
+              }}
+              className="rounded-2xl border border-line bg-surface/40 px-5 py-3 text-sm font-black text-secondary transition-colors hover:bg-surface/60 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={!deleteTarget || deleteSaving || deleteConfirmation !== deleteTarget.titulo}
+              onClick={async () => {
+                if (!deleteTarget || deleteConfirmation !== deleteTarget.titulo) return;
+                setDeleteSaving(true);
+                setDeleteError(null);
+                try {
+                  const remaining = processes.filter((process) => process.id !== deleteTarget.id);
+                  await rhJornadaService.deleteOnboarding(deleteTarget.id, deleteConfirmation);
+                  setSelectedProcessId(remaining[0]?.id || null);
+                  await loadData(remaining[0]?.id || null);
+                  setDeleteTarget(null);
+                  setDeleteConfirmation('');
+                } catch (err: any) {
+                  setDeleteError(err?.message || 'Não foi possível excluir o onboarding.');
+                } finally {
+                  setDeleteSaving(false);
+                }
+              }}
+              className={cn(
+                'inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black transition-colors',
+                !deleteTarget || deleteSaving || deleteConfirmation !== deleteTarget.titulo
+                  ? 'cursor-not-allowed border border-line bg-surface-2 text-muted'
+                  : 'bg-danger text-white hover:bg-danger/80'
+              )}
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleteSaving ? 'Excluindo…' : 'Excluir definitivamente'}
+            </button>
+          </div>
+        }
+      >
+        {deleteTarget ? (
+          <div className="space-y-5">
+            <div className="rounded-3xl border border-danger/30 bg-danger/10 p-5">
+              <div className="flex items-start gap-3">
+                <div className="rounded-2xl bg-danger/15 p-2.5 text-danger">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="font-black text-danger">Esta ação é definitiva</div>
+                  <div className="mt-1 text-sm font-bold leading-relaxed text-secondary">
+                    O processo, suas {deleteTarget.total_etapas} etapas, documentos e tarefas espelhadas na Agenda serão removidos. O cadastro do colaborador não será apagado.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {deleteError ? (
+              <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm font-bold text-danger">{deleteError}</div>
+            ) : null}
+
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-muted">Digite o título para confirmar</div>
+              <div className="mt-2 rounded-xl border border-line bg-surface/40 px-3 py-2 text-sm font-black text-primary">{deleteTarget.titulo}</div>
+              <input
+                autoFocus
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                className="mt-3 w-full rounded-2xl border border-line bg-bg px-4 py-3 text-sm font-bold text-primary outline-none transition focus:border-danger/60 focus:ring-2 focus:ring-danger/20"
+                placeholder="Digite o título exatamente"
+              />
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       <OnboardingCreateModal isOpen={createOpen} templates={templates} colaboradores={colaboradores} onClose={() => setCreateOpen(false)} onCreated={loadData} />
     </div>
