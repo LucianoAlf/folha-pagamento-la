@@ -54,7 +54,7 @@ export const CandidatosTab: React.FC = () => {
     try {
       const [data, templates] = await Promise.all([
         rhJornadaService.fetchCandidates(statusFilter === 'all' ? undefined : statusFilter),
-        rhJornadaService.fetchTemplates('onboarding'),
+        rhJornadaService.fetchEligibleOnboardingTemplates(),
       ]);
       setCandidates(data);
       setOnboardingTemplates(templates);
@@ -508,8 +508,9 @@ export const CandidatosTab: React.FC = () => {
         onboardingTemplates={onboardingTemplates}
         onClose={() => setApprovalOpen(null)}
         onConfirm={async (payload) => {
-          await rhJornadaService.approveCandidate(payload as any);
-          await loadCandidates();
+          const result = await rhJornadaService.approveCandidate(payload);
+          if (result.status === 'aprovado') await loadCandidates();
+          return result;
         }}
       />
     </div>

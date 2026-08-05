@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { CustomSelect, DatePicker, Modal } from '../../UI';
-import type { RhCandidate, RhTemplate } from '../../../types/rh';
+import type {
+  RhCandidate,
+  RhCandidateApprovalInput,
+  RhCandidateApprovalResult,
+  RhExistingCollaboratorConflict,
+  RhTemplate,
+} from '../../../types/rh';
 import { cn } from '../../CollaboratorComponents';
 
 const DEPARTMENT_OPTIONS = [
@@ -29,25 +35,7 @@ export const CandidateApprovalModal: React.FC<{
   candidate: RhCandidate | null;
   onboardingTemplates: RhTemplate[];
   onClose: () => void;
-  onConfirm: (payload: {
-    candidateId: string;
-    nome: string;
-    funcao: string;
-    departamento: 'staff_rateado' | 'equipe_operacional' | 'professores';
-    tipo: 'pj' | 'clt' | 'mei' | 'estagiario' | 'diarista' | 'rpa';
-    salario_base: number;
-    data_admissao?: string | null;
-    unidade_fixa?: string | null;
-    is_rateado: boolean;
-    email?: string | null;
-    telefone?: string | null;
-    cpf?: string | null;
-    createOnboardingNow?: boolean;
-    onboardingTemplateId?: string | null;
-    onboardingDataInicio?: string | null;
-    onboardingDataFimPrevista?: string | null;
-    onboardingObservacoes?: string | null;
-  }) => Promise<void>;
+  onConfirm: (payload: RhCandidateApprovalInput) => Promise<RhCandidateApprovalResult>;
 }> = ({ candidate, onboardingTemplates, onClose, onConfirm }) => {
   const [nome, setNome] = useState(candidate?.nome || '');
   const [funcao, setFuncao] = useState(candidate?.cargo_pretendido || '');
@@ -64,8 +52,10 @@ export const CandidateApprovalModal: React.FC<{
   const [observacoes, setObservacoes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [existingConflict, setExistingConflict] = useState<RhExistingCollaboratorConflict['colaborador_existente'] | null>(null);
 
   const templateOptions = useMemo(() => onboardingTemplates.map((t) => ({ value: t.id, label: t.nome })), [onboardingTemplates]);
+  const hasEligibleOnboardingTemplate = onboardingTemplates.length > 0;
 
   useEffect(() => {
     if (!candidate) return;
@@ -75,14 +65,15 @@ export const CandidateApprovalModal: React.FC<{
     setDataAdmissao(new Date().toISOString().slice(0, 10));
     setIsRateado(false);
     setUnidade('cg');
-    setCreateOnboardingNow(true);
+    setCreateOnboardingNow(hasEligibleOnboardingTemplate);
     setTemplateId(onboardingTemplates[0]?.id || '');
     setOnboardingInicio(new Date().toISOString().slice(0, 10));
     setOnboardingFim(undefined);
     setObservacoes('');
     setError(null);
+    setExistingConflict(null);
     setSaving(false);
-  }, [candidate, onboardingTemplates]);
+  }, [candidate, onboardingTemplates, hasEligibleOnboardingTemplate]);
 
   if (!candidate) return null;
 
@@ -104,12 +95,12 @@ export const CandidateApprovalModal: React.FC<{
           </button>
           <button
             type="button"
-            disabled={saving || !nome.trim() || !funcao.trim() || (createOnboardingNow && !templateId)}
+            disabled={saving || !nome.trim() || !funcao.trim() || (createOnboardingNow && (!hasEligibleOnboardingTemplate || !templateId))}
             onClick={async () => {
               setSaving(true);
               setError(null);
               try {
-                await onConfirm({
+                const result = await onConfirm({
                   candidateId: candidate.id,
                   nome: nome.trim(),
                   funcao: funcao.trim(),
@@ -127,7 +118,12 @@ export const CandidateApprovalModal: React.FC<{
                   onboardingDataInicio: onboardingInicio || null,
                   onboardingDataFimPrevista: onboardingFim || null,
                   onboardingObservacoes: observacoes.trim() || null,
+                  ...(existingConflict ? { reuseExistingCollaboratorId: existingConflict.id } : {}),
                 });
+                if (result.status === 'cpf_existente') {
+                  setExistingConflict(result.colaborador_existente);
+                  return;
+                }
                 onClose();
               } catch (err: any) {
                 setError(err?.message || 'Não foi possível aprovar o candidato.');
@@ -137,19 +133,31 @@ export const CandidateApprovalModal: React.FC<{
             }}
             className={cn(
               'px-8 py-3 rounded-2xl font-black text-primary transition-all flex items-center gap-2',
-              saving || !nome.trim() || !funcao.trim() || (createOnboardingNow && !templateId)
+              saving || !nome.trim() || !funcao.trim() || (createOnboardingNow && (!hasEligibleOnboardingTemplate || !templateId))
                 ? 'bg-surface-2 text-muted border border-line cursor-not-allowed'
                 : 'bg-success hover:bg-success/80'
             )}
           >
             <CheckCircle2 className="w-4 h-4" />
-            Aprovar e converter
+            {existingConflict ? 'Usar cadastro existente e aprovar' : 'Aprovar e converter'}
           </button>
         </div>
       }
     >
       <div className="space-y-6">
         {error ? <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-sm font-bold text-danger">{error}</div> : null}
+        {existingConflict ? (
+          <div className="rounded-3xl border border-warning/40 bg-warning/10 p-5">
+            <div className="text-sm font-black text-warning">CPF já pertence a um colaborador</div>
+            <div className="mt-2 text-sm font-bold text-secondary">
+              {existingConflict.nome} • {existingConflict.funcao}
+            </div>
+            {existingConflict.email ? <div className="mt-1 text-xs font-bold text-muted">{existingConflict.email}</div> : null}
+            <div className="mt-3 text-xs font-bold leading-relaxed text-muted">
+              Revise os dados. A confirmação abaixo vinculará este candidato ao cadastro existente, sem criar uma segunda pessoa.
+            </div>
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black mb-2">Nome</div>
@@ -189,9 +197,22 @@ export const CandidateApprovalModal: React.FC<{
 
         <div className="rounded-3xl border border-line bg-bg/30 p-5">
           <div className="flex items-center gap-3 mb-4">
-            <input id="create-onboarding-now" type="checkbox" checked={createOnboardingNow} onChange={(e) => setCreateOnboardingNow(e.target.checked)} className="accent-accent" />
+            <input
+              id="create-onboarding-now"
+              type="checkbox"
+              checked={createOnboardingNow}
+              disabled={!hasEligibleOnboardingTemplate}
+              onChange={(e) => setCreateOnboardingNow(e.target.checked)}
+              className="accent-accent disabled:opacity-40"
+            />
             <label htmlFor="create-onboarding-now" className="text-sm font-black text-primary">Criar onboarding agora</label>
           </div>
+
+          {!hasEligibleOnboardingTemplate ? (
+            <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-bold text-warning">
+              Nenhum modelo com etapas está pronto para uso. A aprovação pode continuar sem criar o onboarding agora.
+            </div>
+          ) : null}
 
           {createOnboardingNow ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
