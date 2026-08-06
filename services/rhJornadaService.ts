@@ -2,6 +2,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from './supabase';
 import { api } from './api';
 import { rhAgendaSyncService } from './rhAgendaSyncService';
 import { withSupabaseReadRetry } from './rhReadResilience';
+import { formatRhDocumentTypeLabel } from '../components/rh-jornada/documentLabels';
 import type {
   RhCandidate,
   RhCandidateApprovalInput,
@@ -1062,7 +1063,7 @@ export const rhJornadaService = {
     const processRows = ((processDocsRes.data || []) as unknown as RhDocumentInboxItem[]).map((row) => ({
       ...row,
       origem: 'processo' as const,
-      titulo_display: row.tipo_documento,
+      titulo_display: formatRhDocumentTypeLabel(row.tipo_documento),
     }));
 
     const collaboratorRows = ((collaboratorDocsRes.data || []) as Array<Record<string, any>>)

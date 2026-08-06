@@ -29,7 +29,7 @@ const PROCESSO_OPTIONS = [
 const STATUS_META: Record<RhDocumentStatus, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' | 'info' | 'purple' }> = {
   pendente: { label: 'Pendente', variant: 'default' },
   enviado: { label: 'Enviado', variant: 'info' },
-  em_analise: { label: 'Em analise', variant: 'purple' },
+  em_analise: { label: 'Em análise', variant: 'purple' },
   conferido: { label: 'Conferido', variant: 'success' },
   rejeitado: { label: 'Rejeitado', variant: 'danger' },
 };

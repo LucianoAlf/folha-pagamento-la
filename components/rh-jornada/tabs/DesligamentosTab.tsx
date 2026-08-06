@@ -11,6 +11,7 @@ import { RhParticipantsPanel } from '../process/RhParticipantsPanel';
 import { RhStageExecutionPanel } from '../process/RhStageExecutionPanel';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import { RH_KPI_GRID_CLASS, RhKpiCard } from '../RhKpiCard';
+import { formatRhDocumentTypeLabel } from '../documentLabels';
 
 const PROCESS_STATUS_META: Record<string, { label: string; variant: 'default' | 'warning' | 'success' | 'danger' | 'info' | 'purple' }> = {
   rascunho: { label: 'Rascunho', variant: 'default' },
@@ -565,7 +566,7 @@ export const DesligamentosTab: React.FC = () => {
                           {generatedDocs.map((doc) => (
                             <div key={doc.id} className="rounded-2xl border border-line bg-bg/40 p-3 flex flex-wrap items-center justify-between gap-3">
                               <div>
-                                <div className="text-primary font-black">{doc.tipo_documento.replaceAll('_', ' ')}</div>
+                                <div className="text-primary font-black">{formatRhDocumentTypeLabel(doc.tipo_documento)}</div>
                                 <div className="mt-1 text-xs font-bold text-muted">
                                   {new Date(doc.gerado_em).toLocaleString('pt-BR')}
                                 </div>

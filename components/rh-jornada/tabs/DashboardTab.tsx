@@ -3,6 +3,7 @@ import { AlertTriangle, BellRing, CheckSquare, Clock3, FileBadge, Sparkles, Targ
 import { Badge, Card, ErrorState } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhAlertCritical, RhDashboardAiInsight, RhDashboardKpis, RhDashboardRecentEvent, RhDevelopmentHealthSnapshot, RhPdiDashboardKpis, RhPendingDocumentView, RhProcessSummary } from '../../../types/rh';
+import { formatRhDocumentStatusLabel, formatRhDocumentTypeLabel } from '../documentLabels';
 
 const DashboardLoadingSkeleton = () => (
   <div className="space-y-4 sm:space-y-6" aria-busy="true" aria-live="polite" data-testid="rh-dashboard-loading-skeleton">
@@ -86,8 +87,8 @@ export const DashboardTab: React.FC = () => {
           <div className="space-y-3">{alerts.map((alert) => <div key={alert.etapa_id} className="rounded-2xl border border-line bg-surface/30 p-4"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><div className="text-primary font-black">{alert.etapa_titulo}</div><div className="mt-1 text-sm font-bold text-muted">{alert.processo_titulo}</div></div><Badge variant={(alert.dias_para_vencimento ?? 99) <= 0 ? 'danger' : 'warning'}>{(alert.dias_para_vencimento ?? 99) <= 0 ? 'Atrasado' : `Vence em ${alert.dias_para_vencimento} dia(s)`}</Badge></div></div>)}{alerts.length === 0 ? <div className="text-sm font-bold text-muted">Nenhum alerta critico no momento.</div> : null}</div>
         </Card>
         <Card className="p-5 border border-line-strong/50">
-          <div className="flex items-center gap-2 mb-4"><FileBadge className="w-4 h-4 text-warning" /><h3 className="text-primary text-base font-black">Pendencias documentais</h3></div>
-          <div className="space-y-3">{pendingDocuments.map((document) => <div key={document.id} className="rounded-2xl border border-line bg-surface/30 p-4"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><div className="text-primary font-black">{document.tipo_documento}</div><div className="mt-1 text-sm font-bold text-muted">{document.processo_titulo}</div></div><Badge variant={document.status === 'rejeitado' ? 'danger' : 'warning'}>{document.status}</Badge></div></div>)}{pendingDocuments.length === 0 ? <div className="text-sm font-bold text-muted">Nenhuma pendencia documental relevante.</div> : null}</div>
+          <div className="flex items-center gap-2 mb-4"><FileBadge className="w-4 h-4 text-warning" /><h3 className="text-primary text-base font-black">Pendências documentais</h3></div>
+          <div className="space-y-3">{pendingDocuments.map((document) => <div key={document.id} className="rounded-2xl border border-line bg-surface/30 p-4"><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><div className="text-primary font-black">{formatRhDocumentTypeLabel(document.tipo_documento)}</div><div className="mt-1 text-sm font-bold text-muted">{document.processo_titulo}</div></div><Badge variant={document.status === 'rejeitado' ? 'danger' : 'warning'}>{formatRhDocumentStatusLabel(document.status)}</Badge></div></div>)}{pendingDocuments.length === 0 ? <div className="text-sm font-bold text-muted">Nenhuma pendência documental relevante.</div> : null}</div>
         </Card>
       </div>
 

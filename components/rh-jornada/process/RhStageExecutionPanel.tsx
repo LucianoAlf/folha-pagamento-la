@@ -7,6 +7,7 @@ import type { UserProfile } from '../../../types';
 import { cn } from '../../CollaboratorComponents';
 import { canManageProcessParticipants, canManageStage } from '../rhPermissions';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
+import { formatRhDocumentStatusLabel, formatRhDocumentTypeLabel } from '../documentLabels';
 
 const ROLE_OPTIONS = [
   { value: 'rh', label: 'RH' },
@@ -216,7 +217,7 @@ export const RhStageExecutionPanel: React.FC<{ process: RhProcess | null; stage:
               {documents.map((document) => (
                 <div key={document.id} className="rounded-2xl border border-line bg-surface/30 p-4">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div><div className="text-primary font-black">{document.tipo_documento}</div><div className="mt-1 text-xs font-bold text-muted">{document.nome_arquivo || 'Sem arquivo anexado'} • {document.status}</div></div>
+                    <div><div className="text-primary font-black">{formatRhDocumentTypeLabel(document.tipo_documento)}</div><div className="mt-1 text-xs font-bold text-muted">{document.nome_arquivo || 'Sem arquivo anexado'} • {formatRhDocumentStatusLabel(document.status)}</div></div>
                     <div className="flex flex-wrap gap-2">
                       {document.storage_path ? <button type="button" onClick={() => run(async () => { const url = await rhJornadaService.getDocumentSignedUrl(document.storage_path!); window.open(url, '_blank', 'noopener,noreferrer'); }, { error: 'Não foi possível abrir o documento.' })} className="px-3 py-2 rounded-xl border border-line bg-surface/40 text-secondary text-xs font-black hover:bg-surface/60 transition-all">Visualizar</button> : null}
                       <button type="button" disabled={!canOperateStage || uploadingDocumentId === document.id} onClick={() => { setPendingDocumentId(document.id); fileInputRef.current?.click(); }} className={cn('px-3 py-2 rounded-xl border border-line text-xs font-black transition-all', !canOperateStage || uploadingDocumentId === document.id ? 'bg-surface-2 text-muted border border-line cursor-not-allowed text-secondary' : 'bg-accent text-white hover:bg-accent')}>{document.storage_path ? 'Trocar arquivo' : 'Enviar arquivo'}</button>
