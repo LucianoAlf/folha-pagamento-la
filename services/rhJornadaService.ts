@@ -23,6 +23,7 @@ import type {
   RhCareerLevel,
   RhCareerMovement,
   RhDashboardAiInsight,
+  RhDashboardBootstrap,
   RhDashboardKpis,
   RhDevelopmentHealthSnapshot,
   RhDocument,
@@ -89,6 +90,27 @@ const defaultTitleForProcess = (input: RhProcessCreateInput) => {
 
 const TERMINAL_STAGE_STATUSES = new Set(['concluida', 'dispensada']);
 const EVALUATION_STAGE_CATEGORIES = new Set(['entrevista', 'aula_teste', 'feedback']);
+const RH_DASHBOARD_TIMEOUT_MS = 10_000;
+
+const withRhDashboardTimeout = async <T>(operation: (signal: AbortSignal) => PromiseLike<T>, timeoutMs = RH_DASHBOARD_TIMEOUT_MS): Promise<T> => {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeout = globalThis.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const result = await operation(controller.signal);
+    if (timedOut) throw new Error('O Dashboard RH demorou alem do esperado. Tente novamente.');
+    return result;
+  } catch (error) {
+    if (timedOut) throw new Error('O Dashboard RH demorou alem do esperado. Tente novamente.');
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
+};
 
 const runRhAgendaSync = async (callback: () => Promise<unknown>) => {
   try {
@@ -175,6 +197,32 @@ export const rhJornadaService = {
     const { data, error } = await supabase.from('v_rh_dashboard_kpis').select('*').maybeSingle();
     if (error) throw error;
     return (data as RhDashboardKpis | null) ?? null;
+  },
+
+  async fetchDashboardBootstrap(): Promise<RhDashboardBootstrap> {
+    const { data, error } = await withRhDashboardTimeout((signal) => supabase.rpc('rh_dashboard_bootstrap').abortSignal(signal));
+    if (error) throw error;
+
+    const bootstrap = (data || {}) as Partial<RhDashboardBootstrap>;
+    return {
+      kpis: bootstrap.kpis || {
+        recrutamentos_ativos: 0,
+        onboardings_ativos: 0,
+        desligamentos_ativos: 0,
+        documentos_pendentes: 0,
+        etapas_atrasadas: 0,
+      },
+      pdi_kpis: bootstrap.pdi_kpis || {
+        pdis_ativos: 0,
+        pdis_concluidos: 0,
+        checkpoints_atrasados: 0,
+        conquistas_mes: 0,
+      },
+      alerts: bootstrap.alerts || [],
+      pending_documents: bootstrap.pending_documents || [],
+      my_queue: bootstrap.my_queue || [],
+      recent_events: bootstrap.recent_events || [],
+    };
   },
 
   async fetchCriticalAlerts() {

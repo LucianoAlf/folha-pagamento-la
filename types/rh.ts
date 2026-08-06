@@ -657,6 +657,24 @@ export interface RhPdiDashboardKpis {
   conquistas_mes: number;
 }
 
+export interface RhDashboardRecentEvent {
+  id: string;
+  processo_id: string;
+  acao: string;
+  comentario?: string | null;
+  created_at: string;
+  processo?: Pick<RhProcess, 'id' | 'titulo' | 'tipo' | 'status'> | null;
+}
+
+export interface RhDashboardBootstrap {
+  kpis: RhDashboardKpis;
+  pdi_kpis: RhPdiDashboardKpis;
+  alerts: RhAlertCritical[];
+  pending_documents: RhPendingDocumentView[];
+  my_queue: RhProcessSummary[];
+  recent_events: RhDashboardRecentEvent[];
+}
+
 export interface RhDashboardAiInsight {
   resumo_executivo: string;
   prioridades: string[];

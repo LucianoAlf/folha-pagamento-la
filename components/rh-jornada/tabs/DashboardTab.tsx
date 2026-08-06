@@ -1,8 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, BellRing, CheckSquare, Clock3, FileBadge, Sparkles, Target, Trophy, Users } from 'lucide-react';
-import { Badge, Card, ErrorState, LoadingSpinner } from '../../UI';
+import { Badge, Card, ErrorState } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
-import type { RhAlertCritical, RhDashboardAiInsight, RhDashboardKpis, RhDevelopmentHealthSnapshot, RhPdiDashboardKpis, RhPendingDocumentView, RhProcessSummary } from '../../../types/rh';
+import type { RhAlertCritical, RhDashboardAiInsight, RhDashboardKpis, RhDashboardRecentEvent, RhDevelopmentHealthSnapshot, RhPdiDashboardKpis, RhPendingDocumentView, RhProcessSummary } from '../../../types/rh';
+
+const DashboardLoadingSkeleton = () => (
+  <div className="space-y-4 sm:space-y-6" aria-busy="true" aria-live="polite" data-testid="rh-dashboard-loading-skeleton">
+    <span className="sr-only">Carregando Dashboard RH</span>
+    <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3 sm:gap-4">
+      {Array.from({ length: 10 }, (_, index) => <div key={index} className="min-h-[108px] rounded-2xl border border-line-strong/50 bg-surface/40 animate-pulse" />)}
+    </div>
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {Array.from({ length: 4 }, (_, index) => <div key={index} className="h-56 rounded-2xl border border-line-strong/50 bg-surface/40 animate-pulse" />)}
+    </div>
+  </div>
+);
 
 export const DashboardTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -12,7 +24,7 @@ export const DashboardTab: React.FC = () => {
   const [alerts, setAlerts] = useState<RhAlertCritical[]>([]);
   const [pendingDocuments, setPendingDocuments] = useState<RhPendingDocumentView[]>([]);
   const [myQueue, setMyQueue] = useState<RhProcessSummary[]>([]);
-  const [recentEvents, setRecentEvents] = useState<any[]>([]);
+  const [recentEvents, setRecentEvents] = useState<RhDashboardRecentEvent[]>([]);
   const [aiInsight, setAiInsight] = useState<RhDashboardAiInsight | null>(null);
   const [developmentHealth, setDevelopmentHealth] = useState<RhDevelopmentHealthSnapshot | null>(null);
 
@@ -21,20 +33,13 @@ export const DashboardTab: React.FC = () => {
     if (shouldBlock) setLoading(true);
     setError(null);
     try {
-      const [nextKpis, nextPdiKpis, nextAlerts, nextPendingDocuments, nextMyQueue, nextRecentEvents] = await Promise.all([
-        rhJornadaService.fetchDashboardKpis(),
-        rhJornadaService.fetchPdiDashboardKpis(),
-        rhJornadaService.fetchCriticalAlerts(),
-        rhJornadaService.fetchPendingDocumentsView(),
-        rhJornadaService.fetchMyQueue(),
-        rhJornadaService.fetchRecentHistory(8),
-      ]);
-      setKpis(nextKpis);
-      setPdiKpis(nextPdiKpis);
-      setAlerts((nextAlerts as RhAlertCritical[]).slice(0, 8));
-      setPendingDocuments(nextPendingDocuments.slice(0, 8));
-      setMyQueue(nextMyQueue.slice(0, 6));
-      setRecentEvents(nextRecentEvents);
+      const bootstrap = await rhJornadaService.fetchDashboardBootstrap();
+      setKpis(bootstrap.kpis);
+      setPdiKpis(bootstrap.pdi_kpis);
+      setAlerts(bootstrap.alerts);
+      setPendingDocuments(bootstrap.pending_documents);
+      setMyQueue(bootstrap.my_queue);
+      setRecentEvents(bootstrap.recent_events);
       void Promise.all([
         rhJornadaService.fetchDashboardAiInsights().catch(() => null),
         rhJornadaService.fetchDevelopmentHealthSnapshot().catch(() => null),
@@ -57,7 +62,7 @@ export const DashboardTab: React.FC = () => {
   const kpiValueClass = "mt-2 text-2xl sm:text-3xl font-black";
   const kpiSubClass = "mt-1 text-[11px] sm:text-xs font-bold text-muted leading-tight";
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <DashboardLoadingSkeleton />;
   if (error) return <ErrorState message={error} onRetry={loadData} />;
 
   return (

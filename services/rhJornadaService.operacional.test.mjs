@@ -35,3 +35,13 @@ test('frontend salva perfil sem enviar id ou role controlado pelo navegador', ()
   assert.doesNotMatch(saveProfile, /\brole\s*:/);
   assert.doesNotMatch(saveProfile, /\bid\s*:/);
 });
+
+test('Dashboard RH usa uma RPC unica para o primeiro quadro, sem buscar perfil do cliente', () => {
+  const serviceMethod = methodSource(rhSource, 'fetchDashboardBootstrap');
+
+  assert.match(serviceMethod, /supabase\s*\.rpc\('rh_dashboard_bootstrap'\)/);
+  assert.match(serviceMethod, /withRhDashboardTimeout\(/);
+  assert.match(serviceMethod, /abortSignal\(signal\)/);
+  assert.doesNotMatch(serviceMethod, /fetchCurrentUserContext\(/);
+  assert.doesNotMatch(serviceMethod, /auth\.getUser\(/);
+});
