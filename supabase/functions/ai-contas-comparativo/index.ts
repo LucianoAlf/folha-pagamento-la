@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { callGeminiWithFallback, getGeminiApiKey } from "../_shared/gemini.ts";
-import { buildVariationKey } from "../../../shared/contasVariationMemory.ts";
+import { buildVariationKey, truncateAiDraft } from "../../../shared/contasVariationMemory.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ANALYSIS_VERSION = 1;
+const ANALYSIS_VERSION = 2;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -131,6 +131,7 @@ type ComparativoJson = {
     descricao: string;
     impacto_financeiro?: number;
     chave_referencia?: string | null;
+    sugestao_justificativa?: string | null;
   }>;
   recomendacoes: string[];
 };
@@ -168,6 +169,7 @@ function buildFallbackComparativo(
       descricao: `${t.categoria} em ${t.unidade}: base R$ ${t.prev.toFixed(2)} -> atual R$ ${t.curr.toFixed(2)} (${t.perc >= 0 ? "+" : ""}${t.perc.toFixed(1)}%).`,
       impacto_financeiro: t.diff,
       chave_referencia: t.key || null,
+      sugestao_justificativa: null,
     };
   });
 
@@ -179,6 +181,33 @@ function buildFallbackComparativo(
       "Conferir mudanças de contrato/fornecedor nos grupos do plano com maior impacto absoluto.",
       "Manter memória comparativa atualizada para reduzir falsos alertas nos próximos meses.",
     ],
+  };
+}
+
+function normalizeComparativoResponse(parsed: any, variations: Variation[]): ComparativoJson {
+  const variationByKey = new Map(variations.map((variation) => [variation.key, variation]));
+  const insights = (Array.isArray(parsed?.insights_detalhados) ? parsed.insights_detalhados : [])
+    .map((insight: any) => {
+      const key = typeof insight?.chave_referencia === "string" ? insight.chave_referencia : null;
+      const variation = key ? variationByKey.get(key) : null;
+      if (!variation) return null;
+      const severidade = insight.severidade === "alta" || insight.severidade === "baixa" ? insight.severidade : "media";
+      return {
+        titulo: String(insight.titulo || variation.descricao || "Variação"),
+        categoria: String(insight.categoria || variation.categoria),
+        severidade,
+        descricao: String(insight.descricao || ""),
+        impacto_financeiro: variation.diff,
+        chave_referencia: variation.key,
+        sugestao_justificativa: truncateAiDraft(insight.sugestao_justificativa),
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    analise_executiva: String(parsed?.analise_executiva || ""),
+    insights_detalhados: insights,
+    recomendacoes: Array.isArray(parsed?.recomendacoes) ? parsed.recomendacoes.map(String) : [],
   };
 }
 
@@ -275,6 +304,23 @@ Deno.serve(async (req: Request) => {
       .eq("ano", by)
       .eq("mes", bm)
       .maybeSingle();
+
+    const loadNotes = async (competencia: string) => {
+      let query = supabase
+        .from("contas_anomalia_notas")
+        .select("anomaly_key,unidade,conta_id,recorrente_modelo_id,plano_conta_id,nota,status,updated_at")
+        .eq("competencia_ym", competencia)
+        .order("updated_at", { ascending: false });
+      if (unidade !== "todas") query = query.eq("unidade", unidade);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    };
+
+    const [notasAnomaliasAtual, notasAnomaliasBase] = await Promise.all([
+      loadNotes(competenciaYM),
+      loadNotes(baseYM),
+    ]);
 
     // Contas dos dois meses (mesmo recorte dos filtros de unidade: inclui "todas" como shared)
     const competenciaDate = `${competenciaYM}-01`;
@@ -403,6 +449,9 @@ Deno.serve(async (req: Request) => {
         diff: x.diff,
         perc: x.perc,
         status: x.status,
+        conta_id: x.contaId,
+        recorrente_modelo_id: x.recorrenteModeloId,
+        plano_conta_id: x.planoContaId,
       })),
       top_alertas: topAlertas.map((x) => ({
         key: x.key,
@@ -413,10 +462,15 @@ Deno.serve(async (req: Request) => {
         curr: x.curr,
         diff: x.diff,
         perc: x.perc,
+        conta_id: x.contaId,
+        recorrente_modelo_id: x.recorrenteModeloId,
+        plano_conta_id: x.planoContaId,
       })),
       memoria: {
         notas_mes_atual: notasAtual?.contas_comparativo_notas_rh || "",
         notas_mes_base: notasBase?.contas_comparativo_notas_rh || "",
+        notas_anomalias_atual: notasAnomaliasAtual,
+        notas_anomalias_base: notasAnomaliasBase,
       },
     };
 
@@ -437,10 +491,10 @@ Deno.serve(async (req: Request) => {
 Retorne APENAS JSON válido com:
 {
   "analise_executiva": string,
-  "insights_detalhados": [{"titulo":string,"categoria":string,"severidade":"alta|media|baixa","descricao":string,"impacto_financeiro":number,"chave_referencia":string|null}],
+  "insights_detalhados": [{"titulo":string,"categoria":string,"severidade":"alta|media|baixa","descricao":string,"impacto_financeiro":number,"chave_referencia":string|null,"sugestao_justificativa":string|null}],
   "recomendacoes": string[]
 }
-Sem markdown, sem texto extra.
+Use somente a comparação e as notas humanas fornecidas. Se não houver base concreta para uma explicação, use null em sugestao_justificativa. Não altere nenhum número determinístico. Não transforme status pendente ou monitorar em causa e não declare uma causa como certa. Sem markdown, sem texto extra.
 Dados:
 ${JSON.stringify(inputObject)}`;
 
@@ -467,6 +521,7 @@ ${JSON.stringify(inputObject)}`;
         topMudancas,
       );
     }
+    parsed = normalizeComparativoResponse(parsed, variations);
 
     const { data: inserted, error: insErr } = await supabase
       .from("contas_comparativo_ai_insights")
