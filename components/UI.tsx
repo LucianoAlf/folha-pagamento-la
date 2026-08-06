@@ -980,7 +980,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   // Porém usamos "" como "nenhuma seleção" em alguns campos (ex.: lista/unidade).
   // Então mapeamos internamente "" -> sentinel seguro e revertendo no onValueChange.
   const EMPTY_SENTINEL = '__la__empty__';
-  const safeValue = value === '' ? EMPTY_SENTINEL : value;
+  const emptyOption = options.find((o) => o.value === '');
+  const safeValue = value === '' ? (emptyOption ? EMPTY_SENTINEL : undefined) : value;
   const selectedOpt = options.find((o) => (o.value === '' ? EMPTY_SENTINEL : o.value) === safeValue);
   const SelectedIcon = Icon || selectedOpt?.icon;
 
@@ -997,7 +998,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           {SelectedIcon ? (
             <SelectedIcon size={16} className="text-muted group-hover:text-accent transition-colors shrink-0" />
           ) : null}
-          <Select.Value placeholder={placeholder} className="block min-w-0 truncate" />
+          <Select.Value placeholder={placeholder} className="block min-w-0 truncate text-secondary data-[placeholder]:text-muted" />
         </div>
         <Select.Icon className="pointer-events-none shrink-0">
           <ChevronDown size={14} className="text-muted" />
@@ -1021,7 +1022,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               >
                 <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
                   {opt.icon ? <opt.icon size={16} className="shrink-0 opacity-80" /> : null}
-                  <Select.ItemText className="truncate">{opt.label}</Select.ItemText>
+                  <Select.ItemText className="truncate text-secondary">{opt.label}</Select.ItemText>
                 </div>
                 <Select.ItemIndicator>
                   <Check size={14} className="text-accent" />

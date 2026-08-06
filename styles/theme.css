@@ -167,6 +167,12 @@
   z-index: calc(var(--z-header) + 1);
 }
 
+/* Disabled controls must remain readable in both themes, even when a
+   component's enabled state still carries the legacy text-white utility. */
+button:disabled.text-white {
+  color: rgb(var(--text-3)) !important;
+}
+
 /* Modais largos da folha ocupam apenas a area de conteudo no desktop. */
 @media (min-width: 1024px) {
   body:has(.app-sidebar.w-72) {
