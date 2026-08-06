@@ -46,3 +46,16 @@ test('o modal de pessoas do LA Report não cria mais candidatos', () => {
   assert.doesNotMatch(modal, /p_situacao:\s*['"]candidato['"]/);
   assert.match(modal, /p_situacao:\s*['"]ativo['"]/);
 });
+
+test('a nova aba do guia consome o rascunho, sem a aba de origem apagá-lo antes da montagem', () => {
+  const modal = read('components/rh-jornada/candidates/InterviewGuideModal.tsx');
+  const page = read('components/rh-jornada/candidates/InterviewGuidePage.tsx');
+
+  assert.match(modal, /window\.sessionStorage\.setItem\(draft\.storageKey,/);
+  assert.match(modal, /window\.open\(`\/rh\/candidatos\//);
+  assert.ok(
+    modal.indexOf('window.sessionStorage.removeItem(draft.storageKey)') > modal.indexOf('if (!guide)'),
+    'o rascunho só pode ser removido se a abertura da nova aba falhar',
+  );
+  assert.match(page, /consumeInterviewGuideDraftForCandidate\(window\.sessionStorage, candidateId\)/);
+});
