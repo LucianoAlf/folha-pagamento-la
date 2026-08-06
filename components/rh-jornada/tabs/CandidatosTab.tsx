@@ -46,6 +46,8 @@ export const CandidatosTab: React.FC = () => {
   const [comparisonCandidateId, setComparisonCandidateId] = useState('');
   const [comparison, setComparison] = useState<RhCandidateComparisonResult | null>(null);
   const [comparing, setComparing] = useState(false);
+  const [fichaToken, setFichaToken] = useState('');
+  const [fichaLoading, setFichaLoading] = useState(false);
   const { run } = useAsyncAction();
 
   const loadCandidates = async () => {
@@ -128,6 +130,7 @@ export const CandidatosTab: React.FC = () => {
     setSelectedStatus(selectedCandidate?.status || 'novo');
     setComparisonCandidateId('');
     setComparison(null);
+    setFichaToken('');
   }, [selectedCandidate?.id]);
 
   if (loading) return <LoadingSpinner />;
@@ -369,6 +372,89 @@ export const CandidatosTab: React.FC = () => {
                   Arquivar candidato
                 </button>
               </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-accent/25 bg-accent/10 p-4">
+              <div className="flex items-center gap-2 text-primary font-black">
+                <FileSearch className="w-4 h-4 text-accent" />
+                Ficha Técnica LA
+              </div>
+              <div className="mt-2 text-xs font-bold text-muted">
+                {selectedCandidate.ficha_importada_em
+                  ? `Importada em ${new Date(selectedCandidate.ficha_importada_em).toLocaleString('pt-BR')}.`
+                  : selectedCandidate.ficha_token || selectedCandidate.la_colaborador_id
+                    ? 'Vínculo criado; aguardando a resposta da pessoa.'
+                    : 'Informe o token do link enviado pela LA Report para vincular a ficha.'}
+              </div>
+              {!selectedCandidate.ficha_token && !selectedCandidate.la_colaborador_id ? (
+                <input
+                  value={fichaToken}
+                  onChange={(event) => setFichaToken(event.target.value)}
+                  placeholder="Token da Ficha Técnica"
+                  className="mt-3 w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
+                />
+              ) : null}
+              <button
+                type="button"
+                disabled={fichaLoading || (!selectedCandidate.ficha_token && !selectedCandidate.la_colaborador_id && !fichaToken.trim())}
+                onClick={async () => {
+                  setFichaLoading(true);
+                  await run(
+                    async () => {
+                      const resultado = await rhJornadaService.importCandidateFicha(selectedCandidate.id, fichaToken);
+                      await loadCandidates();
+                      if (!resultado.respondeu) window.alert('Vínculo salvo. A pessoa ainda não respondeu a Ficha Técnica; use Reimportar quando ela concluir.');
+                    },
+                    { success: 'Ficha Técnica consultada.', error: 'Não foi possível importar a Ficha Técnica.' }
+                  );
+                  setFichaLoading(false);
+                }}
+                className="mt-3 w-full px-4 py-3 rounded-2xl bg-accent hover:bg-accent text-white font-black transition-all disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {fichaLoading ? 'Importando ficha...' : selectedCandidate.ficha_importada_em ? 'Reimportar ficha' : 'Vincular e importar ficha'}
+              </button>
+
+              {Array.isArray(selectedCandidate.perguntas_entrevista) && selectedCandidate.perguntas_entrevista.length ? (
+                <div className="mt-4 space-y-3">
+                  {selectedCandidate.perguntas_desatualizadas ? (
+                    <div className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs font-bold text-warning">
+                      A ficha mudou desde a geração deste roteiro. Ele foi preservado para a entrevista; gere novamente quando puder.
+                    </div>
+                  ) : null}
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-black">Roteiro de entrevista</div>
+                  <ol className="space-y-2 text-sm font-bold text-secondary list-decimal list-inside">
+                    {selectedCandidate.perguntas_entrevista.map((item, index) => <li key={`${item.pergunta}-${index}`}>{item.pergunta}</li>)}
+                  </ol>
+                  <div className="grid grid-cols-1 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void navigator.clipboard.writeText(selectedCandidate.perguntas_entrevista!.map((item, index) => `${index + 1}. ${item.pergunta}\nContexto: ${item.ancora}`).join('\n\n'))}
+                      className="px-4 py-2.5 rounded-xl border border-line bg-surface/40 text-secondary text-sm font-black hover:bg-surface/60"
+                    >Copiar roteiro</button>
+                    <button
+                      type="button"
+                      disabled={fichaLoading}
+                      onClick={async () => {
+                        setFichaLoading(true);
+                        await run(async () => { await rhJornadaService.generateCandidateInterviewQuestions(selectedCandidate.id); await loadCandidates(); }, { success: 'Roteiro de entrevista gerado.', error: 'Não foi possível gerar o roteiro.' });
+                        setFichaLoading(false);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-accent hover:bg-accent text-white text-sm font-black disabled:opacity-60"
+                    >{selectedCandidate.perguntas_desatualizadas ? 'Gerar de novo' : 'Gerar novamente'}</button>
+                  </div>
+                </div>
+              ) : selectedCandidate.ficha_importada_em ? (
+                <button
+                  type="button"
+                  disabled={fichaLoading}
+                  onClick={async () => {
+                    setFichaLoading(true);
+                    await run(async () => { await rhJornadaService.generateCandidateInterviewQuestions(selectedCandidate.id); await loadCandidates(); }, { success: 'Roteiro de entrevista gerado.', error: 'Não foi possível gerar o roteiro.' });
+                    setFichaLoading(false);
+                  }}
+                  className="mt-3 w-full px-4 py-3 rounded-2xl border border-accent/40 bg-surface/40 text-accent font-black hover:bg-surface/60 disabled:opacity-60"
+                >Gerar perguntas de entrevista</button>
+              ) : null}
             </div>
 
             <div className="mt-5 rounded-2xl border border-info/20 bg-info/10 p-4">

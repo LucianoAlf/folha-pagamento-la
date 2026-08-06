@@ -155,6 +155,13 @@ export interface RhCandidate {
   status: RhCandidateStatus;
   questionario_resumo?: string | null;
   questionario_respostas: Record<string, unknown>;
+  ficha_token?: string | null;
+  la_colaborador_id?: number | null;
+  ficha_importada_em?: string | null;
+  ficha_snapshot_hash?: string | null;
+  perguntas_entrevista?: RhInterviewQuestion[] | null;
+  perguntas_geradas_em?: string | null;
+  perguntas_desatualizadas?: boolean;
   curriculo_storage_path?: string | null;
   curriculo_texto_extraido?: string | null;
   observacoes?: string | null;
@@ -231,6 +238,12 @@ export interface RhCandidateApprovalInput {
   onboardingDataFimPrevista?: string | null;
   onboardingObservacoes?: string | null;
   reuseExistingCollaboratorId?: number | null;
+}
+
+export interface RhInterviewQuestion {
+  pilar: 'comportamental' | 'cultura' | 'tecnica';
+  pergunta: string;
+  ancora: string;
 }
 
 export interface RhExistingCollaboratorConflict {

@@ -1296,6 +1296,14 @@ export const rhJornadaService = {
     return rhJornadaService.invokeAiFunction<RhCandidateAiDraft>('rh-ai-candidate-parse', body);
   },
 
+  async importCandidateFicha(candidateId: string, token?: string): Promise<{ respondeu: boolean; perguntas_desatualizadas?: boolean }> {
+    return rhJornadaService.invokeAiFunction('rh-ficha-importar', { candidato_id: candidateId, token: token?.trim() || undefined });
+  },
+
+  async generateCandidateInterviewQuestions(candidateId: string): Promise<{ perguntas: import('../types/rh').RhInterviewQuestion[] }> {
+    return rhJornadaService.invokeAiFunction('rh-ai-perguntas-entrevista', { candidato_id: candidateId });
+  },
+
   async compareCandidatesWithAi(candidateIds: string[]): Promise<RhCandidateComparisonResult> {
     return rhJornadaService.invokeAiFunction<RhCandidateComparisonResult>('rh-ai-candidate-compare', { candidateIds });
   },
