@@ -40,6 +40,7 @@ import {
 } from './components/navigation';
 import {
   buildNavigationUrl,
+  getInterviewGuideCandidateId,
   isSameNavigationDestination,
   normalizeNavigationDestination,
   resolveNavigationLocation,
@@ -72,6 +73,9 @@ const FeriasPage = lazy(() =>
 );
 const RhJornadaPage = lazy(() =>
   import('./components/rh-jornada/RhJornadaPage').then((m) => ({ default: m.RhJornadaPage }))
+);
+const InterviewGuidePage = lazy(() =>
+  import('./components/rh-jornada/candidates/InterviewGuidePage').then((m) => ({ default: m.InterviewGuidePage }))
 );
 const BistroTab = lazy(() =>
   import('./components/bistro/BistroTab').then((m) => ({ default: m.BistroTab }))
@@ -223,6 +227,7 @@ export default function App() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const interviewGuideCandidateId = getInterviewGuideCandidateId(window.location.pathname);
 
   const isAna = (email?: string | null) => !!email && email.toLowerCase() === 'rh@lamusicschool.com.br';
   const isLuciano = (email?: string | null) => !!email && email.toLowerCase() === 'lucianoalf.la@gmail.com';
@@ -1934,6 +1939,14 @@ export default function App() {
           variant={alertState.variant}
         />
       </div>
+    );
+  }
+
+  if (interviewGuideCandidateId) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-700">Carregando guia...</div>}>
+        <InterviewGuidePage candidateId={interviewGuideCandidateId} />
+      </Suspense>
     );
   }
 

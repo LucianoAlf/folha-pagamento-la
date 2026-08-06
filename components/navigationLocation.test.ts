@@ -5,10 +5,20 @@ import test from 'node:test';
 import { createServer, type Plugin } from 'vite';
 import {
   buildNavigationUrl,
+  getInterviewGuideCandidateId,
   normalizeNavigationDestination,
   resolveNavigationLocation,
   withNavigationHistoryState,
 } from './navigationLocation.ts';
+
+test('identifica somente a rota canonica do guia de entrevista', () => {
+  assert.equal(
+    getInterviewGuideCandidateId('/rh/candidatos/0c4ff27a-9969-4fae-9a02-9d5bd8922a8e/guia'),
+    '0c4ff27a-9969-4fae-9a02-9d5bd8922a8e',
+  );
+  assert.equal(getInterviewGuideCandidateId('/rh/candidatos/ana/guia/extra'), null);
+  assert.equal(getInterviewGuideCandidateId('/rh/candidatos//guia'), null);
+});
 
 test('resolve paths canonicos e aliases sem perder query ou hash', () => {
   assert.deepEqual(

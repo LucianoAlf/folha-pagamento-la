@@ -1198,6 +1198,17 @@ export const rhJornadaService = {
     return (data || []) as RhCandidate[];
   },
 
+  async fetchCandidateForInterviewGuide(candidateId: string): Promise<RhCandidate> {
+    const { data, error } = await supabase
+      .from('rh_candidatos')
+      .select('id, nome, cargo_pretendido, perguntas_entrevista, perguntas_desatualizadas, perguntas_geradas_em')
+      .eq('id', candidateId)
+      .is('arquivado_em', null)
+      .single();
+    if (error) throw error;
+    return data as RhCandidate;
+  },
+
   async createCandidate(
     payload: RhCandidateCreateInput,
     options?: { curriculumFile?: File | null; curriculoTextoExtraido?: string | null }

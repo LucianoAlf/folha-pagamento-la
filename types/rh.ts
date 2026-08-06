@@ -244,6 +244,9 @@ export interface RhInterviewQuestion {
   pilar: 'comportamental' | 'cultura' | 'tecnica';
   pergunta: string;
   ancora: string;
+  titulo_curto?: string;
+  sinal_consistencia?: string;
+  sinal_atencao?: string;
 }
 
 export interface RhExistingCollaboratorConflict {

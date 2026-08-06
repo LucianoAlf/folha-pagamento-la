@@ -8,5 +8,12 @@ test('contrato de roteiro exige de seis a nove perguntas com pilares permitidos'
   assert.equal(perguntas.minItems, 6);
   assert.equal(perguntas.maxItems, 9);
   assert.deepEqual(perguntas.items.properties.pilar.enum, ['comportamental', 'cultura', 'tecnica']);
-  assert.deepEqual(perguntas.items.required, ['pilar', 'pergunta', 'ancora']);
+  assert.deepEqual(perguntas.items.required, [
+    'pilar',
+    'pergunta',
+    'ancora',
+    'titulo_curto',
+    'sinal_consistencia',
+    'sinal_atencao',
+  ]);
 });

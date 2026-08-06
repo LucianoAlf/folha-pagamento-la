@@ -20,6 +20,16 @@ interface NavigationHistoryState {
   navigation: NavigationDestination;
 }
 
+export function getInterviewGuideCandidateId(pathname: string): string | null {
+  const match = pathname.match(/^\/rh\/candidatos\/([^/]+)\/guia\/?$/);
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

@@ -4,11 +4,17 @@ import { callGeminiWithFallback, getGeminiApiKey, safeParseJsonFromText } from "
 import { INTERVIEW_QUESTION_RESPONSE_SCHEMA } from "../_shared/interview-question-schema.mjs";
 
 const PILARES = new Set(['comportamental', 'cultura', 'tecnica']);
+const MAX_SIGNAL_LENGTH = 90;
+const MAX_TITLE_LENGTH = 72;
 const normalizarPilar = (value: unknown) => String(value ?? '')
   .trim()
   .toLowerCase()
   .normalize('NFD')
   .replace(/\p{Diacritic}/gu, '');
+const normalizarTexto = (value: unknown, maxLength?: number) => {
+  const text = String(value ?? '').trim().replace(/\s+/g, ' ');
+  return maxLength ? text.slice(0, maxLength).trim() : text;
+};
 
 function statusFor(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -23,10 +29,13 @@ function validarPerguntas(value: unknown) {
   if (perguntas.length < 6 || perguntas.length > 9) return null;
   const normalizadas = perguntas.map((pergunta: any) => ({
     pilar: normalizarPilar(pergunta?.pilar),
-    pergunta: String(pergunta?.pergunta ?? '').trim(),
-    ancora: String(pergunta?.ancora ?? '').trim(),
+    pergunta: normalizarTexto(pergunta?.pergunta),
+    ancora: normalizarTexto(pergunta?.ancora),
+    titulo_curto: normalizarTexto(pergunta?.titulo_curto, MAX_TITLE_LENGTH),
+    sinal_consistencia: normalizarTexto(pergunta?.sinal_consistencia, MAX_SIGNAL_LENGTH),
+    sinal_atencao: normalizarTexto(pergunta?.sinal_atencao, MAX_SIGNAL_LENGTH),
   }));
-  if (normalizadas.some((pergunta) => !PILARES.has(pergunta.pilar) || !pergunta.pergunta || pergunta.pergunta.length > 600 || !pergunta.ancora || pergunta.ancora.length > 500)) return null;
+  if (normalizadas.some((pergunta) => !PILARES.has(pergunta.pilar) || !pergunta.pergunta || pergunta.pergunta.length > 600 || !pergunta.ancora || pergunta.ancora.length > 500 || !pergunta.titulo_curto || !pergunta.sinal_consistencia || !pergunta.sinal_atencao)) return null;
   return normalizadas;
 }
 
@@ -49,10 +58,13 @@ Deno.serve(async (req) => {
 
     const prompt = [
       'Voce prepara um roteiro de entrevista para RH, em portugues do Brasil.',
-      'Retorne somente JSON valido no formato {"perguntas":[{"pilar":"comportamental|cultura|tecnica","pergunta":"...","ancora":"trecho ou tensao da ficha que motivou a pergunta"}]}.',
+      'Retorne somente JSON valido no formato {"perguntas":[{"pilar":"comportamental|cultura|tecnica","pergunta":"...","ancora":"trecho ou tensao da ficha que motivou a pergunta","titulo_curto":"3 a 5 palavras","sinal_consistencia":"ate 90 caracteres","sinal_atencao":"ate 90 caracteres"}]}.',
       'Gere de 6 a 9 perguntas: comportamental, cultura e 1 ou 2 tecnicas somente se o cargo permitir.',
       'Cada pergunta deve investigar uma tensao entre uma declaracao da pessoa e o contexto do cargo; use perguntas abertas sobre situacoes vividas.',
       'A ancora deve apontar o dado da ficha que motivou a pergunta, sem inventar fatos.',
+      'Titulo curto tem de 3 a 5 palavras e descreve somente o tema da pergunta, sem julgar a pessoa.',
+      'Os sinais sao observaveis e neutros: descrevem contexto, acao e resultado esperados, sem diagnostico ou conclusao.',
+      'Nunca escreva codinome, perfil, temperamento, linguagem de reconhecimento, valores pessoais ou rotulo comportamental nos sinais.',
       'Nunca atribua nota, score, fit, diagnostico, veredito, recomendacao de aprovacao ou rotulo clinico/comportamental.',
       `Candidato: ${candidato.nome}. Cargo pretendido: ${candidato.cargo_pretendido ?? 'nao informado'}. Observacoes: ${candidato.observacoes ?? 'nenhuma'}.`,
       `Ficha tecnica: ${JSON.stringify(ficha)}`,

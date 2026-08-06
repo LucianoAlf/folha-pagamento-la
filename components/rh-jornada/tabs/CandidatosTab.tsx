@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Archive, Briefcase, CheckCircle2, FileSearch, Filter, Loader2, Mail, Pencil, Phone, Plus, Sparkles, UserPlus, XCircle } from 'lucide-react';
+import { Archive, Briefcase, CheckCircle2, FileSearch, Filter, Loader2, Mail, Pencil, Phone, Plus, Printer, Sparkles, UserPlus, XCircle } from 'lucide-react';
 import { Badge, Card, CustomSelect, ErrorState, LoadingSpinner } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhCandidate, RhCandidateComparisonResult, RhCandidateStatus, RhProcess, RhStage, RhTemplate } from '../../../types/rh';
 import { CandidateFormModal } from '../candidates/CandidateFormModal';
 import { CandidateApprovalModal } from '../candidates/CandidateApprovalModal';
+import { InterviewGuideModal } from '../candidates/InterviewGuideModal';
 import { RhStageExecutionPanel } from '../process/RhStageExecutionPanel';
 import { RhProcessActivityPanel } from '../process/RhProcessActivityPanel';
 import { RhEvaluationPanel } from '../process/RhEvaluationPanel';
@@ -48,6 +49,7 @@ export const CandidatosTab: React.FC = () => {
   const [comparing, setComparing] = useState(false);
   const [fichaToken, setFichaToken] = useState('');
   const [fichaLoading, setFichaLoading] = useState(false);
+  const [guideCandidate, setGuideCandidate] = useState<RhCandidate | null>(null);
   const { run } = useAsyncAction();
 
   const loadCandidates = async () => {
@@ -425,12 +427,17 @@ export const CandidatosTab: React.FC = () => {
                   <ol className="space-y-2 text-sm font-bold text-secondary list-decimal list-inside">
                     {selectedCandidate.perguntas_entrevista.map((item, index) => <li key={`${item.pergunta}-${index}`}>{item.pergunta}</li>)}
                   </ol>
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => void navigator.clipboard.writeText(selectedCandidate.perguntas_entrevista!.map((item, index) => `${index + 1}. ${item.pergunta}\nContexto: ${item.ancora}`).join('\n\n'))}
                       className="px-4 py-2.5 rounded-xl border border-line bg-surface/40 text-secondary text-sm font-black hover:bg-surface/60"
                     >Copiar roteiro</button>
+                    <button
+                      type="button"
+                      onClick={() => setGuideCandidate(selectedCandidate)}
+                      className="px-4 py-2.5 rounded-xl border border-accent/40 bg-accent/10 text-accent text-sm font-black hover:bg-accent/20 inline-flex items-center justify-center gap-2"
+                    ><Printer className="w-4 h-4" />Gerar guia de entrevista</button>
                     <button
                       type="button"
                       disabled={fichaLoading}
@@ -599,6 +606,16 @@ export const CandidatosTab: React.FC = () => {
           return result;
         }}
       />
+
+      {guideCandidate ? (
+        <InterviewGuideModal
+          isOpen
+          candidateId={guideCandidate.id}
+          candidateName={guideCandidate.nome}
+          perguntasDesatualizadas={guideCandidate.perguntas_desatualizadas}
+          onClose={() => setGuideCandidate(null)}
+        />
+      ) : null}
     </div>
   );
 };
