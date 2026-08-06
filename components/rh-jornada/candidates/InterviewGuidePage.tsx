@@ -24,19 +24,6 @@ const fileSafeName = (value: string) => value
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/(^-|-$)/g, '');
 
-async function waitForPrintAssets() {
-  await document.fonts?.ready;
-  await Promise.all(
-    Array.from(document.images).map((image) => {
-      if (image.complete) return Promise.resolve();
-      return new Promise<void>((resolve) => {
-        image.addEventListener('load', () => resolve(), { once: true });
-        image.addEventListener('error', () => resolve(), { once: true });
-      });
-    }),
-  );
-}
-
 export const InterviewGuidePage: React.FC<InterviewGuidePageProps> = ({ candidateId }) => {
   const [candidate, setCandidate] = useState<RhCandidate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +31,6 @@ export const InterviewGuidePage: React.FC<InterviewGuidePageProps> = ({ candidat
   const [draft, setDraft] = useState<InterviewGuideDraftPayload | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   const consumedDraft = useRef(false);
-  const autoPrintStarted = useRef(false);
 
   useEffect(() => {
     if (consumedDraft.current) return;
@@ -83,16 +69,9 @@ export const InterviewGuidePage: React.FC<InterviewGuidePageProps> = ({ candidat
     document.title = `guia-entrevista-${fileSafeName(candidate.nome.split(/\s+/)[0] || 'candidato')}-${draft.data}`;
   }, [candidate, draft]);
 
-  const print = async () => {
-    await waitForPrintAssets();
+  const print = () => {
     window.print();
   };
-
-  useEffect(() => {
-    if (!candidate || !draft || !groups.length || autoPrintStarted.current) return;
-    autoPrintStarted.current = true;
-    void print();
-  }, [candidate, draft, groups.length]);
 
   if (loading || !draftReady) {
     return <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-700 gap-3"><Loader2 className="animate-spin" /> Carregando guia de entrevista...</div>;
