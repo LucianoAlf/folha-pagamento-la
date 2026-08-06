@@ -696,16 +696,21 @@ export const TimeSelect: React.FC<{
   value?: string | null;
   onValueChange: (value: string) => void;
   stepMinutes?: 15 | 30;
+  allowEmpty?: boolean;
+  placeholder?: string;
   className?: string;
   disabled?: boolean;
-}> = ({ value, onValueChange, stepMinutes = 30, className = '', disabled = false }) => {
-  const safe = normalizeHHMM(value) || '08:00';
-  const options = buildTimeOptions(stepMinutes);
+}> = ({ value, onValueChange, stepMinutes = 30, allowEmpty = false, placeholder = 'Sem horário', className = '', disabled = false }) => {
+  const safe = normalizeHHMM(value) || (allowEmpty ? '' : '08:00');
+  const options = [
+    ...(allowEmpty ? [{ value: '', label: placeholder }] : []),
+    ...buildTimeOptions(stepMinutes),
+  ];
   return (
     <div className={cn(disabled && 'opacity-60 pointer-events-none', className)}>
       <CustomSelect
         value={safe}
-        onValueChange={(v) => onValueChange(normalizeHHMM(v) || safe)}
+        onValueChange={(v) => onValueChange(v ? normalizeHHMM(v) || safe : '')}
         options={options}
         className="min-w-[160px]"
       />

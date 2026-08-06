@@ -12,3 +12,12 @@ test('guide modal uses one-time session storage and requires stale confirmation'
   assert.match(source, /Imprimir mesmo assim/);
   assert.doesNotMatch(source, /URLSearchParams/);
 });
+
+test('guide modal reuses the global semantic date and time controls', () => {
+  assert.match(source, /import \{ DatePicker, Modal, TimeSelect \} from ['"]\.\.\/\.\.\/UI['"]/);
+  assert.match(source, /<DatePicker[\s\S]*value=\{data\}/);
+  assert.match(source, /<TimeSelect[\s\S]*value=\{horario\s*\|\|\s*null\}/);
+  assert.match(source, /<TimeSelect[\s\S]*allowEmpty/);
+  assert.doesNotMatch(source, /type="date"/);
+  assert.doesNotMatch(source, /type="time"/);
+});

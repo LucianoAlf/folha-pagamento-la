@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Printer } from 'lucide-react';
-import { Modal } from '../../UI';
+import { DatePicker, Modal, TimeSelect } from '../../UI';
 import { buildInterviewGuideDraft } from './interviewGuideModel';
 
 interface InterviewGuideModalProps {
@@ -82,8 +82,14 @@ export const InterviewGuideModal: React.FC<InterviewGuideModalProps> = ({
           </div>
         ) : null}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <label className="text-sm font-black text-secondary">Data da entrevista<input type="date" value={data} onChange={(event) => setData(event.target.value)} className="mt-2 w-full rounded-xl border border-line bg-bg px-4 py-3 text-primary" required /></label>
-          <label className="text-sm font-black text-secondary">Horário <span className="text-muted font-medium">(opcional)</span><input type="time" value={horario} onChange={(event) => setHorario(event.target.value)} className="mt-2 w-full rounded-xl border border-line bg-bg px-4 py-3 text-primary" /></label>
+          <label className="text-sm font-black text-secondary">
+            Data da entrevista
+            <DatePicker value={data} onChange={(next) => setData(next || localToday())} className="mt-2" />
+          </label>
+          <div className="text-sm font-black text-secondary">
+            Horário <span className="text-muted font-medium">(opcional)</span>
+            <TimeSelect value={horario || null} onValueChange={setHorario} stepMinutes={15} allowEmpty placeholder="Sem horário" className="mt-2" />
+          </div>
         </div>
         <label className="block text-sm font-black text-secondary">Local <span className="text-muted font-medium">(opcional)</span><input type="text" value={local} onChange={(event) => setLocal(event.target.value)} placeholder="Ex.: Sala 2" className="mt-2 w-full rounded-xl border border-line bg-bg px-4 py-3 text-primary" /></label>
         <div><div className="text-sm font-black text-secondary">Quem conduz <span className="text-muted font-medium">(até três pessoas, opcional)</span></div><div className="mt-2 grid gap-3">{condutores.map((name, index) => <input key={index} type="text" value={name} onChange={(event) => setCondutores((current) => current.map((item, position) => position === index ? event.target.value : item))} placeholder={`Entrevistador(a) ${index + 1}`} className="w-full rounded-xl border border-line bg-bg px-4 py-3 text-primary" />)}</div></div>
