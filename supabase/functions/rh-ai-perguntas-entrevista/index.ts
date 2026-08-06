@@ -1,8 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { requireRhAdminContext, rhJsonResponse as json } from "../_shared/rh-auth.ts";
 import { callGeminiWithFallback, getGeminiApiKey, safeParseJsonFromText } from "../_shared/gemini.ts";
+import { INTERVIEW_QUESTION_RESPONSE_SCHEMA } from "../_shared/interview-question-schema.mjs";
 
 const PILARES = new Set(['comportamental', 'cultura', 'tecnica']);
+const normalizarPilar = (value: unknown) => String(value ?? '')
+  .trim()
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/\p{Diacritic}/gu, '');
 
 function statusFor(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -16,7 +22,7 @@ function validarPerguntas(value: unknown) {
   const perguntas = (value as any).perguntas;
   if (perguntas.length < 6 || perguntas.length > 9) return null;
   const normalizadas = perguntas.map((pergunta: any) => ({
-    pilar: String(pergunta?.pilar ?? '').toLowerCase(),
+    pilar: normalizarPilar(pergunta?.pilar),
     pergunta: String(pergunta?.pergunta ?? '').trim(),
     ancora: String(pergunta?.ancora ?? '').trim(),
   }));
@@ -52,9 +58,29 @@ Deno.serve(async (req) => {
       `Ficha tecnica: ${JSON.stringify(ficha)}`,
     ].join('\n');
     const key = await getGeminiApiKey(adminClient);
-    const result = await callGeminiWithFallback(prompt, key, { timeoutMs: 20_000, generationConfig: { temperature: 0.2, maxOutputTokens: 1800 } });
-    const perguntas = validarPerguntas(safeParseJsonFromText(result.text));
-    if (!perguntas) return json({ success: false, error: 'A IA nao devolveu um roteiro valido. Tente gerar novamente.' }, 502);
+    const result = await callGeminiWithFallback(prompt, key, {
+      timeoutMs: 20_000,
+      generationConfig: {
+        maxOutputTokens: 4096,
+        thinkingLevel: 'low',
+        responseMimeType: 'application/json',
+        responseJsonSchema: INTERVIEW_QUESTION_RESPONSE_SCHEMA,
+      },
+    });
+    const respostaIa = safeParseJsonFromText(result.text);
+    const perguntas = validarPerguntas(respostaIa);
+    if (!perguntas) {
+      const itens = respostaIa && typeof respostaIa === 'object' && Array.isArray((respostaIa as any).perguntas)
+        ? (respostaIa as any).perguntas
+        : null;
+      const diagnostico = {
+        resposta_json: Boolean(respostaIa),
+        total_perguntas: itens?.length ?? null,
+        pilares: itens?.map((item: any) => String(item?.pilar ?? '')).slice(0, 9) ?? [],
+      };
+      console.warn('rh-ai-perguntas-entrevista: roteiro fora do contrato', diagnostico);
+      return json({ success: false, error: 'A IA nao devolveu um roteiro valido. Tente gerar novamente.' }, 502);
+    }
     const geradasEm = new Date().toISOString();
     const { error: updateError } = await adminClient.from('rh_candidatos').update({
       perguntas_entrevista: perguntas,

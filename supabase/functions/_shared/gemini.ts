@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { describeGeminiResponse, extractGeminiText } from "./gemini-response.mjs";
+import { buildGeminiGenerateContentBody } from "./gemini-request.mjs";
 
-export const GEMINI_PRIMARY_MODEL_ID = "gemini-3-flash-preview";
+export const GEMINI_PRIMARY_MODEL_ID = "gemini-3.6-flash";
 export const GEMINI_FALLBACK_MODEL_ID = "gemini-2.5-flash";
 
 export type GeminiCallResult = { text: string; modelUsed: string };
@@ -10,6 +12,9 @@ export type GeminiGenerationConfig = {
   topP?: number;
   topK?: number;
   maxOutputTokens?: number;
+  responseMimeType?: string;
+  responseJsonSchema?: Record<string, unknown>;
+  thinkingLevel?: "low" | "medium" | "high";
 };
 
 type SupabaseAdminClient = ReturnType<typeof createClient>;
@@ -63,15 +68,10 @@ export async function callGeminiOnce(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: options?.generationConfig?.temperature ?? 0.2,
-            topP: options?.generationConfig?.topP ?? 0.9,
-            topK: options?.generationConfig?.topK,
-            maxOutputTokens: options?.generationConfig?.maxOutputTokens ?? 2048,
-          },
-        }),
+        body: JSON.stringify(buildGeminiGenerateContentBody(prompt, {
+          isGemini3: modelId === GEMINI_PRIMARY_MODEL_ID,
+          config: options?.generationConfig,
+        })),
       },
     );
 
@@ -81,7 +81,11 @@ export async function callGeminiOnce(
     }
 
     const data = await response.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = extractGeminiText(data);
+    if (!text) {
+      throw new Error(`Gemini returned no usable text (${JSON.stringify(describeGeminiResponse(data))})`);
+    }
+    return text;
   } catch (err: unknown) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new Error(`Gemini API timeout after ${timeoutMs}ms`);
@@ -103,6 +107,7 @@ function shouldTryFallbackModel(error: unknown) {
     msg.includes("models/") ||
     msg.includes("invalid model") ||
     msg.includes("model is not") ||
+    msg.includes("no usable text") ||
     (msg.includes("gemini api error") && msg.includes("404"))
   );
 }
