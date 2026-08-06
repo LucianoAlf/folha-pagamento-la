@@ -48,8 +48,8 @@ export const InterviewGuideModal: React.FC<InterviewGuideModalProps> = ({
     const draft = buildInterviewGuideDraft({ candidateId, data, horario, local, condutores });
     window.sessionStorage.setItem(draft.storageKey, JSON.stringify(draft.payload));
     const guide = window.open(`/rh/candidatos/${encodeURIComponent(candidateId)}/guia`, '_blank');
+    window.sessionStorage.removeItem(draft.storageKey);
     if (!guide) {
-      window.sessionStorage.removeItem(draft.storageKey);
       setError('O navegador bloqueou a nova aba. Libere pop-ups e tente novamente.');
       return;
     }

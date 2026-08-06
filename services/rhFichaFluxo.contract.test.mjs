@@ -47,15 +47,19 @@ test('o modal de pessoas do LA Report não cria mais candidatos', () => {
   assert.match(modal, /p_situacao:\s*['"]ativo['"]/);
 });
 
-test('a nova aba do guia consome o rascunho, sem a aba de origem apagá-lo antes da montagem', () => {
+test('a nova aba do guia consome seu rascunho e a aba de origem o limpa imediatamente', () => {
   const modal = read('components/rh-jornada/candidates/InterviewGuideModal.tsx');
   const page = read('components/rh-jornada/candidates/InterviewGuidePage.tsx');
 
   assert.match(modal, /window\.sessionStorage\.setItem\(draft\.storageKey,/);
   assert.match(modal, /window\.open\(`\/rh\/candidatos\//);
   assert.ok(
-    modal.indexOf('window.sessionStorage.removeItem(draft.storageKey)') > modal.indexOf('if (!guide)'),
-    'o rascunho só pode ser removido se a abertura da nova aba falhar',
+    modal.indexOf('window.sessionStorage.removeItem(draft.storageKey)') > modal.indexOf('const guide = window.open'),
+    'a aba de origem precisa remover os metadados logo após abrir a guia',
+  );
+  assert.ok(
+    modal.indexOf('window.sessionStorage.removeItem(draft.storageKey)') < modal.indexOf('if (!guide)'),
+    'a limpeza deve ocorrer mesmo quando o pop-up for bloqueado',
   );
   assert.match(page, /consumeInterviewGuideDraftForCandidate\(window\.sessionStorage, candidateId\)/);
 });
