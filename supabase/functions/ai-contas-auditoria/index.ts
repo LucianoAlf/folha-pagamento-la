@@ -2,7 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { callGeminiWithFallback, getGeminiApiKey } from "../_shared/gemini.ts";
-import { buildVariationKey } from "../../../shared/contasVariationMemory.ts";
+import { buildVariationKey, truncateAiDraft } from "../../../shared/contasVariationMemory.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ANALYSIS_VERSION = 1;
+const ANALYSIS_VERSION = 2;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -237,12 +237,44 @@ function buildFallbackAuditoria(competenciaYM: string, macro: AuditMacro, topCan
       plano_conta_id: candidate.plano_conta_id || null,
       acao_sugerida: actionForTipo(candidate.tipo),
       pergunta_para_ana: "",
+      sugestao_justificativa: null,
     })),
     recomendacoes_operacionais: [
       "Revisar os pontos de atencao em ordem de impacto financeiro.",
       "Registrar uma nota da Ana nos casos ja justificados para manter memoria operacional.",
       "Conferir duplicidades, atrasos e contas sem plano diretamente nos lancamentos de origem.",
     ],
+  };
+}
+
+function normalizeAuditoriaResponse(parsed: any, candidates: AuditCandidate[]) {
+  const candidateByKey = new Map(candidates.map((candidate) => [candidate.key, candidate]));
+  const anomalias = (Array.isArray(parsed?.anomalias) ? parsed.anomalias : [])
+    .map((anomalia: any) => {
+      const candidate = typeof anomalia?.key === "string" ? candidateByKey.get(anomalia.key) : null;
+      if (!candidate) return null;
+      const severidade = anomalia.severidade === "alta" || anomalia.severidade === "baixa" ? anomalia.severidade : severityFromImpact(candidate.impacto_financeiro);
+      return {
+        key: candidate.key,
+        severidade,
+        titulo: String(anomalia.titulo || candidate.titulo_base),
+        descricao: String(anomalia.descricao || candidate.descricao_base),
+        impacto_financeiro: candidate.impacto_financeiro,
+        conta_id: candidate.conta_id,
+        recorrente_modelo_id: candidate.recorrente_modelo_id || null,
+        plano_conta_id: candidate.plano_conta_id || null,
+        acao_sugerida: String(anomalia.acao_sugerida || actionForTipo(candidate.tipo)),
+        pergunta_para_ana: String(anomalia.pergunta_para_ana || ""),
+        sugestao_justificativa: truncateAiDraft(anomalia.sugestao_justificativa),
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    resumo_executivo: String(parsed?.resumo_executivo || ""),
+    pontos_de_atencao: Array.isArray(parsed?.pontos_de_atencao) ? parsed.pontos_de_atencao.map(String) : [],
+    anomalias,
+    recomendacoes_operacionais: Array.isArray(parsed?.recomendacoes_operacionais) ? parsed.recomendacoes_operacionais.map(String) : [],
   };
 }
 
@@ -317,13 +349,15 @@ Deno.serve(async (req: Request) => {
     .eq("mes", month)
     .maybeSingle();
 
-  // 2) Notas por anomalia (memória)
-  const { data: notasAnomalias } = await supabase
+  // 2) Notas por anomalia (memória), sem misturar unidades no consolidado
+  let notasQuery = supabase
     .from("contas_anomalia_notas")
-    .select("anomaly_key, nota, status, conta_id, recorrente_modelo_id, plano_conta_id")
+    .select("anomaly_key,unidade,nota,status,conta_id,recorrente_modelo_id,plano_conta_id,updated_at")
     .eq("competencia_ym", competenciaYM)
-    .eq("unidade", unidade)
     .order("updated_at", { ascending: false });
+  if (unidade !== "todas") notasQuery = notasQuery.eq("unidade", unidade);
+  const { data: notasAnomalias, error: notasErr } = await notasQuery;
+  if (notasErr) return jsonResponse({ error: notasErr.message }, 400);
 
   // 3) Contas do mês (respeita filtros principais)
   let q = supabase
@@ -524,12 +558,14 @@ Deno.serve(async (req: Request) => {
 
   const prompt = `Você é um Controller Financeiro da LA Music Group.\n\nSua tarefa é AUDITAR o mês ${competenciaYM} (Contas a Pagar) e apontar ANOMALIAS e INCONSISTÊNCIAS dentro do mês.\n\nIMPORTANTE: NÃO faça um comparativo \"mês contra mês\" como relatório principal. Você pode usar o mês anterior apenas como BASELINE de normalidade para recorrentes.\n\nDADOS (JSON):\n${JSON.stringify(inputObject)}\n\nINSTRUÇÕES:\n- Produza uma análise profissional, objetiva e prática para a Ana.\n- Use as anomalias_candidatas (com key estável) para escolher o que merece atenção.\n- Evite redundância: foque em qualidade do mês (duplicidades, falta de plano de contas, recorrentes fora do padrão, vencidas relevantes, etc.).\n- Se uma anomalia já tem nota na memória, considere isso na explicação.\n\nCONTRATO DE SAÍDA (Responda APENAS JSON puro):\n{\n  \"resumo_executivo\": \"Texto curto e direto (3-6 linhas) sobre o mês.\",\n  \"pontos_de_atencao\": [\"bullet 1\", \"bullet 2\"],\n  \"anomalias\": [\n    {\n      \"key\": \"uma key existente em anomalias_candidatas\",\n      \"severidade\": \"alta|media|baixa\",\n      \"titulo\": \"Título curto\",\n      \"descricao\": \"Descrição clara e concreta (o que é, por que importa)\",\n      \"impacto_financeiro\": 123.45,\n      \"conta_id\": \"uuid ou null\",\n      \"acao_sugerida\": \"O que a Ana deve fazer\",\n      \"pergunta_para_ana\": \"Pergunta para confirmar contexto (se necessário)\"\n    }\n  ],\n  \"recomendacoes_operacionais\": [\"ação 1\", \"ação 2\"]\n}`;
 
+  const promptWithMemoryGuardrails = `${prompt}\n\nCada anomalia deve incluir \"sugestao_justificativa\": um rascunho editavel de ate 600 caracteres ou null. Use somente a base fornecida, preserve os numeros deterministas, nao transforme status pendente/monitorar em causa e nao declare causa como certa.`;
+
   let parsed: any = null;
   let modelUsed = "fallback-heuristic";
 
   try {
     const apiKey = await getGeminiApiKey(supabase);
-    const { text: rawText, modelUsed: geminiModel } = await callGeminiWithFallback(prompt, apiKey, {
+    const { text: rawText, modelUsed: geminiModel } = await callGeminiWithFallback(promptWithMemoryGuardrails, apiKey, {
       timeoutMs: 8_000,
       generationConfig: { temperature: 0.15, maxOutputTokens: 1200 },
     });
@@ -560,6 +596,7 @@ Deno.serve(async (req: Request) => {
       topCandidates
     );
   }
+  parsed = normalizeAuditoriaResponse(parsed, topCandidates);
 
   const { data: inserted, error: insErr } = await supabase
     .from("contas_ai_insights")

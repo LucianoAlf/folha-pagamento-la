@@ -95,8 +95,11 @@ type ContasAuditoriaAiAnomalia = {
   descricao: string;
   impacto_financeiro?: number;
   conta_id?: string | null;
+  recorrente_modelo_id?: string | null;
+  plano_conta_id?: string | null;
   acao_sugerida?: string;
   pergunta_para_ana?: string;
+  sugestao_justificativa?: string | null;
 };
 
 type ContasAuditoriaAiJson = {
@@ -126,6 +129,7 @@ type ContasComparativoAiInsight = {
   descricao: string;
   impacto_financeiro?: number;
   chave_referencia?: string | null;
+  sugestao_justificativa?: string | null;
 };
 
 type ContasComparativoAiJson = {
