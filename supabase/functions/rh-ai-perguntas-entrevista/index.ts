@@ -4,6 +4,13 @@ import { callGeminiWithFallback, getGeminiApiKey, safeParseJsonFromText } from "
 
 const PILARES = new Set(['comportamental', 'cultura', 'tecnica']);
 
+function statusFor(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/missing authorization|invalid or expired/i.test(message)) return 401;
+  if (/acesso restrito/i.test(message)) return 403;
+  return 500;
+}
+
 function validarPerguntas(value: unknown) {
   if (!value || typeof value !== 'object' || !Array.isArray((value as any).perguntas)) return null;
   const perguntas = (value as any).perguntas;
@@ -59,6 +66,6 @@ Deno.serve(async (req) => {
     return json({ success: true, perguntas, geradas_em: geradasEm, modelo: result.modelUsed });
   } catch (error) {
     console.error('rh-ai-perguntas-entrevista:', error);
-    return json({ success: false, error: error instanceof Error ? error.message : String(error) }, 500);
+    return json({ success: false, error: error instanceof Error ? error.message : String(error) }, statusFor(error));
   }
 });

@@ -12,6 +12,13 @@ async function getSecret(admin: any, name: string) {
   return fromVault;
 }
 
+function statusFor(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/missing authorization|invalid or expired/i.test(message)) return 401;
+  if (/acesso restrito/i.test(message)) return 403;
+  return 500;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, prefer', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } });
   if (req.method !== 'POST') return json({ success: false, error: 'metodo nao permitido' }, 405);
@@ -74,6 +81,6 @@ Deno.serve(async (req) => {
     return json({ success: true, respondeu: true, ficha, snapshot_alterado: refresh.changed, perguntas_desatualizadas: refresh.perguntasDesatualizadas });
   } catch (error) {
     console.error('rh-ficha-importar:', error);
-    return json({ success: false, error: error instanceof Error ? error.message : String(error) }, 500);
+    return json({ success: false, error: error instanceof Error ? error.message : String(error) }, statusFor(error));
   }
 });
