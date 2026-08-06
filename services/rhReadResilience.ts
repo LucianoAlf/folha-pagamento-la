@@ -37,6 +37,42 @@ export async function withSupabaseReadTimeout<T>(
   }
 }
 
+function isRetryableSupabaseReadFailure(error: unknown): boolean {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code || '')
+    : '';
+
+  // RLS e sessao nao melhoram com uma segunda chamada; repetir so prolongaria
+  // o erro para a pessoa usuaria.
+  if (['42501', 'PGRST301', 'PGRST302'].includes(code)) return false;
+  if (code === '57014') return true; // canceling statement due to statement timeout
+
+  const message = error instanceof Error ? error.message : String(error || '');
+  return /demorou alem do esperado|statement timeout|failed to fetch|network|connection|abort/i.test(message);
+}
+
+export async function withSupabaseReadRetry<T>(
+  operation: (signal: AbortSignal) => PromiseLike<T>,
+  options: RhReadOptions = {},
+): Promise<T> {
+  const attempts = Math.max(1, options.attempts ?? 2);
+  const retryDelayMs = Math.max(0, options.retryDelayMs ?? 250);
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await withSupabaseReadTimeout(operation, options);
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts || !isRetryableSupabaseReadFailure(error)) throw error;
+    }
+
+    if (retryDelayMs > 0) await wait(retryDelayMs);
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('A leitura do RH nao pode ser concluida.');
+}
+
 export async function fetchRhRead(
   input: RequestInfo | URL,
   init: RequestInit = {},

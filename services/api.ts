@@ -114,8 +114,20 @@ export const api = {
 
   async fetchColaboradores(): Promise<Colaborador[]> {
     const headers = await getAuthHeaders();
+    // A foto ainda esta armazenada como data URL em alguns cadastros antigos.
+    // Nunca a baixe junto da lista: isso transforma uma lista de dezenas de
+    // pessoas em dezenas de megabytes e bloqueia modulos que nem usam Folha.
+    const listColumns = [
+      'id', 'nome', 'nome_completo', 'funcao', 'tipo', 'departamento',
+      'unidade_fixa', 'is_rateado', 'ativo', 'em_rescisao', 'observacoes',
+      'created_at', 'updated_at', 'cpf', 'rg', 'email', 'telefone',
+      'data_nascimento', 'logradouro', 'bairro', 'cep', 'cidade', 'estado',
+      'data_admissao', 'tipo_contrato', 'status', 'banco', 'agencia',
+      'conta', 'tipo_conta', 'pix', 'salario_base', 'instrumentos',
+      'arquivado_em', 'arquivado_por',
+    ];
     const res = await fetchRhRead(
-      `${SUPABASE_URL}/rest/v1/colaboradores?select=*&arquivado_em=is.null&order=nome`,
+      `${SUPABASE_URL}/rest/v1/colaboradores?select=${listColumns.join(',')}&arquivado_em=is.null&order=nome`,
       { headers },
       { label: 'A lista de colaboradores', timeoutMs: 10_000 },
     );

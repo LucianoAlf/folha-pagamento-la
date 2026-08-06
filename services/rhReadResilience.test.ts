@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { fetchRhRead, withSupabaseReadTimeout } from './rhReadResilience.ts';
+import { fetchRhRead, withSupabaseReadRetry, withSupabaseReadTimeout } from './rhReadResilience.ts';
 
 test('repete uma vez quando a leitura recebe erro transitorio', async () => {
   let calls = 0;
@@ -91,4 +91,35 @@ test('cancela uma consulta Supabase pendurada', async () => {
     /consulta de teste demorou alem do esperado/i,
   );
   assert.equal(aborted, true);
+});
+
+test('repete consulta Supabase cancelada pelo statement timeout', async () => {
+  let calls = 0;
+  const result = await withSupabaseReadRetry(async () => {
+    calls += 1;
+    if (calls === 1) {
+      const error = new Error('canceling statement due to statement timeout') as Error & { code?: string };
+      error.code = '57014';
+      throw error;
+    }
+    return 'ok';
+  }, { retryDelayMs: 0, timeoutMs: 100 });
+
+  assert.equal(result, 'ok');
+  assert.equal(calls, 2);
+});
+
+test('nao repete uma falha de permissao do Supabase', async () => {
+  let calls = 0;
+  const denied = new Error('permission denied') as Error & { code?: string };
+  denied.code = '42501';
+
+  await assert.rejects(
+    withSupabaseReadRetry(async () => {
+      calls += 1;
+      throw denied;
+    }, { retryDelayMs: 0, timeoutMs: 100 }),
+    /permission denied/i,
+  );
+  assert.equal(calls, 1);
 });

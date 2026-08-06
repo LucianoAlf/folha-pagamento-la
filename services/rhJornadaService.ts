@@ -1,6 +1,7 @@
 import { SUPABASE_ANON_KEY, SUPABASE_URL, supabase } from './supabase';
 import { api } from './api';
 import { rhAgendaSyncService } from './rhAgendaSyncService';
+import { withSupabaseReadRetry } from './rhReadResilience';
 import type {
   RhCandidate,
   RhCandidateApprovalInput,
@@ -90,28 +91,6 @@ const defaultTitleForProcess = (input: RhProcessCreateInput) => {
 
 const TERMINAL_STAGE_STATUSES = new Set(['concluida', 'dispensada']);
 const EVALUATION_STAGE_CATEGORIES = new Set(['entrevista', 'aula_teste', 'feedback']);
-const RH_DASHBOARD_TIMEOUT_MS = 10_000;
-
-const withRhDashboardTimeout = async <T>(operation: (signal: AbortSignal) => PromiseLike<T>, timeoutMs = RH_DASHBOARD_TIMEOUT_MS): Promise<T> => {
-  const controller = new AbortController();
-  let timedOut = false;
-  const timeout = globalThis.setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    const result = await operation(controller.signal);
-    if (timedOut) throw new Error('O Dashboard RH demorou alem do esperado. Tente novamente.');
-    return result;
-  } catch (error) {
-    if (timedOut) throw new Error('O Dashboard RH demorou alem do esperado. Tente novamente.');
-    throw error;
-  } finally {
-    globalThis.clearTimeout(timeout);
-  }
-};
-
 const runRhAgendaSync = async (callback: () => Promise<unknown>) => {
   try {
     await callback();
@@ -200,8 +179,11 @@ export const rhJornadaService = {
   },
 
   async fetchDashboardBootstrap(): Promise<RhDashboardBootstrap> {
-    const { data, error } = await withRhDashboardTimeout((signal) => supabase.rpc('rh_dashboard_bootstrap').abortSignal(signal));
-    if (error) throw error;
+    const data = await withSupabaseReadRetry(async (signal) => {
+      const { data: result, error } = await supabase.rpc('rh_dashboard_bootstrap').abortSignal(signal);
+      if (error) throw error;
+      return result;
+    }, { label: 'O Dashboard RH', timeoutMs: 10_000 });
 
     const bootstrap = (data || {}) as Partial<RhDashboardBootstrap>;
     return {

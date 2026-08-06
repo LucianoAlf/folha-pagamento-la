@@ -40,8 +40,9 @@ test('Dashboard RH usa uma RPC unica para o primeiro quadro, sem buscar perfil d
   const serviceMethod = methodSource(rhSource, 'fetchDashboardBootstrap');
 
   assert.match(serviceMethod, /supabase\s*\.rpc\('rh_dashboard_bootstrap'\)/);
-  assert.match(serviceMethod, /withRhDashboardTimeout\(/);
+  assert.match(serviceMethod, /withSupabaseReadRetry\(/);
   assert.match(serviceMethod, /abortSignal\(signal\)/);
+  assert.match(serviceMethod, /if \(error\) throw error/);
   assert.doesNotMatch(serviceMethod, /fetchCurrentUserContext\(/);
   assert.doesNotMatch(serviceMethod, /auth\.getUser\(/);
 });

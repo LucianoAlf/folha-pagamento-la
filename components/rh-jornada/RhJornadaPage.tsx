@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   ClipboardCheck,
   FileBadge,
@@ -89,11 +89,6 @@ const TAB_META: Record<
 
 export const RhJornadaPage: React.FC<{ mode?: RhJornadaTab }> = ({ mode = 'dashboard' }) => {
   const meta = TAB_META[mode];
-  const [visitedTabs, setVisitedTabs] = useState<RhJornadaTab[]>([mode]);
-
-  useEffect(() => {
-    setVisitedTabs((current) => (current.includes(mode) ? current : [...current, mode]));
-  }, [mode]);
 
   if (
     mode !== 'dashboard' &&
@@ -119,13 +114,5 @@ export const RhJornadaPage: React.FC<{ mode?: RhJornadaTab }> = ({ mode = 'dashb
     templates: <TemplatesTab />,
   };
 
-  return (
-    <>
-      {visitedTabs.map((tab) => (
-        <div key={tab} className={tab === mode ? 'block' : 'hidden'} aria-hidden={tab !== mode}>
-          {tabContent[tab]}
-        </div>
-      ))}
-    </>
-  );
+  return <>{tabContent[mode]}</>;
 };

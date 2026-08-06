@@ -529,6 +529,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [colaboradoresLoaded, setColaboradoresLoaded] = useState(false);
+  const colaboradoresRequestRef = useRef<Promise<Colaborador[]> | null>(null);
   const [folhas, setFolhas] = useState<FolhaMensal[]>([]);
   const [folhaAtual, setFolhaAtual] = useState<FolhaMensal | null>(null);
   const [selectedFolhaId, setSelectedFolhaId] = useState<number | null>(null);
@@ -725,7 +727,7 @@ export default function App() {
       } else {
         await api.createColaborador(data);
       }
-      const metadata = await fetchMetadata();
+      const metadata = await fetchMetadata({ includeColaboradores: true });
       if (metadata && selectedFolhaId) {
         await loadMonthData(selectedFolhaId, metadata.folhasData);
       }
@@ -750,7 +752,7 @@ export default function App() {
             status: isActive ? 'inactive' : 'active',
             ativo: !isActive,
           } as any);
-          await fetchMetadata();
+          await fetchMetadata({ includeColaboradores: true });
         } catch (err: any) {
           setAlertState({ isOpen: true, title: 'Erro', message: err.message, variant: 'danger' });
         }
@@ -767,7 +769,7 @@ export default function App() {
       onConfirm: async () => {
         try {
           await api.deleteColaborador(c.id);
-          await fetchMetadata();
+          await fetchMetadata({ includeColaboradores: true });
           setAlertState({ isOpen: true, title: 'Sucesso', message: 'Colaborador removido da lista.', variant: 'primary' });
         } catch (err: any) {
           setAlertState({ isOpen: true, title: 'Erro', message: err.message, variant: 'danger' });
@@ -833,7 +835,25 @@ export default function App() {
     }
   };
 
-  const fetchMetadata = async (opts?: { deferColaboradores?: boolean }) => {
+  const loadColaboradores = async (): Promise<Colaborador[]> => {
+    if (colaboradoresRequestRef.current) return colaboradoresRequestRef.current;
+
+    const request = api
+      .fetchColaboradores()
+      .then((colabsData) => {
+        setColaboradores(colabsData);
+        setColaboradoresLoaded(true);
+        return colabsData;
+      })
+      .finally(() => {
+        colaboradoresRequestRef.current = null;
+      });
+
+    colaboradoresRequestRef.current = request;
+    return request;
+  };
+
+  const fetchMetadata = async (opts?: { includeColaboradores?: boolean }) => {
     try {
       const folhasData = await api.fetchFolhasMensais();
       setFolhas(folhasData);
@@ -841,20 +861,12 @@ export default function App() {
         setSelectedFolhaId(folhasData[0].id);
       }
 
-      if (opts?.deferColaboradores) {
-        // Bootstrap mais rápido: não bloqueia renderização esperando lista completa.
-        void api
-          .fetchColaboradores()
-          .then((colabsData) => setColaboradores(colabsData))
-          .catch(() => {
-            // non-blocking
-          });
-        return { colabsData: colaboradores, folhasData };
+      if (opts?.includeColaboradores) {
+        const colabsData = await loadColaboradores();
+        return { colabsData, folhasData };
       }
 
-      const colabsData = await api.fetchColaboradores();
-      setColaboradores(colabsData);
-      return { colabsData, folhasData };
+      return { colabsData: colaboradores, folhasData };
     } catch (err: any) {
       setError(err.message || 'Falha ao carregar metadados');
       setLoading(false);
@@ -898,7 +910,7 @@ export default function App() {
     }
   };
 
-  // Initial load: Fetch colaboradores and available months
+  // Folha metadata is loaded only when Folha is the active module.
   useEffect(() => {
     // Supabase Auth session bootstrap
     let mounted = true;
@@ -1062,10 +1074,20 @@ export default function App() {
 
   // Initial load: Fetch colaboradores and available months
   useEffect(() => {
-    if (userEmail) {
-      fetchMetadata({ deferColaboradores: true });
+    if (userEmail && currentModule === 'folha' && folhas.length === 0) {
+      fetchMetadata();
     }
-  }, [userEmail]);
+  }, [userEmail, currentModule, folhas.length]);
+
+  // A lista so e usada pela Folha. Evita disputar conexoes do Supabase com RH,
+  // Ferias e Financeiro durante a inicializacao de outro modulo.
+  useEffect(() => {
+    if (userEmail && currentModule === 'folha' && !colaboradoresLoaded) {
+      void loadColaboradores().catch((err) => {
+        console.error('Erro ao carregar a lista operacional de colaboradores.', err);
+      });
+    }
+  }, [userEmail, currentModule, colaboradoresLoaded]);
 
   // Fetch month data when selection changes
   useEffect(() => {
@@ -1075,7 +1097,7 @@ export default function App() {
   }, [selectedFolhaId, folhas]);
 
   const loadData = async () => {
-    const data = await fetchMetadata();
+    const data = await fetchMetadata({ includeColaboradores: true });
     if (data && selectedFolhaId) {
       await loadMonthData(selectedFolhaId, data.folhasData);
     }
