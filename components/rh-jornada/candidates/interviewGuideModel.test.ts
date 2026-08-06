@@ -71,7 +71,7 @@ test('groups canonical pillars, omits historical signals and never returns ancho
     { pilar: 'tecnica', pergunta: 'Como prioriza?', ancora: 'dado privado', sinal_consistencia: 'Contexto, acao e resultado.', sinal_atencao: 'Sem exemplo concreto.' },
   ]);
 
-  assert.deepEqual(groups.map((group) => group.label), ['Comportamental', 'Cultura e colaboracao', 'Tecnico da vaga']);
+  assert.deepEqual(groups.map((group) => group.label), ['Comportamental', 'Cultura e colaboração', 'Técnico da vaga']);
   assert.equal(groups[0].questions[0].tituloCurto, 'Caso concreto');
   assert.equal(groups[1].questions[0].sinalConsistencia, null);
   assert.equal(groups[2].questions[0].sinalAtencao, 'Sem exemplo concreto.');

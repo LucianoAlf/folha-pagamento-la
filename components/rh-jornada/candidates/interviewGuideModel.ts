@@ -48,8 +48,8 @@ export interface InterviewGuideGroup {
 
 const pillarLabels: Record<RhInterviewQuestion['pilar'], string> = {
   comportamental: 'Comportamental',
-  cultura: 'Cultura e colaboracao',
-  tecnica: 'Tecnico da vaga',
+  cultura: 'Cultura e colaboração',
+  tecnica: 'Técnico da vaga',
 };
 
 const cleanText = (value: unknown, maxLength?: number): string => {
