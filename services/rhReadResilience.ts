@@ -6,11 +6,36 @@ export type RhReadOptions = {
   timeoutMs?: number;
 };
 
+export type SupabaseReadTimeoutOptions = Pick<RhReadOptions, 'label' | 'timeoutMs'>;
+
 const TRANSIENT_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 const wait = (milliseconds: number) => new Promise<void>((resolve) => {
   globalThis.setTimeout(resolve, milliseconds);
 });
+
+export async function withSupabaseReadTimeout<T>(
+  operation: (signal: AbortSignal) => PromiseLike<T>,
+  options: SupabaseReadTimeoutOptions = {},
+): Promise<T> {
+  const controller = new AbortController();
+  const label = options.label ?? 'A leitura';
+  const timeoutMs = Math.max(1, options.timeoutMs ?? 10_000);
+  let timedOut = false;
+  const timeout = globalThis.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    return await operation(controller.signal);
+  } catch (error) {
+    if (timedOut) throw new Error(`${label} demorou alem do esperado. Tente novamente.`);
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
+}
 
 export async function fetchRhRead(
   input: RequestInfo | URL,

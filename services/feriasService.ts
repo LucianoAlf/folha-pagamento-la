@@ -51,7 +51,10 @@ export const feriasService = {
       url += `&colaborador_id=eq.${colaboradorId}`;
     }
 
-    const res = await fetch(url, { headers });
+    const res = await fetchRhRead(url, { headers }, {
+      label: 'Os periodos aquisitivos de ferias',
+      timeoutMs: 10_000,
+    });
     if (!res.ok) throw new Error('Erro ao buscar períodos aquisitivos');
     return res.json();
   },
@@ -137,7 +140,10 @@ export const feriasService = {
       }
     }
 
-    const res = await fetch(url, { headers });
+    const res = await fetchRhRead(url, { headers }, {
+      label: 'As programacoes de ferias',
+      timeoutMs: 10_000,
+    });
     if (!res.ok) throw new Error('Erro ao buscar programações de férias');
     return res.json();
   },

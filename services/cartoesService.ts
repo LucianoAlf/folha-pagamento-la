@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { withSupabaseReadTimeout } from './rhReadResilience';
 import {
   fetchCentrosCusto,
   fetchFinanceiroContasBancarias,
@@ -180,21 +181,23 @@ function friendlyRpcError(error: any): Error {
   return new Error(message || 'Não foi possível salvar o cartão.');
 }
 
-export async function fetchCartoesDashboard(): Promise<CartoesDashboardData> {
-  const [cartoesResult, faturasResult, empresas, contasBancarias, centrosCusto] = await Promise.all([
+export type CartoesResumoData = Pick<CartoesDashboardData, 'cartoes'>;
+export type CartoesReferenciasData = Omit<CartoesDashboardData, 'cartoes'>;
+
+export async function fetchCartoesResumo(): Promise<CartoesResumoData> {
+  const [cartoesResult, faturasResult] = await withSupabaseReadTimeout((signal) => Promise.all([
     supabase
       .from('financeiro_cartoes')
       .select(CARTAO_SELECT)
       .order('ativo', { ascending: false })
-      .order('apelido', { ascending: true }),
+      .order('apelido', { ascending: true })
+      .abortSignal(signal),
     supabase
       .from('financeiro_cartao_faturas')
       .select('cartao_id,valor_total,status')
-      .in('status', ['aberta', 'fechada']),
-    fetchFinanceiroEmpresas(),
-    fetchFinanceiroContasBancarias(),
-    fetchCentrosCusto(),
-  ]);
+      .in('status', ['aberta', 'fechada'])
+      .abortSignal(signal),
+  ]), { label: 'Os dados dos cartoes', timeoutMs: 10_000 });
 
   if (cartoesResult.error) throw cartoesResult.error;
   if (faturasResult.error) throw faturasResult.error;
@@ -212,12 +215,26 @@ export async function fetchCartoesDashboard(): Promise<CartoesDashboardData> {
     valor_usado: usadoPorCartao.get(cartao.id) || 0,
   }));
 
-  return {
-    cartoes,
-    empresas,
-    contasBancarias,
-    centrosCusto,
-  };
+  return { cartoes };
+}
+
+export async function fetchCartoesReferencias(): Promise<CartoesReferenciasData> {
+  const [empresas, contasBancarias, centrosCusto] = await Promise.all([
+    fetchFinanceiroEmpresas(),
+    fetchFinanceiroContasBancarias(),
+    fetchCentrosCusto(),
+  ]);
+
+  return { empresas, contasBancarias, centrosCusto };
+}
+
+export async function fetchCartoesDashboard(): Promise<CartoesDashboardData> {
+  const [resumo, referencias] = await Promise.all([
+    fetchCartoesResumo(),
+    fetchCartoesReferencias(),
+  ]);
+
+  return { ...resumo, ...referencias };
 }
 
 export async function fetchCartoesFaturas(): Promise<CartoesFaturasData> {

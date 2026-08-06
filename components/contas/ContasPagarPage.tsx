@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LoadingSpinner, ErrorState, ConfirmDialog } from '../UI';
+import { ErrorState, ConfirmDialog } from '../UI';
+import { withSupabaseReadTimeout } from '../../services/rhReadResilience';
 import { ContaPagar, CentroCusto, ContaCredencial, ContaPagarCodigoMes, FinanceiroContaBancaria, FinanceiroEmpresa, PlanoConta, PlanoContaMaisUsado } from '../../types/contasPagar';
 import {
   calcularResumo,
@@ -215,6 +216,8 @@ export const ContasPagarPage: React.FC<{
   const [contasBancarias, setContasBancarias] = useState<FinanceiroContaBancaria[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
+  const [referencesLoading, setReferencesLoading] = useState(true);
+  const [referencesError, setReferencesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Filtros
@@ -236,6 +239,10 @@ export const ContasPagarPage: React.FC<{
   const setCompetenciaFiltro = onCompetenciaYMChange ?? setCompetenciaFiltroInternal;
 
   const [novaOpen, setNovaOpen] = useState(false);
+
+  useEffect(() => {
+    if ((referencesLoading || referencesError) && novaOpen) setNovaOpen(false);
+  }, [referencesLoading, referencesError, novaOpen]);
   const [pagarConta, setPagarConta] = useState<ContaPagar | null>(null);
   const [editarConta, setEditarConta] = useState<ContaPagar | null>(null);
   const [contaParaExcluir, setContaParaExcluir] = useState<ContaPagar | null>(null);
@@ -969,18 +976,17 @@ export const ContasPagarPage: React.FC<{
     [unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, busca]
   );
 
-  const refetch = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadReferences = useCallback(async () => {
+    setReferencesLoading(true);
+    setReferencesError(null);
     try {
-      const [planos, gruposPlano, usosPlano, centros, empresas, contasBanco, rows] = await Promise.all([
+      const [planos, gruposPlano, usosPlano, centros, empresas, contasBanco] = await Promise.all([
         fetchPlanoContas(),
         fetchPlanoGrupos(),
         fetchPlanoContasMaisUsados(),
         fetchCentrosCusto(),
         fetchFinanceiroEmpresas(),
         fetchFinanceiroContasBancarias(),
-        fetchContasPagar({ competenciaGarantir: competenciaFiltro }),
       ]);
       setPlanosConta(planos);
       setPlanoGrupos(gruposPlano);
@@ -988,13 +994,30 @@ export const ContasPagarPage: React.FC<{
       setCentrosCusto(centros);
       setEmpresasFinanceiras(empresas);
       setContasBancarias(contasBanco);
+    } catch (err) {
+      console.error('Erro ao carregar referencias de contas a pagar:', err);
+      setReferencesError('Não foi possível preparar os formulários. Tente novamente.');
+    } finally {
+      setReferencesLoading(false);
+    }
+  }, []);
+
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      void loadReferences();
+      const rows = await withSupabaseReadTimeout(
+        (signal) => fetchContasPagar({ competenciaGarantir: competenciaFiltro }, signal),
+        { label: 'As contas a pagar', timeoutMs: 10_000 },
+      );
       setContas(rows);
     } catch (e: any) {
       setError(e?.message || 'Falha ao carregar contas');
     } finally {
       setLoading(false);
     }
-  }, [competenciaFiltro]);
+  }, [competenciaFiltro, loadReferences]);
 
   const confirmNovaConta = useCallback(
     (payload: Partial<ContaPagar>, options?: NovaContaOptions) =>
@@ -1426,6 +1449,14 @@ export const ContasPagarPage: React.FC<{
         <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-black text-primary">{tabTitle}</h2>
           <p className="text-sm text-muted font-bold mt-1">{tabSubtitle}</p>
+          {referencesLoading ? (
+            <p className="text-[11px] text-muted mt-1" role="status">Preparando filtros e formulários…</p>
+          ) : referencesError ? (
+            <p className="text-[11px] text-warning mt-1" role="status">
+              {referencesError}{' '}
+              <button type="button" onClick={() => void loadReferences()} className="font-black underline">Tentar novamente</button>
+            </p>
+          ) : null}
         </div>
         {showMobileCompetencia ? (
           <div className="lg:hidden shrink-0 pt-1">
@@ -1494,7 +1525,16 @@ export const ContasPagarPage: React.FC<{
     </>
   );
 
-  if (loading) return renderWithShell(<LoadingSpinner />);
+  if (loading) {
+    return renderWithShell(
+      <div className="space-y-5" aria-label="Carregando contas a pagar">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="h-32 rounded-2xl bg-surface/60 border border-line animate-pulse" />)}
+        </div>
+        <div className="h-80 rounded-2xl bg-surface/60 border border-line animate-pulse" />
+      </div>
+    );
+  }
   if (error) return renderWithShell(<ErrorState message={error} onRetry={refetch} />);
 
   if (mode === 'dashboard') {

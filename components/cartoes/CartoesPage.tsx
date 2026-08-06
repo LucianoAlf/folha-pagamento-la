@@ -15,10 +15,10 @@ import {
   ShieldCheck,
   WalletCards,
 } from 'lucide-react';
-import { Badge, Button, Card, ConfirmDialog, CustomSelect, ErrorState, LoadingSpinner, Modal, ToggleSwitch } from '../UI';
+import { Badge, Button, Card, ConfirmDialog, CustomSelect, ErrorState, Modal, ToggleSwitch } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { formatCurrency } from '../../services/api';
-import { arquivarCartao, fetchCartoesDashboard, salvarCartao } from '../../services/cartoesService';
+import { arquivarCartao, fetchCartoesReferencias, fetchCartoesResumo, salvarCartao } from '../../services/cartoesService';
 import type { CentroCusto, FinanceiroContaBancaria, FinanceiroEmpresa } from '../../types/contasPagar';
 import type { CartaoTitularidadeTipo, FinanceiroCartao, FinanceiroCartaoLancamentoResponse, FinanceiroCartaoPayload } from '../../types/cartoes';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
@@ -428,7 +428,8 @@ const CartaoCard: React.FC<{
   onArchive: (cartao: FinanceiroCartao) => void;
   onLaunch: (cartao: FinanceiroCartao) => void;
   onOpenFaturas: (cartao: FinanceiroCartao) => void;
-}> = ({ cartao, toneClass, onEdit, onArchive, onLaunch, onOpenFaturas }) => {
+  referencesReady: boolean;
+}> = ({ cartao, toneClass, onEdit, onArchive, onLaunch, onOpenFaturas, referencesReady }) => {
   const limite = cartao.limite == null ? null : Number(cartao.limite || 0);
   const usado = Number(cartao.valor_usado || 0);
   const usage = limite && limite > 0 ? Math.min(100, Math.max(0, (usado / limite) * 100)) : 0;
@@ -470,6 +471,7 @@ const CartaoCard: React.FC<{
                 <button
                   type="button"
                   onClick={() => onLaunch(cartao)}
+                  disabled={!referencesReady}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-secondary hover:bg-surface-2 hover:text-primary transition-all"
                 >
                   <ReceiptText className="w-4 h-4" />
@@ -487,6 +489,7 @@ const CartaoCard: React.FC<{
               <button
                 type="button"
                 onClick={() => onEdit(cartao)}
+                disabled={!referencesReady}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-secondary hover:bg-surface-2 hover:text-primary transition-all"
               >
                 <Edit2 className="w-4 h-4" />
@@ -559,6 +562,8 @@ export const CartoesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<CartoesTab>(getInitialCartoesTab);
   const [faturasCartaoId, setFaturasCartaoId] = useState<string | null>(getInitialFaturasCartaoId);
   const [loading, setLoading] = useState(true);
+  const [referencesLoading, setReferencesLoading] = useState(true);
+  const [referencesError, setReferencesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cartoes, setCartoes] = useState<FinanceiroCartao[]>([]);
   const [empresas, setEmpresas] = useState<FinanceiroEmpresa[]>([]);
@@ -576,16 +581,30 @@ export const CartoesPage: React.FC = () => {
   const load = async () => {
     setLoading(true);
     setError(null);
+    void loadReferences();
     try {
-      const data = await fetchCartoesDashboard();
+      const data = await fetchCartoesResumo();
       setCartoes(data.cartoes);
-      setEmpresas(data.empresas);
-      setContasBancarias(data.contasBancarias);
-      setCentrosCusto(data.centrosCusto);
     } catch (err: any) {
       setError(err?.message || 'Não foi possível carregar cartões.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadReferences = async () => {
+    setReferencesLoading(true);
+    setReferencesError(null);
+    try {
+      const data = await fetchCartoesReferencias();
+      setEmpresas(data.empresas);
+      setContasBancarias(data.contasBancarias);
+      setCentrosCusto(data.centrosCusto);
+    } catch (err) {
+      console.error('Erro ao carregar referencias de cartoes:', err);
+      setReferencesError('Não foi possível preparar os formulários. Tente novamente.');
+    } finally {
+      setReferencesLoading(false);
     }
   };
 
@@ -723,7 +742,17 @@ export const CartoesPage: React.FC = () => {
     setConfirming(null);
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) {
+    return (
+      <div className="w-full space-y-6" aria-label="Carregando cartões">
+        <div className="h-24 rounded-2xl bg-surface/60 border border-line animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="h-36 rounded-2xl bg-surface/60 border border-line animate-pulse" />)}
+        </div>
+        <div className="h-56 rounded-2xl bg-surface/60 border border-line animate-pulse" />
+      </div>
+    );
+  }
   if (error) return <ErrorState message={error} onRetry={load} />;
 
   return (
@@ -741,17 +770,23 @@ export const CartoesPage: React.FC = () => {
         </div>
         {activeTab === 'cartoes' ? (
           <div className="flex flex-wrap gap-3 self-start lg:self-auto">
-            <Button variant="outline" onClick={() => openCompra()} className="px-5">
+            <Button variant="outline" onClick={() => openCompra()} disabled={referencesLoading || !!referencesError} className="px-5">
               <ReceiptText className="w-4 h-4" />
               Nova compra
             </Button>
-            <Button variant="primary" onClick={openCreate} className="px-5">
+            <Button variant="primary" onClick={openCreate} disabled={referencesLoading || !!referencesError} className="px-5">
               <Plus className="w-4 h-4" />
               Novo cartão
             </Button>
           </div>
         ) : null}
       </div>
+      {referencesError ? (
+        <div className="flex items-center gap-3 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          <span>{referencesError}</span>
+          <button type="button" onClick={() => void loadReferences()} className="font-black underline">Tentar novamente</button>
+        </div>
+      ) : null}
 
       <Card className="p-1">
         <div className="grid grid-cols-2 gap-1">
@@ -820,7 +855,7 @@ export const CartoesPage: React.FC = () => {
           </div>
           <div className="mt-4 text-lg font-black text-primary">Nenhum cartão encontrado</div>
           <div className="mt-2 text-sm font-bold text-muted">Ajuste os filtros ou cadastre o primeiro cartão operacional.</div>
-          <Button variant="primary" onClick={openCreate} className="mt-5">
+          <Button variant="primary" onClick={openCreate} disabled={referencesLoading || !!referencesError} className="mt-5">
             <Plus className="w-4 h-4" />
             Novo cartão
           </Button>
@@ -836,6 +871,7 @@ export const CartoesPage: React.FC = () => {
               onArchive={setConfirming}
               onLaunch={openCompra}
               onOpenFaturas={openFaturas}
+              referencesReady={!referencesLoading && !referencesError}
             />
           ))}
         </div>

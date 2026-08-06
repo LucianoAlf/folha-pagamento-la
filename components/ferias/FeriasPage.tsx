@@ -31,14 +31,15 @@ interface Tab {
 
 export const FeriasPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
-  const [colaboradores, setColaboradores] = useState<FeriasColaboradorStatus[]>([]);
+  const [colaboradoresBase, setColaboradoresBase] = useState<FeriasColaboradorStatus[]>([]);
   const [programacoes, setProgramacoes] = useState<FeriasProgramacao[]>([]);
   const [historico, setHistorico] = useState<FeriasHistoricoAcao[]>([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
   const [filtros, setFiltros] = useState<FeriasColaboradorFiltros>({
     ordenacao: 'proxima_expiracao',
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [colaboradoresLoading, setColaboradoresLoading] = useState(true);
+  const [programacoesLoading, setProgramacoesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalProgramarOpen, setModalProgramarOpen] = useState(false);
   const [modalEditarOpen, setModalEditarOpen] = useState(false);
@@ -65,33 +66,60 @@ export const FeriasPage: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const loadData = useCallback(async () => {
+  const colaboradores = useMemo(() => {
+    const busca = filtros.busca?.trim().toLowerCase();
+    if (!busca) return colaboradoresBase;
+    return colaboradoresBase.filter((colaborador) =>
+      colaborador.nome.toLowerCase().includes(busca) ||
+      colaborador.funcao.toLowerCase().includes(busca) ||
+      colaborador.nome_completo?.toLowerCase().includes(busca)
+    );
+  }, [colaboradoresBase, filtros.busca]);
+
+  const filtrosConsulta = useMemo<FeriasColaboradorFiltros>(() => ({
+    ...filtros,
+    busca: undefined,
+  }), [filtros.departamento, filtros.ordenacao, filtros.status_ferias]);
+
+  const loadColaboradores = useCallback(async () => {
     try {
-      setIsLoading(true);
+      setColaboradoresLoading(true);
       setError(null);
-
-      // Buscar status de colaboradores
-      const [colaboradoresData, programacoesData] = await Promise.all([
-        feriasService.fetchColaboradoresStatus(filtros),
-        feriasService.fetchProgramacoes({
-          status: ['programado', 'aprovado', 'em_gozo'],
-        }),
-      ]);
-
-      setColaboradores(colaboradoresData);
-      setProgramacoes(programacoesData);
+      setColaboradoresBase(await feriasService.fetchColaboradoresStatus(filtrosConsulta));
     } catch (err: any) {
       console.error('Erro ao carregar dados de férias:', err);
       setError(err.message || 'Erro ao carregar dados');
     } finally {
-      setIsLoading(false);
+      setColaboradoresLoading(false);
     }
-  }, [filtros]);
+  }, [filtrosConsulta]);
 
-  // Recarregar quando filtros mudarem (ordenacao/busca etc)
+  const loadProgramacoes = useCallback(async () => {
+    try {
+      setProgramacoesLoading(true);
+      setProgramacoes(await feriasService.fetchProgramacoes({
+        status: ['programado', 'aprovado', 'em_gozo'],
+      }));
+    } catch (err: any) {
+      console.error('Erro ao carregar programações de férias:', err);
+      setError(err.message || 'Erro ao carregar programações');
+    } finally {
+      setProgramacoesLoading(false);
+    }
+  }, []);
+
+  const loadData = useCallback(async () => {
+    await Promise.all([loadColaboradores(), loadProgramacoes()]);
+  }, [loadColaboradores, loadProgramacoes]);
+
+  // Busca por texto é local; só filtros que mudam a consulta recarregam o status.
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    void loadColaboradores();
+  }, [loadColaboradores]);
+
+  useEffect(() => {
+    void loadProgramacoes();
+  }, [loadProgramacoes]);
 
   // Carregar historico sob demanda (aba)
   useEffect(() => {
@@ -364,10 +392,10 @@ export const FeriasPage: React.FC = () => {
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             {/* Summary Cards */}
-            <FeriasSummaryCards colaboradores={colaboradores} isLoading={isLoading} />
+            <FeriasSummaryCards colaboradores={colaboradores} isLoading={colaboradoresLoading} />
 
             {/* Alertas Críticos */}
-            {!isLoading && colaboradores.some((c) => c.tem_ferias_vencidas) && (
+            {!colaboradoresLoading && colaboradores.some((c) => c.tem_ferias_vencidas) && (
               <div className="p-4 rounded-xl bg-danger/10 border border-danger/30">
                 <div className="flex items-start gap-3 mb-3">
                   <AlertCircle size={20} className="text-danger shrink-0 mt-0.5" />
@@ -425,7 +453,7 @@ export const FeriasPage: React.FC = () => {
                 onFiltrosChange={setFiltros}
                 onProgramarFerias={handleProgramarFerias}
                 onVerHistorico={handleVerHistorico}
-                isLoading={isLoading}
+                isLoading={colaboradoresLoading}
                 isMobile={isMobile}
               />
             </div>
@@ -443,7 +471,7 @@ export const FeriasPage: React.FC = () => {
               onFiltrosChange={setFiltros}
               onProgramarFerias={handleProgramarFerias}
               onVerHistorico={handleVerHistorico}
-              isLoading={isLoading}
+              isLoading={colaboradoresLoading}
               isMobile={isMobile}
             />
           </div>
@@ -465,7 +493,7 @@ export const FeriasPage: React.FC = () => {
               onEditar={handleEditarProgramacao}
               onCancelar={handleCancelarProgramacao}
               onRegistrarPagamento={handleRegistrarPagamento}
-              isLoading={isLoading}
+              isLoading={programacoesLoading || colaboradoresLoading}
             />
           </div>
         )}

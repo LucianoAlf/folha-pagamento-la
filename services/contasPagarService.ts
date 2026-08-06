@@ -209,7 +209,7 @@ export async function fetchContasPagar(filtros?: {
   unidade?: 'todas' | 'cg' | 'rec' | 'bar';
   /** YYYY-MM — mês selecionado na tela; garante instância recorrente além do mês corrente. */
   competenciaGarantir?: string;
-}): Promise<ContaPagar[]> {
+}, signal?: AbortSignal): Promise<ContaPagar[]> {
   try {
     const hoje = new Date();
     const atualYM = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
@@ -238,7 +238,7 @@ export async function fetchContasPagar(filtros?: {
     query = query.eq('unidade', filtros.unidade);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await (signal ? query.abortSignal(signal) : query);
   if (error) throw error;
   return dedupeRecorrentesVisao((data || []) as ContaPagar[]);
 }

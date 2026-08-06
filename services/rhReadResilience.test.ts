@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { fetchRhRead } from './rhReadResilience.ts';
+import { fetchRhRead, withSupabaseReadTimeout } from './rhReadResilience.ts';
 
 test('repete uma vez quando a leitura recebe erro transitorio', async () => {
   let calls = 0;
@@ -74,4 +74,21 @@ test('traduz falha de rede depois da tentativa automatica', async () => {
     /lista de colaboradores do RH falhou ao acessar o Supabase/i,
   );
   assert.equal(calls, 2);
+});
+
+test('cancela uma consulta Supabase pendurada', async () => {
+  let aborted = false;
+  await assert.rejects(
+    withSupabaseReadTimeout(
+      (signal) => new Promise<void>((_resolve, reject) => {
+        signal.addEventListener('abort', () => {
+          aborted = true;
+          reject(new DOMException('aborted', 'AbortError'));
+        }, { once: true });
+      }),
+      { label: 'A consulta de teste', timeoutMs: 5 },
+    ),
+    /consulta de teste demorou alem do esperado/i,
+  );
+  assert.equal(aborted, true);
 });

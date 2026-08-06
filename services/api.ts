@@ -114,8 +114,12 @@ export const api = {
 
   async fetchColaboradores(): Promise<Colaborador[]> {
     const headers = await getAuthHeaders();
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/colaboradores?select=*&arquivado_em=is.null&order=nome`, { headers });
-    if (!res.ok) throw new Error('Erro ao buscar colaboradores');
+    const res = await fetchRhRead(
+      `${SUPABASE_URL}/rest/v1/colaboradores?select=*&arquivado_em=is.null&order=nome`,
+      { headers },
+      { label: 'A lista de colaboradores', timeoutMs: 10_000 },
+    );
+    if (!res.ok) throw new Error(`Erro ao buscar colaboradores (${res.status})`);
     return res.json();
   },
 
@@ -186,8 +190,12 @@ export const api = {
 
   async fetchFolhasMensais(): Promise<FolhaMensal[]> {
     const headers = await getAuthHeaders();
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/folhas_mensais?select=*&order=ano.desc,mes.desc`, { headers });
-    if (!res.ok) throw new Error('Erro ao buscar folhas');
+    const res = await fetchRhRead(
+      `${SUPABASE_URL}/rest/v1/folhas_mensais?select=*&order=ano.desc,mes.desc`,
+      { headers },
+      { label: 'A lista de folhas', timeoutMs: 10_000 },
+    );
+    if (!res.ok) throw new Error(`Erro ao buscar folhas (${res.status})`);
     return res.json();
   },
 
@@ -247,9 +255,10 @@ export const api = {
     const headers = await getAuthHeaders();
     // Evita payload gigante no bootstrap: só os campos realmente usados na UI.
     // Antes: colaboradores(*) repetia colunas pesadas para cada lançamento.
-    const res = await fetch(
+    const res = await fetchRhRead(
       `${SUPABASE_URL}/rest/v1/lancamentos_folha?select=*,colaboradores(id,nome,funcao)&folha_id=eq.${folhaId}&order=categoria,colaborador_id`,
-      { headers }
+      { headers },
+      { label: 'Os lancamentos da folha', timeoutMs: 10_000 },
     );
     if (!res.ok) throw new Error('Erro ao buscar lançamentos');
     return res.json();
