@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { resolveSupabaseAnonKey, resolveSupabaseUrl } from '../config/resolveSupabaseEnv';
+import { resolveSupabaseAnonKey, resolveSupabaseUrl } from '../config/resolveSupabaseEnv.ts';
 
 export const SUPABASE_URL = resolveSupabaseUrl();
 export const SUPABASE_ANON_KEY = resolveSupabaseAnonKey();
