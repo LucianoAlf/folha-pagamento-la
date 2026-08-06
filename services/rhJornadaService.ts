@@ -1249,6 +1249,7 @@ export const rhJornadaService = {
           tipo: 'recrutamento',
           template_id: defaultTemplate.id,
           candidato_id: candidate.id,
+          unidade: candidate.unidade || null,
           data_inicio: new Date().toISOString().slice(0, 10),
           titulo: `Recrutamento - ${candidate.nome}`,
           cargo: candidate.cargo_pretendido || 'Candidato',
@@ -1291,6 +1292,10 @@ export const rhJornadaService = {
 
   async importCandidateFicha(candidateId: string, token?: string): Promise<{ respondeu: boolean; perguntas_desatualizadas?: boolean }> {
     return rhJornadaService.invokeAiFunction('rh-ficha-importar', { candidato_id: candidateId, token: token?.trim() || undefined });
+  },
+
+  async generateCandidateFichaLink(candidateId: string): Promise<{ link: string; token: string; ja_existia: boolean }> {
+    return rhJornadaService.invokeAiFunction('rh-ficha-gerar-link', { candidato_id: candidateId });
   },
 
   async generateCandidateInterviewQuestions(candidateId: string): Promise<{ perguntas: import('../types/rh').RhInterviewQuestion[] }> {

@@ -157,6 +157,9 @@ export interface RhCandidate {
   questionario_respostas: Record<string, unknown>;
   ficha_token?: string | null;
   la_colaborador_id?: number | null;
+  unidade?: RhOperationalUnit | null;
+  ficha_link?: string | null;
+  ficha_link_gerado_em?: string | null;
   ficha_importada_em?: string | null;
   ficha_snapshot_hash?: string | null;
   perguntas_entrevista?: RhInterviewQuestion[] | null;
@@ -175,12 +178,16 @@ export interface RhCandidate {
   updated_at: string;
 }
 
+export const RH_OPERATIONAL_UNITS = ['bar', 'cg', 'rec'] as const;
+export type RhOperationalUnit = (typeof RH_OPERATIONAL_UNITS)[number];
+
 export interface RhCandidateCreateInput {
   nome: string;
   email?: string | null;
   telefone?: string | null;
   cpf?: string | null;
   cargo_pretendido?: string | null;
+  unidade?: RhOperationalUnit | null;
   tipo_vinculo_pretendido?: string | null;
   origem?: string | null;
   observacoes?: string | null;

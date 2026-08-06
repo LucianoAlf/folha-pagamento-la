@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Archive, Briefcase, CheckCircle2, FileSearch, Filter, Loader2, Mail, Pencil, Phone, Plus, Printer, Sparkles, UserPlus, XCircle } from 'lucide-react';
+import { Archive, Briefcase, CheckCircle2, Copy, ExternalLink, FileSearch, Filter, Loader2, Mail, Pencil, Phone, Plus, Printer, Sparkles, UserPlus, XCircle } from 'lucide-react';
 import { Badge, Card, CustomSelect, ErrorState, LoadingSpinner } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhCandidate, RhCandidateComparisonResult, RhCandidateStatus, RhProcess, RhStage, RhTemplate } from '../../../types/rh';
@@ -29,6 +29,16 @@ const STATUS_OPTIONS = [
   ...Object.entries(STATUS_META).map(([value, meta]) => ({ value, label: meta.label })),
 ];
 
+function buildCandidateWhatsAppLink(candidate: RhCandidate) {
+  const phone = String(candidate.telefone || '').replace(/\D/g, '');
+  if (!phone) return null;
+  const normalized = phone.startsWith('55') && (phone.length === 12 || phone.length === 13) ? phone : `55${phone}`;
+  if (normalized.length !== 12 && normalized.length !== 13) return null;
+  const firstName = candidate.nome.trim().split(/\s+/)[0] || 'tudo bem';
+  const message = `Oi, ${firstName}! Tudo bem? Antes da nossa conversa, queria te pedir pra preencher a Ficha Técnica da LA. São uns 20 minutos e não tem resposta certa nem errada — é pra gente te conhecer melhor. Segue o link: ${candidate.ficha_link}`;
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
+}
+
 export const CandidatosTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +57,6 @@ export const CandidatosTab: React.FC = () => {
   const [comparisonCandidateId, setComparisonCandidateId] = useState('');
   const [comparison, setComparison] = useState<RhCandidateComparisonResult | null>(null);
   const [comparing, setComparing] = useState(false);
-  const [fichaToken, setFichaToken] = useState('');
   const [fichaLoading, setFichaLoading] = useState(false);
   const [guideCandidate, setGuideCandidate] = useState<RhCandidate | null>(null);
   const { run } = useAsyncAction();
@@ -132,7 +141,6 @@ export const CandidatosTab: React.FC = () => {
     setSelectedStatus(selectedCandidate?.status || 'novo');
     setComparisonCandidateId('');
     setComparison(null);
-    setFichaToken('');
   }, [selectedCandidate?.id]);
 
   if (loading) return <LoadingSpinner />;
@@ -386,35 +394,106 @@ export const CandidatosTab: React.FC = () => {
                   ? `Importada em ${new Date(selectedCandidate.ficha_importada_em).toLocaleString('pt-BR')}.`
                   : selectedCandidate.ficha_token || selectedCandidate.la_colaborador_id
                     ? 'Vínculo criado; aguardando a resposta da pessoa.'
-                    : 'Informe o token do link enviado pela LA Report para vincular a ficha.'}
+                    : 'Gere o link da Ficha Técnica para iniciar o questionário.'}
               </div>
               {!selectedCandidate.ficha_token && !selectedCandidate.la_colaborador_id ? (
-                <input
-                  value={fichaToken}
-                  onChange={(event) => setFichaToken(event.target.value)}
-                  placeholder="Token da Ficha Técnica"
-                  className="mt-3 w-full rounded-xl border border-line bg-bg px-3 py-2 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
-                />
-              ) : null}
-              <button
-                type="button"
-                disabled={fichaLoading || (!selectedCandidate.ficha_token && !selectedCandidate.la_colaborador_id && !fichaToken.trim())}
-                onClick={async () => {
-                  setFichaLoading(true);
-                  await run(
-                    async () => {
-                      const resultado = await rhJornadaService.importCandidateFicha(selectedCandidate.id, fichaToken);
-                      await loadCandidates();
-                      if (!resultado.respondeu) window.alert('Vínculo salvo. A pessoa ainda não respondeu a Ficha Técnica; use Reimportar quando ela concluir.');
-                    },
-                    { success: 'Ficha Técnica consultada.', error: 'Não foi possível importar a Ficha Técnica.' }
-                  );
-                  setFichaLoading(false);
-                }}
-                className="mt-3 w-full px-4 py-3 rounded-2xl bg-accent hover:bg-accent text-white font-black transition-all disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {fichaLoading ? 'Importando ficha...' : selectedCandidate.ficha_importada_em ? 'Reimportar ficha' : 'Vincular e importar ficha'}
-              </button>
+                <button
+                  type="button"
+                  disabled={fichaLoading}
+                  onClick={async () => {
+                    setFichaLoading(true);
+                    await run(
+                      async () => {
+                        await rhJornadaService.generateCandidateFichaLink(selectedCandidate.id);
+                        await loadCandidates();
+                      },
+                      { success: 'Link da Ficha Técnica gerado.', error: 'Não foi possível gerar o link da Ficha Técnica.' }
+                    );
+                    setFichaLoading(false);
+                  }}
+                  className="mt-3 w-full px-4 py-3 rounded-2xl bg-accent hover:bg-accent text-white font-black transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {fichaLoading ? 'Gerando link...' : 'Gerar link da Ficha Técnica'}
+                </button>
+              ) : !selectedCandidate.ficha_importada_em ? (
+                <div className="mt-3 space-y-3">
+                  {selectedCandidate.ficha_link ? (
+                    <div className="rounded-xl border border-line bg-bg/50 p-3">
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-muted font-black">Link da Ficha Técnica</div>
+                      <div className="mt-1 break-all text-xs font-bold text-secondary">{selectedCandidate.ficha_link}</div>
+                      <div className="mt-2 text-[11px] font-bold text-muted">
+                        {selectedCandidate.ficha_link_gerado_em
+                          ? `Gerado em ${new Date(selectedCandidate.ficha_link_gerado_em).toLocaleString('pt-BR')}.`
+                          : 'Link recuperado do vínculo existente.'}
+                      </div>
+                    </div>
+                  ) : selectedCandidate.la_colaborador_id ? (
+                    <div className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs font-bold text-warning">
+                      Vínculo legado incompleto: este caso precisa ser regularizado antes de criar outro link.
+                    </div>
+                  ) : null}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      disabled={!selectedCandidate.ficha_link}
+                      onClick={async () => {
+                        if (!selectedCandidate.ficha_link) return;
+                        await navigator.clipboard.writeText(selectedCandidate.ficha_link);
+                        window.alert('Link copiado.');
+                      }}
+                      className="px-3 py-2.5 rounded-xl border border-line bg-surface/40 text-secondary text-sm font-black hover:bg-surface/60 disabled:opacity-60"
+                    ><Copy className="w-4 h-4 inline mr-2" />Copiar link</button>
+                    <button
+                      type="button"
+                      disabled={!selectedCandidate.ficha_link || !buildCandidateWhatsAppLink(selectedCandidate)}
+                      onClick={() => {
+                        const whatsappLink = buildCandidateWhatsAppLink(selectedCandidate);
+                        if (whatsappLink) window.open(whatsappLink, '_blank', 'noopener,noreferrer');
+                      }}
+                      className="px-3 py-2.5 rounded-xl border border-info/30 bg-info/10 text-info text-sm font-black hover:bg-info/20 disabled:opacity-60"
+                    ><ExternalLink className="w-4 h-4 inline mr-2" />Abrir WhatsApp</button>
+                    <button
+                      type="button"
+                      disabled={fichaLoading || !selectedCandidate.ficha_token}
+                      onClick={async () => {
+                        setFichaLoading(true);
+                        await run(
+                          async () => {
+                            const resultado = await rhJornadaService.importCandidateFicha(selectedCandidate.id);
+                            await loadCandidates();
+                            if (!resultado.respondeu) window.alert('A pessoa ainda não respondeu a Ficha Técnica.');
+                          },
+                          { success: 'Ficha Técnica verificada.', error: 'Não foi possível verificar a Ficha Técnica.' }
+                        );
+                        setFichaLoading(false);
+                      }}
+                      className="px-3 py-2.5 rounded-xl bg-accent hover:bg-accent text-white text-sm font-black disabled:opacity-60"
+                    >{fichaLoading ? 'Verificando...' : 'Verificar resposta'}</button>
+                  </div>
+                  {selectedCandidate.ficha_link && !buildCandidateWhatsAppLink(selectedCandidate) ? (
+                    <div className="text-[11px] font-bold text-muted">Informe um telefone válido para abrir a conversa no WhatsApp.</div>
+                  ) : null}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={fichaLoading}
+                  onClick={async () => {
+                    setFichaLoading(true);
+                    await run(
+                      async () => {
+                        await rhJornadaService.importCandidateFicha(selectedCandidate.id);
+                        await loadCandidates();
+                      },
+                      { success: 'Ficha Técnica reimportada.', error: 'Não foi possível reimportar a Ficha Técnica.' }
+                    );
+                    setFichaLoading(false);
+                  }}
+                  className="mt-3 w-full px-4 py-3 rounded-2xl bg-accent hover:bg-accent text-white font-black transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {fichaLoading ? 'Reimportando ficha...' : 'Reimportar ficha'}
+                </button>
+              )}
 
               {Array.isArray(selectedCandidate.perguntas_entrevista) && selectedCandidate.perguntas_entrevista.length ? (
                 <div className="mt-4 space-y-3">

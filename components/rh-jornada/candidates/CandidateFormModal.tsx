@@ -4,6 +4,7 @@ import { CustomSelect, Modal } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhCandidate, RhCandidateAiDraft, RhCandidateCreateInput } from '../../../types/rh';
 import { cn } from '../../CollaboratorComponents';
+import type { RhOperationalUnit } from '../../../types/rh';
 
 const VINCULO_OPTIONS = [
   { value: 'clt', label: 'CLT' },
@@ -22,6 +23,12 @@ const ORIGEM_OPTIONS = [
   { value: 'outro', label: 'Outro' },
 ];
 
+const UNIDADE_OPTIONS = [
+  { value: 'bar', label: 'Barra' },
+  { value: 'cg', label: 'Campo Grande' },
+  { value: 'rec', label: 'Recreio' },
+];
+
 export const CandidateFormModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -36,6 +43,7 @@ export const CandidateFormModal: React.FC<{
   const [telefone, setTelefone] = useState('');
   const [cpf, setCpf] = useState('');
   const [cargoPretendido, setCargoPretendido] = useState('');
+  const [unidade, setUnidade] = useState<RhOperationalUnit | ''>('');
   const [tipoVinculo, setTipoVinculo] = useState('');
   const [origem, setOrigem] = useState('');
   const [questionarioResumo, setQuestionarioResumo] = useState('');
@@ -53,8 +61,9 @@ export const CandidateFormModal: React.FC<{
     if (!nome.trim()) out.push('Nome');
     if (!cargoPretendido.trim()) out.push('Cargo pretendido');
     if (!tipoVinculo) out.push('Vínculo');
+    if (!candidate && !unidade) out.push('Unidade');
     return out;
-  }, [nome, cargoPretendido, tipoVinculo]);
+  }, [candidate, nome, cargoPretendido, tipoVinculo, unidade]);
 
   const canSave = missing.length === 0;
 
@@ -64,6 +73,7 @@ export const CandidateFormModal: React.FC<{
     setTelefone('');
     setCpf('');
     setCargoPretendido('');
+    setUnidade('');
     setTipoVinculo('');
     setOrigem('');
     setQuestionarioResumo('');
@@ -84,6 +94,7 @@ export const CandidateFormModal: React.FC<{
     setTelefone(candidate?.telefone || '');
     setCpf(candidate?.cpf || '');
     setCargoPretendido(candidate?.cargo_pretendido || '');
+    setUnidade(candidate?.unidade || '');
     setTipoVinculo(candidate?.tipo_vinculo_pretendido || '');
     setOrigem(candidate?.origem || '');
     setQuestionarioResumo(candidate?.questionario_resumo || '');
@@ -154,6 +165,7 @@ export const CandidateFormModal: React.FC<{
                     telefone: telefone.trim() || null,
                     cpf: cpf.trim() || null,
                     cargo_pretendido: cargoPretendido.trim(),
+                    unidade: unidade || null,
                     tipo_vinculo_pretendido: tipoVinculo,
                     origem: origem || null,
                     questionario_resumo: questionarioResumo.trim() || null,
@@ -213,6 +225,16 @@ export const CandidateFormModal: React.FC<{
               onChange={(e) => setCargoPretendido(e.target.value)}
               className="w-full rounded-2xl border border-line bg-bg px-5 py-4 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
               placeholder="Ex: Professor de violão"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2">Unidade {!candidate ? '*' : ''}</label>
+            <CustomSelect
+              value={unidade}
+              onValueChange={(value) => setUnidade(value as RhOperationalUnit)}
+              options={UNIDADE_OPTIONS}
+              placeholder="Selecione..."
             />
           </div>
 
