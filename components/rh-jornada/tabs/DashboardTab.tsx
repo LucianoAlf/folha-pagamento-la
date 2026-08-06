@@ -4,12 +4,22 @@ import { Badge, Card, ErrorState } from '../../UI';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import type { RhAlertCritical, RhDashboardAiInsight, RhDashboardKpis, RhDashboardRecentEvent, RhDevelopmentHealthSnapshot, RhPdiDashboardKpis, RhPendingDocumentView, RhProcessSummary } from '../../../types/rh';
 import { formatRhDocumentStatusLabel, formatRhDocumentTypeLabel } from '../documentLabels';
+import { getDashboardKpiGroups, type DashboardKpiTone } from './dashboardKpis';
+
+const KPI_TONE_CLASS: Record<DashboardKpiTone, string> = {
+  primary: 'text-primary',
+  warning: 'text-warning',
+  danger: 'text-danger',
+  accent: 'text-accent',
+  info: 'text-info',
+  success: 'text-success',
+};
 
 const DashboardLoadingSkeleton = () => (
   <div className="space-y-4 sm:space-y-6" aria-busy="true" aria-live="polite" data-testid="rh-dashboard-loading-skeleton">
     <span className="sr-only">Carregando Dashboard RH</span>
-    <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3 sm:gap-4">
-      {Array.from({ length: 10 }, (_, index) => <div key={index} className="min-h-[108px] rounded-2xl border border-line-strong/50 bg-surface/40 animate-pulse" />)}
+    <div className="space-y-4">
+      {Array.from({ length: 2 }, (_, groupIndex) => <div key={groupIndex}><div className="h-3 w-36 rounded bg-surface-2/70 animate-pulse mb-2" /><div className="grid grid-cols-2 sm:grid-cols-3 min-[1100px]:grid-cols-5 gap-3">{Array.from({ length: 5 }, (_, index) => <div key={index} className="min-h-[92px] rounded-2xl border border-line-strong/50 bg-surface/40 animate-pulse" />)}</div></div>)}
     </div>
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
       {Array.from({ length: 4 }, (_, index) => <div key={index} className="h-56 rounded-2xl border border-line-strong/50 bg-surface/40 animate-pulse" />)}
@@ -58,9 +68,21 @@ export const DashboardTab: React.FC = () => {
   useEffect(() => { void loadData(); }, []);
 
   const myCriticalCount = useMemo(() => alerts.filter((item) => (item.dias_para_vencimento ?? 99) <= 0).length, [alerts]);
-  const kpiCardClass = "min-h-[108px] p-3.5 sm:min-h-0 sm:p-5 border border-line-strong/50";
+  const kpiGroups = useMemo(() => getDashboardKpiGroups({
+    recrutamentos: kpis?.recrutamentos_ativos || 0,
+    onboardings: kpis?.onboardings_ativos || 0,
+    desligamentos: kpis?.desligamentos_ativos || 0,
+    documentosPendentes: kpis?.documentos_pendentes || 0,
+    criticos: myCriticalCount,
+    pdisAtivos: pdiKpis?.pdis_ativos || 0,
+    checkpointsAtrasados: pdiKpis?.checkpoints_atrasados || 0,
+    conquistasMes: pdiKpis?.conquistas_mes || 0,
+    prontosParaPromocao: developmentHealth?.prontos_para_promocao || 0,
+    colaboradoresTravados: developmentHealth?.colaboradores_travados || 0,
+  }), [developmentHealth, kpis, myCriticalCount, pdiKpis]);
+  const kpiCardClass = "min-h-[92px] p-3.5 sm:p-4 border border-line-strong/50";
   const kpiLabelClass = "text-[9px] sm:text-[10px] uppercase tracking-[0.14em] sm:tracking-[0.2em] text-muted font-black leading-tight";
-  const kpiValueClass = "mt-2 text-2xl sm:text-3xl font-black";
+  const kpiValueClass = "mt-1 text-2xl sm:text-3xl font-black";
   const kpiSubClass = "mt-1 text-[11px] sm:text-xs font-bold text-muted leading-tight";
 
   if (loading) return <DashboardLoadingSkeleton />;
@@ -68,17 +90,24 @@ export const DashboardTab: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-3 sm:gap-4">
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>Recrutamentos</div><div className={`${kpiValueClass} text-primary`}>{kpis?.recrutamentos_ativos || 0}</div><div className={kpiSubClass}>Ativos</div></Card>
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>Onboardings</div><div className={`${kpiValueClass} text-primary`}>{kpis?.onboardings_ativos || 0}</div><div className={kpiSubClass}>Em andamento</div></Card>
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>Desligamentos</div><div className={`${kpiValueClass} text-primary`}>{kpis?.desligamentos_ativos || 0}</div><div className={kpiSubClass}>Abertos</div></Card>
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>Documentos</div><div className={`${kpiValueClass} text-warning`}>{kpis?.documentos_pendentes || 0}</div><div className={kpiSubClass}>Pendentes</div></Card>
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>Criticos</div><div className={`${kpiValueClass} text-danger`}>{myCriticalCount}</div><div className={kpiSubClass}>Atrasados</div></Card>
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>PDI ativos</div><div className={`${kpiValueClass} text-accent`}>{pdiKpis?.pdis_ativos || 0}</div><div className={kpiSubClass}>Planos em andamento</div></Card>
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>Checkpoints</div><div className={`${kpiValueClass} text-info`}>{pdiKpis?.checkpoints_atrasados || 0}</div><div className={kpiSubClass}>Atrasados</div></Card>
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>Conquistas</div><div className={`${kpiValueClass} text-success`}>{pdiKpis?.conquistas_mes || 0}</div><div className={kpiSubClass}>No mes</div></Card>
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>Promocao</div><div className={`${kpiValueClass} text-info`}>{developmentHealth?.prontos_para_promocao || 0}</div><div className={kpiSubClass}>Prontos</div></Card>
-        <Card className={kpiCardClass}><div className={kpiLabelClass}>Travados</div><div className={`${kpiValueClass} text-danger`}>{developmentHealth?.colaboradores_travados || 0}</div><div className={kpiSubClass}>Desenvolvimento</div></Card>
+      <div className="space-y-4">
+        {kpiGroups.map((group) => (
+          <section key={group.id} aria-labelledby={`dashboard-kpi-${group.id}`}>
+            <div className="flex items-center gap-3 px-1 mb-2">
+              <h2 id={`dashboard-kpi-${group.id}`} className="text-[10px] uppercase tracking-[0.2em] text-muted font-black whitespace-nowrap">{group.label}</h2>
+              <div className="h-px flex-1 bg-line-strong/60" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 min-[1100px]:grid-cols-5 gap-3">
+              {group.metrics.map((metric) => (
+                <Card key={metric.id} className={kpiCardClass}>
+                  <div className={kpiLabelClass}>{metric.label}</div>
+                  <div className={`${kpiValueClass} ${KPI_TONE_CLASS[metric.tone]}`}>{metric.value}</div>
+                  <div className={`${kpiSubClass} max-w-[12rem]`}>{metric.subvalue}</div>
+                </Card>
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_.9fr] gap-6">
