@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { callGeminiWithFallback, getGeminiApiKey } from "../_shared/gemini.ts";
+import { buildVariationKey } from "../../../shared/contasVariationMemory.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,19 +93,11 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-function normalizeKey(s: string) {
-  return (s || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
-}
-
 type ContaRow = {
   id: string;
   descricao: string;
   plano_conta_id: string | null;
+  recorrente_modelo_id: string | null;
   unidade: string | null;
   valor: number;
   data_vencimento: string;
@@ -124,6 +117,9 @@ type Variation = {
   diff: number;
   perc: number;
   status: "NOVO" | "SAIU" | "RECORRENTE";
+  contaId: string | null;
+  recorrenteModeloId: string | null;
+  planoContaId: string | null;
 };
 
 type ComparativoJson = {
@@ -187,10 +183,12 @@ function buildFallbackComparativo(
 }
 
 function buildKey(c: ContaRow) {
-  const unidade = (c.unidade || "todas") as string;
-  const cat = c.plano_conta_id || "sem_plano";
-  const desc = normalizeKey(c.descricao || "");
-  return `${unidade}|${cat}|${desc}`;
+  return buildVariationKey({
+    unidade: c.unidade,
+    planoContaId: c.plano_conta_id,
+    recorrenteModeloId: c.recorrente_modelo_id,
+    descricao: c.descricao,
+  });
 }
 
 function sumByKey(rows: ContaRow[]) {
@@ -299,7 +297,7 @@ Deno.serve(async (req: Request) => {
       let q = supabase
         .from("contas_pagar")
         .select(
-          "id,descricao,plano_conta_id,unidade,valor,data_vencimento,competencia,status,tipo_lancamento,plano_conta:plano_contas(id,codigo,nome,tipo_custo)",
+          "id,descricao,plano_conta_id,recorrente_modelo_id,unidade,valor,data_vencimento,competencia,status,tipo_lancamento,plano_conta:plano_contas(id,codigo,nome,tipo_custo)",
         )
         .neq("status", "cancelado")
         .neq("status", "finalizado")
@@ -350,6 +348,9 @@ Deno.serve(async (req: Request) => {
         unidade: (sample?.unidade || "todas") as string,
         categoria: grupoDe(sample?.plano_conta?.codigo).nome,
         descricao: sample?.descricao || "",
+        contaId: sample?.id || null,
+        recorrenteModeloId: sample?.recorrente_modelo_id || null,
+        planoContaId: sample?.plano_conta_id || null,
         prev,
         curr,
         diff,

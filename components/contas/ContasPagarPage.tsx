@@ -84,6 +84,7 @@ import {
   formatContaPlanoLabel,
   matchesContaPlanoCentroSearch,
 } from './planoContasSelectors';
+import { buildVariationKey } from '../../shared/contasVariationMemory';
 
 type ContasAuditoriaAiSeverity = 'alta' | 'media' | 'baixa';
 
@@ -1326,8 +1327,12 @@ export const ContasPagarPage: React.FC<{
 
     // Anomalias (Alertas)
     const THRESHOLD = COMPARATIVO_THRESHOLD;
-    const normalizeKey = (s: string) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
-    const keyFor = (c: ContaPagar) => `${c.unidade || 'todas'}|${c.plano_conta_id || 'sem_plano'}|${normalizeKey(c.descricao || '')}`;
+    const keyFor = (c: ContaPagar) => buildVariationKey({
+      unidade: c.unidade,
+      planoContaId: c.plano_conta_id,
+      recorrenteModeloId: c.recorrente_modelo_id || null,
+      descricao: c.descricao,
+    });
 
     const prevMap = new Map<string, number>();
     contasPlanoPrev.forEach(c => prevMap.set(keyFor(c), (prevMap.get(keyFor(c)) || 0) + (Number(c.valor) || 0)));
@@ -1347,8 +1352,17 @@ export const ContasPagarPage: React.FC<{
         const p = (diff / prevVal) * 100;
         if (Math.abs(p) >= THRESHOLD) {
           anomalies.push({
+            key: k,
             title: `Variação de ${p.toFixed(0)}% em ${data.sample.descricao}`,
             description: `${formatContaPlanoLabel(data.sample)} · ${formatContaCentroCustoLabel(data.sample)}`,
+            unidade: data.sample.unidade || 'todas',
+            conta_id: data.sample.id,
+            recorrente_modelo_id: data.sample.recorrente_modelo_id || null,
+            plano_conta_id: data.sample.plano_conta_id || null,
+            prev: prevVal,
+            curr: data.total,
+            diff,
+            perc: p,
             variant: p > 0 ? 'rose' : 'emerald'
           });
         }
@@ -1364,15 +1378,12 @@ export const ContasPagarPage: React.FC<{
 
   // ── Comparativo: memoizar computações pesadas ──
   const comparativoData = useMemo(() => {
-    const normalizeKey = (s: string) =>
-      (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
-
-    const keyFor = (c: ContaPagar) => {
-      const unidade = (c.unidade || 'todas') as string;
-      const plano = c.plano_conta_id || 'sem_plano';
-      const desc = normalizeKey(c.descricao || '');
-      return `${unidade}|${plano}|${desc}`;
-    };
+    const keyFor = (c: ContaPagar) => buildVariationKey({
+      unidade: c.unidade,
+      planoContaId: c.plano_conta_id,
+      recorrenteModeloId: c.recorrente_modelo_id || null,
+      descricao: c.descricao,
+    });
 
     const base = contas.filter((c) => c.status !== 'cancelado' && c.status !== 'finalizado' && matchesAiFilters(c) && isPlanoAggregationConta(c));
     const prevRows = base.filter(matchesCompetenciaComparar);
@@ -1408,6 +1419,9 @@ export const ContasPagarPage: React.FC<{
         categoria: sample ? formatContaPlanoLabel(sample) : 'Sem plano de contas',
         plano: sample ? formatContaPlanoLabel(sample) : 'Sem plano',
         descricao: sample?.descricao || '',
+        contaId: sample?.id || null,
+        recorrenteModeloId: sample?.recorrente_modelo_id || null,
+        planoContaId: sample?.plano_conta_id || null,
         prev,
         curr,
         diff,

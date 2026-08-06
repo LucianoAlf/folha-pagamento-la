@@ -36,3 +36,15 @@ test('limites protegem nota humana e rascunho da IA', () => {
   assert.equal(truncateAiDraft('x'.repeat(MAX_AI_DRAFT_LENGTH + 20)).length, MAX_AI_DRAFT_LENGTH);
   assert.equal(truncateAiDraft('   '), null);
 });
+
+test('chave sem modelo permanece exata para item novo ou removido', () => {
+  const janeiro = buildVariationKey({ unidade: 'rec', planoContaId: 'plano-2', recorrenteModeloId: null, descricao: 'Internet Fibra' });
+  const fevereiro = buildVariationKey({ unidade: 'rec', planoContaId: 'plano-2', recorrenteModeloId: null, descricao: 'Internet Fibra Empresas' });
+  assert.notEqual(janeiro, fevereiro);
+});
+
+test('modelo recorrente ignora apenas a mudança de descrição', () => {
+  const anterior = buildVariationKey({ unidade: 'bar', planoContaId: 'plano-3', recorrenteModeloId: 'modelo-3', descricao: 'Energia julho' });
+  const atual = buildVariationKey({ unidade: 'bar', planoContaId: 'plano-3', recorrenteModeloId: 'modelo-3', descricao: 'Energia agosto' });
+  assert.equal(anterior, atual);
+});

@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { callGeminiWithFallback, getGeminiApiKey } from "../_shared/gemini.ts";
+import { buildVariationKey } from "../../../shared/contasVariationMemory.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,6 +122,7 @@ type ContaRow = {
   id: string;
   descricao: string;
   plano_conta_id: string | null;
+  recorrente_modelo_id: string | null;
   unidade: string | null;
   valor: number;
   data_vencimento: string;
@@ -140,6 +142,8 @@ type AuditCandidate = {
   descricao_base: string;
   impacto_financeiro: number;
   conta_id: string | null;
+  recorrente_modelo_id?: string | null;
+  plano_conta_id?: string | null;
   meta?: any;
 };
 
@@ -229,6 +233,8 @@ function buildFallbackAuditoria(competenciaYM: string, macro: AuditMacro, topCan
       descricao: candidate.descricao_base,
       impacto_financeiro: candidate.impacto_financeiro,
       conta_id: candidate.conta_id,
+      recorrente_modelo_id: candidate.recorrente_modelo_id || null,
+      plano_conta_id: candidate.plano_conta_id || null,
       acao_sugerida: actionForTipo(candidate.tipo),
       pergunta_para_ana: "",
     })),
@@ -314,7 +320,7 @@ Deno.serve(async (req: Request) => {
   // 2) Notas por anomalia (memória)
   const { data: notasAnomalias } = await supabase
     .from("contas_anomalia_notas")
-    .select("anomaly_key, nota, status, conta_id")
+    .select("anomaly_key, nota, status, conta_id, recorrente_modelo_id, plano_conta_id")
     .eq("competencia_ym", competenciaYM)
     .eq("unidade", unidade)
     .order("updated_at", { ascending: false });
@@ -322,7 +328,7 @@ Deno.serve(async (req: Request) => {
   // 3) Contas do mês (respeita filtros principais)
   let q = supabase
     .from("contas_pagar")
-    .select("id,descricao,plano_conta_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,plano_conta:plano_contas(id,codigo,nome,tipo_custo)")
+    .select("id,descricao,plano_conta_id,recorrente_modelo_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,plano_conta:plano_contas(id,codigo,nome,tipo_custo)")
     .neq("status", "cancelado")
     .neq("status", "finalizado")
     .eq("competencia", competenciaDate);
@@ -346,7 +352,7 @@ Deno.serve(async (req: Request) => {
   if (prevDate) {
     let pq = supabase
       .from("contas_pagar")
-      .select("id,descricao,plano_conta_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,plano_conta:plano_contas(id,codigo,nome,tipo_custo)")
+      .select("id,descricao,plano_conta_id,recorrente_modelo_id,unidade,valor,data_vencimento,competencia,status,data_pagamento,tipo_lancamento,parcela_atual,total_parcelas,plano_conta:plano_contas(id,codigo,nome,tipo_custo)")
       .neq("status", "cancelado")
       .neq("status", "finalizado")
       .eq("competencia", prevDate);
@@ -431,12 +437,12 @@ Deno.serve(async (req: Request) => {
   const prevRecMap = new Map<string, number>();
   for (const c of prevContas) {
     if (c.tipo_lancamento !== "recorrente") continue;
-    const k = `${normalizeKey(c.descricao)}|${c.plano_conta_id || "sem_plano"}|${c.unidade || "todas"}`;
+    const k = buildVariationKey({ unidade: c.unidade, planoContaId: c.plano_conta_id, recorrenteModeloId: c.recorrente_modelo_id, descricao: c.descricao });
     prevRecMap.set(k, (prevRecMap.get(k) || 0) + (Number(c.valor) || 0));
   }
   for (const c of contas) {
     if (c.tipo_lancamento !== "recorrente") continue;
-    const k = `${normalizeKey(c.descricao)}|${c.plano_conta_id || "sem_plano"}|${c.unidade || "todas"}`;
+    const k = buildVariationKey({ unidade: c.unidade, planoContaId: c.plano_conta_id, recorrenteModeloId: c.recorrente_modelo_id, descricao: c.descricao });
     const prevVal = prevRecMap.get(k) || 0;
     const currVal = Number(c.valor) || 0;
     if (prevVal > 0) {
@@ -450,7 +456,9 @@ Deno.serve(async (req: Request) => {
           descricao_base: `A recorrente \"${c.descricao}\" variou ${perc.toFixed(1)}% vs o mês anterior (baseline).`,
           impacto_financeiro: Math.abs(diff),
           conta_id: c.id,
-          meta: { prev: prevVal, curr: currVal, perc },
+          recorrente_modelo_id: c.recorrente_modelo_id || null,
+          plano_conta_id: c.plano_conta_id || null,
+          meta: { prev: prevVal, curr: currVal, perc, recorrente_modelo_id: c.recorrente_modelo_id || null, plano_conta_id: c.plano_conta_id || null },
         });
       }
     }
