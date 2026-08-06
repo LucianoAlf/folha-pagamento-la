@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Loader2, Printer, X } from 'lucide-react';
+import { AlertTriangle, Download, Loader2, X } from 'lucide-react';
 import type { RhCandidate } from '../../../types/rh';
 import { rhJornadaService } from '../../../services/rhJornadaService';
 import {
@@ -7,6 +7,7 @@ import {
   groupInterviewGuideQuestions,
   type InterviewGuideDraftPayload,
 } from './interviewGuideModel';
+import { generateInterviewGuidePdf } from './interviewGuidePdf';
 
 interface InterviewGuidePageProps {
   candidateId: string;
@@ -30,6 +31,8 @@ export const InterviewGuidePage: React.FC<InterviewGuidePageProps> = ({ candidat
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<InterviewGuideDraftPayload | null>(null);
   const [draftReady, setDraftReady] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const consumedDraft = useRef(false);
 
   useEffect(() => {
@@ -69,9 +72,26 @@ export const InterviewGuidePage: React.FC<InterviewGuidePageProps> = ({ candidat
     document.title = `guia-entrevista-${fileSafeName(candidate.nome.split(/\s+/)[0] || 'candidato')}-${draft.data}`;
   }, [candidate, draft]);
 
-  const print = () => {
-    window.focus();
-    window.print();
+  const downloadPdf = async () => {
+    if (!candidate || !draft || !groups.length || generatingPdf) return;
+    setGeneratingPdf(true);
+    setPdfError(null);
+    try {
+      await generateInterviewGuidePdf({
+        candidateName: candidate.nome,
+        role: candidate.cargo_pretendido || 'Vaga não informada',
+        date: draft.data,
+        time: draft.horario,
+        location: draft.local,
+        conductors: draft.condutores,
+        groups,
+      });
+    } catch (cause: unknown) {
+      console.error('Falha ao gerar guia de entrevista em PDF:', cause);
+      setPdfError('Não foi possível baixar o PDF. Tente novamente.');
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   if (loading || !draftReady) {
@@ -111,8 +131,10 @@ export const InterviewGuidePage: React.FC<InterviewGuidePageProps> = ({ candidat
     <main className="guide-shell">
       <style>{`
         .guide-shell { min-height: 100vh; background: #e8edf3; color: #33404f; font-family: Inter, Arial, sans-serif; padding: 24px; }
-        .guide-toolbar { width: 210mm; margin: 0 auto 16px; display: flex; justify-content: flex-end; gap: 10px; }
+        .guide-toolbar { width: 210mm; margin: 0 auto 16px; display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
         .guide-toolbar button { border: 0; border-radius: 10px; background: #14181d; color: #fff; font-weight: 700; padding: 10px 14px; display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
+        .guide-toolbar button:disabled { cursor: wait; opacity: .65; }
+        .guide-pdf-error { margin-right: auto; color: #b42318; font-size: 9pt; font-weight: 700; }
         .guide-paper { width: 210mm; min-height: 297mm; margin: 0 auto 20px; background: #fff; padding: 18mm 17mm 16mm; box-shadow: 0 4px 24px rgba(20,24,29,.13); }
         .guide-top { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; border-bottom: 2.5px solid #14181d; }
         .guide-brand { height: 15mm; width: auto; display: block; } .guide-doc { text-align: right; font-size: 7.5pt; letter-spacing: .2em; text-transform: uppercase; color: #6b7a8c; font-weight: 600; padding-top: 4px; }
@@ -130,7 +152,11 @@ export const InterviewGuidePage: React.FC<InterviewGuidePageProps> = ({ candidat
         @media print { .guide-shell { background: #fff; padding: 0; } .guide-toolbar { display: none; } .guide-paper { width: auto; min-height: auto; margin: 0; padding: 18mm 15mm 12mm; box-shadow: none; } .guide-running-header { display: flex; position: fixed; top: 0; left: 0; right: 0; height: 8mm; padding: 2.3mm 15mm 1.6mm; justify-content: space-between; border-bottom: 1px solid #dde4ec; color: #6b7a8c; background: #fff; font-size: 8pt; z-index: 5; } .guide-running-header b { color: #14181d; font-weight: 600; } .guide-running-page::after { content: counter(page); } }
       `}</style>
       <div className="guide-toolbar">
-        <button type="button" onClick={() => void print()}><Printer size={17} /> Imprimir novamente</button>
+        {pdfError ? <span className="guide-pdf-error" role="alert">{pdfError}</span> : null}
+        <button type="button" onClick={() => void downloadPdf()} disabled={generatingPdf}>
+          {generatingPdf ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
+          {generatingPdf ? 'Gerando PDF...' : 'Baixar PDF'}
+        </button>
         <button type="button" onClick={() => window.close()} aria-label="Fechar guia"><X size={17} /> Fechar</button>
       </div>
       <div className="guide-running-header"><span><b>{candidateInfo}</b></span><span>Página <span className="guide-running-page" /></span></div>

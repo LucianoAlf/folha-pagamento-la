@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Printer } from 'lucide-react';
+import { AlertTriangle, FileDown } from 'lucide-react';
 import { DatePicker, Modal, TimeSelect } from '../../UI';
 import { buildInterviewGuideDraft } from './interviewGuideModel';
 
@@ -68,7 +68,7 @@ export const InterviewGuideModal: React.FC<InterviewGuideModalProps> = ({
           {error ? <div className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-bold text-danger">{error}</div> : null}
           <div className="flex justify-end gap-3">
             <button type="button" onClick={onClose} className="rounded-xl border border-line bg-surface/40 px-4 py-2.5 text-sm font-black text-secondary">Cancelar</button>
-            <button type="button" onClick={openGuide} className="rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-white inline-flex items-center gap-2"><Printer size={16} />{perguntasDesatualizadas && confirmedStale ? 'Imprimir mesmo assim' : 'Abrir guia para impressão'}</button>
+            <button type="button" onClick={openGuide} className="rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-white inline-flex items-center gap-2"><FileDown size={16} />{perguntasDesatualizadas && confirmedStale ? 'Gerar PDF mesmo assim' : 'Abrir guia para gerar PDF'}</button>
           </div>
         </div>
       }
