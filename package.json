@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test:contas-memoria": "node --test --experimental-strip-types shared/contasVariationMemory.test.ts",
     "deploy:comparativo": "npx supabase functions deploy ai-contas-comparativo --project-ref ubdvtjbitozhkuvvqkxj --no-verify-jwt"
   },
   "dependencies": {
