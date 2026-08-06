@@ -70,6 +70,7 @@ export const InterviewGuidePage: React.FC<InterviewGuidePageProps> = ({ candidat
   }, [candidate, draft]);
 
   const print = () => {
+    window.focus();
     window.print();
   };
 

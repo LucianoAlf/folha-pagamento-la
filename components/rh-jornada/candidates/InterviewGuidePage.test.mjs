@@ -21,7 +21,7 @@ test('print guide preserves question blocks and supports historical questions wi
 });
 
 test('print action stays synchronous with the user click', () => {
-  assert.match(source, /const print = \(\) => \{\s*window\.print\(\);\s*\};/);
+  assert.match(source, /const print = \(\) => \{\s*window\.focus\(\);\s*window\.print\(\);\s*\};/);
   assert.doesNotMatch(source, /await waitForPrintAssets/);
   assert.doesNotMatch(source, /autoPrintStarted/);
 });
