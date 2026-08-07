@@ -894,7 +894,7 @@ export const ContasPagarPage: React.FC<{
   }, [mode, auditAiOpen, competenciaFiltro, unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, loadAuditAi, loadAnomaliaNotas]);
 
   const openAnotar = useCallback(
-    (a: ContasAuditoriaAiAnomalia) => {
+    (a: ContasAuditoriaAiAnomalia, draft?: string | null) => {
       const existing = getAnomaliaNota(a.key, unidadeFiltro);
       setAnotarKey(a.key);
       setAnotarContaId((a.conta_id as any) || null);
@@ -902,7 +902,7 @@ export const ContasPagarPage: React.FC<{
       setAnotarPlanoContaId(a.plano_conta_id || null);
       setAnotarTitulo(a.titulo || 'Anomalia');
       setAnotarStatus(normalizeMemoryStatus(existing?.status) || 'pendente');
-      setAnotarTexto(existing?.nota || '');
+      setAnotarTexto(draft || existing?.nota || '');
       setAnotarSaved(false);
       setAnotarOpen(true);
     },
@@ -2933,6 +2933,20 @@ export const ContasPagarPage: React.FC<{
                                       <div className="mt-3 text-[12px] text-secondary font-bold bg-bg/40 border border-line/60 rounded-xl px-3 py-2">
                                         <span className="text-muted font-black mr-2">Nota:</span>
                                         {n.nota.length > 140 ? `${n.nota.slice(0, 140)}...` : n.nota}
+                                      </div>
+                                    ) : null}
+
+                                    {a.sugestao_justificativa ? (
+                                      <div className="mt-3 rounded-xl border border-accent/20 bg-accent/5 px-3 py-2">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-accent">Rascunho da IA</div>
+                                        <div className="mt-1 text-[12px] text-secondary font-medium">{a.sugestao_justificativa}</div>
+                                        <button
+                                          type="button"
+                                          onClick={() => openAnotar(a, a.sugestao_justificativa)}
+                                          className="mt-2 px-3 py-1.5 rounded-lg border border-accent/30 bg-surface/40 text-accent text-[10px] font-black uppercase tracking-widest"
+                                        >
+                                          Usar rascunho
+                                        </button>
                                       </div>
                                     ) : null}
 

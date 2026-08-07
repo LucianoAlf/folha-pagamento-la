@@ -11,4 +11,7 @@ test('migration preserva legado e cria identidade recorrente', () => {
   assert.match(sql, /pendente.*justificada.*corrigir_lancamento.*monitorar.*verificado/is);
   assert.match(sql, /create unique index if not exists contas_anomalia_notas_unique/i);
   assert.match(sql, /enable row level security/i);
+  assert.match(sql, /validate_contas_anomalia_nota/i);
+  assert.match(sql, /justificativa excede 2\.000 caracteres/i);
+  assert.match(sql, /conta da anomalia nao pertence ao periodo ou unidade informados/i);
 });
