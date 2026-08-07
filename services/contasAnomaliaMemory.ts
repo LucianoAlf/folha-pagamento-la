@@ -29,12 +29,12 @@ type SupabaseLike = {
 
 export function createContasAnomaliaMemoryApi(client: SupabaseLike = supabase) {
   async function fetchContasAnomaliaNotas(competenciaYM: string, unidade: string): Promise<Record<string, ContasAnomaliaNota>> {
-    const { data, error } = await client
+    let query = client
       .from('contas_anomalia_notas')
       .select(NOTE_SELECT)
-      .eq('competencia_ym', competenciaYM)
-      .eq('unidade', unidade)
-      .order('updated_at', { ascending: false });
+      .eq('competencia_ym', competenciaYM);
+    if (unidade !== 'todas') query = query.eq('unidade', unidade);
+    const { data, error } = await query.order('updated_at', { ascending: false });
     if (error) throw error;
     return Object.fromEntries((data || []).map((row: any) => [row.anomaly_key, {
       ...row,

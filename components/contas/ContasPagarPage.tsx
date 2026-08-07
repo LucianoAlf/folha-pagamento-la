@@ -79,12 +79,14 @@ import {
 } from 'lucide-react';
 import { cn } from '../CollaboratorComponents';
 import { KPICard, DistributionChart, EvolutionChart } from '../DashboardWidgets';
+import { fetchContasAnomaliaNotas, upsertContasAnomaliaNota, type ContasAnomaliaNota, type ContasAnomaliaNotaStatus } from '../../services/contasAnomaliaMemory';
 import {
   formatContaCentroCustoLabel,
   formatContaPlanoLabel,
   matchesContaPlanoCentroSearch,
 } from './planoContasSelectors';
-import { buildVariationKey } from '../../shared/contasVariationMemory';
+import { buildVariationKey, MAX_HUMAN_NOTE_LENGTH, normalizeMemoryStatus, type MemoryStatus } from '../../shared/contasVariationMemory';
+import { ContasVariationAlertCard } from './ContasVariationAlertCard';
 
 type ContasAuditoriaAiSeverity = 'alta' | 'media' | 'baixa';
 
@@ -149,17 +151,7 @@ type ContasComparativoAiRow = {
   response_json: ContasComparativoAiJson | null;
 };
 
-type ContasAnomaliaNotaStatus = 'pendente' | 'verificado';
-type ContasAnomaliaNotaRow = {
-  id: string;
-  competencia_ym: string;
-  unidade: string;
-  anomaly_key: string;
-  conta_id: string | null;
-  nota: string;
-  status: ContasAnomaliaNotaStatus;
-  updated_at: string;
-};
+type ContasAnomaliaNotaRow = ContasAnomaliaNota;
 
 const COMPARATIVO_THRESHOLD = 20;
 const todayISO = () => new Date().toISOString().split('T')[0];
@@ -470,11 +462,15 @@ export const ContasPagarPage: React.FC<{
   const [anotarOpen, setAnotarOpen] = useState(false);
   const [anotarKey, setAnotarKey] = useState<string | null>(null);
   const [anotarContaId, setAnotarContaId] = useState<string | null>(null);
+  const [anotarRecorrenteModeloId, setAnotarRecorrenteModeloId] = useState<string | null>(null);
+  const [anotarPlanoContaId, setAnotarPlanoContaId] = useState<string | null>(null);
   const [anotarTitulo, setAnotarTitulo] = useState<string>('');
-  const [anotarStatus, setAnotarStatus] = useState<ContasAnomaliaNotaStatus>('pendente');
+  const [anotarStatus, setAnotarStatus] = useState<ContasAnomaliaNotaStatus | null>('pendente');
   const [anotarTexto, setAnotarTexto] = useState<string>('');
   const [anotarSaving, setAnotarSaving] = useState(false);
   const [anotarSaved, setAnotarSaved] = useState(false);
+  const [savingAnomaliaKey, setSavingAnomaliaKey] = useState<string | null>(null);
+  const [localDrafts, setLocalDrafts] = useState<Record<string, { nota: string; status: MemoryStatus | null }>>({});
 
   // Visão operacional: Lista vs Calendário
   const [visaoOperacionalModo, setVisaoOperacionalModo] = useState<'lista' | 'calendario'>(() => {
@@ -664,23 +660,27 @@ export const ContasPagarPage: React.FC<{
   };
 
   const loadAnomaliaNotas = useCallback(async (force = false) => {
-    if (mode !== 'todas' || !auditAiOpen) return;
+    const shouldLoad = mode === 'dashboard' || mode === 'comparativo' || (mode === 'todas' && auditAiOpen);
+    if (!shouldLoad) return;
     const key = `${competenciaFiltro}|${unidadeFiltro}`;
     if (!force && anomaliaNotasKeyRef.current === key) return;
-    const { data, error } = await supabase
-      .from('contas_anomalia_notas')
-      .select('id,competencia_ym,unidade,anomaly_key,conta_id,nota,status,updated_at')
-      .eq('competencia_ym', competenciaFiltro)
-      .eq('unidade', unidadeFiltro)
-      .order('updated_at', { ascending: false });
-    if (error) return;
-    const map: Record<string, ContasAnomaliaNotaRow> = {};
-    (data || []).forEach((r: any) => {
-      map[String(r.anomaly_key)] = r as ContasAnomaliaNotaRow;
-    });
-    setAnomaliaNotas(map);
-    anomaliaNotasKeyRef.current = key;
+    try {
+      const data = await fetchContasAnomaliaNotas(competenciaFiltro, unidadeFiltro);
+      const map: Record<string, ContasAnomaliaNotaRow> = {};
+      Object.entries(data).forEach(([key, r]) => {
+        map[key] = r;
+      });
+      setAnomaliaNotas(map);
+      anomaliaNotasKeyRef.current = key;
+    } catch (error) {
+      console.error('loadAnomaliaNotas failed:', error);
+    }
   }, [mode, auditAiOpen, competenciaFiltro, unidadeFiltro]);
+
+  const getAnomaliaNota = useCallback((key: string, unidade?: string | null) => {
+    const candidates = Object.values(anomaliaNotas).filter((note) => note.anomaly_key === key);
+    return candidates.find((note) => !unidade || unidade === 'todas' || note.unidade === unidade) || anomaliaNotas[key] || null;
+  }, [anomaliaNotas]);
 
   /**
    * Helper para chamar Edge Function com autenticação robusta.
@@ -889,23 +889,24 @@ export const ContasPagarPage: React.FC<{
   }, [mode, compAiOpen, competenciaFiltro, competenciaComparar, unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, loadComparativoAi]);
 
   useEffect(() => {
-    if (mode !== 'todas' || !auditAiOpen) return;
-    void loadAuditAi(false);
+    if (mode === 'todas' && auditAiOpen) void loadAuditAi(false);
     void loadAnomaliaNotas();
   }, [mode, auditAiOpen, competenciaFiltro, unidadeFiltro, grupoPlanoFiltro, comportamentoFiltro, tipoFiltro, loadAuditAi, loadAnomaliaNotas]);
 
   const openAnotar = useCallback(
     (a: ContasAuditoriaAiAnomalia) => {
-      const existing = anomaliaNotas[a.key];
+      const existing = getAnomaliaNota(a.key, unidadeFiltro);
       setAnotarKey(a.key);
       setAnotarContaId((a.conta_id as any) || null);
+      setAnotarRecorrenteModeloId(a.recorrente_modelo_id || null);
+      setAnotarPlanoContaId(a.plano_conta_id || null);
       setAnotarTitulo(a.titulo || 'Anomalia');
-      setAnotarStatus(existing?.status || 'pendente');
+      setAnotarStatus(normalizeMemoryStatus(existing?.status) || 'pendente');
       setAnotarTexto(existing?.nota || '');
       setAnotarSaved(false);
       setAnotarOpen(true);
     },
-    [anomaliaNotas]
+    [getAnomaliaNota, unidadeFiltro]
   );
 
   const saveAnomaliaNota = useCallback(async () => {
@@ -913,22 +914,16 @@ export const ContasPagarPage: React.FC<{
     setAnotarSaving(true);
     setAnotarSaved(false);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id || null;
-      const payload = {
-        competencia_ym: competenciaFiltro,
+      await upsertContasAnomaliaNota({
+        competenciaYM: competenciaFiltro,
         unidade: unidadeFiltro,
-        anomaly_key: anotarKey,
-        conta_id: anotarContaId || null,
+        anomalyKey: anotarKey,
+        contaId: anotarContaId || null,
+        recorrenteModeloId: anotarRecorrenteModeloId || null,
+        planoContaId: anotarPlanoContaId || null,
         nota: anotarTexto || '',
         status: anotarStatus,
-        created_by: userId,
-      };
-
-      const { error } = await supabase
-        .from('contas_anomalia_notas')
-        .upsert(payload as any, { onConflict: 'competencia_ym,unidade,anomaly_key' });
-      if (error) throw error;
+      });
 
       await loadAnomaliaNotas(true);
       setAnotarSaved(true);
@@ -939,7 +934,38 @@ export const ContasPagarPage: React.FC<{
     } finally {
       setAnotarSaving(false);
     }
-  }, [anotarKey, anotarContaId, anotarTexto, anotarStatus, competenciaFiltro, unidadeFiltro, loadAnomaliaNotas]);
+  }, [anotarKey, anotarContaId, anotarRecorrenteModeloId, anotarPlanoContaId, anotarTexto, anotarStatus, competenciaFiltro, unidadeFiltro, loadAnomaliaNotas]);
+
+  const saveInlineVariationNote = useCallback(async (variation: {
+    key: string;
+    unidade: string;
+    contaId: string | null;
+    recorrenteModeloId: string | null;
+    planoContaId: string | null;
+  }, input: { nota: string; status: MemoryStatus | null }) => {
+    if (savingAnomaliaKey === variation.key) return;
+    setSavingAnomaliaKey(variation.key);
+    setLocalDrafts((current) => ({ ...current, [variation.key]: input }));
+    try {
+      await upsertContasAnomaliaNota({
+        competenciaYM: competenciaFiltro,
+        unidade: variation.unidade || unidadeFiltro,
+        anomalyKey: variation.key,
+        contaId: variation.contaId,
+        recorrenteModeloId: variation.recorrenteModeloId,
+        planoContaId: variation.planoContaId,
+        nota: input.nota,
+        status: input.status,
+      });
+      await loadAnomaliaNotas(true);
+      toastSuccess('Justificativa salva.');
+    } catch (error: any) {
+      toastError(error?.message || 'Não foi possível salvar a justificativa.');
+      throw error;
+    } finally {
+      setSavingAnomaliaKey(null);
+    }
+  }, [competenciaFiltro, unidadeFiltro, loadAnomaliaNotas, savingAnomaliaKey, toastError, toastSuccess]);
 
   const matchesCompetencia = useCallback(
     (c: ContaPagar) => {
@@ -1690,18 +1716,36 @@ export const ContasPagarPage: React.FC<{
             </button>
             
             {alertsOpen && (
-              <div className="mt-2 space-y-2 animate-in slide-in-from-top-2 duration-300">
-                {anomalies.map((a, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-surface/40 border border-line rounded-2xl">
-                    <div className="flex items-center gap-3">
-                      <div className={cn("w-2 h-2 rounded-full", a.variant === 'rose' ? "bg-danger" : "bg-success")}></div>
-                      <div>
-                        <div className="text-sm font-bold text-primary">{a.title}</div>
-                        <div className="text-[10px] text-muted font-bold uppercase tracking-widest">{a.description}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="mt-2 space-y-3 animate-in slide-in-from-top-2 duration-300">
+                {anomalies.map((a) => {
+                  const saved = getAnomaliaNota(a.key, a.unidade);
+                  return (
+                    <ContasVariationAlertCard
+                      key={a.key}
+                      data={{
+                        key: a.key,
+                        titulo: a.title,
+                        descricao: a.description,
+                        unidade: a.unidade,
+                        prev: a.prev,
+                        curr: a.curr,
+                        diff: a.diff,
+                        perc: a.perc,
+                        statusVariacao: 'RECORRENTE',
+                        notaSalva: saved?.nota ?? '',
+                        statusOperacional: normalizeMemoryStatus(saved?.status),
+                        sugestaoJustificativa: null,
+                      }}
+                      onSave={(input) => saveInlineVariationNote({
+                        key: a.key,
+                        unidade: a.unidade,
+                        contaId: a.conta_id || null,
+                        recorrenteModeloId: a.recorrente_modelo_id || null,
+                        planoContaId: a.plano_conta_id || null,
+                      }, input)}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2132,6 +2176,45 @@ export const ContasPagarPage: React.FC<{
           </Card>
 
           {/* Notas / Sugestão da Ana (mesma semântica da Folha) */}
+          {comparativoData.anomalies.length ? (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-1.5 rounded-full bg-warning" />
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">Justificativas das variações</h3>
+              </div>
+              {comparativoData.anomalies.map((variation) => {
+                const insight = compAiRow?.response_json?.insights_detalhados?.find((item) => item.chave_referencia === variation.key);
+                const saved = getAnomaliaNota(variation.key, variation.unidade);
+                return (
+                  <ContasVariationAlertCard
+                    key={variation.key}
+                    data={{
+                      key: variation.key,
+                      titulo: variation.descricao || 'Variação relevante',
+                      descricao: `${variation.categoria} · ${variation.unidade}`,
+                      unidade: variation.unidade,
+                      prev: variation.prev,
+                      curr: variation.curr,
+                      diff: variation.diff,
+                      perc: variation.perc,
+                      statusVariacao: variation.status as 'NOVO' | 'SAIU' | 'RECORRENTE',
+                      notaSalva: saved?.nota ?? '',
+                      statusOperacional: normalizeMemoryStatus(saved?.status),
+                      sugestaoJustificativa: insight?.sugestao_justificativa || null,
+                    }}
+                    onSave={(input) => saveInlineVariationNote({
+                      key: variation.key,
+                      unidade: variation.unidade,
+                      contaId: variation.contaId,
+                      recorrenteModeloId: variation.recorrenteModeloId,
+                      planoContaId: variation.planoContaId,
+                    }, input)}
+                  />
+                );
+              })}
+            </section>
+          ) : null}
+
           <Card className="overflow-hidden flex flex-col border-accent/20 shadow-accent/5">
             <div className="p-6 border-b border-line-strong bg-accent/5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-accent/10 p-0.5 border border-accent/20 overflow-hidden shrink-0 shadow-lg">
@@ -2177,7 +2260,7 @@ export const ContasPagarPage: React.FC<{
               </div>
 
               <p className="text-[10px] text-muted text-center">
-                Suas notas ajudam a treinar a IA para reconhecer padrões futuros.
+                Suas justificativas ficam disponíveis como contexto nas próximas análises.
               </p>
             </div>
           </Card>
@@ -2832,8 +2915,8 @@ export const ContasPagarPage: React.FC<{
                                       <Badge variant={sev as any}>
                                         {a.severidade === 'alta' ? 'Alta' : a.severidade === 'media' ? 'Média' : 'Baixa'}
                                       </Badge>
-                                      {n?.status === 'verificado' ? (
-                                        <Badge variant="success">Verificado</Badge>
+                                      {normalizeMemoryStatus(n?.status) === 'justificada' ? (
+                                        <Badge variant="success">Justificada</Badge>
                                       ) : n?.nota ? (
                                         <Badge variant="info">Anotado</Badge>
                                       ) : null}
@@ -2996,7 +3079,7 @@ export const ContasPagarPage: React.FC<{
               <button
                 type="button"
                 onClick={saveAnomaliaNota}
-                disabled={anotarSaving}
+                disabled={anotarSaving || anotarTexto.length > MAX_HUMAN_NOTE_LENGTH}
                 className="px-10 py-4 rounded-[2rem] bg-accent hover:bg-accent/80 text-white font-black shadow-xl shadow-accent/20 disabled:opacity-50 transition-all active:scale-95 text-xs uppercase tracking-widest flex items-center gap-2"
               >
                 {anotarSaving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
@@ -3010,9 +3093,12 @@ export const ContasPagarPage: React.FC<{
               <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Status</div>
               <div className="flex items-center gap-2 bg-surface/40 border border-line p-1 rounded-2xl w-fit">
                 {([
+                  { id: null, label: 'Sem status' },
                   { id: 'pendente', label: 'Pendente' },
-                  { id: 'verificado', label: 'Verificado' },
-                ] as const).map((s) => (
+                  { id: 'justificada', label: 'Justificada' },
+                  { id: 'corrigir_lancamento', label: 'Corrigir lançamento' },
+                  { id: 'monitorar', label: 'Monitorar' },
+                ] as Array<{ id: ContasAnomaliaNotaStatus | null; label: string }>).map((s) => (
                   <button
                     key={s.id}
                     type="button"
@@ -3037,7 +3123,10 @@ export const ContasPagarPage: React.FC<{
                 className="w-full min-h-[140px] resize-none bg-surface/40 border border-line-strong/60 rounded-2xl px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40"
                 spellCheck={false}
               />
-              <div className="mt-2 flex items-center justify-end">
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className={cn('text-[10px] font-bold', anotarTexto.length > MAX_HUMAN_NOTE_LENGTH ? 'text-danger' : 'text-muted')}>
+                  {anotarTexto.length}/{MAX_HUMAN_NOTE_LENGTH}{anotarTexto.length > MAX_HUMAN_NOTE_LENGTH ? ' · limite excedido' : ''}
+                </span>
                 {anotarSaved ? (
                   <div className="text-[10px] text-success font-black flex items-center gap-2">
                     <CheckCircle2 size={12} />
