@@ -75,14 +75,19 @@ async function runBrowser(baseUrl, storageState) {
     await page.reload({ waitUntil: 'networkidle' });
     await page.getByText('Alertas Detectados').click();
     await assertVisible(page.getByText('Reajuste confirmado no contrato.'));
-    const valuesBefore = await page.locator('[data-variation-key]').first().innerText();
     const comparative = page.getByRole('button', { name: /^Comparativo$/i });
     if (await comparative.count()) {
       await page.route('**/functions/v1/ai-contas-comparativo*', (route) => route.abort());
       await comparative.click();
+      const comparisonCard = page.locator('[data-variation-key]').first();
+      await comparisonCard.waitFor({ state: 'visible', timeout: 10_000 });
+      const comparisonKey = await comparisonCard.getAttribute('data-variation-key');
+      const valuesBefore = await comparisonCard.innerText();
       await page.getByText('Atualizar', { exact: true }).click().catch(() => {});
       await page.waitForTimeout(500);
-      const valuesAfter = await page.locator('[data-variation-key]').first().innerText().catch(() => '');
+      const valuesAfter = comparisonKey
+        ? await page.locator(`[data-variation-key="${comparisonKey}"]`).first().innerText().catch(() => '')
+        : '';
       assert.deepEqual(
         valuesAfter ? valuesAfter.match(/R\$[^\n]+|[+-]\d+[,.]\d+%/g)?.slice(0, 4) : null,
         valuesBefore.match(/R\$[^\n]+|[+-]\d+[,.]\d+%/g)?.slice(0, 4) || null,
