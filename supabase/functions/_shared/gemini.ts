@@ -17,7 +17,12 @@ export type GeminiGenerationConfig = {
   thinkingLevel?: "low" | "medium" | "high";
 };
 
-type SupabaseAdminClient = ReturnType<typeof createClient>;
+type SupabaseAdminClient = {
+  rpc: (
+    functionName: string,
+    args?: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: unknown }>
+};
 
 export function createServiceClient() {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -71,7 +76,7 @@ export async function callGeminiOnce(
         body: JSON.stringify(buildGeminiGenerateContentBody(prompt, {
           isGemini3: modelId === GEMINI_PRIMARY_MODEL_ID,
           config: options?.generationConfig,
-        })),
+        } as any)),
       },
     );
 
