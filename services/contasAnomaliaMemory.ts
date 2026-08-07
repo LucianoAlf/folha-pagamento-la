@@ -36,10 +36,16 @@ export function createContasAnomaliaMemoryApi(client: SupabaseLike = supabase) {
     if (unidade !== 'todas') query = query.eq('unidade', unidade);
     const { data, error } = await query.order('updated_at', { ascending: false });
     if (error) throw error;
-    return Object.fromEntries((data || []).map((row: any) => [row.anomaly_key, {
-      ...row,
-      status: normalizeMemoryStatus(row.status),
-    }]));
+    const result: Record<string, ContasAnomaliaNota> = {};
+    for (const row of data || []) {
+      const note = { ...row, status: normalizeMemoryStatus(row.status) } as ContasAnomaliaNota;
+      // Consolidado can contain the same anomaly key for multiple units. Keep
+      // a composite alias so one row never hides another in the page cache.
+      const compositeKey = `${note.unidade}|${note.anomaly_key}`;
+      result[compositeKey] = note;
+      if (unidade !== 'todas' || !result[note.anomaly_key]) result[note.anomaly_key] = note;
+    }
+    return result;
   }
 
   async function upsertContasAnomaliaNota(input: {

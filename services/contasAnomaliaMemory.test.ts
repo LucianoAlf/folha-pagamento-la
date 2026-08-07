@@ -11,22 +11,17 @@ function makeFakeClient(options: { rows?: unknown[]; upsertError?: Error | null 
       return {
         select: (fields: string) => {
           calls.push({ op: 'select', fields });
-          return {
+          const query = {
             eq: (column: string, value: unknown) => {
               calls.push({ op: 'eq', column, value });
-              return {
-                eq: (nextColumn: string, nextValue: unknown) => {
-                  calls.push({ op: 'eq', column: nextColumn, value: nextValue });
-                  return {
-                    order: async (columnName: string, orderOptions: unknown) => {
-                      calls.push({ op: 'order', column: columnName, options: orderOptions });
-                      return { data: options.rows || [], error: null };
-                    },
-                  };
-                },
-              };
+              return query;
+            },
+            order: async (columnName: string, orderOptions: unknown) => {
+              calls.push({ op: 'order', column: columnName, options: orderOptions });
+              return { data: options.rows || [], error: null };
             },
           };
+          return query;
         },
         upsert: (payload: unknown, upsertOptions: unknown) => {
           calls.push({ op: 'upsert', payload, options: upsertOptions });
@@ -54,6 +49,17 @@ test('lê notas com identidade recorrente e normaliza status legado', async () =
   const result = await api.fetchContasAnomaliaNotas('2026-08', 'cg');
   assert.match(calls.find((call) => call.op === 'select').fields, /recorrente_modelo_id/);
   assert.equal(result['cg|p|modelo:m1'].status, 'justificada');
+});
+
+test('preserva notas de unidades distintas no cache consolidado', async () => {
+  const { client } = makeFakeClient({ rows: [
+    { id: 'n1', anomaly_key: 'cg|p|modelo:m1', unidade: 'cg', status: null, nota: 'cg' },
+    { id: 'n2', anomaly_key: 'rec|p|modelo:m1', unidade: 'rec', status: null, nota: 'rec' },
+  ] });
+  const api = createContasAnomaliaMemoryApi(client);
+  const result = await api.fetchContasAnomaliaNotas('2026-08', 'todas');
+  assert.equal(result['cg|cg|p|modelo:m1'].nota, 'cg');
+  assert.equal(result['rec|rec|p|modelo:m1'].nota, 'rec');
 });
 
 test('upsert envia a chave composta, identidade e criador', async () => {
