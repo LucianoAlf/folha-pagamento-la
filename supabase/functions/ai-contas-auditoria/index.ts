@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ANALYSIS_VERSION = 2;
+const ANALYSIS_VERSION = 3;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -236,12 +236,12 @@ function buildFallbackAuditoria(competenciaYM: string, macro: AuditMacro, topCan
       recorrente_modelo_id: candidate.recorrente_modelo_id || null,
       plano_conta_id: candidate.plano_conta_id || null,
       acao_sugerida: actionForTipo(candidate.tipo),
-      pergunta_para_ana: "",
+      pergunta_para_rose: "",
       sugestao_justificativa: null,
     })),
     recomendacoes_operacionais: [
       "Revisar os pontos de atencao em ordem de impacto financeiro.",
-      "Registrar uma nota da Ana nos casos ja justificados para manter memoria operacional.",
+      "Registrar uma nota da Rose nos casos ja justificados para manter memoria operacional.",
       "Conferir duplicidades, atrasos e contas sem plano diretamente nos lancamentos de origem.",
     ],
   };
@@ -264,7 +264,8 @@ function normalizeAuditoriaResponse(parsed: any, candidates: AuditCandidate[]) {
         recorrente_modelo_id: candidate.recorrente_modelo_id || null,
         plano_conta_id: candidate.plano_conta_id || null,
         acao_sugerida: String(anomalia.acao_sugerida || actionForTipo(candidate.tipo)),
-        pergunta_para_ana: String(anomalia.pergunta_para_ana || ""),
+        // Accept the old cached field while all new responses address the finance owner.
+        pergunta_para_rose: String(anomalia.pergunta_para_rose ?? anomalia.pergunta_para_ana ?? ""),
         sugestao_justificativa: truncateAiDraft(anomalia.sugestao_justificativa),
       };
     })
@@ -560,12 +561,16 @@ Deno.serve(async (req: Request) => {
 
   const promptWithMemoryGuardrails = `${prompt}\n\nCada anomalia deve incluir \"sugestao_justificativa\": um rascunho editavel de ate 600 caracteres ou null. Use somente a base fornecida, preserve os numeros deterministas, nao transforme status pendente/monitorar em causa e nao declare causa como certa.`;
 
+  const financePromptWithMemoryGuardrails = promptWithMemoryGuardrails
+    .replaceAll("Ana", "Rose")
+    .replaceAll("pergunta_para_ana", "pergunta_para_rose");
+
   let parsed: any = null;
   let modelUsed = "fallback-heuristic";
 
   try {
     const apiKey = await getGeminiApiKey(supabase);
-    const { text: rawText, modelUsed: geminiModel } = await callGeminiWithFallback(promptWithMemoryGuardrails, apiKey, {
+    const { text: rawText, modelUsed: geminiModel } = await callGeminiWithFallback(financePromptWithMemoryGuardrails, apiKey, {
       timeoutMs: 8_000,
       generationConfig: { temperature: 0.15, maxOutputTokens: 1200 },
     });

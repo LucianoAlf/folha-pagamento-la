@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const ANALYSIS_VERSION = 2;
+const ANALYSIS_VERSION = 3;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -520,6 +520,9 @@ ${JSON.stringify(inputObject)}`;
         totalPerc,
         topMudancas,
       );
+    }
+    if (Array.isArray(parsed?.recomendacoes)) {
+      parsed.recomendacoes = parsed.recomendacoes.map((recommendation: unknown) => String(recommendation).replaceAll("Ana", "Rose"));
     }
     parsed = normalizeComparativoResponse(parsed, variations);
 

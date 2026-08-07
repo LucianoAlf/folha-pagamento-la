@@ -86,6 +86,7 @@ import {
   matchesContaPlanoCentroSearch,
 } from './planoContasSelectors';
 import { buildVariationKey, MAX_HUMAN_NOTE_LENGTH, normalizeMemoryStatus, type MemoryStatus } from '../../shared/contasVariationMemory';
+import { CONTAS_FINANCE_OWNER } from '../../shared/contasFinanceOwner';
 import { ContasVariationAlertCard } from './ContasVariationAlertCard';
 
 type ContasAuditoriaAiSeverity = 'alta' | 'media' | 'baixa';
@@ -100,7 +101,7 @@ type ContasAuditoriaAiAnomalia = {
   recorrente_modelo_id?: string | null;
   plano_conta_id?: string | null;
   acao_sugerida?: string;
-  pergunta_para_ana?: string;
+  pergunta_para_rose?: string;
   sugestao_justificativa?: string | null;
 };
 
@@ -2175,7 +2176,7 @@ export const ContasPagarPage: React.FC<{
             </div> : null}
           </Card>
 
-          {/* Notas / Sugestão da Ana (mesma semântica da Folha) */}
+          {/* Notas / Sugestão da Rose (a operação financeira é dela) */}
           {comparativoData.anomalies.length ? (
             <section className="space-y-3">
               <div className="flex items-center gap-2">
@@ -2217,19 +2218,12 @@ export const ContasPagarPage: React.FC<{
 
           <Card className="overflow-hidden flex flex-col border-accent/20 shadow-accent/5">
             <div className="p-6 border-b border-line-strong bg-accent/5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-accent/10 p-0.5 border border-accent/20 overflow-hidden shrink-0 shadow-lg">
-                <img
-                  src="/Avatar_Ana.png"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=Ana&background=8b5cf6&color=fff';
-                  }}
-                  alt="Ana RH"
-                  className="w-full h-full object-cover rounded-xl"
-                />
+              <div className="w-12 h-12 rounded-2xl bg-accent/10 border border-accent/20 overflow-hidden shrink-0 shadow-lg flex items-center justify-center">
+                <span className="text-xl font-black text-accent" aria-hidden="true">{CONTAS_FINANCE_OWNER.initial}</span>
               </div>
               <div className="min-w-0">
-                <h3 className="text-lg font-semibold text-primary">Sugestão da Ana</h3>
-                <p className="text-[10px] text-accent font-bold uppercase tracking-wider">Financeiro</p>
+                <h3 className="text-lg font-semibold text-primary">Sugestão da {CONTAS_FINANCE_OWNER.name}</h3>
+                <p className="text-[10px] text-accent font-bold uppercase tracking-wider">{CONTAS_FINANCE_OWNER.area}</p>
               </div>
             </div>
 
@@ -2239,7 +2233,7 @@ export const ContasPagarPage: React.FC<{
                   value={notasComparativo}
                   onChange={(e) => setNotasComparativo(e.target.value)}
                   onBlur={saveNotas}
-                  placeholder="Ana, registre aqui suas percepções sobre o fechamento do financeiro..."
+                  placeholder={`${CONTAS_FINANCE_OWNER.name}, registre aqui suas percepções sobre o fechamento do financeiro...`}
                   className="w-full h-full min-h-[160px] bg-surface/40 border border-line-strong/50 rounded-2xl p-4 text-sm text-secondary outline-none focus:ring-2 focus:ring-accent/40 transition-all resize-none placeholder:text-muted"
                   spellCheck={false}
                   disabled={notasComparativoLoading}
@@ -2809,9 +2803,9 @@ export const ContasPagarPage: React.FC<{
 
             {auditAiOpen && (
               <div className="p-6 border-t border-line/60 space-y-6">
-                {/* Notas da Ana (Auditoria do mês) */}
+                {/* Notas da Rose (Auditoria do mês) */}
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Observações da Ana (Auditoria)</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Observações da {CONTAS_FINANCE_OWNER.name} (Auditoria)</div>
                   <textarea
                     value={notasAuditoria}
                     onChange={(e) => setNotasAuditoria(e.target.value)}
@@ -3129,7 +3123,7 @@ export const ContasPagarPage: React.FC<{
             </div>
 
             <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Nota da Ana</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.25em] text-muted mb-2">Nota da {CONTAS_FINANCE_OWNER.name}</div>
               <textarea
                 value={anotarTexto}
                 onChange={(e) => setAnotarTexto(e.target.value)}
