@@ -14,7 +14,7 @@ import {
   StatusVisual,
 } from '../types/contasPagar';
 import { competenciaFromVencimento, toDateOnly } from '../utils/dateOnly';
-import { resolveCodigoMesBadge } from './contasPagarCodigoMes';
+import { assertCodigoBarrasValido, isCodigoBarrasValido, normalizarCodigoBarras, resolveCodigoMesBadge } from './contasPagarCodigoMes';
 import { buildParcelasContaPagar } from './contasPagarParcelas';
 
 const CONTA_PAGAR_SELECT =
@@ -739,6 +739,7 @@ export async function fetchCodigosMes(competencia: string): Promise<ContaPagarCo
 export async function upsertCodigoMes(
   input: Partial<ContaPagarCodigoMes> & { conta_pagar_id: string; competencia: string }
 ): Promise<ContaPagarCodigoMes> {
+  const codigoBarras = assertCodigoBarrasValido(input.codigo_barras);
   const humanInput: Partial<ContaPagarCodigoMes> & { conta_pagar_id: string; competencia: string } = {
     registrado_por_agente: false,
     agente_nome: null,
@@ -751,6 +752,7 @@ export async function upsertCodigoMes(
     registrado_em: null,
     observacao_operacional: null,
     ...input,
+    codigo_barras: codigoBarras,
   };
 
   const { data, error } = await supabase
@@ -890,7 +892,8 @@ function linhaCodigoPagamento(
   conta: ContaPagar,
   codigo?: ContaPagarCodigoMes | null
 ): string | null {
-  if (codigo?.codigo_barras?.trim()) return codigo.codigo_barras.trim();
+  const codigoBarras = normalizarCodigoBarras(codigo?.codigo_barras);
+  if (codigoBarras && isCodigoBarrasValido(codigoBarras)) return codigoBarras;
   if (codigo?.qr_pix_payload?.trim()) return codigo.qr_pix_payload.trim();
   if (codigo?.chave_pix?.trim()) return codigo.chave_pix.trim();
   if (conta.pix_chave_fixa?.trim()) return conta.pix_chave_fixa.trim();

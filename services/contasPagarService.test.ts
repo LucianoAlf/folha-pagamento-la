@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { buildParcelasContaPagar } from './contasPagarParcelas.ts';
-import { resolveCodigoMesBadge } from './contasPagarCodigoMes.ts';
+import { assertCodigoBarrasValido, isCodigoBarrasValido, resolveCodigoMesBadge } from './contasPagarCodigoMes.ts';
 
 const serviceSource = () => readFileSync(new URL('./contasPagarService.ts', import.meta.url), 'utf8');
 
@@ -88,10 +88,48 @@ test('resolveCodigoMesBadge treats fixed PIX as collected even when monthly code
   );
 });
 
+test('resolveCodigoMesBadge does not trust collected status when barcode is free text', () => {
+  assert.equal(
+    resolveCodigoMesBadge(
+      {
+        status: 'pendente',
+        pix_chave_fixa: null,
+      },
+      {
+        codigo_barras: 'Já existem no Super Folha — precisam de baixa',
+        chave_pix: null,
+        qr_pix_payload: null,
+        status_coleta: 'coletado',
+      },
+      'hoje'
+    ),
+    'atualizar'
+  );
+});
+
+test('codigo de barras accepts only barcode/linha digitavel format', () => {
+  assert.equal(isCodigoBarrasValido('23792.95203 90000.076712 74000.107602 4 15340000175957'), true);
+  assert.equal(isCodigoBarrasValido('83650000003044960048100000000000000000000000'), true);
+  assert.equal(
+    isCodigoBarrasValido(
+      '23792.37205 90002.400373 61002.788208 1 14980000306182 - Anne R$3.061,82\n23792.37205 90002.400373 60002.788200 4 14980000306181 - Luciano R$3.061,81'
+    ),
+    true
+  );
+  assert.equal(isCodigoBarrasValido('Já existem no Super Folha — precisam de baixa'), false);
+  assert.equal(isCodigoBarrasValido('pago'), false);
+  assert.throws(
+    () => assertCodigoBarrasValido('Já existem no Super Folha — precisam de baixa'),
+    /Código de barras inválido/
+  );
+});
+
 test('upsertCodigoMes clears Maria stamp by default for human edits', () => {
   const source = serviceSource();
 
   assert.match(source, /const humanInput/);
+  assert.match(source, /assertCodigoBarrasValido\(input\.codigo_barras\)/);
+  assert.match(source, /isCodigoBarrasValido\(codigoBarras\)/);
   assert.match(source, /registrado_por_agente:\s*false/);
   assert.match(source, /agente_nome:\s*null/);
   assert.match(source, /confirmado_por_nome:\s*null/);
