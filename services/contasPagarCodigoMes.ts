@@ -9,13 +9,8 @@ export function normalizarCodigoBarras(valor?: string | null): string | null {
   return codigo;
 }
 
-function extrairPrefixoLinhaDigitavel(linha: string): string {
-  return linha.replace(/\s+[-–—]\s+.*$/, '').trim();
-}
-
-function isLinhaDigitavelValida(linha: string): boolean {
-  const codigo = extrairPrefixoLinhaDigitavel(linha);
-  if (!codigo) return false;
+function isLinhaDigitavelValida(codigo: string): boolean {
+  if (!codigo || /\r|\n/.test(codigo)) return false;
   if (!CODIGO_BARRAS_CHARS_RE.test(codigo)) return false;
 
   const digitos = codigo.replace(/\D/g, '');
@@ -25,11 +20,7 @@ function isLinhaDigitavelValida(linha: string): boolean {
 export function isCodigoBarrasValido(valor?: string | null): boolean {
   const codigo = normalizarCodigoBarras(valor);
   if (!codigo) return false;
-  return codigo
-    .split(/\r?\n/)
-    .map((linha) => linha.trim())
-    .filter(Boolean)
-    .every(isLinhaDigitavelValida);
+  return isLinhaDigitavelValida(codigo);
 }
 
 export function assertCodigoBarrasValido(valor?: string | null): string | null {

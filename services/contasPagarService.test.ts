@@ -114,7 +114,11 @@ test('codigo de barras accepts only barcode/linha digitavel format', () => {
     isCodigoBarrasValido(
       '23792.37205 90002.400373 61002.788208 1 14980000306182 - Anne R$3.061,82\n23792.37205 90002.400373 60002.788200 4 14980000306181 - Luciano R$3.061,81'
     ),
-    true
+    false
+  );
+  assert.equal(
+    isCodigoBarrasValido('23792.37205 90002.400373 61002.788208 1 14980000306182 - Anne R$3.061,82'),
+    false
   );
   assert.equal(isCodigoBarrasValido('Já existem no Super Folha — precisam de baixa'), false);
   assert.equal(isCodigoBarrasValido('pago'), false);
