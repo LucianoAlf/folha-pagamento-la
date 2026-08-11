@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import * as cartoesFaturasSelectors from './cartoesFaturasSelectors.ts';
-
 import {
   attachClassificacaoResumo,
   buildFaturasResumo,
@@ -17,11 +15,9 @@ import {
   hasAutoriaMaria,
   isFaturaClassificacaoBloqueada,
   filterAndSortFaturas,
+  getPrevisaoCandidata,
+  normalizeRecorrenciaMatch,
 } from './cartoesFaturasSelectors.ts';
-
-const getPrevisaoCandidata = (cartoesFaturasSelectors as any).getPrevisaoCandidata as
-  | ((transacao: any, previsoes: any[]) => any)
-  | undefined;
 
 const faturas = [
   {
@@ -278,7 +274,7 @@ test('manual import validation rejects parcel recurrence conflicts', () => {
     validateTransacaoImportadaInput({
       descricao: 'Assinatura', data_compra: '2026-08-17', valor: 49.9,
       tipo_transacao: 'compra', is_parcela: true, is_recorrente: true,
-    } as any),
+    }),
     'Uma compra não pode ser parcelada e recorrente ao mesmo tempo.'
   );
 });
@@ -288,15 +284,12 @@ test('manual import validation limits recurrence to purchases', () => {
     validateTransacaoImportadaInput({
       descricao: 'Tarifa', data_compra: '2026-08-17', valor: 49.9,
       tipo_transacao: 'tarifa', is_recorrente: true,
-    } as any),
+    }),
     'Recorrência está disponível somente para compras.'
   );
 });
 
 test('recurring forecast matching is exact by invoice, card, cents and normalized description', () => {
-  assert.equal(typeof getPrevisaoCandidata, 'function', 'getPrevisaoCandidata ainda nao foi exportado.');
-  if (typeof getPrevisaoCandidata !== 'function') return;
-
   assert.deepEqual(
     getPrevisaoCandidata(transacaoReal, [previsaoMesmoCartaoMesmoValor, previsaoOutroValor]),
     previsaoMesmoCartaoMesmoValor
@@ -306,6 +299,24 @@ test('recurring forecast matching is exact by invoice, card, cents and normalize
   assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutraFatura]), null);
   assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutraDescricao]), null);
   assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoJaConfirmada]), null);
+});
+
+test('recurring forecast matches a negative real transaction to its positive forecast by cents', () => {
+  const transacaoEstornada = {
+    ...transacaoReal,
+    valor: -10.99,
+  };
+  const previsaoEstornada = {
+    ...previsaoMesmoCartaoMesmoValor,
+    id: 'previsao-estornada',
+    valor: 10.99,
+  };
+
+  assert.deepEqual(getPrevisaoCandidata(transacaoEstornada, [previsaoEstornada]), previsaoEstornada);
+});
+
+test('recurring forecast normalization removes accents and punctuation', () => {
+  assert.equal(normalizeRecorrenciaMatch('  Assinatura: Açúcar & Café  '), 'assinatura acucar cafe');
 });
 
 test('manual import payload uses the fatura RPC shape without classification fields', () => {

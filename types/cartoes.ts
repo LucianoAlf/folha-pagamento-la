@@ -93,10 +93,46 @@ export interface FinanceiroCartaoTransacao {
   observacoes?: string | null;
 }
 
+export type CartaoRecorrenciaStatus = 'ativa' | 'pausada' | 'encerrada';
+export type CartaoRecorrenciaPrevisaoStatus = 'prevista' | 'confirmada' | 'dispensada';
+
+export interface FinanceiroCartaoRecorrencia {
+  id: string;
+  cartao_id: string;
+  transacao_origem_id: string;
+  data_inicio: string;
+  dia_base: number;
+  descricao: string;
+  estabelecimento: string | null;
+  valor: number;
+  empresa_id: string | null;
+  plano_conta_id: string | null;
+  centro_custo_id: string | null;
+  classificacao_status: CartaoClassificacaoStatus | string;
+  status: CartaoRecorrenciaStatus;
+  motivo_status: string | null;
+}
+
+export interface FinanceiroCartaoRecorrenciaPrevisao {
+  id: string;
+  recorrencia_id: string;
+  fatura_id: string;
+  cartao_id: string;
+  competencia: string;
+  data_compra: string;
+  descricao: string;
+  estabelecimento: string | null;
+  valor: number;
+  status: CartaoRecorrenciaPrevisaoStatus;
+  transacao_confirmada_id: string | null;
+}
+
 export interface CartoesFaturasData extends CartoesLookups {
   cartoes: FinanceiroCartao[];
   faturas: FinanceiroCartaoFatura[];
   transacoes: FinanceiroCartaoTransacao[];
+  recorrencias: FinanceiroCartaoRecorrencia[];
+  previsoes: FinanceiroCartaoRecorrenciaPrevisao[];
   planos: PlanoConta[];
 }
 
@@ -194,6 +230,85 @@ export interface FinanceiroCartaoTransacaoImportadaResponse {
   possivel_duplicata?: boolean;
   idempotent?: boolean;
   ator_tipo?: string | null;
+}
+
+export interface FinanceiroCartaoRecorrenciaCriarPayload {
+  fatura_id: string;
+  cartao_id?: string;
+  client_token: string;
+  id_externo?: string;
+  data_compra: string;
+  descricao: string;
+  estabelecimento?: string | null;
+  valor: number;
+  dia_base?: number;
+  tipo_transacao?: 'compra';
+  classificacao_status?: CartaoClassificacaoStatus;
+  empresa_id?: string | null;
+  plano_conta_id?: string | null;
+  centro_custo_id?: string | null;
+  fonte_tipo?: string | null;
+  observacoes?: string | null;
+  motivo?: string | null;
+}
+
+export interface FinanceiroCartaoRecorrenciaCriarResponse {
+  success: boolean;
+  transacao_id: string;
+  recorrencia_id: string;
+  previsao_id: string | null;
+  idempotent: boolean;
+}
+
+export interface FinanceiroCartaoRecorrenciaAtualizarPayload {
+  recorrencia_id: string;
+  competencia_efetiva: string;
+  descricao?: string;
+  estabelecimento?: string | null;
+  valor?: number;
+  dia_base?: number;
+  classificacao_status?: CartaoClassificacaoStatus;
+  empresa_id?: string | null;
+  plano_conta_id?: string | null;
+  centro_custo_id?: string | null;
+  motivo?: string | null;
+}
+
+export interface FinanceiroCartaoRecorrenciaAtualizarResponse {
+  success: boolean;
+  recorrencia_id: string;
+  competencia_efetiva: string;
+  status: CartaoRecorrenciaStatus;
+}
+
+export interface FinanceiroCartaoRecorrenciaAlterarStatusPayload {
+  recorrencia_id: string;
+  status: CartaoRecorrenciaStatus;
+  motivo?: string | null;
+}
+
+export interface FinanceiroCartaoRecorrenciaAlterarStatusResponse {
+  success: boolean;
+  recorrencia_id: string;
+  status: CartaoRecorrenciaStatus;
+  idempotent: boolean;
+}
+
+export type CartaoRecorrenciaPrevisaoDecisao = 'confirmar' | 'manter_separadas';
+
+export interface FinanceiroCartaoRecorrenciaPrevisaoDecidirVinculoPayload {
+  previsao_id: string;
+  transacao_id: string;
+  decisao: CartaoRecorrenciaPrevisaoDecisao;
+  motivo?: string | null;
+}
+
+export interface FinanceiroCartaoRecorrenciaPrevisaoDecidirVinculoResponse {
+  success: boolean;
+  previsao_id: string;
+  transacao_id: string;
+  status: CartaoRecorrenciaPrevisaoStatus;
+  decisao: CartaoRecorrenciaPrevisaoDecisao;
 }
 
 export interface FinanceiroCartaoClassificacaoPayload {
