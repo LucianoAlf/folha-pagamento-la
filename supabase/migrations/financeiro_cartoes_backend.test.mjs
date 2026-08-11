@@ -28,8 +28,78 @@ const m18 = read('20260810_1_financeiro_cartao_recorrencias.sql');
 test('M18 models recurring card purchases as forecasts outside financial transactions', () => {
   assert.match(m18, /create table if not exists public\.financeiro_cartao_recorrencias/i);
   assert.match(m18, /create table if not exists public\.financeiro_cartao_recorrencia_previsoes/i);
+
+  for (const column of [
+    /id uuid primary key default gen_random_uuid\(\)/i,
+    /created_at timestamptz not null default now\(\)/i,
+    /updated_at timestamptz not null default now\(\)/i,
+    /cartao_id uuid not null references public\.financeiro_cartoes\(id\)/i,
+    /transacao_origem_id uuid not null unique references public\.financeiro_cartao_transacoes\(id\)/i,
+    /data_inicio date not null/i,
+    /dia_base smallint not null check \(dia_base between 1 and 31\)/i,
+    /descricao text not null check \(btrim\(descricao\) <> ''\)/i,
+    /estabelecimento text null/i,
+    /valor numeric not null check \(valor > 0\)/i,
+    /empresa_id uuid null references public\.financeiro_empresas\(id\)/i,
+    /plano_conta_id uuid null references public\.plano_contas\(id\)/i,
+    /centro_custo_id uuid null references public\.centros_custo\(id\)/i,
+    /classificacao_status text not null default 'pendente'[\s\S]*check \(classificacao_status in \('pendente', 'sugerida', 'confirmada'\)\)/i,
+    /status text not null default 'ativa'[\s\S]*check \(status in \('ativa', 'pausada', 'encerrada'\)\)/i,
+    /pausada_em timestamptz null/i,
+    /encerrada_em timestamptz null/i,
+    /motivo_status text null/i,
+    /ator_tipo text null/i,
+    /ator_ref text null/i,
+    /created_by uuid null/i,
+  ]) {
+    assert.match(m18, column);
+  }
+
+  for (const column of [
+    /id uuid primary key default gen_random_uuid\(\)/i,
+    /created_at timestamptz not null default now\(\)/i,
+    /updated_at timestamptz not null default now\(\)/i,
+    /recorrencia_id uuid not null references public\.financeiro_cartao_recorrencias\(id\)/i,
+    /fatura_id uuid not null references public\.financeiro_cartao_faturas\(id\)/i,
+    /cartao_id uuid not null references public\.financeiro_cartoes\(id\)/i,
+    /competencia date not null/i,
+    /data_compra date not null/i,
+    /descricao text not null/i,
+    /estabelecimento text null/i,
+    /valor numeric not null check \(valor > 0\)/i,
+    /empresa_id uuid null references public\.financeiro_empresas\(id\)/i,
+    /plano_conta_id uuid null references public\.plano_contas\(id\)/i,
+    /centro_custo_id uuid null references public\.centros_custo\(id\)/i,
+    /classificacao_status text not null default 'pendente'[\s\S]*check \(classificacao_status in \('pendente', 'sugerida', 'confirmada'\)\)/i,
+    /status text not null default 'prevista'[\s\S]*check \(status in \('prevista', 'confirmada', 'dispensada'\)\)/i,
+    /transacao_confirmada_id uuid null references public\.financeiro_cartao_transacoes\(id\)/i,
+    /decidida_em timestamptz null/i,
+    /decidida_por text null/i,
+    /motivo_decisao text null/i,
+  ]) {
+    assert.match(m18, column);
+  }
+
   assert.match(m18, /unique\s*\(recorrencia_id,\s*competencia\)/i);
   assert.match(m18, /status\s+text\s+not null default 'prevista'/i);
+  assert.match(m18, /create unique index if not exists financeiro_cartao_recorrencia_previsoes_transacao_uidx[\s\S]*on public\.financeiro_cartao_recorrencia_previsoes\s*\(transacao_confirmada_id\)[\s\S]*where transacao_confirmada_id is not null/i);
+  assert.match(m18, /create index if not exists financeiro_cartao_recorrencias_cartao_status_idx[\s\S]*on public\.financeiro_cartao_recorrencias\s*\(cartao_id, status\)/i);
+  assert.match(m18, /create index if not exists financeiro_cartao_recorrencia_previsoes_fatura_idx[\s\S]*on public\.financeiro_cartao_recorrencia_previsoes\s*\(fatura_id, status, data_compra\)/i);
+  assert.match(m18, /drop trigger if exists trg_financeiro_cartao_recorrencias_set_updated_at on public\.financeiro_cartao_recorrencias[\s\S]*create trigger trg_financeiro_cartao_recorrencias_set_updated_at[\s\S]*execute function public\.set_updated_at\(\)/i);
+  assert.match(m18, /drop trigger if exists trg_financeiro_cartao_recorrencia_previsoes_set_updated_at on public\.financeiro_cartao_recorrencia_previsoes[\s\S]*create trigger trg_financeiro_cartao_recorrencia_previsoes_set_updated_at[\s\S]*execute function public\.set_updated_at\(\)/i);
+
+  for (const table of ['financeiro_cartao_recorrencias', 'financeiro_cartao_recorrencia_previsoes']) {
+    assert.match(m18, new RegExp(`drop policy if exists [^;]+ on public\\.${table}\\s*;\\s*create policy`, 'i'));
+    assert.match(m18, new RegExp(`create policy [^;]+ on public\\.${table}[\\s\\S]*?for select[\\s\\S]*?to authenticated[\\s\\S]*?using \\(true\\)`, 'i'));
+    assert.match(m18, new RegExp(`revoke all on public\\.${table} from public, anon, authenticated, maria_operacional, maria_leitura`, 'i'));
+    assert.match(m18, new RegExp(`grant select on public\\.${table} to authenticated, service_role`, 'i'));
+    assert.doesNotMatch(m18, new RegExp(`grant\\s+(?:insert|update|delete|all)\\s+on\\s+public\\.${table}\\s+to\\s+(?:public|anon|authenticated|maria_operacional|maria_leitura)`, 'i'));
+  }
+  assert.doesNotMatch(
+    m18,
+    /grant\s+[^;]*(?:insert|update|delete|all)[^;]*\s+on(?:\s+table)?\s+public\.(?:financeiro_cartao_recorrencias|financeiro_cartao_recorrencia_previsoes)\b/i,
+  );
+
   assert.match(m18, /financeiro_cartao_recorrencia_criar\(payload jsonb, ator jsonb/i);
   assert.match(m18, /financeiro_cartao_recorrencia_previsao_decidir_vinculo\(payload jsonb, ator jsonb/i);
   assert.match(m18, /financeiro_cartao_recorrencias_gerar_previsoes\(p_fatura_id uuid, p_ator jsonb/i);
