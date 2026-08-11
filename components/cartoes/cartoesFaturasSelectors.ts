@@ -5,6 +5,7 @@ import type {
   FinanceiroCartaoRecorrenciaPrevisao,
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacao,
+  FinanceiroCartaoTransacaoCancelarPayload,
 } from '../../types/cartoes';
 import type { FinanceiroEmpresa, PlanoConta } from '../../types/contasPagar';
 import { isPlanoContaSelecionavel } from '../contas/planoContasSelectors.ts';
@@ -175,6 +176,29 @@ export function isFaturaImportacaoManualDisponivel(
   fatura: Pick<FinanceiroCartaoFatura, 'status'>
 ): boolean {
   return fatura.status === 'aberta';
+}
+
+export function isTransacaoCancelamentoDisponivel(
+  fatura: Pick<FinanceiroCartaoFatura, 'status'>
+): boolean {
+  return fatura.status === 'aberta';
+}
+
+export function buildTransacaoCancelamentoPayload(input: {
+  transacao_id?: string | null;
+  compra_parcelada_id?: string | null;
+  motivo: string;
+}): FinanceiroCartaoTransacaoCancelarPayload | null {
+  const motivo = String(input.motivo || '').trim();
+  if (!motivo) return null;
+
+  if (input.compra_parcelada_id) {
+    return { compra_parcelada_id: input.compra_parcelada_id, motivo };
+  }
+  if (input.transacao_id) {
+    return { transacao_id: input.transacao_id, motivo };
+  }
+  return null;
 }
 
 export function getTransacaoImportadaClassificacaoState(

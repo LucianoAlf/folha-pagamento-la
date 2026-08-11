@@ -23,6 +23,8 @@ import type {
   FinanceiroCartaoPayload,
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacaoImportadaResponse,
+  FinanceiroCartaoTransacaoCancelarPayload,
+  FinanceiroCartaoTransacaoCancelarResponse,
   FinanceiroCartaoTransacao,
   FinanceiroCartaoRecorrencia,
   FinanceiroCartaoRecorrenciaPrevisao,
@@ -451,6 +453,32 @@ export async function registrarTransacaoImportada(
 
   if (error) throw friendlyRpcError(error);
   return data as FinanceiroCartaoTransacaoImportadaResponse;
+}
+
+export async function cancelarTransacaoCartao(
+  payload: FinanceiroCartaoTransacaoCancelarPayload
+): Promise<FinanceiroCartaoTransacaoCancelarResponse> {
+  const motivo = String(payload.motivo || '').trim();
+  if (!motivo) throw new Error('Informe o motivo do cancelamento.');
+
+  const cleanPayload: FinanceiroCartaoTransacaoCancelarPayload = {
+    motivo,
+  };
+  if (payload.compra_parcelada_id) {
+    cleanPayload.compra_parcelada_id = payload.compra_parcelada_id;
+  } else if (payload.transacao_id) {
+    cleanPayload.transacao_id = payload.transacao_id;
+  } else {
+    throw new Error('Selecione um lancamento para cancelar.');
+  }
+
+  const { data, error } = await supabase.rpc('financeiro_cartao_transacao_cancelar', {
+    payload: cleanPayload,
+    ator: {},
+  });
+
+  if (error) throw friendlyRpcError(error);
+  return data as FinanceiroCartaoTransacaoCancelarResponse;
 }
 
 export async function registrarTransacaoRecorrente(

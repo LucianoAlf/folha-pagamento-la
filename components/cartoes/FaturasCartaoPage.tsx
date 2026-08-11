@@ -17,6 +17,7 @@ import {
   ReceiptText,
   RotateCcw,
   ShieldCheck,
+  Trash2,
   Undo2,
   WalletCards,
 } from 'lucide-react';
@@ -25,6 +26,7 @@ import { cn } from '../CollaboratorComponents';
 import { formatCurrency } from '../../services/api';
 import {
   alterarStatusRecorrenciaCartao,
+  cancelarTransacaoCartao,
   classificarTransacaoCartao,
   decidirVinculoPrevisaoCartao,
   fecharFaturaCartao,
@@ -43,6 +45,7 @@ import {
   getFaturaAcaoFechamento,
   getFaturaPendenciasClassificacao,
   getCentroCustoIdDaEmpresa,
+  buildTransacaoCancelamentoPayload,
   getCompetenciasOptions,
   getPrevisaoCandidata,
   getTransacoesDaFatura,
@@ -50,6 +53,7 @@ import {
   isFaturaImportacaoManualDisponivel,
   isCartaoFiscalCompletoParaFechar,
   isFaturaClassificacaoBloqueada,
+  isTransacaoCancelamentoDisponivel,
 } from './cartoesFaturasSelectors';
 import type {
   FinanceiroCartaoClassificacaoPayload,
@@ -60,6 +64,7 @@ import type {
   FinanceiroCartaoTransacao,
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacaoImportadaResponse,
+  FinanceiroCartaoTransacaoCancelarPayload,
   FinanceiroCartaoRecorrencia,
   FinanceiroCartaoRecorrenciaPrevisao,
   FinanceiroCartaoRecorrenciaAtualizarPayload,
@@ -350,11 +355,17 @@ const TransacaoRow: React.FC<{
     transacao: FinanceiroCartaoTransacao,
     decisao: CartaoRecorrenciaPrevisaoDecisao
   ) => Promise<boolean>;
-}> = ({ transacao, fatura, empresas, planos, previsoes, saving, onClassificar, onDecidirVinculo }) => {
+  recorrenciaOrigem?: FinanceiroCartaoRecorrencia | null;
+  onCancelar: (payload: FinanceiroCartaoTransacaoCancelarPayload) => Promise<boolean>;
+}> = ({ transacao, fatura, empresas, planos, previsoes, saving, onClassificar, onDecidirVinculo, recorrenciaOrigem, onCancelar }) => {
   const [form, setForm] = useState<TransacaoClassificacaoForm>(() =>
     buildInitialClassificacaoForm(transacao, fatura, empresas)
   );
   const [sugestaoAberta, setSugestaoAberta] = useState(false);
+  const [cancelarAberto, setCancelarAberto] = useState(false);
+  const [cancelarEscopo, setCancelarEscopo] = useState<'transacao' | 'parcelamento'>('transacao');
+  const [cancelarMotivo, setCancelarMotivo] = useState('');
+  const [cancelarSaving, setCancelarSaving] = useState(false);
   const valor = Number(transacao.valor || 0);
   const isCredit = valor < 0 || transacao.tipo_transacao === 'estorno';
   const parcela =
@@ -369,6 +380,8 @@ const TransacaoRow: React.FC<{
   const selectedEmpresa = empresas.find((empresa) => empresa.id === form.empresa_id) || null;
   const selectedCentroNome = selectedEmpresa?.unidade?.nome || transacao.centro_custo?.nome || 'Centro fixado pela empresa';
   const confirmDisabled = bloqueada || saving || !form.empresa_id || !form.centro_custo_id || !form.plano_conta_id;
+  const podeCancelar = isTransacaoCancelamentoDisponivel(fatura) && !recorrenciaOrigem;
+  const temParcelamento = Boolean(transacao.compra_parcelada_id && transacao.total_parcelas && transacao.total_parcelas > 1);
   const empresaOptions = [
     { value: '', label: 'Escolha a empresa' },
     ...empresas
@@ -396,6 +409,26 @@ const TransacaoRow: React.FC<{
   const decidirSugestao = async (decisao: CartaoRecorrenciaPrevisaoDecisao) => {
     if (!previsaoCandidata) return false;
     return onDecidirVinculo(previsaoCandidata, transacao, decisao);
+  };
+
+  const confirmarCancelamento = async () => {
+    const payload = buildTransacaoCancelamentoPayload({
+      transacao_id: cancelarEscopo === 'transacao' ? transacao.id : null,
+      compra_parcelada_id: cancelarEscopo === 'parcelamento' ? transacao.compra_parcelada_id : null,
+      motivo: cancelarMotivo,
+    });
+    if (!payload) return;
+    setCancelarSaving(true);
+    try {
+      const ok = await onCancelar(payload);
+      if (ok) {
+        setCancelarAberto(false);
+        setCancelarMotivo('');
+        setCancelarEscopo('transacao');
+      }
+    } finally {
+      setCancelarSaving(false);
+    }
   };
 
   return (
@@ -549,6 +582,97 @@ const TransacaoRow: React.FC<{
           </Button>
         </div>
       </div>
+
+      {recorrenciaOrigem ? (
+        <div className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-bold text-secondary">
+          Compra de origem de recorrencia nao pode ser cancelada aqui. Encerre a regra e registre o ajuste ou estorno separadamente.
+        </div>
+      ) : null}
+
+      {podeCancelar ? (
+        <div className="mt-4 flex justify-end">
+          <Button
+            variant="outline"
+            className="border-danger/35 text-danger hover:border-danger/60 hover:bg-danger/10"
+            disabled={saving || cancelarSaving}
+            onClick={() => setCancelarAberto(true)}
+          >
+            <Trash2 className="w-4 h-4" />
+            Cancelar lancamento
+          </Button>
+        </div>
+      ) : null}
+
+      <Modal
+        isOpen={cancelarAberto}
+        onClose={() => {
+          if (!cancelarSaving) setCancelarAberto(false);
+        }}
+        title="Cancelar lancamento"
+        subtitle="O lancamento sai da fatura e o motivo fica registrado na auditoria."
+        size="md"
+        footer={(
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button variant="outline" disabled={cancelarSaving} onClick={() => setCancelarAberto(false)}>
+              Voltar
+            </Button>
+            <Button
+              variant="primary"
+              className="bg-danger hover:bg-danger/90 border-danger/30"
+              disabled={cancelarSaving || !cancelarMotivo.trim()}
+              onClick={confirmarCancelamento}
+            >
+              {cancelarSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Confirmar cancelamento
+            </Button>
+          </div>
+        )}
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-line bg-surface-2/40 p-4">
+            <div className="text-xs font-black text-primary">{transacao.descricao}</div>
+            <div className="mt-1 text-sm font-bold text-secondary">
+              {[transacao.estabelecimento, formatDateBR(transacao.data_compra)].filter(Boolean).join(' · ')}
+              {' · '}
+              {formatCurrency(Math.abs(valor))}
+            </div>
+          </div>
+          {temParcelamento ? (
+            <div>
+              <FieldLabel>Escopo do cancelamento</FieldLabel>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button
+                  variant={cancelarEscopo === 'transacao' ? 'primary' : 'outline'}
+                  onClick={() => setCancelarEscopo('transacao')}
+                  disabled={cancelarSaving}
+                >
+                  Somente esta parcela
+                </Button>
+                <Button
+                  variant={cancelarEscopo === 'parcelamento' ? 'primary' : 'outline'}
+                  onClick={() => setCancelarEscopo('parcelamento')}
+                  disabled={cancelarSaving}
+                >
+                  Todas as parcelas
+                </Button>
+              </div>
+              <div className="mt-2 text-xs font-bold text-muted">
+                Todas as parcelas so serao canceladas se as faturas ainda estiverem abertas.
+              </div>
+            </div>
+          ) : null}
+          <div>
+            <FieldLabel required>Motivo do cancelamento</FieldLabel>
+            <TextArea
+              rows={3}
+              value={cancelarMotivo}
+              onChange={(event) => setCancelarMotivo(event.target.value)}
+              placeholder="Ex.: lancamento duplicado no extrato."
+              disabled={cancelarSaving}
+            />
+          </div>
+        </div>
+      </Modal>
 
       <ConfirmDialog
         isOpen={sugestaoAberta && Boolean(previsaoCandidata)}
@@ -1087,6 +1211,26 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
       }
     );
     setSavingTransacaoId(null);
+  };
+
+  const handleCancelarTransacao = async (
+    payload: FinanceiroCartaoTransacaoCancelarPayload
+  ): Promise<boolean> => {
+    const chave = payload.transacao_id || payload.compra_parcelada_id || null;
+    setSavingTransacaoId(chave);
+    const result = await run(
+      async () => {
+        const response = await cancelarTransacaoCartao(payload);
+        await load();
+        return response;
+      },
+      {
+        success: 'Lancamento cancelado e registrado na auditoria.',
+        error: 'Nao foi possivel cancelar o lancamento. Confira se a fatura ainda esta aberta.',
+      }
+    );
+    setSavingTransacaoId(null);
+    return Boolean(result);
   };
 
   const handleFaturaAction = async (action: FaturaFechamentoAction) => {
@@ -1647,9 +1791,11 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
                       empresas={empresas}
                       planos={planos}
                       previsoes={previsoesDaFatura}
-                      saving={savingTransacaoId === item.data.id || savingPrevisaoId !== null}
+                      saving={savingTransacaoId === item.data.id || savingTransacaoId === item.data.compra_parcelada_id || savingPrevisaoId !== null}
                       onClassificar={handleClassificar}
                       onDecidirVinculo={handleDecidirVinculo}
+                      recorrenciaOrigem={recorrencias.find((recorrencia) => recorrencia.transacao_origem_id === item.data.id) || null}
+                      onCancelar={handleCancelarTransacao}
                     />
                   ) : (
                     <PrevisaoRow

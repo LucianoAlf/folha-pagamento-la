@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
+const faturasPageSource = await readFile(new URL('./FaturasCartaoPage.tsx', import.meta.url), 'utf8');
+const cartoesServiceSource = await readFile(new URL('../../services/cartoesService.ts', import.meta.url), 'utf8');
+
 import {
   attachClassificacaoResumo,
   buildFaturasResumo,
@@ -18,6 +21,8 @@ import {
   filterAndSortFaturas,
   getPrevisaoCandidata,
   normalizeRecorrenciaMatch,
+  isTransacaoCancelamentoDisponivel,
+  buildTransacaoCancelamentoPayload,
 } from './cartoesFaturasSelectors.ts';
 
 const faturas = [
@@ -452,4 +457,30 @@ test('manual import payload can include confirmed fiscal classification', () => 
   assert.equal(payload.empresa_id, 'empresa-emla');
   assert.equal(payload.centro_custo_id, 'centro-cg');
   assert.equal(payload.plano_conta_id, 'plano-software');
+});
+
+test('card transaction cancellation is explicit, open-invoice only, and recurrence-safe', () => {
+  assert.match(faturasPageSource, /Cancelar lancamento/);
+  assert.match(faturasPageSource, /cancelarTransacaoCartao/);
+  assert.match(faturasPageSource, /compra_parcelada_id/);
+  assert.match(faturasPageSource, /motivo/);
+  assert.match(faturasPageSource, /status === 'aberta'/);
+  assert.match(faturasPageSource, /Compra de origem de recorrencia/);
+});
+
+test('card transaction cancellation service calls the privileged RPC with audit actor', () => {
+  assert.match(cartoesServiceSource, /cancelarTransacaoCartao/);
+  assert.match(cartoesServiceSource, /financeiro_cartao_transacao_cancelar/);
+  assert.match(cartoesServiceSource, /ator:\s*\{\}/);
+});
+
+test('card transaction cancellation payload requires a reason and prefers the parcel group', () => {
+  assert.equal(isTransacaoCancelamentoDisponivel({ status: 'aberta' }), true);
+  assert.equal(isTransacaoCancelamentoDisponivel({ status: 'fechada' }), false);
+  assert.equal(buildTransacaoCancelamentoPayload({ transacao_id: 'tx-1', motivo: '  erro  ' })?.motivo, 'erro');
+  assert.deepEqual(
+    buildTransacaoCancelamentoPayload({ transacao_id: 'tx-1', compra_parcelada_id: 'parcel-1', motivo: 'duplicado' }),
+    { compra_parcelada_id: 'parcel-1', motivo: 'duplicado' }
+  );
+  assert.equal(buildTransacaoCancelamentoPayload({ transacao_id: 'tx-1', motivo: '   ' }), null);
 });

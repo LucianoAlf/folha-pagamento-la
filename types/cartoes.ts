@@ -232,6 +232,19 @@ export interface FinanceiroCartaoTransacaoImportadaResponse {
   ator_tipo?: string | null;
 }
 
+export interface FinanceiroCartaoTransacaoCancelarPayload {
+  transacao_id?: string | null;
+  compra_parcelada_id?: string | null;
+  motivo: string;
+}
+
+export interface FinanceiroCartaoTransacaoCancelarResponse {
+  success: boolean;
+  canceladas: number;
+  transacao_ids: string[];
+  antes?: unknown;
+}
+
 export interface FinanceiroCartaoRecorrenciaCriarPayload {
   fatura_id: string;
   cartao_id?: string;
