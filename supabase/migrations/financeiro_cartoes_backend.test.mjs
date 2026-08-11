@@ -23,6 +23,28 @@ const m14 = read('20260630_14_financeiro_cartao_transacao_classificar.sql');
 const m15 = read('20260630_15_financeiro_cartao_transacao_editar.sql');
 const m16 = read('20260630_16_financeiro_cartao_transacao_cancelar.sql');
 const m17 = read('20260630_17_financeiro_cartao_fatura_fechar_contadores.sql');
+const m18 = read('20260810_1_financeiro_cartao_recorrencias.sql');
+
+test('M18 models recurring card purchases as forecasts outside financial transactions', () => {
+  assert.match(m18, /create table if not exists public\.financeiro_cartao_recorrencias/i);
+  assert.match(m18, /create table if not exists public\.financeiro_cartao_recorrencia_previsoes/i);
+  assert.match(m18, /unique\s*\(recorrencia_id,\s*competencia\)/i);
+  assert.match(m18, /status\s+text\s+not null default 'prevista'/i);
+  assert.match(m18, /financeiro_cartao_recorrencia_criar\(payload jsonb, ator jsonb/i);
+  assert.match(m18, /financeiro_cartao_recorrencia_previsao_decidir_vinculo\(payload jsonb, ator jsonb/i);
+  assert.match(m18, /financeiro_cartao_recorrencias_gerar_previsoes\(p_fatura_id uuid, p_ator jsonb/i);
+  assert.match(m18, /perform public\.financeiro_cartao_recorrencias_gerar_previsoes\(v_fatura\.id, v_actor\)/i);
+  assert.match(m18, /where t\.fatura_id = p_fatura_id/i);
+  assert.doesNotMatch(m18, /insert into public\.financeiro_cartao_transacoes[\s\S]*previs/i);
+
+  for (const table of ['financeiro_cartao_recorrencias', 'financeiro_cartao_recorrencia_previsoes']) {
+    assert.match(m18, new RegExp(`alter table public\\.${table} enable row level security`, 'i'));
+    assert.match(m18, new RegExp(`revoke all on public\\.${table} from public, anon, authenticated`, 'i'));
+  }
+  assert.match(m18, /grant execute on function public\.financeiro_cartao_recorrencia_criar\(jsonb, jsonb\) to authenticated, service_role/i);
+  assert.doesNotMatch(m18, /grant execute on function public\.financeiro_cartao_recorrencias_gerar_previsoes\(uuid, jsonb\)/i);
+  assert.doesNotMatch(m18, /cascade/i);
+});
 
 test('M1 creates card, invoice, import and transaction tables with least-privilege grants', () => {
   for (const table of ['financeiro_cartoes', 'financeiro_cartao_faturas', 'financeiro_cartao_importacoes', 'financeiro_cartao_transacoes']) {

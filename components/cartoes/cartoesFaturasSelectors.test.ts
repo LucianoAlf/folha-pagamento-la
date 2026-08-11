@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import * as cartoesFaturasSelectors from './cartoesFaturasSelectors.ts';
+
 import {
   attachClassificacaoResumo,
   buildFaturasResumo,
@@ -16,6 +18,10 @@ import {
   isFaturaClassificacaoBloqueada,
   filterAndSortFaturas,
 } from './cartoesFaturasSelectors.ts';
+
+const getPrevisaoCandidata = (cartoesFaturasSelectors as any).getPrevisaoCandidata as
+  | ((transacao: any, previsoes: any[]) => any)
+  | undefined;
 
 const faturas = [
   {
@@ -74,6 +80,59 @@ const transacoes = [
   { id: 't3', fatura_id: 'fatura-set', classificacao_status: 'confirmada' },
   { id: 't4', fatura_id: 'fatura-barra', classificacao_status: 'sugerida' },
 ] as any[];
+
+const transacaoReal = {
+  id: 'transacao-real',
+  fatura_id: 'fatura-set',
+  cartao_id: 'cartao-emla',
+  descricao: 'OpenAI, Inc.',
+  estabelecimento: null,
+  valor: 49.9,
+} as any;
+
+const previsaoMesmoCartaoMesmoValor = {
+  id: 'previsao-openai',
+  recorrencia_id: 'recorrencia-openai',
+  fatura_id: 'fatura-set',
+  cartao_id: 'cartao-emla',
+  competencia: '2026-09-01',
+  data_compra: '2026-09-17',
+  descricao: 'openai inc',
+  estabelecimento: null,
+  valor: 49.9,
+  status: 'prevista',
+  transacao_confirmada_id: null,
+} as any;
+
+const previsaoOutroValor = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-outro-valor',
+  valor: 49.91,
+} as any;
+
+const previsaoOutroCartao = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-outro-cartao',
+  cartao_id: 'cartao-barra',
+} as any;
+
+const previsaoOutraFatura = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-outra-fatura',
+  fatura_id: 'fatura-barra',
+} as any;
+
+const previsaoOutraDescricao = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-outra-descricao',
+  descricao: 'OpenAI Cloud',
+} as any;
+
+const previsaoJaConfirmada = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-ja-confirmada',
+  status: 'confirmada',
+} as any;
 
 test('attachClassificacaoResumo counts transacoes by fatura without N+1 assumptions', () => {
   const result = attachClassificacaoResumo(faturas, transacoes);
@@ -212,6 +271,41 @@ test('manual import validation blocks missing essentials and invalid installment
     'Informe parcelas no formato correto.'
   );
   assert.equal(validateTransacaoImportadaInput({ descricao: 'OpenAI', data_compra: '2026-07-01', valor: 54.48 }), null);
+});
+
+test('manual import validation rejects parcel recurrence conflicts', () => {
+  assert.equal(
+    validateTransacaoImportadaInput({
+      descricao: 'Assinatura', data_compra: '2026-08-17', valor: 49.9,
+      tipo_transacao: 'compra', is_parcela: true, is_recorrente: true,
+    } as any),
+    'Uma compra não pode ser parcelada e recorrente ao mesmo tempo.'
+  );
+});
+
+test('manual import validation limits recurrence to purchases', () => {
+  assert.equal(
+    validateTransacaoImportadaInput({
+      descricao: 'Tarifa', data_compra: '2026-08-17', valor: 49.9,
+      tipo_transacao: 'tarifa', is_recorrente: true,
+    } as any),
+    'Recorrência está disponível somente para compras.'
+  );
+});
+
+test('recurring forecast matching is exact by invoice, card, cents and normalized description', () => {
+  assert.equal(typeof getPrevisaoCandidata, 'function', 'getPrevisaoCandidata ainda nao foi exportado.');
+  if (typeof getPrevisaoCandidata !== 'function') return;
+
+  assert.deepEqual(
+    getPrevisaoCandidata(transacaoReal, [previsaoMesmoCartaoMesmoValor, previsaoOutroValor]),
+    previsaoMesmoCartaoMesmoValor
+  );
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutroValor]), null);
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutroCartao]), null);
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutraFatura]), null);
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutraDescricao]), null);
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoJaConfirmada]), null);
 });
 
 test('manual import payload uses the fatura RPC shape without classification fields', () => {
