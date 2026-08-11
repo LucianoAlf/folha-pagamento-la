@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -129,6 +130,11 @@ const previsaoJaConfirmada = {
   id: 'previsao-ja-confirmada',
   status: 'confirmada',
 } as any;
+
+const importacaoManualFormSource = await readFile(
+  new URL('./ImportarTransacaoFaturaForm.tsx', import.meta.url),
+  'utf8'
+);
 
 test('attachClassificacaoResumo counts transacoes by fatura without N+1 assumptions', () => {
   const result = attachClassificacaoResumo(faturas, transacoes);
@@ -287,6 +293,37 @@ test('manual import validation limits recurrence to purchases', () => {
     }),
     'Recorrência está disponível somente para compras.'
   );
+});
+
+test('manual import form keeps recurring purchases exclusive from installments and saves through the atomic RPC', () => {
+  assert.match(importacaoManualFormSource, /registrarTransacaoRecorrente/);
+  assert.match(importacaoManualFormSource, /is_recorrente:\s*false/);
+  assert.match(importacaoManualFormSource, /is_parcela:\s*next\s*\?\s*false\s*:\s*current\.is_parcela/);
+  assert.match(importacaoManualFormSource, /is_recorrente:\s*next\s*\?\s*false\s*:\s*current\.is_recorrente/);
+  assert.match(importacaoManualFormSource, /Repetir todo mês/);
+  assert.match(
+    importacaoManualFormSource,
+    /Registra esta compra normalmente e cria uma previsão para a próxima fatura\. A previsão não altera o total até o extrato ser confirmado\./
+  );
+  assert.match(importacaoManualFormSource, /registrarTransacaoRecorrente\(/);
+  assert.match(importacaoManualFormSource, /Compra adicionada e recorrência prevista para a próxima fatura\./);
+});
+
+test('manual recurring import reports an idempotent retry instead of a new recurrence', () => {
+  const toastHandler = importacaoManualFormSource.slice(
+    importacaoManualFormSource.indexOf('onSuccess: async (result) =>'),
+    importacaoManualFormSource.indexOf('await onSuccess(result', importacaoManualFormSource.indexOf('onSuccess: async (result) =>'))
+  );
+
+  const idempotentRecorrenciaIndex = toastHandler.indexOf('form.is_recorrente && transacaoResult.idempotent');
+  const recorrenciaCriadaIndex = toastHandler.indexOf('if (form.is_recorrente)');
+
+  assert.ok(
+    idempotentRecorrenciaIndex >= 0 && recorrenciaCriadaIndex >= 0
+      && idempotentRecorrenciaIndex < recorrenciaCriadaIndex,
+    'a recorrência idempotente deve ser tratada antes do toast de criação'
+  );
+  assert.match(toastHandler, /Transacao ja registrada anteriormente\./);
 });
 
 test('recurring forecast matching is exact by invoice, card, cents and normalized description', () => {
