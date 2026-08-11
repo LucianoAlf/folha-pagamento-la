@@ -22,18 +22,25 @@ export async function withSupabaseReadTimeout<T>(
   const label = options.label ?? 'A leitura';
   const timeoutMs = Math.max(1, options.timeoutMs ?? 10_000);
   let timedOut = false;
-  const timeout = globalThis.setTimeout(() => {
-    timedOut = true;
-    controller.abort();
-  }, timeoutMs);
+  let timeout: ReturnType<typeof globalThis.setTimeout> | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeout = globalThis.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+      reject(new Error(`${label} demorou alem do esperado. Tente novamente.`));
+    }, timeoutMs);
+  });
 
   try {
-    return await operation(controller.signal);
+    return await Promise.race([
+      Promise.resolve(operation(controller.signal)),
+      timeoutPromise,
+    ]);
   } catch (error) {
     if (timedOut) throw new Error(`${label} demorou alem do esperado. Tente novamente.`);
     throw error;
   } finally {
-    globalThis.clearTimeout(timeout);
+    if (timeout !== null) globalThis.clearTimeout(timeout);
   }
 }
 

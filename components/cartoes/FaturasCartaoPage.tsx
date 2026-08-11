@@ -1197,20 +1197,23 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
 
   const handleClassificar = async (payload: FinanceiroCartaoClassificacaoPayload) => {
     setSavingTransacaoId(payload.transacao_id);
-    await run(
-      async () => {
-        await classificarTransacaoCartao(payload);
-        await load();
-      },
-      {
-        success:
-          payload.classificacao_status === 'confirmada'
-            ? 'Classificacao confirmada.'
-            : 'Transacao voltou para pendente.',
-        error: 'Nao foi possivel atualizar a classificacao.',
-      }
-    );
-    setSavingTransacaoId(null);
+    try {
+      await run(
+        async () => {
+          await classificarTransacaoCartao(payload);
+          await load();
+        },
+        {
+          success:
+            payload.classificacao_status === 'confirmada'
+              ? 'Classificacao confirmada.'
+              : 'Transacao voltou para pendente.',
+          error: 'Nao foi possivel atualizar a classificacao.',
+        }
+      );
+    } finally {
+      setSavingTransacaoId(null);
+    }
   };
 
   const handleCancelarTransacao = async (
@@ -1218,19 +1221,22 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
   ): Promise<boolean> => {
     const chave = payload.transacao_id || payload.compra_parcelada_id || null;
     setSavingTransacaoId(chave);
-    const result = await run(
-      async () => {
-        const response = await cancelarTransacaoCartao(payload);
-        await load();
-        return response;
-      },
-      {
-        success: 'Lancamento cancelado e registrado na auditoria.',
-        error: 'Nao foi possivel cancelar o lancamento. Confira se a fatura ainda esta aberta.',
-      }
-    );
-    setSavingTransacaoId(null);
-    return Boolean(result);
+    try {
+      const result = await run(
+        async () => {
+          const response = await cancelarTransacaoCartao(payload);
+          await load();
+          return response;
+        },
+        {
+          success: 'Lancamento cancelado e registrado na auditoria.',
+          error: 'Nao foi possivel cancelar o lancamento. Confira se a fatura ainda esta aberta.',
+        }
+      );
+      return Boolean(result);
+    } finally {
+      setSavingTransacaoId(null);
+    }
   };
 
   const handleFaturaAction = async (action: FaturaFechamentoAction) => {

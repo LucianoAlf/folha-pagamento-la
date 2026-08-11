@@ -288,73 +288,80 @@ export async function fetchCartoesDashboard(): Promise<CartoesDashboardData> {
 }
 
 export async function fetchCartoesFaturas(): Promise<CartoesFaturasData> {
-  const [cartoesResult, faturasResult, empresas, contasBancarias, centrosCusto, planos] = await Promise.all([
-    supabase
-      .from('financeiro_cartoes')
-      .select(CARTAO_SELECT)
-      .order('ativo', { ascending: false })
-      .order('apelido', { ascending: true }),
-    supabase
-      .from('financeiro_cartao_faturas')
-      .select(FATURA_SELECT)
-      .order('data_vencimento', { ascending: true }),
-    fetchFinanceiroEmpresas(),
-    fetchFinanceiroContasBancarias(),
-    fetchCentrosCusto(),
-    fetchPlanoContas(),
-  ]);
+  return withSupabaseReadTimeout(async (signal) => {
+    const [cartoesResult, faturasResult, empresas, contasBancarias, centrosCusto, planos] = await Promise.all([
+      supabase
+        .from('financeiro_cartoes')
+        .select(CARTAO_SELECT)
+        .order('ativo', { ascending: false })
+        .order('apelido', { ascending: true })
+        .abortSignal(signal),
+      supabase
+        .from('financeiro_cartao_faturas')
+        .select(FATURA_SELECT)
+        .order('data_vencimento', { ascending: true })
+        .abortSignal(signal),
+      fetchFinanceiroEmpresas(),
+      fetchFinanceiroContasBancarias(),
+      fetchCentrosCusto(),
+      fetchPlanoContas(),
+    ]);
 
-  if (cartoesResult.error) throw cartoesResult.error;
-  if (faturasResult.error) throw faturasResult.error;
+    if (cartoesResult.error) throw cartoesResult.error;
+    if (faturasResult.error) throw faturasResult.error;
 
-  const cartoes = (cartoesResult.data || []) as unknown as FinanceiroCartao[];
-  const faturas = (faturasResult.data || []) as unknown as FinanceiroCartaoFatura[];
-  const faturaIds = Array.from(new Set(faturas.map((fatura) => fatura.id)));
-  const cartaoIds = Array.from(new Set(cartoes.map((cartao) => cartao.id)));
+    const cartoes = (cartoesResult.data || []) as unknown as FinanceiroCartao[];
+    const faturas = (faturasResult.data || []) as unknown as FinanceiroCartaoFatura[];
+    const faturaIds = Array.from(new Set(faturas.map((fatura) => fatura.id)));
+    const cartaoIds = Array.from(new Set(cartoes.map((cartao) => cartao.id)));
 
-  const [transacoesResult, recorrenciasResult, previsoesResult] = await Promise.all([
-    faturaIds.length > 0
-      ? supabase
-        .from('financeiro_cartao_transacoes')
-        .select(TRANSACAO_SELECT)
-        .in('fatura_id', faturaIds)
-        .order('data_compra', { ascending: true })
-      : Promise.resolve(null),
-    cartaoIds.length > 0
-      ? supabase
-        .from('financeiro_cartao_recorrencias')
-        .select(RECORRENCIA_SELECT)
-        .in('cartao_id', cartaoIds)
-        .order('data_inicio', { ascending: true })
-      : Promise.resolve(null),
-    faturaIds.length > 0
-      ? supabase
-        .from('financeiro_cartao_recorrencia_previsoes')
-        .select(PREVISAO_SELECT)
-        .in('fatura_id', faturaIds)
-        .order('data_compra', { ascending: true })
-      : Promise.resolve(null),
-  ]);
+    const [transacoesResult, recorrenciasResult, previsoesResult] = await Promise.all([
+      faturaIds.length > 0
+        ? supabase
+          .from('financeiro_cartao_transacoes')
+          .select(TRANSACAO_SELECT)
+          .in('fatura_id', faturaIds)
+          .order('data_compra', { ascending: true })
+          .abortSignal(signal)
+        : Promise.resolve(null),
+      cartaoIds.length > 0
+        ? supabase
+          .from('financeiro_cartao_recorrencias')
+          .select(RECORRENCIA_SELECT)
+          .in('cartao_id', cartaoIds)
+          .order('data_inicio', { ascending: true })
+          .abortSignal(signal)
+        : Promise.resolve(null),
+      faturaIds.length > 0
+        ? supabase
+          .from('financeiro_cartao_recorrencia_previsoes')
+          .select(PREVISAO_SELECT)
+          .in('fatura_id', faturaIds)
+          .order('data_compra', { ascending: true })
+          .abortSignal(signal)
+        : Promise.resolve(null),
+    ]);
 
-  if (transacoesResult?.error) throw transacoesResult.error;
-  if (recorrenciasResult?.error) throw recorrenciasResult.error;
-  if (previsoesResult?.error) throw previsoesResult.error;
+    if (transacoesResult?.error) throw transacoesResult.error;
+    if (recorrenciasResult?.error) throw recorrenciasResult.error;
+    if (previsoesResult?.error) throw previsoesResult.error;
 
-  const transacoes = (transacoesResult?.data || []) as unknown as FinanceiroCartaoTransacao[];
-  const recorrencias = (recorrenciasResult?.data || []) as unknown as FinanceiroCartaoRecorrencia[];
-  const previsoes = (previsoesResult?.data || []) as unknown as FinanceiroCartaoRecorrenciaPrevisao[];
+    const transacoes = (transacoesResult?.data || []) as unknown as FinanceiroCartaoTransacao[];
+    const recorrencias = (recorrenciasResult?.data || []) as unknown as FinanceiroCartaoRecorrencia[];
+    const previsoes = (previsoesResult?.data || []) as unknown as FinanceiroCartaoRecorrenciaPrevisao[];
 
-  return {
-    cartoes,
-    faturas,
-    transacoes,
-    recorrencias,
-    previsoes,
-    empresas,
-    contasBancarias,
-    centrosCusto,
-    planos,
-  };
+    return {
+      cartoes,
+      faturas,
+      transacoes,
+      recorrencias,
+      previsoes,
+      empresas,
+      contasBancarias,
+      centrosCusto,
+      planos,
+    };
+  }, { label: 'Os dados das faturas dos cartoes', timeoutMs: 10_000 });
 }
 
 export async function salvarCartao(payload: FinanceiroCartaoPayload): Promise<CartaoRpcResponse> {
@@ -472,10 +479,13 @@ export async function cancelarTransacaoCartao(
     throw new Error('Selecione um lancamento para cancelar.');
   }
 
-  const { data, error } = await supabase.rpc('financeiro_cartao_transacao_cancelar', {
-    payload: cleanPayload,
-    ator: {},
-  });
+  const { data, error } = await withSupabaseReadTimeout(
+    (signal) => supabase.rpc('financeiro_cartao_transacao_cancelar', {
+      payload: cleanPayload,
+      ator: {},
+    }).abortSignal(signal),
+    { label: 'O cancelamento do lancamento', timeoutMs: 10_000 },
+  );
 
   if (error) throw friendlyRpcError(error);
   return data as FinanceiroCartaoTransacaoCancelarResponse;
@@ -532,10 +542,13 @@ export async function classificarTransacaoCartao(
     cleanPayload.empresa_id = payload.empresa_id || null;
   }
 
-  const { data, error } = await supabase.rpc('financeiro_cartao_transacao_classificar', {
-    payload: cleanPayload,
-    ator: {},
-  });
+  const { data, error } = await withSupabaseReadTimeout(
+    (signal) => supabase.rpc('financeiro_cartao_transacao_classificar', {
+      payload: cleanPayload,
+      ator: {},
+    }).abortSignal(signal),
+    { label: 'A classificacao da transacao', timeoutMs: 10_000 },
+  );
 
   if (error) throw friendlyRpcError(error);
   return data as FinanceiroCartaoClassificacaoResponse;

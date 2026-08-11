@@ -484,3 +484,18 @@ test('card transaction cancellation payload requires a reason and prefers the pa
   );
   assert.equal(buildTransacaoCancelamentoPayload({ transacao_id: 'tx-1', motivo: '   ' }), null);
 });
+
+test('card invoice refresh and classification RPCs cannot leave the UI pending forever', () => {
+  assert.match(
+    cartoesServiceSource,
+    /export async function fetchCartoesFaturas[\s\S]*withSupabaseReadTimeout\(/,
+  );
+  assert.match(
+    cartoesServiceSource,
+    /export async function classificarTransacaoCartao[\s\S]*withSupabaseReadTimeout\([\s\S]*abortSignal\(/,
+  );
+  assert.match(
+    faturasPageSource,
+    /const handleClassificar[\s\S]*try[\s\S]*await run[\s\S]*finally[\s\S]*setSavingTransacaoId\(null\)/,
+  );
+});
