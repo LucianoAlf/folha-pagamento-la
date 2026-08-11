@@ -104,7 +104,6 @@ test('M18 models recurring card purchases as forecasts outside financial transac
   assert.match(m18, /financeiro_cartao_recorrencia_previsao_decidir_vinculo\(payload jsonb, ator jsonb/i);
   assert.match(m18, /financeiro_cartao_recorrencias_gerar_previsoes\(p_fatura_id uuid, p_ator jsonb/i);
   assert.match(m18, /perform public\.financeiro_cartao_recorrencias_gerar_previsoes\(v_fatura\.id, v_actor\)/i);
-  assert.match(m18, /where t\.fatura_id = p_fatura_id/i);
   assert.doesNotMatch(m18, /insert into public\.financeiro_cartao_transacoes[\s\S]*previs/i);
 
   for (const table of ['financeiro_cartao_recorrencias', 'financeiro_cartao_recorrencia_previsoes']) {
@@ -114,6 +113,113 @@ test('M18 models recurring card purchases as forecasts outside financial transac
   assert.match(m18, /grant execute on function public\.financeiro_cartao_recorrencia_criar\(jsonb, jsonb\) to authenticated, service_role/i);
   assert.doesNotMatch(m18, /grant execute on function public\.financeiro_cartao_recorrencias_gerar_previsoes\(uuid, jsonb\)/i);
   assert.doesNotMatch(m18, /cascade/i);
+});
+
+test('M18 Task 3 exposes atomic recurring-card generation, maintenance and decisions', () => {
+  assert.match(m18, /create or replace function public\.financeiro_cartao_recorrencias_gerar_previsoes\(p_fatura_id uuid, p_ator jsonb\)[\s\S]*?returns integer[\s\S]*?security definer[\s\S]*?set search_path = public/i);
+  assert.match(m18, /financeiro_cartao_recorrencias_gerar_previsoes[\s\S]*?from public\.financeiro_cartao_faturas[\s\S]*?where id = p_fatura_id[\s\S]*?for update/i);
+  assert.match(m18, /v_fatura\.status\s*<>\s*'aberta'[\s\S]*?return 0/i);
+  assert.match(m18, /from public\.financeiro_cartao_recorrencias[\s\S]*?cartao_id\s*=\s*v_fatura\.cartao_id[\s\S]*?status\s*=\s*'ativa'/i);
+  assert.match(m18, /financeiro_cartao_clamp_dia/i);
+  assert.match(m18, /-1\.\.1|generate_series\(\s*-1\s*,\s*1\s*\)/i);
+  assert.match(m18, /financeiro_cartao_ciclo\(v_fatura\.cartao_id[\s\S]*?competencia/i);
+  assert.match(m18, /v_data_ocorrencia\s*<\s*v_recorrencia\.data_inicio|v_candidate\s*<\s*v_recorrencia\.data_inicio/i);
+  assert.match(m18, /insert into public\.financeiro_cartao_recorrencia_previsoes[\s\S]*?on conflict\s*\(recorrencia_id,\s*competencia\)\s*do nothing[\s\S]*?returning \*/i);
+  assert.match(m18, /if v_inserted\s*=\s*1[\s\S]*?financeiro_cartoes_audit_insert/i);
+  assert.doesNotMatch(m18, /financeiro_cartao_recorrencias_gerar_previsoes[\s\S]*?insert into public\.financeiro_cartao_transacoes/i);
+
+  const hook = m18.match(/create or replace function public\.financeiro_cartao_fatura_abrir\(payload jsonb, ator jsonb default '\{\}'::jsonb\)[\s\S]*?\$\$;/i)?.[0] || '';
+  assert.match(hook, /perform public\.financeiro_cartao_recorrencias_gerar_previsoes\(v_fatura\.id, v_actor\);/i);
+  assert.match(hook, /on conflict \(cartao_id, competencia\) do nothing/i);
+  assert.match(hook, /financeiro_cartao_ciclo\(v_cartao_id, v_data_compra\)/i);
+
+  const createRpc = m18.match(/create or replace function public\.financeiro_cartao_recorrencia_criar\(payload jsonb, ator jsonb default '\{\}'::jsonb\)[\s\S]*?\$\$;/i)?.[0] || '';
+  assert.match(createRpc, /security definer[\s\S]*?set search_path = public/i);
+  assert.match(createRpc, /v_tipo\s*=\s*'compra'/i);
+  assert.match(createRpc, /v_is_parcela[\s\S]*?is not true/i);
+  assert.match(createRpc, /v_fatura\.status\s*<>\s*'aberta'/i);
+  assert.match(createRpc, /from public\.financeiro_cartao_transacoes[\s\S]*?id_externo\s*=\s*v_id_externo/i);
+  assert.ok(createRpc.indexOf('from public.financeiro_cartao_transacoes') < createRpc.indexOf("if v_fatura.status <> 'aberta'"), 'idempotent lookup must precede the open-fatura rejection');
+  assert.match(createRpc, /financeiro_cartao_ciclo\(v_cartao_id,\s*v_data_compra\)[\s\S]*?competencia[\s\S]*?v_fatura\.competencia/i);
+  assert.ok(createRpc.indexOf('financeiro_cartao_ciclo') < createRpc.indexOf('financeiro_cartao_transacao_registrar'), 'cycle validation must precede the real transaction');
+  assert.match(createRpc, /v_descricao\s+is null|v_descricao\s*:=\s*nullif\(trim/i);
+  assert.match(createRpc, /v_valor\s*<=\s*0|v_valor\s*>\s*0/i);
+  assert.match(createRpc, /v_client_token\s+is null/i);
+  assert.match(createRpc, /v_id_externo\s*:=\s*v_client_token/i);
+  assert.match(createRpc, /id_externo[\s\S]*?client_token[\s\S]*?(?:mismatch|<>|distint)/i);
+  assert.match(createRpc, /financeiro_cartao_transacao_registrar\(/i);
+  assert.match(createRpc, /id_externo['\s,)]/i);
+  assert.match(createRpc, /transacao_origem_id/i);
+  assert.match(createRpc, /interval\s*'1 month'/i);
+  assert.match(createRpc, /financeiro_cartao_fatura_abrir\(/i);
+  assert.match(createRpc, /for v_idx in 1\.\.24 loop[\s\S]*?financeiro_cartao_clamp_dia[\s\S]*?v_dia_base[\s\S]*?financeiro_cartao_ciclo[\s\S]*?competencia[\s\S]*?v_fatura\.competencia/i);
+  assert.match(createRpc, /v_next_open->>'status'[\s\S]*?'aberta'/i);
+  assert.match(createRpc, /v_previsao_id\s+is null[\s\S]*?raise exception/i);
+  assert.match(createRpc, /'previsao_id'/i);
+  assert.match(createRpc, /'idempotent'/i);
+  assert.match(createRpc, /where t\.id_externo\s*=\s*v_id_externo|transacao_origem_id\s*=\s*v_transacao_id/i);
+  assert.match(createRpc, /where transacao_origem_id\s*=\s*v_transacao_id[\s\S]*?idempotent['\s,)]/i);
+  assert.match(createRpc, /recorrencia_id\s*=\s*v_recorrencia\.id[\s\S]*?competencia\s*>\s*v_fatura\.competencia[\s\S]*?order by competencia/i);
+
+  const updateRpc = m18.match(/create or replace function public\.financeiro_cartao_recorrencia_atualizar\(payload jsonb, ator jsonb default '\{\}'::jsonb\)[\s\S]*?\$\$;/i)?.[0] || '';
+  assert.match(updateRpc, /competencia_efetiva/i);
+  assert.match(updateRpc, /status\s*=\s*'prevista'/i);
+  assert.match(updateRpc, /from public\.financeiro_cartao_faturas[\s\S]*?cartao_id\s*=\s*v_recorrencia\.cartao_id[\s\S]*?status\s*=\s*'aberta'[\s\S]*?competencia\s*>=\s*v_competencia_efetiva/i);
+  assert.match(updateRpc, /for v_fatura in[\s\S]*?financeiro_cartao_faturas[\s\S]*?status\s*=\s*'aberta'[\s\S]*?perform public\.financeiro_cartao_recorrencias_gerar_previsoes\(v_fatura\.id,\s*v_actor\)/i);
+  assert.match(updateRpc, /financeiro_cartoes_audit_insert[\s\S]*?antes[\s\S]*?depois|v_before[\s\S]*?v_after/i);
+  assert.match(updateRpc, /classificacao_status[\s\S]*?confirmada[\s\S]*?empresa_id[\s\S]*?plano_conta_id[\s\S]*?centro_custo_id/i);
+
+  const statusRpc = m18.match(/create or replace function public\.financeiro_cartao_recorrencia_alterar_status\(payload jsonb, ator jsonb default '\{\}'::jsonb\)[\s\S]*?\$\$;/i)?.[0] || '';
+  assert.match(statusRpc, /pausad[ao]/i);
+  assert.match(statusRpc, /encerrad[ao]/i);
+  assert.match(statusRpc, /retom|ativa/i);
+  assert.match(statusRpc, /v_recorrencia\.status\s*=\s*'pausada'|status\s+in\s+\('pausada',\s*'encerrada'\)/i);
+  assert.doesNotMatch(statusRpc, /delete\s+from\s+public\.financeiro_cartao_recorrencia/i);
+
+  const decisionRpc = m18.match(/create or replace function public\.financeiro_cartao_recorrencia_previsao_decidir_vinculo\(payload jsonb, ator jsonb default '\{\}'::jsonb\)[\s\S]*?\$\$;/i)?.[0] || '';
+  assert.match(decisionRpc, /for update[\s\S]*?financeiro_cartao_recorrencia_previsoes/i);
+  assert.match(decisionRpc, /for update[\s\S]*?financeiro_cartao_transacoes/i);
+  assert.match(decisionRpc, /decisao[\s\S]*?confirmar[\s\S]*?manter_separadas/i);
+  assert.match(decisionRpc, /status\s*=\s*'confirmada'[\s\S]*?transacao_confirmada_id/i);
+  assert.match(decisionRpc, /status\s*=\s*'dispensada'[\s\S]*?Mantidas separadas por decisão operacional/i);
+  assert.match(decisionRpc, /financeiro_cartoes_audit_insert/i);
+
+  assert.match(m18, /origem_fatura|transacao_origem_id[\s\S]*?financeiro_cartao_faturas[\s\S]*?competencia/i);
+  assert.match(m18, /v_fatura\.competencia\s*<=\s*v_origem_competencia|v_target_competencia\s*<=\s*v_origem_competencia/i);
+
+  const helperRpc = m18.match(/create or replace function public\.financeiro_cartao_recorrencias_gerar_previsoes\([\s\S]*?\$\$;/i)?.[0] || '';
+  const statusRpcForLock = m18.match(/create or replace function public\.financeiro_cartao_recorrencia_alterar_status\([\s\S]*?\$\$;/i)?.[0] || '';
+  for (const [name, source] of [['helper', helperRpc], ['create', createRpc], ['update', updateRpc], ['status', statusRpcForLock]]) {
+    assert.match(source, /pg_advisory_xact_lock\(hashtextextended\([\s\S]*cartao_id[\s\S]*,\s*0\)/i, `${name} must take the per-card advisory lock`);
+    assert.ok(source.indexOf('pg_advisory_xact_lock') < source.indexOf('for update'), `${name} must acquire advisory lock before row locks`);
+  }
+  assert.match(helperRpc, /select \* into v_fatura[\s\S]*where id = p_fatura_id[\s\S]*perform pg_advisory_xact_lock[\s\S]*select \* into v_fatura[\s\S]*for update/i);
+  assert.match(createRpc, /from public\.financeiro_cartao_transacoes[\s\S]*?fatura_id[\s\S]*?raise exception[\s\S]*outra fatura/i);
+
+  assert.match(m18, /create or replace function public\.financeiro_cartao_recorrencia_origem_bloqueia_cancelamento\(\)[\s\S]*?security definer[\s\S]*?set search_path = public[\s\S]*?transacao_origem_id\s*=\s*old\.id[\s\S]*?raise exception 'Compra de origem de recorrência não pode ser cancelada; encerre a regra e registre o ajuste\/estorno separadamente\.'/i);
+  assert.match(m18, /drop trigger if exists trg_financeiro_cartao_recorrencia_origem_bloqueia_cancelamento on public\.financeiro_cartao_transacoes[\s\S]*?create trigger trg_financeiro_cartao_recorrencia_origem_bloqueia_cancelamento[\s\S]*?before delete on public\.financeiro_cartao_transacoes[\s\S]*?execute function public\.financeiro_cartao_recorrencia_origem_bloqueia_cancelamento\(\)/i);
+  assert.match(m18, /revoke all on function public\.financeiro_cartao_recorrencia_origem_bloqueia_cancelamento\(\)/i);
+
+  assert.match(createRpc, /round\(nullif\(payload->>'valor'/i);
+  assert.match(updateRpc, /round\(nullif\(payload->>'valor'/i);
+  assert.match(createRpc, /nan|infinity/i);
+  assert.match(updateRpc, /nan|infinity/i);
+  assert.match(createRpc, /v_transacao\.fatura_id\s*<>\s*v_fatura\.id[\s\S]*?raise exception/i);
+  assert.match(updateRpc, /case when payload \? 'empresa_id' then nullif\(payload->>'empresa_id'/i);
+  assert.match(updateRpc, /case when payload \? 'plano_conta_id' then nullif\(payload->>'plano_conta_id'/i);
+  assert.match(updateRpc, /case when payload \? 'centro_custo_id' then nullif\(payload->>'centro_custo_id'/i);
+  assert.doesNotMatch(helperRpc, /v_transacoes_existentes/i);
+  assert.doesNotMatch(decisionRpc, /v_previsao public\.financeiro_cartao_recorrencia_previsoes%rowtype/i);
+
+  for (const name of ['financeiro_cartao_recorrencias_gerar_previsoes', 'financeiro_cartao_fatura_abrir', 'financeiro_cartao_recorrencia_criar', 'financeiro_cartao_recorrencia_atualizar', 'financeiro_cartao_recorrencia_alterar_status', 'financeiro_cartao_recorrencia_previsao_decidir_vinculo']) {
+    assert.match(m18, new RegExp(`revoke all on function public\\.${name}\\(`, 'i'));
+    assert.match(m18, new RegExp(`revoke execute on function public\\.${name}\\(`, 'i'));
+  }
+  for (const name of ['financeiro_cartao_recorrencia_criar', 'financeiro_cartao_recorrencia_atualizar', 'financeiro_cartao_recorrencia_alterar_status', 'financeiro_cartao_recorrencia_previsao_decidir_vinculo']) {
+    assert.match(m18, new RegExp(`grant execute on function public\\.${name}\\(jsonb, jsonb\\) to authenticated, service_role`, 'i'));
+  }
+  assert.match(m17, /select coalesce\(sum\(valor\), 0\)[\s\S]*from public\.financeiro_cartao_transacoes/i);
+  assert.doesNotMatch(m17, /from public\.financeiro_cartao_recorrencia_previsoes/i);
 });
 
 test('M1 creates card, invoice, import and transaction tables with least-privilege grants', () => {
