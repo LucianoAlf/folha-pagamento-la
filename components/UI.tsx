@@ -816,22 +816,45 @@ export const Modal: React.FC<{
 export const ConfirmDialog: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | boolean | Promise<void | boolean>;
+  /** Executado somente ao clicar no botão secundário; backdrop e Escape apenas fecham. */
+  onCancel?: () => void | boolean | Promise<void | boolean>;
   title: string;
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'danger' | 'primary';
-}> = ({ isOpen, onClose, onConfirm, title, message, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', variant = 'primary' }) => {
-  const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose);
+  children?: React.ReactNode;
+}> = ({ isOpen, onClose, onConfirm, onCancel, title, message, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', variant = 'primary', children }) => {
   const titleId = useId();
   const messageId = useId();
+  const [submitting, setSubmitting] = useState<'confirm' | 'cancel' | null>(null);
+  const guardedClose = () => {
+    if (!submitting) onClose();
+  };
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, guardedClose);
   if (!isOpen) return null;
+
+  const runAction = async (
+    kind: 'confirm' | 'cancel',
+    action: () => void | boolean | Promise<void | boolean>
+  ) => {
+    if (submitting) return;
+    setSubmitting(kind);
+    try {
+      const shouldClose = await action();
+      if (shouldClose !== false) onClose();
+    } catch (error) {
+      console.error('[ConfirmDialog]', error);
+    } finally {
+      setSubmitting(null);
+    }
+  };
 
   return (
     <div
       className="fixed inset-0 z-[13000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) guardedClose(); }}
     >
       <div
         ref={dialogRef}
@@ -847,23 +870,26 @@ export const ConfirmDialog: React.FC<{
             <AlertCircle size={32} />
           </div>
           <h3 id={titleId} className="text-2xl font-bold text-primary mb-3">{title}</h3>
-          <p id={messageId} className="text-secondary leading-relaxed mb-8">{message}</p>
+          <p id={messageId} className={cn('text-secondary leading-relaxed', children ? 'mb-4' : 'mb-8')}>{message}</p>
+          {children ? <div className="mb-8 text-left">{children}</div> : null}
           <div className="flex gap-4">
             <button
-              onClick={onClose}
-              className="flex-1 px-6 py-3.5 rounded-2xl bg-surface-2 hover:bg-surface-3 text-primary font-bold transition-all active:scale-95"
+              disabled={Boolean(submitting)}
+              onClick={() => onCancel ? runAction('cancel', onCancel) : guardedClose()}
+              className="flex-1 px-6 py-3.5 rounded-2xl border border-line-strong bg-surface/30 hover:bg-surface-2/50 text-secondary font-bold transition-all active:scale-95 disabled:opacity-50"
             >
               {cancelLabel}
             </button>
             <button
-              onClick={async () => { await onConfirm(); onClose(); }}
-              className={`flex-1 px-6 py-3.5 rounded-2xl font-bold text-primary transition-all active:scale-95 shadow-lg ${
+              disabled={Boolean(submitting)}
+              onClick={() => runAction('confirm', onConfirm)}
+              className={`flex-1 px-6 py-3.5 rounded-2xl font-bold text-primary transition-all active:scale-95 shadow-lg disabled:opacity-50 ${
                 variant === 'danger'
                   ? 'bg-danger hover:bg-danger/90 shadow-danger/20'
                   : 'bg-accent hover:bg-accent/90 shadow-accent/20'
               }`}
             >
-              {confirmLabel}
+              {submitting === 'confirm' ? 'Salvando...' : confirmLabel}
             </button>
           </div>
         </div>

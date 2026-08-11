@@ -2,12 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Building2,
+  CalendarDays,
   CalendarClock,
   CheckCircle2,
+  CircleStop,
   CreditCard,
   FileText,
   Filter,
+  Link2,
   Loader2,
+  Pause,
+  Pencil,
   Plus,
   ReceiptText,
   RotateCcw,
@@ -19,10 +24,13 @@ import { Badge, Button, Card, ConfirmDialog, CustomSelect, ErrorState, LoadingSp
 import { cn } from '../CollaboratorComponents';
 import { formatCurrency } from '../../services/api';
 import {
+  alterarStatusRecorrenciaCartao,
   classificarTransacaoCartao,
+  decidirVinculoPrevisaoCartao,
   fecharFaturaCartao,
   fetchCartoesFaturas,
   reabrirFaturaCartao,
+  atualizarRecorrenciaCartao,
 } from '../../services/cartoesService';
 import { PlanoContaTreeSelect } from '../contas/PlanoContaTreeSelect';
 import { MariaActionBadge } from '../MariaActionBadge';
@@ -36,6 +44,7 @@ import {
   getFaturaPendenciasClassificacao,
   getCentroCustoIdDaEmpresa,
   getCompetenciasOptions,
+  getPrevisaoCandidata,
   getTransacoesDaFatura,
   hasAutoriaMaria,
   isFaturaImportacaoManualDisponivel,
@@ -51,6 +60,11 @@ import type {
   FinanceiroCartaoTransacao,
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacaoImportadaResponse,
+  FinanceiroCartaoRecorrencia,
+  FinanceiroCartaoRecorrenciaPrevisao,
+  FinanceiroCartaoRecorrenciaAtualizarPayload,
+  CartaoRecorrenciaPrevisaoDecisao,
+  CartaoClassificacaoStatus,
 } from '../../types/cartoes';
 import type { FinanceiroEmpresa, PlanoConta } from '../../types/contasPagar';
 
@@ -114,6 +128,12 @@ const tipoLabel = (tipo?: string | null) => {
   return tipo || 'Transacao';
 };
 
+const previsaoStatusLabel = (status?: string | null) => {
+  if (status === 'confirmada') return 'Confirmada';
+  if (status === 'dispensada') return 'Mantida separada';
+  return 'Aguardando extrato';
+};
+
 const formatDateBR = (date?: string | null) => {
   const m = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return 'Sem data';
@@ -168,6 +188,17 @@ const TextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = ({
     {...props}
     className={cn(
       'w-full rounded-2xl border border-line bg-bg px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted resize-none',
+      'focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-60 disabled:cursor-not-allowed',
+      className
+    )}
+  />
+);
+
+const TextInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = ({ className, ...props }) => (
+  <input
+    {...props}
+    className={cn(
+      'w-full rounded-2xl border border-line bg-bg px-4 py-3 text-sm font-bold text-secondary placeholder:text-muted',
       'focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-60 disabled:cursor-not-allowed',
       className
     )}
@@ -311,12 +342,19 @@ const TransacaoRow: React.FC<{
   fatura: FinanceiroCartaoFatura;
   empresas: FinanceiroEmpresa[];
   planos: PlanoConta[];
+  previsoes: FinanceiroCartaoRecorrenciaPrevisao[];
   saving: boolean;
   onClassificar: (payload: FinanceiroCartaoClassificacaoPayload) => Promise<void>;
-}> = ({ transacao, fatura, empresas, planos, saving, onClassificar }) => {
+  onDecidirVinculo: (
+    previsao: FinanceiroCartaoRecorrenciaPrevisao,
+    transacao: FinanceiroCartaoTransacao,
+    decisao: CartaoRecorrenciaPrevisaoDecisao
+  ) => Promise<boolean>;
+}> = ({ transacao, fatura, empresas, planos, previsoes, saving, onClassificar, onDecidirVinculo }) => {
   const [form, setForm] = useState<TransacaoClassificacaoForm>(() =>
     buildInitialClassificacaoForm(transacao, fatura, empresas)
   );
+  const [sugestaoAberta, setSugestaoAberta] = useState(false);
   const valor = Number(transacao.valor || 0);
   const isCredit = valor < 0 || transacao.tipo_transacao === 'estorno';
   const parcela =
@@ -338,6 +376,10 @@ const TransacaoRow: React.FC<{
       .map((empresa) => ({ value: empresa.id, label: empresaLabel(empresa) })),
   ];
   const selectedPlano = planos.find((plano) => plano.id === form.plano_conta_id) || transacao.plano_conta || null;
+  const previsaoCandidata = useMemo(
+    () => getPrevisaoCandidata(transacao, previsoes),
+    [previsoes, transacao]
+  );
 
   useEffect(() => {
     setForm(buildInitialClassificacaoForm(transacao, fatura, empresas));
@@ -349,6 +391,11 @@ const TransacaoRow: React.FC<{
       empresa_id: empresaId,
       centro_custo_id: getCentroCustoIdDaEmpresa(empresas, empresaId),
     }));
+  };
+
+  const decidirSugestao = async (decisao: CartaoRecorrenciaPrevisaoDecisao) => {
+    if (!previsaoCandidata) return false;
+    return onDecidirVinculo(previsaoCandidata, transacao, decisao);
   };
 
   return (
@@ -398,6 +445,18 @@ const TransacaoRow: React.FC<{
 
       {transacao.observacoes ? (
         <div className="mt-4 text-xs font-bold text-muted">{transacao.observacoes}</div>
+      ) : null}
+
+      {previsaoCandidata ? (
+        <div className="mt-4 rounded-2xl border border-accent/25 bg-accent/5 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="text-sm font-bold text-secondary">
+            Encontramos uma previsão com mesmo cartão, valor e estabelecimento.
+          </div>
+          <Button variant="outline" onClick={() => setSugestaoAberta(true)} className="shrink-0">
+            <Link2 className="w-4 h-4" />
+            Há uma previsão parecida
+          </Button>
+        </div>
       ) : null}
 
       <div className="mt-4 rounded-2xl border border-line bg-surface/65 p-4">
@@ -490,7 +549,330 @@ const TransacaoRow: React.FC<{
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={sugestaoAberta && Boolean(previsaoCandidata)}
+        onClose={() => setSugestaoAberta(false)}
+        title="Confirmar vínculo da previsão"
+        message="A sugestão não altera a fatura até uma decisão explícita da Rose."
+        confirmLabel="Confirmar como mesma cobrança"
+        cancelLabel="Manter separadas"
+        onConfirm={() => decidirSugestao('confirmar')}
+        onCancel={() => decidirSugestao('manter_separadas')}
+      >
+        {previsaoCandidata ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Card className="p-4 bg-surface-2/35">
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">Lançamento do extrato</div>
+              <div className="mt-2 text-base font-black text-primary">{transacao.descricao}</div>
+              <div className="mt-1 text-sm font-bold text-secondary">
+                {[transacao.estabelecimento, formatDateBR(transacao.data_compra)].filter(Boolean).join(' · ')}
+              </div>
+              <div className="mt-3 text-lg font-black text-primary">{formatCurrency(Math.abs(Number(transacao.valor || 0)))}</div>
+            </Card>
+            <Card className="p-4 bg-accent/5 border border-accent/25">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="purple">PREVISÃO</Badge>
+                <span className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">Próxima cobrança</span>
+              </div>
+              <div className="mt-2 text-base font-black text-primary">{previsaoCandidata.descricao}</div>
+              <div className="mt-1 text-sm font-bold text-secondary">
+                {[previsaoCandidata.estabelecimento, formatDateBR(previsaoCandidata.data_compra)].filter(Boolean).join(' · ')}
+              </div>
+              <div className="mt-3 text-lg font-black text-primary">{formatCurrency(Number(previsaoCandidata.valor || 0))}</div>
+            </Card>
+          </div>
+        ) : null}
+      </ConfirmDialog>
     </div>
+  );
+};
+
+const PrevisaoRow: React.FC<{
+  previsao: FinanceiroCartaoRecorrenciaPrevisao;
+  transacaoConfirmada: FinanceiroCartaoTransacao | null;
+}> = ({ previsao, transacaoConfirmada }) => (
+  <div className="rounded-2xl border border-accent/25 bg-accent/5 p-4">
+    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="purple">PREVISÃO</Badge>
+          <Badge variant={previsao.status === 'confirmada' ? 'success' : previsao.status === 'dispensada' ? 'default' : 'warning'}>
+            {previsaoStatusLabel(previsao.status)}
+          </Badge>
+        </div>
+        <div className="mt-3 text-base font-black text-primary truncate">{previsao.descricao}</div>
+        <div className="mt-1 text-sm font-bold text-secondary">
+          {[previsao.estabelecimento, formatDateBR(previsao.data_compra)].filter(Boolean).join(' · ')}
+        </div>
+        <div className="mt-3 text-xs font-bold text-secondary leading-relaxed">
+          {previsao.status === 'confirmada'
+            ? `Confirmada com ${transacaoConfirmada?.descricao || 'a transação vinculada'}.`
+            : previsao.status === 'dispensada'
+              ? 'Mantida separada por Rose'
+              : 'Aguardando confirmação do extrato; não compõe o total da fatura.'}
+        </div>
+      </div>
+      <div className="text-xl font-black text-primary shrink-0">{formatCurrency(Number(previsao.valor || 0))}</div>
+    </div>
+  </div>
+);
+
+type RecorrenciaEditForm = {
+  descricao: string;
+  estabelecimento: string;
+  valor: string;
+  dia_base: string;
+  competencia_efetiva: string;
+  classificacao_status: CartaoClassificacaoStatus;
+  empresa_id: string;
+  centro_custo_id: string;
+  plano_conta_id: string;
+};
+
+function buildRecorrenciaEditForm(
+  recorrencia: FinanceiroCartaoRecorrencia,
+  previsao: FinanceiroCartaoRecorrenciaPrevisao | null
+): RecorrenciaEditForm {
+  const classificacaoStatus: CartaoClassificacaoStatus =
+    recorrencia.classificacao_status === 'confirmada'
+    || recorrencia.classificacao_status === 'sugerida'
+      ? recorrencia.classificacao_status
+      : 'pendente';
+
+  return {
+    descricao: recorrencia.descricao,
+    estabelecimento: recorrencia.estabelecimento || '',
+    valor: String(Number(recorrencia.valor || 0).toFixed(2)),
+    dia_base: String(recorrencia.dia_base),
+    competencia_efetiva: previsao?.competencia || `${recorrencia.data_inicio.slice(0, 7)}-01`,
+    classificacao_status: classificacaoStatus,
+    empresa_id: recorrencia.empresa_id || '',
+    centro_custo_id: recorrencia.centro_custo_id || '',
+    plano_conta_id: recorrencia.plano_conta_id || '',
+  };
+}
+
+const RecorrenciaEditModal: React.FC<{
+  recorrencia: FinanceiroCartaoRecorrencia | null;
+  previsao: FinanceiroCartaoRecorrenciaPrevisao | null;
+  empresas: FinanceiroEmpresa[];
+  planos: PlanoConta[];
+  saving: boolean;
+  onClose: () => void;
+  onSave: (payload: FinanceiroCartaoRecorrenciaAtualizarPayload) => Promise<boolean>;
+}> = ({ recorrencia, previsao, empresas, planos, saving, onClose, onSave }) => {
+  const [form, setForm] = useState<RecorrenciaEditForm | null>(null);
+
+  useEffect(() => {
+    setForm(recorrencia ? buildRecorrenciaEditForm(recorrencia, previsao) : null);
+  }, [previsao, recorrencia]);
+
+  const valor = Number(String(form?.valor || '').replace(',', '.'));
+  const hasClassificacao = Boolean(form?.empresa_id || form?.centro_custo_id || form?.plano_conta_id);
+  const hasTriadeClassificacao = Boolean(form?.empresa_id && form?.centro_custo_id && form?.plano_conta_id);
+  const classificacaoConfirmada = form?.classificacao_status === 'confirmada';
+  const classificacaoIncompleta = hasClassificacao && !hasTriadeClassificacao;
+  const selectedEmpresa = empresas.find((empresa) => empresa.id === form?.empresa_id) || null;
+  const selectedCentroNome = selectedEmpresa?.unidade?.nome || 'Centro fixado pela empresa';
+  const empresaOptions = [
+    { value: '', label: 'Sem empresa' },
+    ...empresas
+      .filter((empresa) => empresa.ativo !== false)
+      .map((empresa) => ({ value: empresa.id, label: empresaLabel(empresa) })),
+  ];
+  const canSave = Boolean(form?.descricao.trim())
+    && Number.isFinite(valor)
+    && valor > 0
+    && !classificacaoIncompleta
+    && (!classificacaoConfirmada || hasTriadeClassificacao);
+
+  const setEmpresa = (empresaId: string) => {
+    setForm((current) => current ? {
+      ...current,
+      empresa_id: empresaId,
+      centro_custo_id: empresaId ? getCentroCustoIdDaEmpresa(empresas, empresaId) : '',
+    } : current);
+  };
+
+  const save = async () => {
+    if (!recorrencia || !form || !canSave) return;
+    const saved = await onSave({
+      recorrencia_id: recorrencia.id,
+      competencia_efetiva: form.competencia_efetiva,
+      descricao: form.descricao.trim(),
+      estabelecimento: form.estabelecimento.trim() || null,
+      valor,
+      dia_base: Number(form.dia_base),
+      classificacao_status: form.classificacao_status,
+      empresa_id: form.empresa_id || null,
+      centro_custo_id: form.centro_custo_id || null,
+      plano_conta_id: form.plano_conta_id || null,
+      motivo: 'Recorrência atualizada pela Rose no app web.',
+    });
+    if (saved) onClose();
+  };
+
+  return (
+    <Modal
+      isOpen={Boolean(recorrencia && form)}
+      onClose={() => {
+        if (!saving) onClose();
+      }}
+      title="Editar recorrência"
+      subtitle="A alteração vale a partir da próxima previsão aberta; lançamentos reais continuam inalterados."
+      size="md"
+      headerIcon={<Pencil className="w-5 h-5 text-accent" />}
+      footer={
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <Button variant="outline" disabled={saving} onClick={onClose}>Cancelar</Button>
+          <Button variant="primary" disabled={!canSave || saving} onClick={save}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+            Salvar recorrência
+          </Button>
+        </div>
+      }
+    >
+      {form ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <FieldLabel required>Descrição</FieldLabel>
+              <TextInput
+                value={form.descricao}
+                onChange={(event) => setForm((current) => current ? { ...current, descricao: event.target.value } : current)}
+                disabled={saving}
+              />
+            </div>
+            <div>
+              <FieldLabel>Estabelecimento</FieldLabel>
+              <TextInput
+                value={form.estabelecimento}
+                onChange={(event) => setForm((current) => current ? { ...current, estabelecimento: event.target.value } : current)}
+                disabled={saving}
+              />
+            </div>
+            <div>
+              <FieldLabel required>Valor</FieldLabel>
+              <TextInput
+                type="number"
+                min="0.01"
+                step="0.01"
+                inputMode="decimal"
+                value={form.valor}
+                onChange={(event) => setForm((current) => current ? { ...current, valor: event.target.value } : current)}
+                disabled={saving}
+              />
+            </div>
+            <div>
+              <FieldLabel required>Dia-base</FieldLabel>
+              <CustomSelect
+                value={form.dia_base}
+                onValueChange={(value) => setForm((current) => current ? { ...current, dia_base: value } : current)}
+                disabled={saving}
+                options={Array.from({ length: 31 }, (_, index) => ({
+                  value: String(index + 1),
+                  label: `Dia ${index + 1}`,
+                }))}
+                icon={CalendarDays}
+              />
+            </div>
+            <div>
+              <FieldLabel>Vigência a partir de</FieldLabel>
+              <div className="rounded-2xl border border-line bg-surface-2/45 px-4 py-3 text-sm font-black text-secondary">
+                {formatCompetencia(form.competencia_efetiva)}
+              </div>
+            </div>
+          </div>
+          <Card className="p-4 bg-surface-2/35 border border-line">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">Classificação das próximas previsões</div>
+                <div className="mt-1 text-sm font-bold text-secondary">
+                  A regra mantém uma cópia independente da classificação dos lançamentos reais.
+                </div>
+              </div>
+              <Badge variant={classificacaoConfirmada ? 'success' : form.classificacao_status === 'sugerida' ? 'warning' : 'default'}>
+                {classificacaoConfirmada ? 'Confirmada' : form.classificacao_status === 'sugerida' ? 'Sugerida' : 'Pendente'}
+              </Badge>
+            </div>
+            <div className="mt-4 grid grid-cols-1 lg:grid-cols-[minmax(180px,0.65fr)_minmax(0,1fr)] gap-3">
+              <div>
+                <FieldLabel>Status</FieldLabel>
+                <CustomSelect
+                  value={form.classificacao_status}
+                  onValueChange={(value) => setForm((current) => current ? {
+                    ...current,
+                    classificacao_status: value as CartaoClassificacaoStatus,
+                  } : current)}
+                  options={[
+                    { value: 'pendente', label: 'Pendente' },
+                    { value: 'sugerida', label: 'Sugerida' },
+                    { value: 'confirmada', label: 'Confirmada' },
+                  ]}
+                  disabled={saving}
+                  icon={ShieldCheck}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  disabled={saving || !hasClassificacao}
+                  onClick={() => setForm((current) => current ? {
+                    ...current,
+                    empresa_id: '',
+                    centro_custo_id: '',
+                    plano_conta_id: '',
+                    classificacao_status: 'pendente',
+                  } : current)}
+                  className="w-full"
+                >
+                  Limpar classificação futura
+                </Button>
+              </div>
+              <div>
+                <FieldLabel>Empresa</FieldLabel>
+                <CustomSelect
+                  value={form.empresa_id}
+                  onValueChange={setEmpresa}
+                  options={empresaOptions}
+                  icon={Building2}
+                  disabled={saving}
+                />
+                <div className="mt-2 rounded-xl border border-line bg-surface px-3 py-2">
+                  <div className="text-[9px] font-black uppercase tracking-[0.2em] text-muted">Centro de custo (fixo pela empresa)</div>
+                  <div className="mt-1 text-xs font-black text-secondary">
+                    {form.empresa_id ? selectedCentroNome : 'Sem centro de custo'}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Plano de contas</FieldLabel>
+                <PlanoContaTreeSelect
+                  planos={planos}
+                  value={form.plano_conta_id}
+                  onValueChange={(planoId) => setForm((current) => current ? { ...current, plano_conta_id: planoId } : current)}
+                  placeholder="Buscar folha de saída por código ou nome..."
+                  disabled={saving}
+                />
+              </div>
+            </div>
+            {classificacaoConfirmada && !hasTriadeClassificacao ? (
+              <div className="mt-3 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-bold text-warning">
+                Confirme empresa, centro e plano antes de salvar uma classificação confirmada.
+              </div>
+            ) : classificacaoIncompleta ? (
+              <div className="mt-3 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-bold text-warning">
+                Complete a tríade fiscal ou use “Limpar classificação futura” antes de salvar.
+              </div>
+            ) : null}
+          </Card>
+          <div className="rounded-2xl border border-info/25 bg-info/10 px-4 py-3 text-sm font-bold text-secondary">
+            Campos fiscais vazios serão gravados como limpeza explícita somente nas próximas previsões abertas.
+          </div>
+        </div>
+      ) : null}
+    </Modal>
   );
 };
 
@@ -515,6 +897,16 @@ type ImportacaoManualFeedback = {
   variant: 'success' | 'warning' | 'info';
 };
 
+type FaturaItemVisual =
+  | { kind: 'transacao'; data: FinanceiroCartaoTransacao }
+  | { kind: 'previsao'; data: FinanceiroCartaoRecorrenciaPrevisao };
+
+type RecorrenciaStatusDraft = {
+  recorrencia: FinanceiroCartaoRecorrencia;
+  status: 'pausada' | 'encerrada';
+  motivo: string;
+};
+
 export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded = false, initialCartaoId }) => {
   const { run } = useAsyncAction();
   const [loading, setLoading] = useState(true);
@@ -524,6 +916,8 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
   const [planos, setPlanos] = useState<PlanoConta[]>([]);
   const [faturas, setFaturas] = useState<FinanceiroCartaoFatura[]>([]);
   const [transacoes, setTransacoes] = useState<FinanceiroCartaoTransacao[]>([]);
+  const [recorrencias, setRecorrencias] = useState<FinanceiroCartaoRecorrencia[]>([]);
+  const [previsoes, setPrevisoes] = useState<FinanceiroCartaoRecorrenciaPrevisao[]>([]);
   const [cartaoFiltro, setCartaoFiltro] = useState(() => getInitialCartaoId(initialCartaoId));
   const [empresaFiltro, setEmpresaFiltro] = useState('all');
   const [statusFiltro, setStatusFiltro] = useState('all');
@@ -535,6 +929,11 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
   const [faturaFeedback, setFaturaFeedback] = useState<FaturaActionFeedback | null>(null);
   const [showImportForm, setShowImportForm] = useState(false);
   const [importacaoFeedback, setImportacaoFeedback] = useState<ImportacaoManualFeedback | null>(null);
+  const [recorrenciaParaEditar, setRecorrenciaParaEditar] = useState<FinanceiroCartaoRecorrencia | null>(null);
+  const [statusRecorrenciaRascunho, setStatusRecorrenciaRascunho] = useState<RecorrenciaStatusDraft | null>(null);
+  const [statusRecorrenciaPendente, setStatusRecorrenciaPendente] = useState<RecorrenciaStatusDraft | null>(null);
+  const [savingRecorrenciaId, setSavingRecorrenciaId] = useState<string | null>(null);
+  const [savingPrevisaoId, setSavingPrevisaoId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -546,6 +945,8 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
       setPlanos(data.planos);
       setFaturas(data.faturas);
       setTransacoes(data.transacoes);
+      setRecorrencias(data.recorrencias);
+      setPrevisoes(data.previsoes);
     } catch (err: any) {
       setError(err?.message || 'Nao foi possivel carregar faturas.');
     } finally {
@@ -584,6 +985,44 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
     () => (selectedFatura ? getTransacoesDaFatura(transacoes, selectedFatura.id) : []),
     [selectedFatura, transacoes]
   );
+  const previsoesDaFatura = useMemo(
+    () => (selectedFatura ? previsoes.filter((previsao) => previsao.fatura_id === selectedFatura.id) : []),
+    [previsoes, selectedFatura]
+  );
+  const itensSelecionados = useMemo<FaturaItemVisual[]>(() => {
+    const itens = [
+      ...transacoesSelecionadas.map((transacao): FaturaItemVisual => ({ kind: 'transacao', data: transacao })),
+      ...previsoesDaFatura.map((previsao): FaturaItemVisual => ({ kind: 'previsao', data: previsao })),
+    ];
+
+    return itens.sort((left, right) => {
+      const leftDate = left.data.data_compra || '';
+      const rightDate = right.data.data_compra || '';
+      const byDate = String(leftDate).localeCompare(String(rightDate));
+      if (byDate !== 0) return byDate;
+      if (left.kind !== right.kind) return left.kind === 'transacao' ? -1 : 1;
+      return String(left.data.descricao || '').localeCompare(String(right.data.descricao || ''));
+    });
+  }, [previsoesDaFatura, transacoesSelecionadas]);
+  const recorrenciasAtivas = useMemo(
+    () => selectedFatura
+      ? recorrencias
+        .filter((recorrencia) => recorrencia.cartao_id === selectedFatura.cartao_id && recorrencia.status === 'ativa')
+        .sort((left, right) => left.descricao.localeCompare(right.descricao))
+      : [],
+    [recorrencias, selectedFatura]
+  );
+  const recorrenciasPausadas = useMemo(
+    () => selectedFatura
+      ? recorrencias
+        .filter((recorrencia) => recorrencia.cartao_id === selectedFatura.cartao_id && recorrencia.status === 'pausada')
+        .sort((left, right) => left.descricao.localeCompare(right.descricao))
+      : [],
+    [recorrencias, selectedFatura]
+  );
+  const proximaPrevisaoDaRecorrencia = (recorrenciaId: string) => previsoes
+    .filter((previsao) => previsao.recorrencia_id === recorrenciaId && previsao.status === 'prevista')
+    .sort((left, right) => String(left.competencia).localeCompare(String(right.competencia)))[0] || null;
   const selectedFaturaAction = selectedFatura ? getFaturaAcaoFechamento(selectedFatura) : null;
   const selectedFaturaImportacaoDisponivel = selectedFatura ? isFaturaImportacaoManualDisponivel(selectedFatura) : false;
   const selectedFaturaPendencias = selectedFatura ? getFaturaPendenciasClassificacao(selectedFatura) : 0;
@@ -729,6 +1168,99 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
     });
   };
 
+  const handleAtualizarRecorrencia = async (payload: FinanceiroCartaoRecorrenciaAtualizarPayload): Promise<boolean> => {
+    setSavingRecorrenciaId(payload.recorrencia_id);
+    const result = await run(
+      async () => {
+        const response = await atualizarRecorrenciaCartao(payload);
+        await load();
+        return response;
+      },
+      {
+        success: 'Recorrência atualizada para as próximas previsões abertas.',
+        error: 'Não foi possível atualizar a recorrência.',
+      }
+    );
+    setSavingRecorrenciaId(null);
+    return Boolean(result);
+  };
+
+  const handleAlterarStatusRecorrencia = async (): Promise<boolean> => {
+    if (!statusRecorrenciaPendente) return false;
+    const { recorrencia, status, motivo } = statusRecorrenciaPendente;
+    setSavingRecorrenciaId(recorrencia.id);
+    try {
+      const result = await run(
+        async () => {
+          const response = await alterarStatusRecorrenciaCartao({
+            recorrencia_id: recorrencia.id,
+            status,
+            motivo: motivo.trim() || null,
+          });
+          await load();
+          return response;
+        },
+        {
+          success: status === 'pausada' ? 'Recorrência pausada.' : 'Recorrência encerrada.',
+          error: status === 'pausada' ? 'Não foi possível pausar a recorrência.' : 'Não foi possível encerrar a recorrência.',
+        }
+      );
+      return Boolean(result);
+    } catch {
+      return false;
+    } finally {
+      setSavingRecorrenciaId(null);
+    }
+  };
+
+  const handleRetomarRecorrencia = async (recorrencia: FinanceiroCartaoRecorrencia): Promise<void> => {
+    setSavingRecorrenciaId(recorrencia.id);
+    await run(
+      async () => {
+        const response = await alterarStatusRecorrenciaCartao({
+          recorrencia_id: recorrencia.id,
+          status: 'ativa',
+          motivo: 'Retomada pela Rose no app web.',
+        });
+        await load();
+        return response;
+      },
+      {
+        success: 'Recorrência retomada.',
+        error: 'Não foi possível retomar a recorrência.',
+      }
+    );
+    setSavingRecorrenciaId(null);
+  };
+
+  const handleDecidirVinculo = async (
+    previsao: FinanceiroCartaoRecorrenciaPrevisao,
+    transacao: FinanceiroCartaoTransacao,
+    decisao: CartaoRecorrenciaPrevisaoDecisao
+  ): Promise<boolean> => {
+    setSavingPrevisaoId(previsao.id);
+    const result = await run(
+      async () => {
+        const response = await decidirVinculoPrevisaoCartao({
+          previsao_id: previsao.id,
+          transacao_id: transacao.id,
+          decisao,
+          motivo: decisao === 'manter_separadas' ? 'Mantidas separadas por decisão da Rose.' : null,
+        });
+        await load();
+        return response;
+      },
+      {
+        success: decisao === 'confirmar'
+          ? 'Previsão confirmada como a mesma cobrança.'
+          : 'Previsão mantida separada por Rose.',
+        error: 'Não foi possível decidir o vínculo da previsão.',
+      }
+    );
+    setSavingPrevisaoId(null);
+    return Boolean(result);
+  };
+
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorState message={error} onRetry={load} />;
 
@@ -825,6 +1357,9 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
           setFaturaFeedback(null);
           setImportacaoFeedback(null);
           setShowImportForm(false);
+          setRecorrenciaParaEditar(null);
+          setStatusRecorrenciaRascunho(null);
+          setStatusRecorrenciaPendente(null);
         }}
         title={selectedFatura ? `Fatura ${formatCompetencia(selectedFatura.competencia)}` : 'Detalhe da fatura'}
         subtitle={selectedFatura ? cartaoLabel(selectedFatura.cartao) : undefined}
@@ -944,14 +1479,114 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
               </div>
             </Card>
 
-            <div>
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">Transacoes</div>
-                  <div className="text-sm font-bold text-secondary">
-                    {transacoesSelecionadas.length} item(ns) desta fatura
+            {recorrenciasAtivas.length > 0 ? (
+              <Card className="p-4 md:p-5 border border-accent/25 bg-accent/5">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="purple">Recorrências ativas</Badge>
+                      <span className="text-xs font-bold text-secondary">Previsões não compõem o total desta fatura.</span>
+                    </div>
+                    <div className="mt-2 text-sm font-bold text-secondary">
+                      Ajuste apenas as próximas cobranças. O lançamento de origem permanece preservado.
+                    </div>
                   </div>
                 </div>
+                <div className="mt-4 space-y-3">
+                  {recorrenciasAtivas.map((recorrencia) => {
+                    const proximaPrevisao = proximaPrevisaoDaRecorrencia(recorrencia.id);
+                    const savingRecorrencia = savingRecorrenciaId === recorrencia.id;
+                    return (
+                      <div key={recorrencia.id} className="rounded-2xl border border-line bg-surface/85 p-4">
+                        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="text-base font-black text-primary truncate">{recorrencia.descricao}</div>
+                            <div className="mt-1 text-sm font-bold text-secondary">
+                              {[recorrencia.estabelecimento, `Dia ${recorrencia.dia_base}`].filter(Boolean).join(' · ')}
+                            </div>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <Badge variant="purple">{formatCurrency(Number(recorrencia.valor || 0))}</Badge>
+                              <Badge variant={proximaPrevisao ? 'info' : 'default'}>
+                                {proximaPrevisao ? `Próxima: ${formatCompetencia(proximaPrevisao.competencia)}` : 'Sem previsão aberta'}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              disabled={savingRecorrencia}
+                              onClick={() => setRecorrenciaParaEditar(recorrencia)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              disabled={savingRecorrencia}
+                              onClick={() => setStatusRecorrenciaRascunho({ recorrencia, status: 'pausada', motivo: '' })}
+                            >
+                              <Pause className="w-4 h-4" />
+                              Pausar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              disabled={savingRecorrencia}
+                              onClick={() => setStatusRecorrenciaRascunho({ recorrencia, status: 'encerrada', motivo: '' })}
+                            >
+                              <CircleStop className="w-4 h-4" />
+                              Encerrar
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            ) : null}
+
+            {recorrenciasPausadas.length > 0 ? (
+              <Card className="p-4 border border-line bg-surface-2/35">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="default">Recorrências pausadas</Badge>
+                  <span className="text-xs font-bold text-secondary">Não geram novas previsões enquanto estiverem pausadas.</span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {recorrenciasPausadas.map((recorrencia) => {
+                    const savingRecorrencia = savingRecorrenciaId === recorrencia.id;
+                    return (
+                      <div key={recorrencia.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-black text-primary truncate">{recorrencia.descricao}</div>
+                          <div className="mt-1 text-xs font-bold text-secondary">
+                            {formatCurrency(Number(recorrencia.valor || 0))} · {recorrencia.motivo_status || 'Pausada por decisão operacional.'}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          disabled={savingRecorrencia}
+                          onClick={() => handleRetomarRecorrencia(recorrencia)}
+                          className="shrink-0"
+                        >
+                          {savingRecorrencia ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                          Retomar
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            ) : null}
+
+            <div>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">Transacoes</div>
+                    <div className="text-sm font-bold text-secondary">
+                      {transacoesSelecionadas.length} lançamento(s) real(is)
+                      {previsoesDaFatura.length > 0 ? ` · ${previsoesDaFatura.length} previsão(ões)` : ''}
+                    </div>
+                  </div>
                 {selectedFaturaImportacaoDisponivel ? (
                   <Button
                     variant={showImportForm ? 'outline' : 'primary'}
@@ -995,24 +1630,34 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
                 </div>
               ) : null}
 
-              {transacoesSelecionadas.length === 0 ? (
+              {itensSelecionados.length === 0 ? (
                 <Card className="p-8 text-center bg-surface-2/35">
                   <div className="text-sm font-black text-primary">Sem transacoes nesta fatura</div>
                   <div className="mt-1 text-xs font-bold text-secondary">
-                    Quando uma compra for lancada neste cartao, ela aparece aqui.
+                    Quando uma compra ou uma previsão for associada a este cartão, ela aparece aqui.
                   </div>
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {transacoesSelecionadas.map((transacao) => (
+                  {itensSelecionados.map((item) => item.kind === 'transacao' ? (
                     <TransacaoRow
-                      key={transacao.id}
-                      transacao={transacao}
+                      key={`transacao-${item.data.id}`}
+                      transacao={item.data}
                       fatura={selectedFatura}
                       empresas={empresas}
                       planos={planos}
-                      saving={savingTransacaoId === transacao.id}
+                      previsoes={previsoesDaFatura}
+                      saving={savingTransacaoId === item.data.id || savingPrevisaoId !== null}
                       onClassificar={handleClassificar}
+                      onDecidirVinculo={handleDecidirVinculo}
+                    />
+                  ) : (
+                    <PrevisaoRow
+                      key={`previsao-${item.data.id}`}
+                      previsao={item.data}
+                      transacaoConfirmada={item.data.transacao_confirmada_id
+                        ? transacoes.find((transacao) => transacao.id === item.data.transacao_confirmada_id) || null
+                        : null}
                     />
                   ))}
                 </div>
@@ -1021,6 +1666,77 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
           </div>
         ) : null}
       </Modal>
+
+      <RecorrenciaEditModal
+        recorrencia={recorrenciaParaEditar}
+        previsao={recorrenciaParaEditar ? proximaPrevisaoDaRecorrencia(recorrenciaParaEditar.id) : null}
+        empresas={empresas}
+        planos={planos}
+        saving={Boolean(recorrenciaParaEditar && savingRecorrenciaId === recorrenciaParaEditar.id)}
+        onClose={() => setRecorrenciaParaEditar(null)}
+        onSave={handleAtualizarRecorrencia}
+      />
+
+      <Modal
+        isOpen={Boolean(statusRecorrenciaRascunho)}
+        onClose={() => setStatusRecorrenciaRascunho(null)}
+        title={statusRecorrenciaRascunho?.status === 'pausada' ? 'Pausar recorrência' : 'Encerrar recorrência'}
+        subtitle="O motivo é opcional e fica registrado no histórico operacional."
+        size="sm"
+        headerIcon={statusRecorrenciaRascunho?.status === 'pausada'
+          ? <Pause className="w-5 h-5 text-accent" />
+          : <CircleStop className="w-5 h-5 text-danger" />}
+        footer={
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button variant="outline" onClick={() => setStatusRecorrenciaRascunho(null)}>Cancelar</Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!statusRecorrenciaRascunho) return;
+                setStatusRecorrenciaPendente(statusRecorrenciaRascunho);
+                setStatusRecorrenciaRascunho(null);
+              }}
+            >
+              {statusRecorrenciaRascunho?.status === 'pausada' ? 'Revisar pausa' : 'Revisar encerramento'}
+            </Button>
+          </div>
+        }
+      >
+        {statusRecorrenciaRascunho ? (
+          <div className="space-y-4">
+            <Card className="p-4 bg-surface-2/35">
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-muted">Regra selecionada</div>
+              <div className="mt-2 text-base font-black text-primary">{statusRecorrenciaRascunho.recorrencia.descricao}</div>
+              <div className="mt-1 text-sm font-bold text-secondary">
+                {formatCurrency(Number(statusRecorrenciaRascunho.recorrencia.valor || 0))} · Dia {statusRecorrenciaRascunho.recorrencia.dia_base}
+              </div>
+            </Card>
+            <div>
+              <FieldLabel>Motivo (opcional)</FieldLabel>
+              <TextArea
+                rows={3}
+                value={statusRecorrenciaRascunho.motivo}
+                placeholder="Ex.: serviço suspenso temporariamente pela Rose."
+                onChange={(event) => setStatusRecorrenciaRascunho((current) => current
+                  ? { ...current, motivo: event.target.value }
+                  : current)}
+              />
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={Boolean(statusRecorrenciaPendente)}
+        onClose={() => setStatusRecorrenciaPendente(null)}
+        onConfirm={handleAlterarStatusRecorrencia}
+        title={statusRecorrenciaPendente?.status === 'pausada' ? 'Confirmar pausa' : 'Confirmar encerramento'}
+        message={statusRecorrenciaPendente?.status === 'pausada'
+          ? 'A regra deixa de gerar novas previsões até ser retomada por uma decisão operacional.'
+          : 'A regra deixa de gerar novas previsões e não poderá ser retomada.'}
+        confirmLabel={statusRecorrenciaPendente?.status === 'pausada' ? 'Pausar recorrência' : 'Encerrar recorrência'}
+        variant={statusRecorrenciaPendente?.status === 'encerrada' ? 'danger' : 'primary'}
+      />
 
       <ConfirmDialog
         isOpen={Boolean(pendingFaturaAction && selectedFatura)}

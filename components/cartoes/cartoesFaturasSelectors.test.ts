@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -15,6 +16,8 @@ import {
   hasAutoriaMaria,
   isFaturaClassificacaoBloqueada,
   filterAndSortFaturas,
+  getPrevisaoCandidata,
+  normalizeRecorrenciaMatch,
 } from './cartoesFaturasSelectors.ts';
 
 const faturas = [
@@ -74,6 +77,64 @@ const transacoes = [
   { id: 't3', fatura_id: 'fatura-set', classificacao_status: 'confirmada' },
   { id: 't4', fatura_id: 'fatura-barra', classificacao_status: 'sugerida' },
 ] as any[];
+
+const transacaoReal = {
+  id: 'transacao-real',
+  fatura_id: 'fatura-set',
+  cartao_id: 'cartao-emla',
+  descricao: 'OpenAI, Inc.',
+  estabelecimento: null,
+  valor: 49.9,
+} as any;
+
+const previsaoMesmoCartaoMesmoValor = {
+  id: 'previsao-openai',
+  recorrencia_id: 'recorrencia-openai',
+  fatura_id: 'fatura-set',
+  cartao_id: 'cartao-emla',
+  competencia: '2026-09-01',
+  data_compra: '2026-09-17',
+  descricao: 'openai inc',
+  estabelecimento: null,
+  valor: 49.9,
+  status: 'prevista',
+  transacao_confirmada_id: null,
+} as any;
+
+const previsaoOutroValor = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-outro-valor',
+  valor: 49.91,
+} as any;
+
+const previsaoOutroCartao = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-outro-cartao',
+  cartao_id: 'cartao-barra',
+} as any;
+
+const previsaoOutraFatura = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-outra-fatura',
+  fatura_id: 'fatura-barra',
+} as any;
+
+const previsaoOutraDescricao = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-outra-descricao',
+  descricao: 'OpenAI Cloud',
+} as any;
+
+const previsaoJaConfirmada = {
+  ...previsaoMesmoCartaoMesmoValor,
+  id: 'previsao-ja-confirmada',
+  status: 'confirmada',
+} as any;
+
+const importacaoManualFormSource = await readFile(
+  new URL('./ImportarTransacaoFaturaForm.tsx', import.meta.url),
+  'utf8'
+);
 
 test('attachClassificacaoResumo counts transacoes by fatura without N+1 assumptions', () => {
   const result = attachClassificacaoResumo(faturas, transacoes);
@@ -212,6 +273,87 @@ test('manual import validation blocks missing essentials and invalid installment
     'Informe parcelas no formato correto.'
   );
   assert.equal(validateTransacaoImportadaInput({ descricao: 'OpenAI', data_compra: '2026-07-01', valor: 54.48 }), null);
+});
+
+test('manual import validation rejects parcel recurrence conflicts', () => {
+  assert.equal(
+    validateTransacaoImportadaInput({
+      descricao: 'Assinatura', data_compra: '2026-08-17', valor: 49.9,
+      tipo_transacao: 'compra', is_parcela: true, is_recorrente: true,
+    }),
+    'Uma compra não pode ser parcelada e recorrente ao mesmo tempo.'
+  );
+});
+
+test('manual import validation limits recurrence to purchases', () => {
+  assert.equal(
+    validateTransacaoImportadaInput({
+      descricao: 'Tarifa', data_compra: '2026-08-17', valor: 49.9,
+      tipo_transacao: 'tarifa', is_recorrente: true,
+    }),
+    'Recorrência está disponível somente para compras.'
+  );
+});
+
+test('manual import form keeps recurring purchases exclusive from installments and saves through the atomic RPC', () => {
+  assert.match(importacaoManualFormSource, /registrarTransacaoRecorrente/);
+  assert.match(importacaoManualFormSource, /is_recorrente:\s*false/);
+  assert.match(importacaoManualFormSource, /is_parcela:\s*next\s*\?\s*false\s*:\s*current\.is_parcela/);
+  assert.match(importacaoManualFormSource, /is_recorrente:\s*next\s*\?\s*false\s*:\s*current\.is_recorrente/);
+  assert.match(importacaoManualFormSource, /Repetir todo mês/);
+  assert.match(
+    importacaoManualFormSource,
+    /Registra esta compra normalmente e cria uma previsão para a próxima fatura\. A previsão não altera o total até o extrato ser confirmado\./
+  );
+  assert.match(importacaoManualFormSource, /registrarTransacaoRecorrente\(/);
+  assert.match(importacaoManualFormSource, /Compra adicionada e recorrência prevista para a próxima fatura\./);
+});
+
+test('manual recurring import reports an idempotent retry instead of a new recurrence', () => {
+  const toastHandler = importacaoManualFormSource.slice(
+    importacaoManualFormSource.indexOf('onSuccess: async (result) =>'),
+    importacaoManualFormSource.indexOf('await onSuccess(result', importacaoManualFormSource.indexOf('onSuccess: async (result) =>'))
+  );
+
+  const idempotentRecorrenciaIndex = toastHandler.indexOf('form.is_recorrente && transacaoResult.idempotent');
+  const recorrenciaCriadaIndex = toastHandler.indexOf('if (form.is_recorrente)');
+
+  assert.ok(
+    idempotentRecorrenciaIndex >= 0 && recorrenciaCriadaIndex >= 0
+      && idempotentRecorrenciaIndex < recorrenciaCriadaIndex,
+    'a recorrência idempotente deve ser tratada antes do toast de criação'
+  );
+  assert.match(toastHandler, /Transacao ja registrada anteriormente\./);
+});
+
+test('recurring forecast matching is exact by invoice, card, cents and normalized description', () => {
+  assert.deepEqual(
+    getPrevisaoCandidata(transacaoReal, [previsaoMesmoCartaoMesmoValor, previsaoOutroValor]),
+    previsaoMesmoCartaoMesmoValor
+  );
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutroValor]), null);
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutroCartao]), null);
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutraFatura]), null);
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoOutraDescricao]), null);
+  assert.equal(getPrevisaoCandidata(transacaoReal, [previsaoJaConfirmada]), null);
+});
+
+test('recurring forecast matches a negative real transaction to its positive forecast by cents', () => {
+  const transacaoEstornada = {
+    ...transacaoReal,
+    valor: -10.99,
+  };
+  const previsaoEstornada = {
+    ...previsaoMesmoCartaoMesmoValor,
+    id: 'previsao-estornada',
+    valor: 10.99,
+  };
+
+  assert.deepEqual(getPrevisaoCandidata(transacaoEstornada, [previsaoEstornada]), previsaoEstornada);
+});
+
+test('recurring forecast normalization removes accents and punctuation', () => {
+  assert.equal(normalizeRecorrenciaMatch('  Assinatura: Açúcar & Café  '), 'assinatura acucar cafe');
 });
 
 test('manual import payload uses the fatura RPC shape without classification fields', () => {

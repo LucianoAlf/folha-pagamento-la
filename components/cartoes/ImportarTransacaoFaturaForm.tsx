@@ -4,7 +4,7 @@ import { AlertTriangle, Building2, CheckCircle2, Loader2, Plus, ReceiptText, Rot
 import { Badge, Button, Card, CustomSelect, DatePicker, ToggleSwitch } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { formatCurrency } from '../../services/api';
-import { registrarTransacaoImportada } from '../../services/cartoesService';
+import { registrarTransacaoImportada, registrarTransacaoRecorrente } from '../../services/cartoesService';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
 import { useToast } from '../../hooks/useToast';
 import { PlanoContaTreeSelect } from '../contas/PlanoContaTreeSelect';
@@ -17,6 +17,7 @@ import {
 import type {
   CartaoTipoTransacao,
   FinanceiroCartaoFatura,
+  FinanceiroCartaoRecorrenciaCriarPayload,
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacaoImportadaResponse,
 } from '../../types/cartoes';
@@ -29,6 +30,7 @@ type ImportFormState = {
   valor: string;
   tipo_transacao: CartaoTipoTransacao;
   is_parcela: boolean;
+  is_recorrente: boolean;
   parcela_atual: string;
   total_parcelas: string;
   observacoes: string;
@@ -122,6 +124,7 @@ function buildInitialState(): ImportFormState {
     valor: '',
     tipo_transacao: 'compra',
     is_parcela: false,
+    is_recorrente: false,
     parcela_atual: '1',
     total_parcelas: '2',
     observacoes: '',
@@ -179,6 +182,7 @@ export const ImportarTransacaoFaturaForm: React.FC<{
       estabelecimento: form.estabelecimento,
       observacoes: form.observacoes,
       is_parcela: form.is_parcela,
+      is_recorrente: form.is_recorrente,
       parcela_atual: form.is_parcela ? Number(form.parcela_atual) : null,
       total_parcelas: form.is_parcela ? Number(form.total_parcelas) : null,
       empresa_id: form.empresa_id,
@@ -212,20 +216,43 @@ export const ImportarTransacaoFaturaForm: React.FC<{
   const submit = async () => {
     if (!canSubmit) return;
     const payload = buildTransacaoImportadaPayload(input, idExterno);
+    const recorrenciaPayload: FinanceiroCartaoRecorrenciaCriarPayload = {
+      ...payload,
+      cartao_id: fatura.cartao_id,
+      client_token: idExterno,
+      id_externo: idExterno,
+      data_compra: form.data_compra,
+      dia_base: Number(form.data_compra.slice(-2)),
+      descricao: form.descricao.trim(),
+      estabelecimento: form.estabelecimento.trim() || null,
+      valor: Math.abs(Number(valor)),
+      tipo_transacao: 'compra',
+      empresa_id: payload.empresa_id || null,
+      centro_custo_id: payload.centro_custo_id || null,
+      plano_conta_id: payload.plano_conta_id || null,
+      classificacao_status: payload.classificacao_status || 'pendente',
+    };
     setSaving(true);
     await run(
-      async () => registrarTransacaoImportada(payload),
+      async () => (form.is_recorrente
+        ? registrarTransacaoRecorrente(recorrenciaPayload)
+        : registrarTransacaoImportada(payload)),
       {
         error: 'Nao foi possivel adicionar a transacao na fatura.',
         onSuccess: async (result) => {
-          if (result.possivel_duplicata) {
+          const transacaoResult = result as FinanceiroCartaoTransacaoImportadaResponse;
+          if (form.is_recorrente && transacaoResult.idempotent) {
+            toast.info('Transacao ja registrada anteriormente.');
+          } else if (form.is_recorrente) {
+            toast.success('Compra adicionada e recorrência prevista para a próxima fatura.');
+          } else if (transacaoResult.possivel_duplicata) {
             toast.info('Transacao adicionada, mas parece duplicada. Confira antes de prosseguir.');
-          } else if (result.idempotent) {
+          } else if (transacaoResult.idempotent) {
             toast.info('Transacao ja registrada anteriormente.');
           } else {
             toast.success('Transacao adicionada a fatura.');
           }
-          await onSuccess(result, payload);
+          await onSuccess(result as FinanceiroCartaoTransacaoImportadaResponse, payload);
           resetKeepDate();
         },
       }
@@ -261,7 +288,7 @@ export const ImportarTransacaoFaturaForm: React.FC<{
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         <div>
-          <FieldLabel required>Data</FieldLabel>
+          <FieldLabel required>{form.is_recorrente ? 'Data-base da cobrança' : 'Data'}</FieldLabel>
           <DatePicker value={form.data_compra} onChange={(value) => setForm((current) => ({ ...current, data_compra: value || '' }))} />
         </div>
         <div className="xl:col-span-2">
@@ -284,7 +311,12 @@ export const ImportarTransacaoFaturaForm: React.FC<{
           <FieldLabel required>Tipo</FieldLabel>
           <CustomSelect
             value={form.tipo_transacao}
-            onValueChange={(value) => setForm((current) => ({ ...current, tipo_transacao: value as CartaoTipoTransacao }))}
+            onValueChange={(value) => setForm((current) => ({
+              ...current,
+              tipo_transacao: value as CartaoTipoTransacao,
+              is_parcela: value === 'compra' ? current.is_parcela : false,
+              is_recorrente: value === 'compra' ? current.is_recorrente : false,
+            }))}
             options={TIPO_OPTIONS}
             icon={RotateCcw}
           />
@@ -316,13 +348,49 @@ export const ImportarTransacaoFaturaForm: React.FC<{
             </div>
             <ToggleSwitch
               checked={form.is_parcela}
-              onCheckedChange={(next) => setForm((current) => ({ ...current, is_parcela: next }))}
+              onCheckedChange={(next) => setForm((current) => ({
+                ...current,
+                is_parcela: next,
+                is_recorrente: next ? false : current.is_recorrente,
+              }))}
               variant="violet"
               ariaLabel="Marcar como parcela"
             />
           </div>
         </div>
       </div>
+
+      {form.tipo_transacao === 'compra' ? (
+        <Card className="mt-4 border border-accent/25 bg-accent/5 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-black text-primary">Repetir todo mês</div>
+                <Badge variant="purple">Compra recorrente</Badge>
+              </div>
+              <div className="mt-1 max-w-2xl text-sm font-bold text-secondary">
+                Registra esta compra normalmente e cria uma previsão para a próxima fatura. A previsão não altera o total até o extrato ser confirmado.
+              </div>
+            </div>
+            <ToggleSwitch
+              checked={form.is_recorrente}
+              onCheckedChange={(next) => setForm((current) => ({
+                ...current,
+                is_recorrente: next,
+                is_parcela: next ? false : current.is_parcela,
+              }))}
+              variant="violet"
+              ariaLabel="Repetir compra todo mês"
+              disabled={saving}
+            />
+          </div>
+          {form.is_recorrente ? (
+            <div className="mt-3 border-t border-accent/20 pt-3 text-sm font-bold text-secondary">
+              A classificação escolhida será copiada apenas para previsões futuras.
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
 
       {form.is_parcela ? (
         <div className="mt-4 grid grid-cols-2 md:grid-cols-[160px_160px_minmax(0,1fr)] gap-4 items-end">
@@ -419,7 +487,9 @@ export const ImportarTransacaoFaturaForm: React.FC<{
         </div>
         <Button variant="primary" onClick={submit} disabled={!canSubmit} className="md:min-w-[210px]">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-          {isClassificacaoConfirmada ? 'Adicionar e classificar' : 'Adicionar como pendente'}
+          {form.is_recorrente
+            ? 'Adicionar e prever recorrência'
+            : isClassificacaoConfirmada ? 'Adicionar e classificar' : 'Adicionar como pendente'}
         </Button>
       </div>
 

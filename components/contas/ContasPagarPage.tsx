@@ -42,6 +42,7 @@ import { RelatorioDoDiaPanel } from './RelatorioDoDiaPanel';
 import { PlanoContasViewer } from './PlanoContasViewer';
 import { Badge, Card, CustomSelect, Tooltip, Modal } from '../UI';
 import { formatCurrency } from '../../services/api';
+import { hasCodigoPagamento } from '../../services/contasPagarCodigoMes';
 import { useAsyncAction } from '../../hooks/useAsyncAction';
 import { useToast } from '../../hooks/useToast';
 import {
@@ -1061,7 +1062,17 @@ export const ContasPagarPage: React.FC<{
             setCompetenciaFiltro(ym);
           }
           const codigo = options?.codigo;
-          const temCodigo = codigo && (codigo.codigo_barras.trim() || codigo.chave_pix.trim() || codigo.qr_pix_payload.trim());
+          const temCodigo = Boolean(
+            codigo &&
+              hasCodigoPagamento(
+                { pix_chave_fixa: null },
+                {
+                  codigo_barras: codigo.codigo_barras,
+                  chave_pix: codigo.chave_pix,
+                  qr_pix_payload: codigo.qr_pix_payload,
+                }
+              )
+          );
           const deveRegistrarCodigo = codigo && (temCodigo || codigo.status_coleta === 'indisponivel');
           if (deveRegistrarCodigo && created.competencia) {
             await upsertCodigoMes({

@@ -2,6 +2,7 @@ import type {
   CartaoTipoTransacao,
   CartaoFaturaStatus,
   FinanceiroCartaoFatura,
+  FinanceiroCartaoRecorrenciaPrevisao,
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacao,
 } from '../../types/cartoes';
@@ -156,6 +157,7 @@ export type TransacaoImportadaInput = {
   estabelecimento?: string | null;
   observacoes?: string | null;
   is_parcela?: boolean;
+  is_recorrente?: boolean;
   parcela_atual?: number | null;
   total_parcelas?: number | null;
   empresa_id?: string | null;
@@ -195,6 +197,13 @@ export function getTransacaoImportadaClassificacaoState(
 }
 
 export function validateTransacaoImportadaInput(input: TransacaoImportadaInput): string | null {
+  const tipoTransacao = input.tipo_transacao || 'compra';
+  if (input.is_recorrente && tipoTransacao !== 'compra') {
+    return 'Recorrência está disponível somente para compras.';
+  }
+  if (input.is_recorrente && input.is_parcela) {
+    return 'Uma compra não pode ser parcelada e recorrente ao mesmo tempo.';
+  }
   if (!String(input.descricao || '').trim()) return 'Informe a descricao da transacao.';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(input.data_compra || ''))) return 'Informe uma data valida.';
   if (input.valor == null || !Number.isFinite(input.valor) || input.valor === 0) {
@@ -220,6 +229,35 @@ export function validateTransacaoImportadaInput(input: TransacaoImportadaInput):
   }
 
   return null;
+}
+
+export function normalizeRecorrenciaMatch(value: string | null | undefined): string {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+export function getPrevisaoCandidata(
+  transacao: Pick<FinanceiroCartaoTransacao, 'fatura_id' | 'cartao_id' | 'descricao' | 'estabelecimento' | 'valor'>,
+  previsoes: FinanceiroCartaoRecorrenciaPrevisao[]
+): FinanceiroCartaoRecorrenciaPrevisao | null {
+  const descricaoTransacao = normalizeRecorrenciaMatch(
+    transacao.estabelecimento || transacao.descricao
+  );
+  const valorEmCentavos = Math.round(Math.abs(Number(transacao.valor)) * 100);
+
+  if (!descricaoTransacao || !Number.isFinite(valorEmCentavos)) return null;
+
+  return previsoes.find((previsao) => (
+    previsao.status === 'prevista'
+    && previsao.fatura_id === transacao.fatura_id
+    && previsao.cartao_id === transacao.cartao_id
+    && Math.round(Number(previsao.valor) * 100) === valorEmCentavos
+    && normalizeRecorrenciaMatch(previsao.estabelecimento || previsao.descricao) === descricaoTransacao
+  )) || null;
 }
 
 export function buildTransacaoImportadaPayload(

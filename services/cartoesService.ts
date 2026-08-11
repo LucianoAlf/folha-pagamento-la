@@ -24,6 +24,16 @@ import type {
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacaoImportadaResponse,
   FinanceiroCartaoTransacao,
+  FinanceiroCartaoRecorrencia,
+  FinanceiroCartaoRecorrenciaPrevisao,
+  FinanceiroCartaoRecorrenciaCriarPayload,
+  FinanceiroCartaoRecorrenciaCriarResponse,
+  FinanceiroCartaoRecorrenciaAtualizarPayload,
+  FinanceiroCartaoRecorrenciaAtualizarResponse,
+  FinanceiroCartaoRecorrenciaAlterarStatusPayload,
+  FinanceiroCartaoRecorrenciaAlterarStatusResponse,
+  FinanceiroCartaoRecorrenciaPrevisaoDecidirVinculoPayload,
+  FinanceiroCartaoRecorrenciaPrevisaoDecidirVinculoResponse,
 } from '../types/cartoes';
 
 const CARTAO_SELECT = `
@@ -119,6 +129,37 @@ const TRANSACAO_SELECT = `
   centro_custo:centros_custo(id,codigo,nome,tipo,ativo,ordem)
 `;
 
+const RECORRENCIA_SELECT = `
+  id,
+  cartao_id,
+  transacao_origem_id,
+  data_inicio,
+  dia_base,
+  descricao,
+  estabelecimento,
+  valor,
+  empresa_id,
+  plano_conta_id,
+  centro_custo_id,
+  classificacao_status,
+  status,
+  motivo_status
+`;
+
+const PREVISAO_SELECT = `
+  id,
+  recorrencia_id,
+  fatura_id,
+  cartao_id,
+  competencia,
+  data_compra,
+  descricao,
+  estabelecimento,
+  valor,
+  status,
+  transacao_confirmada_id
+`;
+
 function normalizePayload(input: FinanceiroCartaoPayload): FinanceiroCartaoPayload {
   const clean: FinanceiroCartaoPayload = {
     apelido: input.apelido.trim(),
@@ -179,6 +220,13 @@ function friendlyRpcError(error: any): Error {
     return new Error('Esta fatura nao esta aberta. Reabra a fatura antes de adicionar transacoes.');
   }
   return new Error(message || 'Não foi possível salvar o cartão.');
+}
+
+async function callCartaoRpc<T>(nome: string, payload: object): Promise<T> {
+  const { data, error } = await supabase.rpc(nome, { payload, ator: {} });
+
+  if (error) throw friendlyRpcError(error);
+  return data as T;
 }
 
 export type CartoesResumoData = Pick<CartoesDashboardData, 'cartoes'>;
@@ -259,24 +307,47 @@ export async function fetchCartoesFaturas(): Promise<CartoesFaturasData> {
 
   const cartoes = (cartoesResult.data || []) as unknown as FinanceiroCartao[];
   const faturas = (faturasResult.data || []) as unknown as FinanceiroCartaoFatura[];
-  const faturaIds = faturas.map((fatura) => fatura.id);
+  const faturaIds = Array.from(new Set(faturas.map((fatura) => fatura.id)));
+  const cartaoIds = Array.from(new Set(cartoes.map((cartao) => cartao.id)));
 
-  let transacoes: FinanceiroCartaoTransacao[] = [];
-  if (faturaIds.length > 0) {
-    const transacoesResult = await supabase
-      .from('financeiro_cartao_transacoes')
-      .select(TRANSACAO_SELECT)
-      .in('fatura_id', faturaIds)
-      .order('data_compra', { ascending: true });
+  const [transacoesResult, recorrenciasResult, previsoesResult] = await Promise.all([
+    faturaIds.length > 0
+      ? supabase
+        .from('financeiro_cartao_transacoes')
+        .select(TRANSACAO_SELECT)
+        .in('fatura_id', faturaIds)
+        .order('data_compra', { ascending: true })
+      : Promise.resolve(null),
+    cartaoIds.length > 0
+      ? supabase
+        .from('financeiro_cartao_recorrencias')
+        .select(RECORRENCIA_SELECT)
+        .in('cartao_id', cartaoIds)
+        .order('data_inicio', { ascending: true })
+      : Promise.resolve(null),
+    faturaIds.length > 0
+      ? supabase
+        .from('financeiro_cartao_recorrencia_previsoes')
+        .select(PREVISAO_SELECT)
+        .in('fatura_id', faturaIds)
+        .order('data_compra', { ascending: true })
+      : Promise.resolve(null),
+  ]);
 
-    if (transacoesResult.error) throw transacoesResult.error;
-    transacoes = (transacoesResult.data || []) as unknown as FinanceiroCartaoTransacao[];
-  }
+  if (transacoesResult?.error) throw transacoesResult.error;
+  if (recorrenciasResult?.error) throw recorrenciasResult.error;
+  if (previsoesResult?.error) throw previsoesResult.error;
+
+  const transacoes = (transacoesResult?.data || []) as unknown as FinanceiroCartaoTransacao[];
+  const recorrencias = (recorrenciasResult?.data || []) as unknown as FinanceiroCartaoRecorrencia[];
+  const previsoes = (previsoesResult?.data || []) as unknown as FinanceiroCartaoRecorrenciaPrevisao[];
 
   return {
     cartoes,
     faturas,
     transacoes,
+    recorrencias,
+    previsoes,
     empresas,
     contasBancarias,
     centrosCusto,
@@ -380,6 +451,42 @@ export async function registrarTransacaoImportada(
 
   if (error) throw friendlyRpcError(error);
   return data as FinanceiroCartaoTransacaoImportadaResponse;
+}
+
+export async function registrarTransacaoRecorrente(
+  payload: FinanceiroCartaoRecorrenciaCriarPayload
+): Promise<FinanceiroCartaoRecorrenciaCriarResponse> {
+  return callCartaoRpc<FinanceiroCartaoRecorrenciaCriarResponse>(
+    'financeiro_cartao_recorrencia_criar',
+    payload
+  );
+}
+
+export async function atualizarRecorrenciaCartao(
+  payload: FinanceiroCartaoRecorrenciaAtualizarPayload
+): Promise<FinanceiroCartaoRecorrenciaAtualizarResponse> {
+  return callCartaoRpc<FinanceiroCartaoRecorrenciaAtualizarResponse>(
+    'financeiro_cartao_recorrencia_atualizar',
+    payload
+  );
+}
+
+export async function alterarStatusRecorrenciaCartao(
+  payload: FinanceiroCartaoRecorrenciaAlterarStatusPayload
+): Promise<FinanceiroCartaoRecorrenciaAlterarStatusResponse> {
+  return callCartaoRpc<FinanceiroCartaoRecorrenciaAlterarStatusResponse>(
+    'financeiro_cartao_recorrencia_alterar_status',
+    payload
+  );
+}
+
+export async function decidirVinculoPrevisaoCartao(
+  payload: FinanceiroCartaoRecorrenciaPrevisaoDecidirVinculoPayload
+): Promise<FinanceiroCartaoRecorrenciaPrevisaoDecidirVinculoResponse> {
+  return callCartaoRpc<FinanceiroCartaoRecorrenciaPrevisaoDecidirVinculoResponse>(
+    'financeiro_cartao_recorrencia_previsao_decidir_vinculo',
+    payload
+  );
 }
 
 export async function classificarTransacaoCartao(
