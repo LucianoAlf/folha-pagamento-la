@@ -49,3 +49,6 @@ scripts/.mcp-*
 
 # Superpowers visual brainstorming companion (mockups/state)
 .superpowers/
+
+# Isolated implementation worktrees
+.worktrees/
