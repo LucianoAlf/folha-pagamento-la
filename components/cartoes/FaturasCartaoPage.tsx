@@ -328,6 +328,8 @@ type TransacaoClassificacaoForm = {
   motivo: string;
 };
 
+type TransacaoSavingAction = 'reabrir' | 'confirmar' | 'cancelamento' | null;
+
 function buildInitialClassificacaoForm(
   transacao: FinanceiroCartaoTransacao,
   fatura: FinanceiroCartaoFatura,
@@ -349,6 +351,7 @@ const TransacaoRow: React.FC<{
   planos: PlanoConta[];
   previsoes: FinanceiroCartaoRecorrenciaPrevisao[];
   saving: boolean;
+  savingAction?: TransacaoSavingAction;
   onClassificar: (payload: FinanceiroCartaoClassificacaoPayload) => Promise<void>;
   onDecidirVinculo: (
     previsao: FinanceiroCartaoRecorrenciaPrevisao,
@@ -357,7 +360,7 @@ const TransacaoRow: React.FC<{
   ) => Promise<boolean>;
   recorrenciaOrigem?: FinanceiroCartaoRecorrencia | null;
   onCancelar: (payload: FinanceiroCartaoTransacaoCancelarPayload) => Promise<boolean>;
-}> = ({ transacao, fatura, empresas, planos, previsoes, saving, onClassificar, onDecidirVinculo, recorrenciaOrigem, onCancelar }) => {
+}> = ({ transacao, fatura, empresas, planos, previsoes, saving, savingAction = null, onClassificar, onDecidirVinculo, recorrenciaOrigem, onCancelar }) => {
   const [form, setForm] = useState<TransacaoClassificacaoForm>(() =>
     buildInitialClassificacaoForm(transacao, fatura, empresas)
   );
@@ -379,6 +382,9 @@ const TransacaoRow: React.FC<{
   const reclassificacaoGerencial = fatura.status === 'fechada' || fatura.status === 'paga';
   const selectedEmpresa = empresas.find((empresa) => empresa.id === form.empresa_id) || null;
   const selectedCentroNome = selectedEmpresa?.unidade?.nome || transacao.centro_custo?.nome || 'Centro fixado pela empresa';
+  const savingReabrir = saving && savingAction === 'reabrir';
+  const savingConfirmar = saving && savingAction === 'confirmar';
+  const savingCancelamento = saving && savingAction === 'cancelamento';
   const confirmDisabled = bloqueada || saving || !form.empresa_id || !form.centro_custo_id || !form.plano_conta_id;
   const podeCancelar = isTransacaoCancelamentoDisponivel(fatura) && !recorrenciaOrigem;
   const temParcelamento = Boolean(transacao.compra_parcelada_id && transacao.total_parcelas && transacao.total_parcelas > 1);
@@ -499,9 +505,12 @@ const TransacaoRow: React.FC<{
             <div className="mt-1 text-sm font-bold text-secondary">
               {bloqueada
                 ? 'Fatura cancelada nao permite classificacao.'
-                : reclassificacaoGerencial
+              : reclassificacaoGerencial
                   ? 'Reclassificacao gerencial permitida pelo backend.'
                   : 'Confirme plano, empresa e centro para alimentar o DRE.'}
+            </div>
+            <div className="mt-2 text-xs font-bold text-muted">
+              Confirme quando estiver correto. Reabrir devolve o lancamento para revisao antes do fechamento.
             </div>
           </div>
           {selectedPlano ? (
@@ -560,8 +569,8 @@ const TransacaoRow: React.FC<{
               })
             }
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-            Voltar para pendente
+            {savingReabrir ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+            Reabrir para revisao
           </Button>
           <Button
             variant="primary"
@@ -577,7 +586,7 @@ const TransacaoRow: React.FC<{
               })
             }
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+            {savingConfirmar ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
             Confirmar classificacao
           </Button>
         </div>
@@ -597,7 +606,7 @@ const TransacaoRow: React.FC<{
             disabled={saving || cancelarSaving}
             onClick={() => setCancelarAberto(true)}
           >
-            <Trash2 className="w-4 h-4" />
+            {savingCancelamento ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             Cancelar lancamento
           </Button>
         </div>
@@ -609,7 +618,7 @@ const TransacaoRow: React.FC<{
           if (!cancelarSaving) setCancelarAberto(false);
         }}
         title="Cancelar lancamento"
-        subtitle="O lancamento sai da fatura e o motivo fica registrado na auditoria."
+        subtitle="O lancamento sai da fatura, mas nao e apagado sem registro: o motivo fica na auditoria."
         size="md"
         footer={(
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
@@ -1048,6 +1057,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
   const [competenciaFiltro, setCompetenciaFiltro] = useState('all');
   const [selectedFaturaId, setSelectedFaturaId] = useState<string | null>(null);
   const [savingTransacaoId, setSavingTransacaoId] = useState<string | null>(null);
+  const [savingTransacaoAction, setSavingTransacaoAction] = useState<TransacaoSavingAction>(null);
   const [savingFaturaId, setSavingFaturaId] = useState<string | null>(null);
   const [pendingFaturaAction, setPendingFaturaAction] = useState<FaturaFechamentoAction | null>(null);
   const [faturaFeedback, setFaturaFeedback] = useState<FaturaActionFeedback | null>(null);
@@ -1197,6 +1207,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
 
   const handleClassificar = async (payload: FinanceiroCartaoClassificacaoPayload) => {
     setSavingTransacaoId(payload.transacao_id);
+    setSavingTransacaoAction(payload.classificacao_status === 'pendente' ? 'reabrir' : 'confirmar');
     try {
       await run(
         async () => {
@@ -1213,6 +1224,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
       );
     } finally {
       setSavingTransacaoId(null);
+      setSavingTransacaoAction(null);
     }
   };
 
@@ -1221,6 +1233,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
   ): Promise<boolean> => {
     const chave = payload.transacao_id || payload.compra_parcelada_id || null;
     setSavingTransacaoId(chave);
+    setSavingTransacaoAction('cancelamento');
     try {
       const result = await run(
         async () => {
@@ -1236,6 +1249,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
       return Boolean(result);
     } finally {
       setSavingTransacaoId(null);
+      setSavingTransacaoAction(null);
     }
   };
 
@@ -1320,7 +1334,8 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
 
   const handleAtualizarRecorrencia = async (payload: FinanceiroCartaoRecorrenciaAtualizarPayload): Promise<boolean> => {
     setSavingRecorrenciaId(payload.recorrencia_id);
-    const result = await run(
+    try {
+      const result = await run(
       async () => {
         const response = await atualizarRecorrenciaCartao(payload);
         await load();
@@ -1331,8 +1346,10 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
         error: 'Não foi possível atualizar a recorrência.',
       }
     );
-    setSavingRecorrenciaId(null);
-    return Boolean(result);
+      return Boolean(result);
+    } finally {
+      setSavingRecorrenciaId(null);
+    }
   };
 
   const handleAlterarStatusRecorrencia = async (): Promise<boolean> => {
@@ -1365,7 +1382,8 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
 
   const handleRetomarRecorrencia = async (recorrencia: FinanceiroCartaoRecorrencia): Promise<void> => {
     setSavingRecorrenciaId(recorrencia.id);
-    await run(
+    try {
+      await run(
       async () => {
         const response = await alterarStatusRecorrenciaCartao({
           recorrencia_id: recorrencia.id,
@@ -1379,8 +1397,10 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
         success: 'Recorrência retomada.',
         error: 'Não foi possível retomar a recorrência.',
       }
-    );
-    setSavingRecorrenciaId(null);
+      );
+    } finally {
+      setSavingRecorrenciaId(null);
+    }
   };
 
   const handleDecidirVinculo = async (
@@ -1389,7 +1409,8 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
     decisao: CartaoRecorrenciaPrevisaoDecisao
   ): Promise<boolean> => {
     setSavingPrevisaoId(previsao.id);
-    const result = await run(
+    try {
+      const result = await run(
       async () => {
         const response = await decidirVinculoPrevisaoCartao({
           previsao_id: previsao.id,
@@ -1407,8 +1428,10 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
         error: 'Não foi possível decidir o vínculo da previsão.',
       }
     );
-    setSavingPrevisaoId(null);
-    return Boolean(result);
+      return Boolean(result);
+    } finally {
+      setSavingPrevisaoId(null);
+    }
   };
 
   if (loading) return <LoadingSpinner />;
@@ -1798,6 +1821,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
                       planos={planos}
                       previsoes={previsoesDaFatura}
                       saving={savingTransacaoId === item.data.id || savingTransacaoId === item.data.compra_parcelada_id || savingPrevisaoId !== null}
+                      savingAction={savingTransacaoId === item.data.id || savingTransacaoId === item.data.compra_parcelada_id ? savingTransacaoAction : null}
                       onClassificar={handleClassificar}
                       onDecidirVinculo={handleDecidirVinculo}
                       recorrenciaOrigem={recorrencias.find((recorrencia) => recorrencia.transacao_origem_id === item.data.id) || null}

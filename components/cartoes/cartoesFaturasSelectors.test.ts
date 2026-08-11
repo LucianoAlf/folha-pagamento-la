@@ -499,3 +499,16 @@ test('card invoice refresh and classification RPCs cannot leave the UI pending f
     /const handleClassificar[\s\S]*try[\s\S]*await run[\s\S]*finally[\s\S]*setSavingTransacaoId\(null\)/,
   );
 });
+
+test('classification actions explain their intent and only the active action shows a spinner', () => {
+  assert.match(faturasPageSource, /savingAction/);
+  assert.match(faturasPageSource, /savingReabrir/);
+  assert.match(faturasPageSource, /savingConfirmar/);
+  assert.match(faturasPageSource, /savingCancelamento/);
+  assert.match(faturasPageSource, /Reabrir para revisao/);
+  assert.match(faturasPageSource, /O lancamento sai da fatura, mas nao e apagado sem registro/);
+  assert.match(
+    faturasPageSource,
+    /const handleDecidirVinculo[\s\S]*try[\s\S]*await run[\s\S]*finally[\s\S]*setSavingPrevisaoId\(null\)/,
+  );
+});
