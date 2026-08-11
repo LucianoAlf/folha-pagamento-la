@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const fixtureUrl = new URL('./financeiro_cartao_recorrencias_fixture.sql', import.meta.url);
-const migrationUrl = new URL('../migrations/20260810_1_financeiro_cartao_recorrencias.sql', import.meta.url);
+const migrationUrl = new URL('../migrations/20260811061425_financeiro_cartao_recorrencias.sql', import.meta.url);
 const fixturePath = fileURLToPath(fixtureUrl);
 const migrationPath = fileURLToPath(migrationUrl);
 const database = 'financeiro_cartao_recorrencias_fixture';

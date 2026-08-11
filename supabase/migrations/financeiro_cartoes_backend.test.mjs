@@ -23,7 +23,7 @@ const m14 = read('20260630_14_financeiro_cartao_transacao_classificar.sql');
 const m15 = read('20260630_15_financeiro_cartao_transacao_editar.sql');
 const m16 = read('20260630_16_financeiro_cartao_transacao_cancelar.sql');
 const m17 = read('20260630_17_financeiro_cartao_fatura_fechar_contadores.sql');
-const m18 = read('20260810_1_financeiro_cartao_recorrencias.sql');
+const m18 = read('20260811061425_financeiro_cartao_recorrencias.sql');
 
 test('M18 models recurring card purchases as forecasts outside financial transactions', () => {
   assert.match(m18, /create table if not exists public\.financeiro_cartao_recorrencias/i);
