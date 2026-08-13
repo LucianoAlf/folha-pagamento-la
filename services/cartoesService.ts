@@ -30,6 +30,8 @@ import type {
   FinanceiroCartaoRecorrenciaPrevisao,
   FinanceiroCartaoRecorrenciaCriarPayload,
   FinanceiroCartaoRecorrenciaCriarResponse,
+  FinanceiroCartaoRecorrenciaAdotarPayload,
+  FinanceiroCartaoRecorrenciaAdotarResponse,
   FinanceiroCartaoRecorrenciaAtualizarPayload,
   FinanceiroCartaoRecorrenciaAtualizarResponse,
   FinanceiroCartaoRecorrenciaAlterarStatusPayload,
@@ -496,6 +498,15 @@ export async function registrarTransacaoRecorrente(
 ): Promise<FinanceiroCartaoRecorrenciaCriarResponse> {
   return callCartaoRpc<FinanceiroCartaoRecorrenciaCriarResponse>(
     'financeiro_cartao_recorrencia_criar',
+    payload
+  );
+}
+
+export async function adotarTransacaoComoRecorrente(
+  payload: FinanceiroCartaoRecorrenciaAdotarPayload
+): Promise<FinanceiroCartaoRecorrenciaAdotarResponse> {
+  return callCartaoRpc<FinanceiroCartaoRecorrenciaAdotarResponse>(
+    'financeiro_cartao_recorrencia_adotar',
     payload
   );
 }

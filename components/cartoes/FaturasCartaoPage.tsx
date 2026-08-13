@@ -21,11 +21,12 @@ import {
   Undo2,
   WalletCards,
 } from 'lucide-react';
-import { Badge, Button, Card, ConfirmDialog, CustomSelect, ErrorState, LoadingSpinner, Modal } from '../UI';
+import { Badge, Button, Card, ConfirmDialog, CustomSelect, DatePicker, ErrorState, LoadingSpinner, Modal } from '../UI';
 import { cn } from '../CollaboratorComponents';
 import { formatCurrency } from '../../services/api';
 import {
   alterarStatusRecorrenciaCartao,
+  adotarTransacaoComoRecorrente,
   cancelarTransacaoCartao,
   classificarTransacaoCartao,
   decidirVinculoPrevisaoCartao,
@@ -48,12 +49,14 @@ import {
   buildTransacaoCancelamentoPayload,
   getCompetenciasOptions,
   getPrevisaoCandidata,
+  getRecorrenciaAdocaoDisponibilidade,
   getTransacoesDaFatura,
   hasAutoriaMaria,
   isFaturaImportacaoManualDisponivel,
   isCartaoFiscalCompletoParaFechar,
   isFaturaClassificacaoBloqueada,
   isTransacaoCancelamentoDisponivel,
+  isTransacaoSaving,
 } from './cartoesFaturasSelectors';
 import type {
   FinanceiroCartaoClassificacaoPayload,
@@ -68,6 +71,7 @@ import type {
   FinanceiroCartaoRecorrencia,
   FinanceiroCartaoRecorrenciaPrevisao,
   FinanceiroCartaoRecorrenciaAtualizarPayload,
+  FinanceiroCartaoRecorrenciaAdotarPayload,
   CartaoRecorrenciaPrevisaoDecisao,
   CartaoClassificacaoStatus,
 } from '../../types/cartoes';
@@ -360,7 +364,9 @@ const TransacaoRow: React.FC<{
   ) => Promise<boolean>;
   recorrenciaOrigem?: FinanceiroCartaoRecorrencia | null;
   onCancelar: (payload: FinanceiroCartaoTransacaoCancelarPayload) => Promise<boolean>;
-}> = ({ transacao, fatura, empresas, planos, previsoes, saving, savingAction = null, onClassificar, onDecidirVinculo, recorrenciaOrigem, onCancelar }) => {
+  savingAdocao?: boolean;
+  onAdotarRecorrencia: (payload: FinanceiroCartaoRecorrenciaAdotarPayload) => Promise<boolean>;
+}> = ({ transacao, fatura, empresas, planos, previsoes, saving, savingAction = null, onClassificar, onDecidirVinculo, recorrenciaOrigem, onCancelar, savingAdocao = false, onAdotarRecorrencia }) => {
   const [form, setForm] = useState<TransacaoClassificacaoForm>(() =>
     buildInitialClassificacaoForm(transacao, fatura, empresas)
   );
@@ -369,6 +375,11 @@ const TransacaoRow: React.FC<{
   const [cancelarEscopo, setCancelarEscopo] = useState<'transacao' | 'parcelamento'>('transacao');
   const [cancelarMotivo, setCancelarMotivo] = useState('');
   const [cancelarSaving, setCancelarSaving] = useState(false);
+  const [adocaoAberta, setAdocaoAberta] = useState(false);
+  const [adocaoDataInicio, setAdocaoDataInicio] = useState(transacao.data_compra || '');
+  const [adocaoDescricao, setAdocaoDescricao] = useState(transacao.descricao || '');
+  const [adocaoEstabelecimento, setAdocaoEstabelecimento] = useState(transacao.estabelecimento || '');
+  const [adocaoValor, setAdocaoValor] = useState(String(Math.abs(Number(transacao.valor || 0)).toFixed(2)));
   const valor = Number(transacao.valor || 0);
   const isCredit = valor < 0 || transacao.tipo_transacao === 'estorno';
   const parcela =
@@ -387,6 +398,11 @@ const TransacaoRow: React.FC<{
   const savingCancelamento = saving && savingAction === 'cancelamento';
   const confirmDisabled = bloqueada || saving || !form.empresa_id || !form.centro_custo_id || !form.plano_conta_id;
   const podeCancelar = isTransacaoCancelamentoDisponivel(fatura) && !recorrenciaOrigem;
+  const adocaoDisponibilidade = getRecorrenciaAdocaoDisponibilidade(transacao, fatura, recorrenciaOrigem);
+  const adocaoValorNumerico = Number(adocaoValor.replace(',', '.'));
+  const adocaoValida = Boolean(adocaoDataInicio && adocaoDescricao.trim())
+    && Number.isFinite(adocaoValorNumerico)
+    && adocaoValorNumerico > 0;
   const temParcelamento = Boolean(transacao.compra_parcelada_id && transacao.total_parcelas && transacao.total_parcelas > 1);
   const empresaOptions = [
     { value: '', label: 'Escolha a empresa' },
@@ -435,6 +451,28 @@ const TransacaoRow: React.FC<{
     } finally {
       setCancelarSaving(false);
     }
+  };
+
+  const confirmarAdocao = async () => {
+    if (!adocaoValida) return;
+    const ok = await onAdotarRecorrencia({
+      transacao_id: transacao.id,
+      data_inicio: adocaoDataInicio,
+      dia_base: Number(adocaoDataInicio.slice(-2)),
+      descricao: adocaoDescricao.trim(),
+      estabelecimento: adocaoEstabelecimento.trim() || null,
+      valor: adocaoValorNumerico,
+      classificacao_status: transacao.classificacao_status === 'confirmada'
+        ? 'confirmada'
+        : transacao.classificacao_status === 'sugerida'
+          ? 'sugerida'
+          : 'pendente',
+      empresa_id: transacao.empresa_id,
+      plano_conta_id: transacao.plano_conta_id,
+      centro_custo_id: transacao.centro_custo_id,
+      motivo: 'Compra existente transformada em recorrente pela Rose no app web.',
+    });
+    if (ok) setAdocaoAberta(false);
   };
 
   return (
@@ -598,8 +636,20 @@ const TransacaoRow: React.FC<{
         </div>
       ) : null}
 
-      {podeCancelar ? (
-        <div className="mt-4 flex justify-end">
+      {adocaoDisponibilidade.disponivel || podeCancelar ? (
+        <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          {adocaoDisponibilidade.disponivel ? (
+            <Button
+              variant="outline"
+              className="border-accent/35 text-accent hover:border-accent/60 hover:bg-accent/10"
+              disabled={saving || savingAdocao}
+              onClick={() => setAdocaoAberta(true)}
+            >
+              {savingAdocao ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+              Tornar recorrente
+            </Button>
+          ) : null}
+          {podeCancelar ? (
           <Button
             variant="outline"
             className="border-danger/35 text-danger hover:border-danger/60 hover:bg-danger/10"
@@ -609,8 +659,67 @@ const TransacaoRow: React.FC<{
             {savingCancelamento ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             Cancelar lancamento
           </Button>
+          ) : null}
         </div>
       ) : null}
+
+      <Modal
+        isOpen={adocaoAberta}
+        onClose={() => {
+          if (!savingAdocao) setAdocaoAberta(false);
+        }}
+        title="Tornar compra recorrente"
+        subtitle="A compra atual continua intacta. O sistema cria somente previsões nas próximas faturas, sem alterar o total até o extrato confirmar a cobrança."
+        size="md"
+        footer={(
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button variant="outline" disabled={savingAdocao} onClick={() => setAdocaoAberta(false)}>
+              Voltar
+            </Button>
+            <Button
+              variant="primary"
+              disabled={savingAdocao || !adocaoValida}
+              onClick={confirmarAdocao}
+            >
+              {savingAdocao ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+              Criar recorrência
+            </Button>
+          </div>
+        )}
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-info/30 bg-info/10 p-4 text-sm font-bold text-secondary">
+            A classificação fiscal atual será reaproveitada nas previsões. Você poderá editar ou pausar a regra depois.
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <FieldLabel required>Data-base da cobrança</FieldLabel>
+              <DatePicker value={adocaoDataInicio} onChange={(value) => setAdocaoDataInicio(value || '')} disabled={savingAdocao} />
+            </div>
+            <div>
+              <FieldLabel required>Valor recorrente</FieldLabel>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-muted">R$</span>
+                <TextInput
+                  value={adocaoValor}
+                  onChange={(event) => setAdocaoValor(event.target.value.replace(/[^\d,.]/g, ''))}
+                  inputMode="decimal"
+                  className="pl-12"
+                  disabled={savingAdocao}
+                />
+              </div>
+            </div>
+          </div>
+          <div>
+            <FieldLabel required>Descrição</FieldLabel>
+            <TextInput value={adocaoDescricao} onChange={(event) => setAdocaoDescricao(event.target.value)} disabled={savingAdocao} />
+          </div>
+          <div>
+            <FieldLabel>Estabelecimento</FieldLabel>
+            <TextInput value={adocaoEstabelecimento} onChange={(event) => setAdocaoEstabelecimento(event.target.value)} disabled={savingAdocao} />
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={cancelarAberto}
@@ -1067,6 +1176,7 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
   const [statusRecorrenciaRascunho, setStatusRecorrenciaRascunho] = useState<RecorrenciaStatusDraft | null>(null);
   const [statusRecorrenciaPendente, setStatusRecorrenciaPendente] = useState<RecorrenciaStatusDraft | null>(null);
   const [savingRecorrenciaId, setSavingRecorrenciaId] = useState<string | null>(null);
+  const [savingAdocaoId, setSavingAdocaoId] = useState<string | null>(null);
   const [savingPrevisaoId, setSavingPrevisaoId] = useState<string | null>(null);
 
   const load = async () => {
@@ -1250,6 +1360,28 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
     } finally {
       setSavingTransacaoId(null);
       setSavingTransacaoAction(null);
+    }
+  };
+
+  const handleAdotarRecorrencia = async (
+    payload: FinanceiroCartaoRecorrenciaAdotarPayload
+  ): Promise<boolean> => {
+    setSavingAdocaoId(payload.transacao_id);
+    try {
+      const result = await run(
+        async () => {
+          const response = await adotarTransacaoComoRecorrente(payload);
+          await load();
+          return response;
+        },
+        {
+          success: 'Recorrência criada. A próxima cobrança já aparece como previsão.',
+          error: 'Não foi possível tornar esta compra recorrente.',
+        }
+      );
+      return Boolean(result);
+    } finally {
+      setSavingAdocaoId(null);
     }
   };
 
@@ -1820,12 +1952,14 @@ export const FaturasCartaoPage: React.FC<FaturasCartaoPageProps> = ({ embedded =
                       empresas={empresas}
                       planos={planos}
                       previsoes={previsoesDaFatura}
-                      saving={savingTransacaoId === item.data.id || savingTransacaoId === item.data.compra_parcelada_id || savingPrevisaoId !== null}
-                      savingAction={savingTransacaoId === item.data.id || savingTransacaoId === item.data.compra_parcelada_id ? savingTransacaoAction : null}
+                      saving={isTransacaoSaving(savingTransacaoId, item.data)}
+                      savingAction={isTransacaoSaving(savingTransacaoId, item.data) ? savingTransacaoAction : null}
                       onClassificar={handleClassificar}
                       onDecidirVinculo={handleDecidirVinculo}
                       recorrenciaOrigem={recorrencias.find((recorrencia) => recorrencia.transacao_origem_id === item.data.id) || null}
                       onCancelar={handleCancelarTransacao}
+                      savingAdocao={savingAdocaoId === item.data.id}
+                      onAdotarRecorrencia={handleAdotarRecorrencia}
                     />
                   ) : (
                     <PrevisaoRow

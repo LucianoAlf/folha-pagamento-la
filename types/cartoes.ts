@@ -273,6 +273,28 @@ export interface FinanceiroCartaoRecorrenciaCriarResponse {
   idempotent: boolean;
 }
 
+export interface FinanceiroCartaoRecorrenciaAdotarPayload {
+  transacao_id: string;
+  data_inicio?: string;
+  dia_base?: number;
+  descricao?: string;
+  estabelecimento?: string | null;
+  valor?: number;
+  classificacao_status?: CartaoClassificacaoStatus;
+  empresa_id?: string | null;
+  plano_conta_id?: string | null;
+  centro_custo_id?: string | null;
+  motivo?: string | null;
+}
+
+export interface FinanceiroCartaoRecorrenciaAdotarResponse {
+  success: boolean;
+  transacao_id: string;
+  recorrencia_id: string;
+  previsao_id: string | null;
+  idempotent: boolean;
+}
+
 export interface FinanceiroCartaoRecorrenciaAtualizarPayload {
   recorrencia_id: string;
   competencia_efetiva: string;

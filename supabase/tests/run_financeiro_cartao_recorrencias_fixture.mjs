@@ -6,8 +6,10 @@ import { fileURLToPath } from 'node:url';
 
 const fixtureUrl = new URL('./financeiro_cartao_recorrencias_fixture.sql', import.meta.url);
 const migrationUrl = new URL('../migrations/20260811061425_financeiro_cartao_recorrencias.sql', import.meta.url);
+const adminMigrationUrl = new URL('../migrations/20260813_1_cartoes_admin_pagamento_recorrencia_existente.sql', import.meta.url);
 const fixturePath = fileURLToPath(fixtureUrl);
 const migrationPath = fileURLToPath(migrationUrl);
+const adminMigrationPath = fileURLToPath(adminMigrationUrl);
 const database = 'financeiro_cartao_recorrencias_fixture';
 const container = 'financeiro-cartao-recorrencias-' + process.pid + '-' + randomUUID().slice(0, 8);
 const postgresImage = 'postgres:17.10-alpine';
@@ -31,6 +33,13 @@ const setupSql = [
   'create function auth.role() returns text language sql stable as $$',
   "  select nullif(current_setting('request.jwt.claim.role', true), '');",
   '$$;',
+  '',
+  'create table public.user_profiles (',
+  '  id uuid primary key,',
+  "  role text not null default 'user'",
+  ');',
+  "insert into public.user_profiles (id, role) values ('00000000-0000-0000-0000-00000000ca06', 'admin');",
+  "insert into public.user_profiles (id, role) values ('00000000-0000-0000-0000-00000000ca07', 'user');",
   '',
   'create function public.set_updated_at() returns trigger language plpgsql as $$',
   'begin',
@@ -90,6 +99,7 @@ const setupSql = [
   '  conta_pagadora_id uuid,',
   '  updated_at timestamptz not null default now()',
   ');',
+  'grant select, update on public.contas_pagar to authenticated;',
   'create table public.financeiro_cartao_faturas (',
   '  id uuid primary key default gen_random_uuid(),',
   '  cartao_id uuid not null references public.financeiro_cartoes(id),',
@@ -112,6 +122,9 @@ const setupSql = [
   '  estabelecimento text,',
   '  valor numeric not null,',
   "  tipo_transacao text not null default 'compra',",
+  '  compra_parcelada_id uuid,',
+  '  parcela_atual integer,',
+  '  total_parcelas integer,',
   '  empresa_id uuid references public.financeiro_empresas(id),',
   '  plano_conta_id uuid references public.plano_contas(id),',
   '  centro_custo_id uuid references public.centros_custo(id),',
@@ -125,6 +138,7 @@ const setupSql = [
   '  created_at timestamptz not null default now(),',
   '  unique (cartao_id, id_externo)',
   ');',
+  'grant select on public.user_profiles, public.financeiro_cartao_faturas, public.financeiro_cartao_transacoes to authenticated;',
   'create table public.maria_audit_log (',
   '  id uuid primary key default gen_random_uuid(),',
   '  created_at timestamptz not null default now(),',
@@ -374,6 +388,7 @@ async function waitForPostgres() {
 
 assert.ok(existsSync(fixturePath), 'fixture PostgreSQL ausente: ' + fixturePath);
 assert.ok(existsSync(migrationPath), 'migration de recorrencias ausente: ' + migrationPath);
+assert.ok(existsSync(adminMigrationPath), 'migration administrativa ausente: ' + adminMigrationPath);
 requireSuccess(runDocker(['info', '--format', '{{.ServerVersion}}']), 'Docker daemon');
 
 let containerAttempted = false;
@@ -413,6 +428,7 @@ try {
 
   runPsql(setupSql, 'provisionamento do schema minimo');
   runPsql(readFileSync(migrationPath, 'utf8'), 'aplicacao da migration real de recorrencias');
+  runPsql(readFileSync(adminMigrationPath, 'utf8'), 'aplicacao da migration administrativa de cartoes');
 
   const refusedWithoutGuard = runDocker([
     'exec', '-i', '--env', 'PGOPTIONS=', container,

@@ -24,6 +24,31 @@ const m15 = read('20260630_15_financeiro_cartao_transacao_editar.sql');
 const m16 = read('20260630_16_financeiro_cartao_transacao_cancelar.sql');
 const m17 = read('20260630_17_financeiro_cartao_fatura_fechar_contadores.sql');
 const m18 = read('20260811061425_financeiro_cartao_recorrencias.sql');
+const m19 = read('20260813_1_cartoes_admin_pagamento_recorrencia_existente.sql');
+
+test('M19 grants Rose administrative card operations and repairs payment synchronization', () => {
+  assert.match(
+    m19,
+    /update public\.user_profiles[\s\S]*set role = 'admin'[\s\S]*cf0e4bf0-d056-4b55-83c1-92b81f6be9c4/i,
+  );
+  assert.match(m19, /create or replace function public\.financeiro_cartoes_is_admin\(\)/i);
+  assert.match(m19, /create policy financeiro_cartao_faturas_update_admin/i);
+  assert.match(
+    m19,
+    /create or replace function public\.financeiro_cartao_faturas_sync_pagamento\(\)[\s\S]*security definer[\s\S]*set search_path = ''/i,
+  );
+  assert.match(
+    m19,
+    /create or replace function public\.financeiro_cartao_recorrencia_adotar\(\s*payload jsonb,\s*ator jsonb/i,
+  );
+  assert.match(m19, /Perfil administrativo obrigatorio para operar cartoes\./i);
+  assert.match(
+    m19,
+    /grant execute on function public\.financeiro_cartao_recorrencia_adotar\(jsonb, jsonb\)\s+to authenticated, service_role/i,
+  );
+  assert.doesNotMatch(m19, /insert into public\.financeiro_cartao_transacoes/i);
+  assert.doesNotMatch(m19, /cascade/i);
+});
 
 test('M18 models recurring card purchases as forecasts outside financial transactions', () => {
   assert.match(m18, /create table if not exists public\.financeiro_cartao_recorrencias/i);

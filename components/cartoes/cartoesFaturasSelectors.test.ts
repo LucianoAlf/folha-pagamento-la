@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import * as selectors from './cartoesFaturasSelectors.ts';
 
 const faturasPageSource = await readFile(new URL('./FaturasCartaoPage.tsx', import.meta.url), 'utf8');
 const cartoesServiceSource = await readFile(new URL('../../services/cartoesService.ts', import.meta.url), 'utf8');
@@ -24,6 +25,13 @@ import {
   isTransacaoCancelamentoDisponivel,
   buildTransacaoCancelamentoPayload,
 } from './cartoesFaturasSelectors.ts';
+
+const getRecorrenciaAdocaoDisponibilidade = (selectors as any).getRecorrenciaAdocaoDisponibilidade as
+  | ((transacao: any, fatura: any, recorrencia: any) => { disponivel: boolean; motivo: string | null })
+  | undefined;
+const isTransacaoSaving = (selectors as any).isTransacaoSaving as
+  | ((savingId: string | null, transacao: any) => boolean)
+  | undefined;
 
 const faturas = [
   {
@@ -510,5 +518,67 @@ test('classification actions explain their intent and only the active action sho
   assert.match(
     faturasPageSource,
     /const handleDecidirVinculo[\s\S]*try[\s\S]*await run[\s\S]*finally[\s\S]*setSavingPrevisaoId\(null\)/,
+  );
+});
+
+test('existing card purchases expose recurring adoption only when operationally eligible', () => {
+  assert.equal(typeof getRecorrenciaAdocaoDisponibilidade, 'function');
+  const compra = {
+    id: 'tx-compra',
+    tipo_transacao: 'compra',
+    compra_parcelada_id: null,
+    parcela_atual: null,
+    total_parcelas: null,
+  } as any;
+  const parcela = { ...compra, compra_parcelada_id: 'parcelamento-1', parcela_atual: 2, total_parcelas: 6 } as any;
+  const tarifa = { ...compra, tipo_transacao: 'tarifa' } as any;
+  const faturaAberta = { id: 'fat-aberta', status: 'aberta' } as any;
+  const faturaFechada = { id: 'fat-fechada', status: 'fechada' } as any;
+  const recorrencia = { id: 'rec-1', transacao_origem_id: compra.id } as any;
+
+  assert.deepEqual(getRecorrenciaAdocaoDisponibilidade(compra, faturaAberta, null), {
+    disponivel: true,
+    motivo: null,
+  });
+  assert.equal(
+    getRecorrenciaAdocaoDisponibilidade(parcela, faturaAberta, null).motivo,
+    'Compras parceladas não podem ser transformadas em recorrentes.',
+  );
+  assert.equal(
+    getRecorrenciaAdocaoDisponibilidade(tarifa, faturaAberta, null).motivo,
+    'Somente compras podem ser transformadas em recorrentes.',
+  );
+  assert.equal(
+    getRecorrenciaAdocaoDisponibilidade(compra, faturaFechada, null).motivo,
+    'A fatura precisa estar aberta para criar a recorrência.',
+  );
+  assert.equal(
+    getRecorrenciaAdocaoDisponibilidade(compra, faturaAberta, recorrencia).motivo,
+    'Esta compra já possui uma recorrência.',
+  );
+});
+
+test('a pending forecast decision does not disable unrelated transaction actions', () => {
+  assert.doesNotMatch(
+    faturasPageSource,
+    /saving=\{[^}]*savingPrevisaoId\s*!==\s*null[^}]*\}/,
+  );
+});
+
+test('an idle non-installment transaction is never treated as saving by null equality', () => {
+  assert.equal(typeof isTransacaoSaving, 'function');
+  assert.equal(isTransacaoSaving?.(null, { id: 'tx-1', compra_parcelada_id: null }), false);
+  assert.equal(isTransacaoSaving?.('tx-1', { id: 'tx-1', compra_parcelada_id: null }), true);
+  assert.equal(isTransacaoSaving?.('grupo-1', { id: 'tx-2', compra_parcelada_id: 'grupo-1' }), true);
+});
+
+test('existing purchases use the atomic adoption RPC and keep row loading isolated', () => {
+  assert.match(cartoesServiceSource, /export async function adotarTransacaoComoRecorrente/);
+  assert.match(cartoesServiceSource, /financeiro_cartao_recorrencia_adotar/);
+  assert.match(faturasPageSource, /Tornar recorrente/);
+  assert.match(faturasPageSource, /savingAdocaoId/);
+  assert.match(
+    faturasPageSource,
+    /const handleAdotarRecorrencia[\s\S]*try[\s\S]*await run[\s\S]*finally[\s\S]*setSavingAdocaoId\(null\)/,
   );
 });

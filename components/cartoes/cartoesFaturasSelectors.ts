@@ -2,6 +2,7 @@ import type {
   CartaoTipoTransacao,
   CartaoFaturaStatus,
   FinanceiroCartaoFatura,
+  FinanceiroCartaoRecorrencia,
   FinanceiroCartaoRecorrenciaPrevisao,
   FinanceiroCartaoTransacaoImportadaPayload,
   FinanceiroCartaoTransacao,
@@ -282,6 +283,42 @@ export function getPrevisaoCandidata(
     && Math.round(Number(previsao.valor) * 100) === valorEmCentavos
     && normalizeRecorrenciaMatch(previsao.estabelecimento || previsao.descricao) === descricaoTransacao
   )) || null;
+}
+
+export function getRecorrenciaAdocaoDisponibilidade(
+  transacao: Pick<
+    FinanceiroCartaoTransacao,
+    'tipo_transacao' | 'compra_parcelada_id' | 'parcela_atual' | 'total_parcelas'
+  >,
+  fatura: Pick<FinanceiroCartaoFatura, 'status'>,
+  recorrencia: Pick<FinanceiroCartaoRecorrencia, 'id'> | null | undefined,
+): { disponivel: boolean; motivo: string | null } {
+  if (recorrencia) {
+    return { disponivel: false, motivo: 'Esta compra já possui uma recorrência.' };
+  }
+  if (fatura.status !== 'aberta') {
+    return { disponivel: false, motivo: 'A fatura precisa estar aberta para criar a recorrência.' };
+  }
+  if (transacao.tipo_transacao !== 'compra') {
+    return { disponivel: false, motivo: 'Somente compras podem ser transformadas em recorrentes.' };
+  }
+  if (
+    transacao.compra_parcelada_id
+    || transacao.parcela_atual !== null
+    || Number(transacao.total_parcelas || 0) > 1
+  ) {
+    return { disponivel: false, motivo: 'Compras parceladas não podem ser transformadas em recorrentes.' };
+  }
+  return { disponivel: true, motivo: null };
+}
+
+export function isTransacaoSaving(
+  savingId: string | null,
+  transacao: Pick<FinanceiroCartaoTransacao, 'id' | 'compra_parcelada_id'>,
+): boolean {
+  if (!savingId) return false;
+  return savingId === transacao.id
+    || (Boolean(transacao.compra_parcelada_id) && savingId === transacao.compra_parcelada_id);
 }
 
 export function buildTransacaoImportadaPayload(

@@ -453,4 +453,100 @@ begin
 end;
 $$;
 
+insert into public.financeiro_cartao_transacoes (
+  id, fatura_id, cartao_id, data_compra, descricao, estabelecimento, valor,
+  tipo_transacao, empresa_id, plano_conta_id, centro_custo_id, classificacao_status,
+  id_externo, fonte_tipo, ator_tipo, ator_ref
+) values (
+  '00000000-0000-0000-0000-00000000ca21',
+  '00000000-0000-0000-0000-00000000ca13',
+  '00000000-0000-0000-0000-00000000ca01',
+  date '2026-09-21',
+  'Compra antiga elegivel fixture',
+  'Fixture SaaS',
+  79.90,
+  'compra',
+  '00000000-0000-0000-0000-00000000ca02',
+  '00000000-0000-0000-0000-00000000ca03',
+  '00000000-0000-0000-0000-00000000ca04',
+  'confirmada',
+  'fixture-compra-antiga',
+  'manual',
+  'web',
+  '00000000-0000-0000-0000-00000000ca06'
+);
+
+insert into public.contas_pagar (
+  id, descricao, valor, competencia, status, data_vencimento, tipo_lancamento
+) values (
+  '00000000-0000-0000-0000-00000000ca19',
+  'Fatura para baixa administrativa fixture',
+  131.55,
+  date '2027-03-01',
+  'pendente',
+  date '2027-03-25',
+  'fatura_cartao'
+);
+insert into public.financeiro_cartao_faturas (
+  id, cartao_id, competencia, data_fechamento, data_vencimento,
+  valor_total, status, conta_pagar_id
+) values (
+  '00000000-0000-0000-0000-00000000ca18',
+  '00000000-0000-0000-0000-00000000ca01',
+  date '2027-03-01',
+  date '2027-02-20',
+  date '2027-03-25',
+  131.55,
+  'fechada',
+  '00000000-0000-0000-0000-00000000ca19'
+);
+
+set local role authenticated;
+
+do $$
+declare
+  v_result jsonb;
+  v_transacoes_antes integer;
+  v_transacoes_depois integer;
+  v_negado boolean := false;
+begin
+  select count(*) into v_transacoes_antes from public.financeiro_cartao_transacoes;
+  v_result := public.financeiro_cartao_recorrencia_adotar(
+    jsonb_build_object(
+      'transacao_id', '00000000-0000-0000-0000-00000000ca21',
+      'motivo', 'adocao fixture por admin'
+    ),
+    '{}'::jsonb
+  );
+  select count(*) into v_transacoes_depois from public.financeiro_cartao_transacoes;
+  if coalesce((v_result->>'success')::boolean, false) is not true
+     or nullif(v_result->>'recorrencia_id', '') is null
+     or nullif(v_result->>'previsao_id', '') is null
+     or v_transacoes_depois <> v_transacoes_antes then
+    raise exception 'adocao de compra existente deveria criar regra/previsao sem duplicar transacao: %', v_result;
+  end if;
+
+  update public.contas_pagar
+     set status = 'pago', data_pagamento = now(), metodo_pagamento = 'boleto'
+   where id = '00000000-0000-0000-0000-00000000ca19';
+  if (select status from public.financeiro_cartao_faturas where id = '00000000-0000-0000-0000-00000000ca18') <> 'paga' then
+    raise exception 'baixa administrativa deveria sincronizar a fatura como paga.';
+  end if;
+
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000ca07', true);
+  begin
+    perform public.financeiro_cartao_recorrencia_adotar(
+      jsonb_build_object('transacao_id', '00000000-0000-0000-0000-00000000ca21'),
+      '{}'::jsonb
+    );
+  exception
+    when insufficient_privilege then
+      v_negado := true;
+  end;
+  if v_negado is not true then
+    raise exception 'perfil sem admin deveria ser recusado nas operacoes de cartao.';
+  end if;
+end;
+$$;
+
 rollback;
