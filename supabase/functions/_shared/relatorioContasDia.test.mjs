@@ -1,7 +1,24 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { montarRelatorioMensagem } from './relatorioContasDia.ts';
+import { montarRelatorioMensagem, buscarSaldosDoDia } from './relatorioContasDia.ts';
+
+function fakeSupabaseAdmin({ data = null, error = null } = {}) {
+  return {
+    from(table) {
+      return {
+        table,
+        select() {
+          return {
+            eq(_col, _val) {
+              return Promise.resolve({ data, error });
+            },
+          };
+        },
+      };
+    },
+  };
+}
 
 test('montarRelatorioMensagem preserves the WhatsApp daily report format', () => {
   const mensagem = montarRelatorioMensagem(
@@ -155,4 +172,47 @@ test('montarRelatorioMensagem adds resumo by unit, approved order and short rate
       'Se quiserem, peçam: “Maria, calcular rateio.”',
     ].join('\n')
   );
+});
+
+test('buscarSaldosDoDia maps label_operacional para as chaves de RelatorioSaldos', async () => {
+  const supabaseAdmin = fakeSupabaseAdmin({
+    data: [
+      { saldo: 38303.61, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Recreio' } } },
+      { saldo: 18806.86, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Barra' } } },
+      { saldo: 5106.69, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Kids CG' } } },
+      { saldo: 3608.1, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'EMLA CG' } } },
+    ],
+  });
+
+  const saldos = await buscarSaldosDoDia(supabaseAdmin, '2026-08-14');
+
+  assert.deepEqual(saldos, {
+    rec: 38303.61,
+    bar: 18806.86,
+    kids_cg: 5106.69,
+    emla_cg: 3608.1,
+  });
+});
+
+test('buscarSaldosDoDia ignora linha com label_operacional desconhecido', async () => {
+  const supabaseAdmin = fakeSupabaseAdmin({
+    data: [
+      { saldo: 100, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Bistrô' } } },
+      { saldo: 200, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Recreio' } } },
+    ],
+  });
+
+  const saldos = await buscarSaldosDoDia(supabaseAdmin, '2026-08-14');
+
+  assert.deepEqual(saldos, { rec: 200 });
+});
+
+test('buscarSaldosDoDia retorna {} sem lançar quando a sincronização ainda não rodou', async () => {
+  const supabaseAdmin = fakeSupabaseAdmin({ data: [] });
+  assert.deepEqual(await buscarSaldosDoDia(supabaseAdmin, '2026-08-14'), {});
+});
+
+test('buscarSaldosDoDia retorna {} sem lançar quando a query falha (nunca derruba o relatório)', async () => {
+  const supabaseAdmin = fakeSupabaseAdmin({ error: new Error('conexao falhou') });
+  assert.deepEqual(await buscarSaldosDoDia(supabaseAdmin, '2026-08-14'), {});
 });
