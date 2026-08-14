@@ -78,25 +78,104 @@ async function accountsDoItem(apiKey: string, itemId: string): Promise<any[]> {
   return Array.isArray(data) ? data : (data?.results || []);
 }
 
+// O /v2/transactions devolve { results, next }. `next` pode ser URL absoluta/relativa de
+// api.pluggy.ai ou um token de cursor. Retorna { url } (para buscar direto) ou { cursor }
+// (para mandar como ?cursor=), ou null quando não há mais página.
+function extrairProxima(data: any): { url?: string; cursor?: string } | null {
+  const next = data?.next ?? data?.nextCursor ?? data?.cursor ?? data?.paging?.next ?? null;
+  if (!next) return null;
+  if (typeof next === "string") {
+    if (/^https?:\/\//i.test(next)) {
+      try {
+        if (new URL(next).host === "api.pluggy.ai") return { url: next };
+      } catch { /* cai para token abaixo */ }
+      return null; // URL de host inesperado: não seguir
+    }
+    // Query relativa pronta (ex.: "?accountId=...&after=<token>"): usar verbatim no endpoint.
+    if (next.startsWith("?")) return { url: `${PLUGGY_API_BASE}/v2/transactions${next}` };
+    if (next.startsWith("/")) return { url: `${PLUGGY_API_BASE}${next}` };
+    return { cursor: next };
+  }
+  return null;
+}
+
+// Busca transações de uma account no /v2/transactions, paginando por cursor até cobrir o
+// período/limite pedido. O v2 usa cursor (rejeita pageSize e from), e vem ordenado do mais
+// recente. Modos:
+//   - desde=YYYY-MM-DD: acumula páginas até a mais antiga da página passar de `desde`, depois
+//     filtra por data >= desde (janela de mês inteiro para conciliação).
+//   - senão: acumula até atingir `limite` transações.
+// Guarda contra loop (cursor errado que devolve a mesma página) e cap de páginas.
 async function transacoesDaConta(
   apiKey: string,
   accountId: string,
-  pageSize: number,
-): Promise<any[]> {
-  // /v2/transactions usa paginação por cursor e rejeita (400) tanto `pageSize` quanto `from`.
-  // Só `accountId` é aceito; a primeira página já vem ordenada da mais recente. Cortamos no
-  // código para o total pedido.
-  const params = new URLSearchParams({ accountId });
-  const res = await fetch(`${PLUGGY_API_BASE}/v2/transactions?${params.toString()}`, {
-    headers: { "X-API-KEY": apiKey },
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Pluggy /v2/transactions HTTP ${res.status}: ${body.slice(0, 400)}`);
+  opts: { limite?: number; desde?: string | null; maxPaginas?: number },
+): Promise<{ transacoes: any[]; _debug: Record<string, unknown> }> {
+  const limite = Math.min(Math.max(opts.limite ?? 50, 1), 1000);
+  const desde = opts.desde ?? null;
+  const maxPaginas = opts.maxPaginas ?? 25;
+
+  const acumulado: any[] = [];
+  let proxima: { url?: string; cursor?: string } | null = null;
+  let paginas = 0;
+  let primeiroIdAnterior: string | null = null;
+  let envelopeKeys: string[] = [];
+  let nextRaw: string | null = null;
+  let paradaPor = "sem_mais_paginas";
+
+  while (paginas < maxPaginas) {
+    let url: string;
+    if (proxima?.url) {
+      url = proxima.url;
+    } else {
+      const params = new URLSearchParams({ accountId });
+      if (proxima?.cursor) params.set("cursor", proxima.cursor);
+      url = `${PLUGGY_API_BASE}/v2/transactions?${params.toString()}`;
+    }
+    const res = await fetch(url, { headers: { "X-API-KEY": apiKey } });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (paginas === 0) throw new Error(`Pluggy /v2/transactions HTTP ${res.status}: ${body.slice(0, 400)}`);
+      paradaPor = `erro_pagina_${paginas + 1}_http_${res.status}`;
+      break;
+    }
+    const data = await res.json();
+    paginas++;
+    envelopeKeys = data && typeof data === "object" && !Array.isArray(data) ? Object.keys(data) : ["<array>"];
+    const rawNext = data?.next ?? null;
+    nextRaw = rawNext == null ? null : (typeof rawNext === "string" ? rawNext.slice(0, 160) : JSON.stringify(rawNext).slice(0, 160));
+    const lista = data?.results || data?.data || (Array.isArray(data) ? data : []);
+
+    // Guarda anti-loop: se a página repete o 1º id da anterior, a paginação não avançou.
+    const primeiroId = lista.length ? String(lista[0]?.id ?? "") : "";
+    if (paginas > 1 && primeiroId && primeiroId === primeiroIdAnterior) {
+      paradaPor = "pagina_nao_avancou";
+      break;
+    }
+    primeiroIdAnterior = primeiroId;
+    acumulado.push(...lista);
+
+    proxima = extrairProxima(data);
+
+    if (!proxima) { paradaPor = "sem_mais_paginas"; break; }
+    if (desde) {
+      const maisAntiga = lista.length ? String(lista[lista.length - 1]?.date || "").slice(0, 10) : null;
+      if (maisAntiga && maisAntiga < desde) { paradaPor = "cobriu_periodo"; break; }
+    } else if (acumulado.length >= limite) {
+      paradaPor = "atingiu_limite";
+      break;
+    }
   }
-  const data = await res.json();
-  const lista = data?.results || data?.data || (Array.isArray(data) ? data : []);
-  return lista.slice(0, pageSize);
+  if (paginas >= maxPaginas) paradaPor = "cap_de_paginas";
+
+  let transacoes = acumulado;
+  if (desde) transacoes = transacoes.filter((t) => String(t?.date || "").slice(0, 10) >= desde);
+  else transacoes = transacoes.slice(0, limite);
+
+  return {
+    transacoes,
+    _debug: { paginas, bruto: acumulado.length, retornado: transacoes.length, parada_por: paradaPor, envelope_keys: envelopeKeys, next_raw: nextRaw },
+  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -264,8 +343,14 @@ Deno.serve(async (req: Request) => {
     if (acao === "transacoes") {
       const alvo = String(payload?.alvo || "").trim(); // apelido/final do cartão ou conta
       const tipo = String(payload?.tipo || "cartao").trim(); // 'cartao' | 'conta'
-      const pageSize = Math.min(Math.max(Number(payload?.pageSize) || 10, 1), 50);
+      // limite = total máximo de transações (default 50, até 1000). desde = janela YYYY-MM-DD
+      // (mês inteiro p/ conciliação); a paginação por cursor acumula até cobrir o período.
+      const limite = Math.min(Math.max(Number(payload?.limite ?? payload?.pageSize) || 50, 1), 1000);
+      const desde = payload?.desde ? String(payload.desde).slice(0, 10) : null;
       if (!alvo) return json({ success: false, error: "transacoes exige 'alvo' (apelido ou final)." }, 400);
+      if (desde && !/^\d{4}-\d{2}-\d{2}$/.test(desde)) {
+        return json({ success: false, error: "desde invalido: use YYYY-MM-DD." }, 400);
+      }
       // Sanitiza 'alvo' antes de entrar no filtro .or() do PostgREST: só letras (com acento),
       // dígitos, espaço e hífen. Bloqueia vírgula/parênteses/ponto/%/*/aspas — os metacaracteres
       // que permitiriam manipular a expressão de filtro. Defesa em profundidade: o chamador já é
@@ -303,14 +388,19 @@ Deno.serve(async (req: Request) => {
       accountId = row.pluggy_account_id as string;
 
       const apiKey = await apiKeyDoApp(app);
-      const txs = await transacoesDaConta(apiKey, accountId, pageSize);
+      const { transacoes, _debug } = await transacoesDaConta(apiKey, accountId, { limite, desde });
       return json({
         success: true,
         acao,
         ao_vivo: true,
         alvo: row.apelido,
         tipo,
-        transacoes: txs.map((t: any) => ({
+        desde,
+        total: transacoes.length,
+        // Visibilidade operacional: se parada_por vier 'cap_de_paginas', a janela foi grande
+        // demais e pode ter truncado — aumentar maxPaginas ou estreitar 'desde'.
+        paginacao: { paginas: _debug.paginas, bruto: _debug.bruto, parada_por: _debug.parada_por },
+        transacoes: transacoes.map((t: any) => ({
           descricao: t.description ?? t.descriptionRaw ?? null,
           valor: t.amount ?? null,
           moeda: t.currencyCode ?? null,
