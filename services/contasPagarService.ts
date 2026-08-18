@@ -350,6 +350,47 @@ export async function registrarPagamento(
   return data as ContaPagar;
 }
 
+export type AjusteContaPagaInput = {
+  descricao: string;
+  valor: number;
+  data_lancamento: string;
+  data_vencimento: string;
+  data_pagamento: string;
+  metodo_pagamento: string;
+  conta_pagadora_id: string;
+  plano_conta_id: string;
+  observacoes?: string | null;
+  motivo?: string | null;
+};
+
+/**
+ * Corrige uma conta ja paga pela porta administrativa auditavel.
+ * Faturas de cartao e folha possuem fluxos de origem proprios e sao recusadas no banco.
+ */
+export async function ajustarContaPaga(contaId: string, input: AjusteContaPagaInput): Promise<ContaPagar> {
+  const { data, error } = await supabase.rpc('contas_pagar_ajustar_paga', {
+    p_payload: {
+      conta_id: contaId,
+      descricao: input.descricao,
+      valor: input.valor,
+      data_lancamento: toDateOnly(input.data_lancamento),
+      data_vencimento: toDateOnly(input.data_vencimento),
+      data_pagamento: toDateOnly(input.data_pagamento),
+      metodo_pagamento: input.metodo_pagamento,
+      conta_pagadora_id: input.conta_pagadora_id,
+      plano_conta_id: input.plano_conta_id,
+      observacoes: input.observacoes?.trim() || null,
+      motivo: input.motivo?.trim() || null,
+    },
+  });
+  if (error) throw error;
+
+  const contaAjustadaId = data?.conta_id || contaId;
+  const conta = await fetchContaPagarById(contaAjustadaId);
+  if (!conta) throw new Error('Conta ajustada não encontrada após a confirmação.');
+  return conta;
+}
+
 export async function updateContaPagar(contaId: string, patch: Partial<ContaPagar>): Promise<ContaPagar> {
   const nextPatch: Partial<ContaPagar> = normalizeContaDates(patch);
 

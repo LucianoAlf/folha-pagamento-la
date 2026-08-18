@@ -21,3 +21,9 @@ test('payroll payables have an explicit fixed-type badge', () => {
   assert.match(source, /c\.tipo_lancamento === 'folha_pagamento'/);
   assert.match(source, />\s*Folha de pagamento\s*</);
 });
+
+test('paid accounts expose the administrative adjustment action on desktop and mobile', () => {
+  assert.match(source, /onAjustarPago: \(conta: ContaPagar\) => void/);
+  assert.match(source, /onClick=\{\(\) => onAjustarPago\(c\)\}/);
+  assert.match(source, /Ajustar conta paga/);
+});

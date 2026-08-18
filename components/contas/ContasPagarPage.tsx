@@ -16,6 +16,8 @@ import {
   fetchPlanoGrupos,
   registrarPagamento,
   createContaPagar,
+  ajustarContaPaga as ajustarContaPagaService,
+  type AjusteContaPagaInput,
   updateContaPagar,
   upsertCodigoMes,
   deleteConta,
@@ -34,6 +36,7 @@ import type { FiltroTab } from './contasTableFilters';
 import { NovaContaModal, NovaContaOptions } from './NovaContaModal';
 import { PagarContaModal } from './PagarContaModal';
 import { EditarContaModal } from './EditarContaModal';
+import { AjustarContaPagaModal } from './AjustarContaPagaModal';
 import { ContaAuditCard } from './ContaAuditCard';
 import { ContasCalendar } from './ContasCalendar';
 import { ContasDoDiaModal } from './ContasDoDiaModal';
@@ -244,6 +247,7 @@ export const ContasPagarPage: React.FC<{
   }, [referencesLoading, referencesError, novaOpen]);
   const [pagarConta, setPagarConta] = useState<ContaPagar | null>(null);
   const [editarConta, setEditarConta] = useState<ContaPagar | null>(null);
+  const [ajustarContaPaga, setAjustarContaPaga] = useState<ContaPagar | null>(null);
   const [contaParaExcluir, setContaParaExcluir] = useState<ContaPagar | null>(null);
   const [contaParaFinalizar, setContaParaFinalizar] = useState<ContaPagar | null>(null);
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
@@ -1051,6 +1055,41 @@ export const ContasPagarPage: React.FC<{
       setLoading(false);
     }
   }, [competenciaFiltro, loadReferences]);
+
+  const confirmAjusteContaPaga = useCallback(async (input: AjusteContaPagaInput): Promise<void> => {
+    const conta = ajustarContaPaga;
+    if (!conta) throw new Error('Nenhuma conta paga selecionada para ajuste.');
+
+    const result = await run(
+      async () => {
+        const updated = await ajustarContaPagaService(conta.id, input);
+        const ym = toDateOnly(updated.competencia).slice(0, 7);
+        if (ym && ym !== competenciaFiltro) setCompetenciaFiltro(ym);
+        await refetch();
+        return updated;
+      },
+      {
+        success: 'Conta paga corrigida e registrada no histórico.',
+        error: 'Não foi possível corrigir a conta paga.',
+        rethrow: true,
+      }
+    );
+
+    if (!result) throw new Error('A correção não foi concluída.');
+    setAjustarContaPaga(null);
+  }, [ajustarContaPaga, competenciaFiltro, refetch, run, setCompetenciaFiltro]);
+
+  const abrirEdicaoConta = useCallback((conta: ContaPagar) => {
+    if (conta.status !== 'pago') {
+      setEditarConta(conta);
+      return;
+    }
+    if (conta.tipo_lancamento === 'fatura_cartao' || conta.tipo_lancamento === 'folha_pagamento') {
+      toastError('Esta conta é gerada pela origem. Corrija pelo fluxo de cartão ou folha para preservar a conciliação.');
+      return;
+    }
+    setAjustarContaPaga(conta);
+  }, [toastError]);
 
   const confirmNovaConta = useCallback(
     (payload: Partial<ContaPagar>, options?: NovaContaOptions) =>
@@ -2755,7 +2794,7 @@ export const ContasPagarPage: React.FC<{
                 key={conta.id}
                 conta={conta}
                 onPagar={(c) => setPagarConta(c)}
-                onEditar={(c) => setEditarConta(c)}
+                onEditar={abrirEdicaoConta}
                 selected={selectedIds.has(conta.id)}
                 onToggleSelect={toggleSelect}
               />
@@ -2779,6 +2818,7 @@ export const ContasPagarPage: React.FC<{
             onBuscaChange={setBusca}
             onPagar={(c) => setPagarConta(c)}
             onEditar={(c) => setEditarConta(c)}
+            onAjustarPago={(c) => setAjustarContaPaga(c)}
             onExcluir={(c) => setContaParaExcluir(c)}
             onFinalizar={(c) => setContaParaFinalizar(c)}
             selectedIds={selectedIds}
@@ -3036,6 +3076,16 @@ export const ContasPagarPage: React.FC<{
               }
             );
           }}
+        />
+
+        <AjustarContaPagaModal
+          isOpen={!!ajustarContaPaga}
+          conta={ajustarContaPaga}
+          planosConta={planosConta}
+          planoContaMaisUsados={planoContaMaisUsados}
+          contasBancarias={contasBancarias}
+          onClose={() => setAjustarContaPaga(null)}
+          onConfirm={confirmAjusteContaPaga}
         />
 
         <EditarContaModal
@@ -3624,6 +3674,7 @@ export const ContasPagarPage: React.FC<{
             onBuscaChange={setBusca}
             onPagar={(c) => setPagarConta(c)}
             onEditar={(c) => setEditarConta(c)}
+            onAjustarPago={(c) => setAjustarContaPaga(c)}
             onExcluir={(c) => setContaParaExcluir(c)}
             onFinalizar={(c) => setContaParaFinalizar(c)}
             selectedIds={selectedIds}
@@ -3659,7 +3710,7 @@ export const ContasPagarPage: React.FC<{
         }}
         onEditar={(c) => {
           setDiaModalOpen(false);
-          setEditarConta(c);
+          abrirEdicaoConta(c);
         }}
         onExcluir={(c) => {
           setDiaModalContaIdToDelete(c);
@@ -3772,6 +3823,16 @@ export const ContasPagarPage: React.FC<{
             }
           );
         }}
+      />
+
+      <AjustarContaPagaModal
+        isOpen={!!ajustarContaPaga}
+        conta={ajustarContaPaga}
+        planosConta={planosConta}
+        planoContaMaisUsados={planoContaMaisUsados}
+        contasBancarias={contasBancarias}
+        onClose={() => setAjustarContaPaga(null)}
+        onConfirm={confirmAjusteContaPaga}
       />
 
       <EditarContaModal

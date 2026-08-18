@@ -140,3 +140,12 @@ test('upsertCodigoMes clears Maria stamp by default for human edits', () => {
   assert.match(source, /observacao_operacional:\s*null/);
   assert.match(source, /\.upsert\(\[humanInput\]/);
 });
+
+test('paid account adjustments use the audited RPC instead of a direct update', () => {
+  const source = serviceSource();
+
+  assert.match(source, /export async function ajustarContaPaga/);
+  assert.match(source, /\.rpc\('contas_pagar_ajustar_paga'/);
+  assert.match(source, /conta_id/);
+  assert.match(source, /motivo/);
+});

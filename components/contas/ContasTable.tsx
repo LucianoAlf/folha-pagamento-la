@@ -29,13 +29,14 @@ export const ContasTable: React.FC<{
   onBuscaChange: (q: string) => void;
   onPagar: (conta: ContaPagar) => void;
   onEditar: (conta: ContaPagar) => void;
+  onAjustarPago: (conta: ContaPagar) => void;
   onExcluir: (conta: ContaPagar) => void;
   onFinalizar: (conta: ContaPagar) => void;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
   onToggleSelectAll?: (ids: string[]) => void;
   codigosPorConta?: Record<string, ContaPagarCodigoMes>;
-}> = ({ contas, filtro, onFiltroChange, dataInicio, dataFim, onDataInicioChange, onDataFimChange, busca, onBuscaChange, onPagar, onEditar, onExcluir, onFinalizar, selectedIds, onToggleSelect, onToggleSelectAll, codigosPorConta }) => {
+}> = ({ contas, filtro, onFiltroChange, dataInicio, dataFim, onDataInicioChange, onDataFimChange, busca, onBuscaChange, onPagar, onEditar, onAjustarPago, onExcluir, onFinalizar, selectedIds, onToggleSelect, onToggleSelectAll, codigosPorConta }) => {
   const hasSelection = !!selectedIds && !!onToggleSelect;
   const desktopGridClass = hasSelection
     ? "grid-cols-[40px_minmax(140px,1fr)_96px_102px_104px_228px]"
@@ -337,11 +338,25 @@ export const ContasTable: React.FC<{
                         </button>
                       </Tooltip>
                       {c.status === 'pago' ? (
-                        <div className="flex items-center gap-2 text-success font-black text-xs px-4 py-2">
-                          <CheckCircle2 size={14} />
-                          Liquidado
-                          {showMariaBadgeInStatus && mariaActionBadge}
-                        </div>
+                        <>
+                          <div className="flex items-center gap-2 text-success font-black text-xs px-2 py-2">
+                            <CheckCircle2 size={14} />
+                            Liquidado
+                            {showMariaBadgeInStatus && mariaActionBadge}
+                          </div>
+                          {c.tipo_lancamento !== 'fatura_cartao' && c.tipo_lancamento !== 'folha_pagamento' ? (
+                            <Tooltip content="Ajustar conta paga">
+                              <button
+                                type="button"
+                                onClick={() => onAjustarPago(c)}
+                                className="w-8 h-8 rounded-xl border border-accent/30 text-accent hover:bg-accent/10 transition-all flex items-center justify-center"
+                                aria-label="Ajustar conta paga"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                            </Tooltip>
+                          ) : null}
+                        </>
                       ) : c.status === 'finalizado' ? (
                         <div className="flex items-center gap-2 text-secondary font-black text-xs px-4 py-2">
                           <CheckSquare size={14} />
@@ -497,13 +512,23 @@ export const ContasTable: React.FC<{
                             <Bell size={14} />
                           </button>
 
-                          <button
-                            onClick={() => onEditar(c)}
-                            className="w-8 h-8 rounded-xl bg-surface/40 border border-line text-secondary flex items-center justify-center active:scale-90 transition-all"
-                            aria-label="Editar"
-                          >
-                            <Edit2 size={14} />
-                          </button>
+                          {c.status === 'pago' && c.tipo_lancamento !== 'fatura_cartao' && c.tipo_lancamento !== 'folha_pagamento' ? (
+                            <button
+                              onClick={() => onAjustarPago(c)}
+                              className="w-8 h-8 rounded-xl border border-accent/30 text-accent bg-accent/10 flex items-center justify-center active:scale-90 transition-all"
+                              aria-label="Ajustar conta paga"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => onEditar(c)}
+                              className="w-8 h-8 rounded-xl bg-surface/40 border border-line text-secondary flex items-center justify-center active:scale-90 transition-all"
+                              aria-label="Editar"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                          )}
                           
                           {c.status !== 'pago' && c.status !== 'finalizado' ? (
                             <>

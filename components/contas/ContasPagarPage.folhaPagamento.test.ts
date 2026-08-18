@@ -10,3 +10,9 @@ test('plan aggregation excludes card invoices and payroll payment instruments', 
     /function isPlanoAggregationConta[\s\S]*tipo_lancamento !== 'fatura_cartao'[\s\S]*tipo_lancamento !== 'folha_pagamento'/
   );
 });
+
+test('paid accounts have a dedicated audited adjustment modal with bank accounts available', () => {
+  assert.match(source, /AjustarContaPagaModal/);
+  assert.match(source, /contasBancarias=\{contasBancarias\}/);
+  assert.match(source, /ajustarContaPagaService\(/);
+});
