@@ -1,9 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { gerarRelatorioContasDia } from "../_shared/relatorioContasDia.ts";
+import { ensureRecorrentesInstancias } from "../_shared/recorrentesMes.ts";
 
-// Este gerador le contas existentes; recorrentes do mes sao materializadas quando o time
-// abre a tela de Contas a Pagar. Materializar no servidor fica para um passo futuro.
+// Este gerador le contas existentes e materializa as recorrentes do mes corrente antes de
+// montar (paridade com o dispatcher das 08:00), para que ocorrencias semanais/mensais
+// aparecam no preview mesmo sem alguem ter aberto a tela de Contas a Pagar.
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -101,6 +103,12 @@ Deno.serve(async (req: Request) => {
     const payload = await req.json().catch(() => ({}));
     const dataRef = normalizeDataRef(payload?.dataRef);
     const unidadeFiltro = payload?.unidadeFiltro ? String(payload.unidadeFiltro) : "todas";
+
+    try {
+      await ensureRecorrentesInstancias(supabaseAdmin, dataRef.slice(0, 7));
+    } catch (e) {
+      console.error("contas-pagar-dia-gerar: materializar recorrentes:", (e as any)?.message || e);
+    }
 
     const result = await gerarRelatorioContasDia(supabaseAdmin, {
       dataRef,
