@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ensureRecorrentesInstancias } from "./recorrentesMes.ts";
+import { ensureRecorrentesInstancias, ocorrenciasSemanaisNoMes } from "./recorrentesMes.ts";
 
 function makeAdmin({ recorrentes, existentes }) {
   const upserts = [];
@@ -91,7 +91,8 @@ test("materializa recorrentes faltantes no mes alvo e retorna a quantidade", asy
   };
   const { admin, upserts } = makeAdmin({
     recorrentes: [modelo, jaGerado],
-    existentes: [{ recorrente_modelo_id: "modelo-2" }],
+    // dedup agora e por data: a instancia de modelo-2 em out/2026 vence em 2026-10-05.
+    existentes: [{ recorrente_modelo_id: "modelo-2", data_vencimento: "2026-10-05" }],
   });
 
   const result = await ensureRecorrentesInstancias(admin, "2026-10");
@@ -99,7 +100,7 @@ test("materializa recorrentes faltantes no mes alvo e retorna a quantidade", asy
   assert.equal(result.criadas, 1);
   assert.equal(upserts.length, 1);
   assert.deepEqual(upserts[0].options, {
-    onConflict: "recorrente_modelo_id,competencia",
+    onConflict: "recorrente_modelo_id,data_vencimento",
     ignoreDuplicates: true,
   });
   assert.equal(upserts[0].payload.length, 1);
@@ -159,4 +160,73 @@ test("usa insert quando o banco nao tem constraint para on conflict", async () =
   assert.equal(inserts.length, 1);
   assert.equal(inserts[0].table, "contas_pagar");
   assert.equal(inserts[0].payload[0].recorrente_modelo_id, "modelo-1");
+});
+
+test("ocorrenciasSemanaisNoMes: leque no mesmo mes exclui a ancora", () => {
+  // ancora sexta 2026-08-07; agosto tem sextas 07,14,21,28
+  assert.deepEqual(
+    ocorrenciasSemanaisNoMes("2026-08-07", "2026-08"),
+    ["2026-08-14", "2026-08-21", "2026-08-28"]
+  );
+});
+
+test("ocorrenciasSemanaisNoMes: mes seguinte inclui todas as ocorrencias", () => {
+  // ancora 2026-08-07; setembro: 04,11,18,25
+  assert.deepEqual(
+    ocorrenciasSemanaisNoMes("2026-08-07", "2026-09"),
+    ["2026-09-04", "2026-09-11", "2026-09-18", "2026-09-25"]
+  );
+});
+
+test("ocorrenciasSemanaisNoMes: mes anterior a ancora e vazio", () => {
+  assert.deepEqual(ocorrenciasSemanaisNoMes("2026-08-07", "2026-07"), []);
+});
+
+test("modelo semanal gera as demais semanas do mes (leque por data)", async () => {
+  const modelo = {
+    id: "sem-1",
+    descricao: "Faxina Recreio",
+    valor: 150,
+    data_vencimento: "2026-08-07",
+    competencia: "2026-08-01",
+    tipo_lancamento: "recorrente",
+    recorrente_modelo_id: null,
+    recorrente_frequencia: "semanal",
+    status: "pendente",
+  };
+  const { admin, upserts } = makeAdmin({ recorrentes: [modelo], existentes: [] });
+
+  const result = await ensureRecorrentesInstancias(admin, "2026-08");
+
+  assert.equal(result.criadas, 3);
+  const datas = upserts[0].payload.map((p) => p.data_vencimento).sort();
+  assert.deepEqual(datas, ["2026-08-14", "2026-08-21", "2026-08-28"]);
+  assert.equal(upserts[0].payload.every((p) => p.recorrente_modelo_id === "sem-1"), true);
+  assert.equal(upserts[0].payload.every((p) => p.competencia === "2026-08-01"), true);
+  assert.deepEqual(upserts[0].options, {
+    onConflict: "recorrente_modelo_id,data_vencimento",
+    ignoreDuplicates: true,
+  });
+});
+
+test("modelo semanal nao regera ocorrencia ja existente (dedup por data)", async () => {
+  const modelo = {
+    id: "sem-1",
+    data_vencimento: "2026-08-07",
+    competencia: "2026-08-01",
+    tipo_lancamento: "recorrente",
+    recorrente_modelo_id: null,
+    recorrente_frequencia: "semanal",
+    status: "pendente",
+  };
+  const { admin, upserts } = makeAdmin({
+    recorrentes: [modelo],
+    existentes: [{ recorrente_modelo_id: "sem-1", data_vencimento: "2026-08-14" }],
+  });
+
+  const result = await ensureRecorrentesInstancias(admin, "2026-08");
+
+  assert.equal(result.criadas, 2);
+  const datas = upserts[0].payload.map((p) => p.data_vencimento).sort();
+  assert.deepEqual(datas, ["2026-08-21", "2026-08-28"]);
 });
