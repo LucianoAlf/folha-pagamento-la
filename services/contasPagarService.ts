@@ -112,17 +112,52 @@ export async function fetchPlanoContasMaisUsados(limit = 8): Promise<PlanoContaM
 }
 
 function dedupeRecorrentesVisao(contas: ContaPagar[]): ContaPagar[] {
-  const instanciaPorModeloMes = new Set(
+  // Esconde a linha-modelo apenas quando existe instância na MESMA data dela. Chavear por
+  // data (e não por mês) preserva o mensal e suporta o semanal (o modelo/1ª ocorrência
+  // convive com várias instâncias no mesmo mês em datas diferentes).
+  const instanciaPorModeloData = new Set(
     contas
-      .filter((c) => c.recorrente_modelo_id && c.competencia)
-      .map((c) => `${c.recorrente_modelo_id}|${toDateOnly(c.competencia).slice(0, 7)}`)
+      .filter((c) => c.recorrente_modelo_id && c.data_vencimento)
+      .map((c) => `${c.recorrente_modelo_id}|${toDateOnly(c.data_vencimento)}`)
   );
   return contas.filter((c) => {
     if (c.tipo_lancamento !== 'recorrente' || c.recorrente_modelo_id) return true;
-    const comp = toDateOnly(c.competencia).slice(0, 7);
-    if (!comp) return true;
-    return !instanciaPorModeloMes.has(`${c.id}|${comp}`);
+    const venc = toDateOnly(c.data_vencimento);
+    if (!venc) return true;
+    return !instanciaPorModeloData.has(`${c.id}|${venc}`);
   });
+}
+
+const DIA_MS = 86400000;
+function pad2(n: number): string { return String(n).padStart(2, '0'); }
+function ymdUTC(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+}
+
+/** Datas YYYY-MM-DD das ocorrências semanais (a cada 7 dias a partir da âncora) que caem no
+ *  mês alvoYM (YYYY-MM), EXCLUINDO a própria âncora (o modelo já a representa). */
+function ocorrenciasSemanaisNoMes(anchorYmd: string, alvoYM: string): string[] {
+  const a = toDateOnly(anchorYmd);
+  const m = String(alvoYM || '').match(/^(\d{4})-(\d{2})$/);
+  if (!a || !m) return [];
+  const [ay, am, ad] = a.split('-').map(Number);
+  const anchor = Date.UTC(ay, am - 1, ad);
+  const ty = Number(m[1]);
+  const tm = Number(m[2]);
+  const monthStart = Date.UTC(ty, tm - 1, 1);
+  const monthEnd = Date.UTC(ty, tm, 0);
+  let d = anchor;
+  if (d < monthStart) {
+    const steps = Math.ceil((monthStart - d) / (7 * DIA_MS));
+    d = anchor + steps * 7 * DIA_MS;
+  }
+  const out: string[] = [];
+  for (; d <= monthEnd; d += 7 * DIA_MS) {
+    if (d <= anchor) continue;
+    out.push(ymdUTC(d));
+  }
+  return out;
 }
 
 function competenciaPrimeiroDia(ymOrDate: string): string {
@@ -158,46 +193,57 @@ async function ensureRecorrentesInstancias(competenciaYM: string): Promise<void>
 
   const { data: existentes, error: errEx } = await supabase
     .from('contas_pagar')
-    .select('recorrente_modelo_id')
+    .select('recorrente_modelo_id, data_vencimento')
     .eq('competencia', alvo)
     .not('recorrente_modelo_id', 'is', null);
 
   if (errEx) throw errEx;
 
-  const geradosSet = new Set((existentes || []).map((e) => e.recorrente_modelo_id));
+  // Dedup por data: (modelo, data_vencimento). Serve mensal e semanal.
+  const geradosPorData = new Set(
+    (existentes || []).map((e) => `${e.recorrente_modelo_id}|${e.data_vencimento}`)
+  );
 
-  const faltantes = recorrentes.filter((modelo) => {
-    const inicioYM = ymFromCompetencia(modelo.competencia);
-    if (!inicioYM) return false;
-    // Só gera a partir do mês de início do modelo (ex.: julho → não aparece em junho).
-    if (alvoYM < inicioYM) return false;
-    // O registro modelo já representa o primeiro mês — não duplicar instância.
-    if (alvoYM === inicioYM) return false;
-    if (geradosSet.has(modelo.id)) return false;
-    if (modelo.status === 'pago' && competenciaPrimeiroDia(modelo.competencia) === alvo) return false;
-    return true;
-  });
-
-  if (faltantes.length === 0) return;
-
-  const novos = faltantes.map((modelo) => {
-    const dataVencOriginal = new Date(`${modelo.data_vencimento}T00:00:00`);
-    const dia = String(dataVencOriginal.getDate()).padStart(2, '0');
-    const novoVencimento = `${yyyy}-${mm}-${dia}`;
+  const makeInstancia = (modelo: any, venc: string) => {
     const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = modelo;
     return {
       ...rest,
       recorrente_modelo_id: modelo.id,
-      competencia: alvo,
-      data_vencimento: novoVencimento,
+      competencia: competenciaPrimeiroDia(venc),
+      data_vencimento: venc,
       status: 'pendente',
       data_pagamento: null,
       metodo_pagamento: null,
     };
-  });
+  };
+
+  const novos: any[] = [];
+  for (const modelo of recorrentes) {
+    const inicioYM = ymFromCompetencia(modelo.competencia);
+    if (!inicioYM || alvoYM < inicioYM) continue;
+    const freq = (modelo as any).recorrente_frequencia === 'semanal' ? 'semanal' : 'mensal';
+
+    if (freq === 'semanal') {
+      for (const venc of ocorrenciasSemanaisNoMes(modelo.data_vencimento, alvoYM)) {
+        if (geradosPorData.has(`${modelo.id}|${venc}`)) continue;
+        novos.push(makeInstancia(modelo, venc));
+      }
+    } else {
+      // O registro modelo já representa o mês de início — não duplicar instância.
+      if (alvoYM === inicioYM) continue;
+      const dataVencOriginal = new Date(`${modelo.data_vencimento}T00:00:00`);
+      const dia = String(dataVencOriginal.getDate()).padStart(2, '0');
+      const venc = `${yyyy}-${mm}-${dia}`;
+      if (geradosPorData.has(`${modelo.id}|${venc}`)) continue;
+      if (modelo.status === 'pago' && competenciaPrimeiroDia(modelo.competencia) === alvo) continue;
+      novos.push(makeInstancia(modelo, venc));
+    }
+  }
+
+  if (novos.length === 0) return;
 
   const { error: errIns } = await supabase.from('contas_pagar').upsert(novos, {
-    onConflict: 'recorrente_modelo_id,competencia',
+    onConflict: 'recorrente_modelo_id,data_vencimento',
     ignoreDuplicates: true,
   });
   if (errIns) throw errIns;
