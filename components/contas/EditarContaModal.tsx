@@ -435,6 +435,15 @@ export const EditarContaModal: React.FC<{
                   )}
                 </div>
               </div>
+              {conta?.tipo_lancamento === 'recorrente' && (
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Frequência</label>
+                  <div className="rounded-2xl border border-line bg-surface-2 px-5 py-4 text-sm font-bold text-secondary">
+                    {conta.recorrente_frequencia === 'semanal' ? 'Semanal' : 'Mensal'}
+                    <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-muted">Definida na criação</div>
+                  </div>
+                </div>
+              )}
               {isFolhaPagamento && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                   <div>

@@ -12,6 +12,14 @@ import { deriveContaPagadoraFiscal } from '../../services/financeiroFiscal';
 type LaunchType = 'unica' | 'recorrente' | 'parcelada' | 'eventual';
 type PaymentStatus = 'pendente' | 'pago';
 
+const DIAS_SEMANA_PT = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+function diaDaSemanaLabel(ymd: string): string {
+  const d = toDateOnly(ymd);
+  if (!d) return '';
+  const [y, m, dd] = d.split('-').map(Number);
+  return DIAS_SEMANA_PT[new Date(Date.UTC(y, m - 1, dd)).getUTCDay()];
+}
+
 export type NovaContaCodigoInput = {
   codigo_barras: string;
   chave_pix: string;
@@ -51,6 +59,7 @@ export const NovaContaModal: React.FC<{
   const [unidade, setUnidade] = useState<string>('cg');
 
   const [launchType, setLaunchType] = useState<LaunchType>('unica');
+  const [recorrenteFrequencia, setRecorrenteFrequencia] = useState<'mensal' | 'semanal'>('mensal');
   const [parcelas, setParcelas] = useState<number>(2);
   const [parcelaInicial, setParcelaInicial] = useState<number>(1);
   const [valorMode, setValorMode] = useState<'por_parcela' | 'total'>('por_parcela');
@@ -91,6 +100,7 @@ export const NovaContaModal: React.FC<{
     setContaPagadoraId('');
     setUnidade(unidadeDefault);
     setLaunchType('unica');
+    setRecorrenteFrequencia('mensal');
     setParcelas(2);
     setParcelaInicial(1);
     setValorMode('por_parcela');
@@ -281,6 +291,7 @@ export const NovaContaModal: React.FC<{
                     competencia,
                     status,
                     tipo_lancamento: launchType,
+                    recorrente_frequencia: launchType === 'recorrente' ? recorrenteFrequencia : null,
                     total_parcelas: launchType === 'parcelada' ? parcelas : null,
                     parcela_atual: launchType === 'parcelada' ? parcelaInicial : null,
                     data_pagamento: isEventual && status === 'pago' ? toDateOnly(dataPagamento) : null,
@@ -584,6 +595,32 @@ export const NovaContaModal: React.FC<{
               )}
             </div>
           </>)}
+
+          {launchType === 'recorrente' && (
+            <div className="mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Frequência</label>
+              <div className="flex items-center gap-2 bg-surface/40 border border-line rounded-2xl p-1 w-full md:w-[360px]">
+                {([{ id: 'mensal', label: 'Mensal' }, { id: 'semanal', label: 'Semanal' }] as const).map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setRecorrenteFrequencia(f.id)}
+                    className={cn(
+                      'flex-1 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all',
+                      recorrenteFrequencia === f.id ? 'bg-surface-2 text-accent shadow-sm' : 'text-muted hover:text-secondary'
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              {recorrenteFrequencia === 'semanal' && vencimento && (
+                <div className="mt-2 text-[10px] text-muted font-bold px-1">
+                  Repete toda {diaDaSemanaLabel(vencimento)}, a partir de {toDateOnly(vencimento)}.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* B) Prazos */}
@@ -595,7 +632,7 @@ export const NovaContaModal: React.FC<{
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !vencimento ? "text-danger" : "text-muted")}>Vencimento *</label>
+              <label className={cn("block text-[10px] font-black uppercase tracking-[0.2em] mb-2.5 px-1", tried && !vencimento ? "text-danger" : "text-muted")}>{launchType === 'recorrente' && recorrenteFrequencia === 'semanal' ? '1ª ocorrência *' : 'Vencimento *'}</label>
               <div className={cn(tried && !vencimento && "ring-1 ring-danger/60 rounded-2xl")}>
                 <DatePicker value={vencimento} onChange={(v) => setVencimento(v || '')} />
               </div>

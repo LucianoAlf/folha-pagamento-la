@@ -180,6 +180,7 @@ export interface ContaPagar {
   updated_at?: string;
   created_by?: string | null;
   recorrente_modelo_id?: string | null;
+  recorrente_frequencia?: 'mensal' | 'semanal' | null;
 }
 
 // 'hoje' = vence exatamente hoje (diffDias === 0); 'urgente' = vence em 1–7 dias.
