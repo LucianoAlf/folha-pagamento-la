@@ -66,16 +66,19 @@ function toDateOnly(value?: string | null): string {
 }
 
 export function dedupeRecorrentesVisao(contas: ContaPagar[]): ContaPagar[] {
-  const instanciaPorModeloMes = new Set(
+  // Esconde a linha-modelo apenas quando existe instancia na MESMA data dela. Chavear por
+  // data (e nao por mes) preserva o mensal e suporta o semanal, onde o modelo (1a ocorrencia)
+  // convive com varias instancias no mesmo mes em datas diferentes.
+  const instanciaPorModeloData = new Set(
     contas
-      .filter((c) => c.recorrente_modelo_id && c.competencia)
-      .map((c) => `${c.recorrente_modelo_id}|${toDateOnly(c.competencia).slice(0, 7)}`)
+      .filter((c) => c.recorrente_modelo_id && c.data_vencimento)
+      .map((c) => `${c.recorrente_modelo_id}|${toDateOnly(c.data_vencimento)}`)
   );
   return contas.filter((c) => {
     if (c.tipo_lancamento !== 'recorrente' || c.recorrente_modelo_id) return true;
-    const comp = toDateOnly(c.competencia).slice(0, 7);
-    if (!comp) return true;
-    return !instanciaPorModeloMes.has(`${c.id}|${comp}`);
+    const venc = toDateOnly(c.data_vencimento);
+    if (!venc) return true;
+    return !instanciaPorModeloData.has(`${c.id}|${venc}`);
   });
 }
 

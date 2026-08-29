@@ -1,7 +1,25 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { montarRelatorioMensagem } from './relatorioContasDia.ts';
+import { montarRelatorioMensagem, dedupeRecorrentesVisao } from './relatorioContasDia.ts';
+
+test('dedupeRecorrentesVisao: modelo semanal (1a ocorrencia) nao e escondido pelas instancias do mes', () => {
+  const modelo = { id: 'm1', tipo_lancamento: 'recorrente', recorrente_modelo_id: null,
+    competencia: '2026-08-01', data_vencimento: '2026-08-07' };
+  const inst = { id: 'i1', tipo_lancamento: 'recorrente', recorrente_modelo_id: 'm1',
+    competencia: '2026-08-01', data_vencimento: '2026-08-14' };
+  const out = dedupeRecorrentesVisao([modelo, inst]);
+  assert.equal(out.length, 2); // ambos aparecem (datas diferentes)
+});
+
+test('dedupeRecorrentesVisao: esconde o modelo quando ha instancia na MESMA data', () => {
+  const modelo = { id: 'm1', tipo_lancamento: 'recorrente', recorrente_modelo_id: null,
+    competencia: '2026-08-01', data_vencimento: '2026-08-07' };
+  const dup = { id: 'i0', tipo_lancamento: 'recorrente', recorrente_modelo_id: 'm1',
+    competencia: '2026-08-01', data_vencimento: '2026-08-07' };
+  const out = dedupeRecorrentesVisao([modelo, dup]);
+  assert.deepEqual(out.map((c) => c.id), ['i0']);
+});
 
 test('montarRelatorioMensagem preserves the WhatsApp daily report format', () => {
   const mensagem = montarRelatorioMensagem(
