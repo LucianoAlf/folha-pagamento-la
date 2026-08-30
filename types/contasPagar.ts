@@ -193,6 +193,7 @@ export const METODOS_PAGAMENTO = [
   'Cartão de Débito',
   'Débito Automático',
   'Boleto',
+  'Cheque',
   'Dinheiro',
   'Comprovante',
 ] as const;
