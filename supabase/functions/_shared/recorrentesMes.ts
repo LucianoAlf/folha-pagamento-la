@@ -94,9 +94,15 @@ export async function ensureRecorrentesInstancias(
 
   if (errEx) throw errEx;
 
-  // Dedup por data: (modelo, data_vencimento). Serve mensal e semanal.
+  // Semanal: a identidade e a DATA (varias ocorrencias por mes, em datas distintas).
   const geradosPorData = new Set(
     (existentes || []).map((e: any) => `${e.recorrente_modelo_id}|${e.data_vencimento}`)
+  );
+  // Mensal: a identidade e a COMPETENCIA (1 ocorrencia por mes). NAO chavear por data:
+  // o vencimento e mutavel (a Rose ajusta quando a fatura real chega), entao uma chave
+  // por data deixa de reconhecer a instancia ja existente e duplica o mes inteiro.
+  const modelosComInstanciaNoMes = new Set(
+    (existentes || []).map((e: any) => e.recorrente_modelo_id)
   );
 
   const makeInstancia = (modelo: ContaPagarRecorrente, venc: string) => {
@@ -126,10 +132,11 @@ export async function ensureRecorrentesInstancias(
     } else {
       // O registro modelo ja representa o mes de inicio - nao duplicar instancia.
       if (alvoYM === inicioYM) continue;
+      // Uma unica instancia por competencia (a data pode ter sido ajustada depois).
+      if (modelosComInstanciaNoMes.has(modelo.id)) continue;
       const dataVencOriginal = new Date(`${modelo.data_vencimento}T00:00:00`);
       const dia = String(dataVencOriginal.getDate()).padStart(2, '0');
       const venc = `${yyyy}-${mm}-${dia}`;
-      if (geradosPorData.has(`${modelo.id}|${venc}`)) continue;
       if (modelo.status === 'pago' && competenciaPrimeiroDia(modelo.competencia || '') === alvo) continue;
       novos.push(makeInstancia(modelo, venc));
     }

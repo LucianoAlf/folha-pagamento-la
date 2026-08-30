@@ -136,6 +136,33 @@ test("nao duplica o mes inicial do modelo", async () => {
   assert.equal(upserts.length, 0);
 });
 
+test("mensal NAO duplica quando a instancia do mes teve o vencimento ajustado", async () => {
+  // Regressao do bug de 29/08: o modelo vence dia 02; a instancia de agosto foi paga
+  // no dia 03 e ficou com data_vencimento 2026-08-03. Chavear a dedup por data nao
+  // reconheceria essa instancia (esperaria 2026-08-02) e recriaria o mes inteiro.
+  // A dedup mensal deve ser por COMPETENCIA: a instancia ja existe, entao nada e criado.
+  const modelo = {
+    id: "light-rec",
+    descricao: "PG Light Loja 170 - (Recreio)",
+    data_vencimento: "2026-07-02",
+    competencia: "2026-07-01",
+    tipo_lancamento: "recorrente",
+    recorrente_modelo_id: null,
+    recorrente_frequencia: "mensal",
+    status: "pendente",
+  };
+  const { admin, upserts, inserts } = makeAdmin({
+    recorrentes: [modelo],
+    existentes: [{ recorrente_modelo_id: "light-rec", data_vencimento: "2026-08-03" }],
+  });
+
+  const result = await ensureRecorrentesInstancias(admin, "2026-08");
+
+  assert.equal(result.criadas, 0);
+  assert.equal(upserts.length, 0);
+  assert.equal(inserts.length, 0);
+});
+
 test("usa insert quando o banco nao tem constraint para on conflict", async () => {
   const modelo = {
     id: "modelo-1",
