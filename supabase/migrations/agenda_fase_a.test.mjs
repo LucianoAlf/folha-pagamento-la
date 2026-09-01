@@ -11,8 +11,9 @@ function readBySuffix(suffix) {
 const schema = readBySuffix('_agenda_fase_a_schema.sql');
 const rls = readBySuffix('_notificacao_config_rls_por_usuario.sql');
 const dest = readBySuffix('_agenda_destinatarios_lembretes.sql');
+const devidosFix = readBySuffix('_agenda_lembretes_devidos_horizonte_por_momento.sql');
 const sync = readBySuffix('_agenda_sync_contas_pagar.sql');
-const todos = [schema, rls, dest, sync].join('\n');
+const todos = [schema, rls, dest, devidosFix, sync].join('\n');
 
 test('schema: colunas, membros, ator.user_id, indice unico de vinculo nao-parcial', () => {
   assert.match(schema, /add column if not exists parent_id uuid null references public\.tarefas\(id\) on delete set null/i);
@@ -68,6 +69,10 @@ test('funcoes: destinatarios, momento (janela 07:30-21:00), devidos, resumo_usua
     assert.match(dest, new RegExp(`revoke all on function public\\.${esc} from public, anon, authenticated`, 'i'), fn);
     assert.match(dest, new RegExp(`grant execute on function public\\.${esc} to service_role`, 'i'), fn);
   }
+  // p_ate e horizonte de momento: o corte alarga pelo offset efetivo da linha (achado #1 da revisao).
+  assert.match(devidosFix, /vencimento_em <= p_ate \+ coalesce\(t\.lembrete_minutos\[1\], nc\.lembrete_padrao_minutos, 30\) \* interval '1 minute'/i);
+  assert.match(devidosFix, /revoke all on function public\.agenda_lembretes_devidos\(timestamptz\) from public, anon, authenticated/i);
+  assert.match(devidosFix, /grant execute on function public\.agenda_lembretes_devidos\(timestamptz\) to service_role/i);
 });
 
 test('sync: funcao, cron *\\/10, colunas de dono, orfa so por conta invalida, grants fechados', () => {
