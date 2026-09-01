@@ -61,6 +61,12 @@ export interface Tarefa {
 
   google_event_id?: string | null;
 
+  // Fase A (spec §4.1)
+  parent_id?: string | null;           // filha -> tarefa-pai deste mês
+  responsavel_id?: string | null;      // NULL = membros da lista
+  concluida_por?: string | null;
+  mensagem_origem_id?: string | null;  // idempotência das RPCs da Maria
+
   created_by?: string | null;
   created_at: string;
   updated_at: string;

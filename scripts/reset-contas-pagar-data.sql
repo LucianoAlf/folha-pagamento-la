@@ -30,5 +30,4 @@ delete from public.contas_pagar;
 
 commit;
 
--- Pós-reset: abrir Agenda no app dispara syncAgendaIntegrations() e recria tarefas
--- para contas novas dentro da janela -90d / +45d.
+-- Pós-reset: o cron agenda-sync-contas-10min recria as tarefas "Pagar:" em até 10 min (ou rode: select public.agenda_sync_contas_pagar();).

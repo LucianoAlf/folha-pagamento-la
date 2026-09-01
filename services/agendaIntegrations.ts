@@ -6,19 +6,6 @@ import type { NotificacaoConfig, Tarefa, TarefaLista } from '../types/agenda';
 /* Tipos internos                                                      */
 /* ------------------------------------------------------------------ */
 
-type ContaPagarRow = {
-  id: string;
-  descricao: string;
-  unidade: 'cg' | 'rec' | 'bar' | null;
-  valor: number | null;
-  data_vencimento: string; // yyyy-mm-dd
-  status: 'pendente' | 'pago' | 'cancelado' | string;
-  data_pagamento: string | null;
-  metodo_pagamento: string | null;
-  plano_conta?: { codigo?: string | null; nome?: string | null } | null;
-  centro_custo?: { nome?: string | null } | null;
-};
-
 type FolhaRow = {
   id: number;
   ano: number;
@@ -61,26 +48,8 @@ function chunk<T>(arr: T[], size: number) {
   return out;
 }
 
-function brl(n: number) {
-  try {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
-  } catch {
-    return `R$ ${Number(n || 0).toFixed(2)}`;
-  }
-}
-
 function toDueISO(dateYmd: string, time = '09:00') {
   return new Date(`${dateYmd}T${time}:00`).toISOString();
-}
-
-function diffDays(fromYmd: string, toYmd: string) {
-  const a = new Date(`${fromYmd}T00:00:00`);
-  const b = new Date(`${toYmd}T00:00:00`);
-  return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
-}
-
-function todayYmd() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function monthLabelPt(ano: number, mes: number) {
@@ -155,221 +124,6 @@ async function fetchExistingLinkedTasks(input: {
     out.push(...(((data || []) as any) ?? []));
   }
   return out;
-}
-
-/** Remove tarefas automáticas cuja conta foi excluída ou cancelada. */
-async function cleanupOrphanContaTasks(listaFinanceiroId: string): Promise<number> {
-  const { data: tasks, error } = await supabase
-    .from('tarefas')
-    .select('id, vinculo_id')
-    .eq('lista_id', listaFinanceiroId)
-    .eq('vinculo_tipo', 'conta_pagar')
-    .not('vinculo_id', 'is', null);
-
-  if (error) throw error;
-  if (!tasks?.length) return 0;
-
-  const vinculoIds = [...new Set(tasks.map((t) => String(t.vinculo_id)).filter(Boolean))];
-  const validIds = new Set<string>();
-
-  for (const part of chunk(vinculoIds, 100)) {
-    const { data: contas, error: errContas } = await supabase
-      .from('contas_pagar')
-      .select('id, status')
-      .in('id', part);
-    if (errContas) throw errContas;
-    for (const c of contas || []) {
-      if (c.status !== 'cancelado' && c.status !== 'finalizado') {
-        validIds.add(String(c.id));
-      }
-    }
-  }
-
-  const orphanIds = tasks
-    .filter((t) => t.vinculo_id && !validIds.has(String(t.vinculo_id)))
-    .map((t) => t.id);
-
-  if (!orphanIds.length) return 0;
-
-  for (const part of chunk(orphanIds, 100)) {
-    const { error: delErr } = await supabase.from('tarefas').delete().in('id', part);
-    if (delErr) throw delErr;
-  }
-
-  console.log('[agendaIntegrations] cleanupOrphanContaTasks: removed', orphanIds.length);
-  return orphanIds.length;
-}
-
-/** Mantém 1 tarefa por conta (a mais recente) — evita duplicata na agenda. */
-async function dedupeContaTasksByVinculo(listaFinanceiroId: string): Promise<number> {
-  const { data: tasks, error } = await supabase
-    .from('tarefas')
-    .select('id, vinculo_id, created_at')
-    .eq('lista_id', listaFinanceiroId)
-    .eq('vinculo_tipo', 'conta_pagar')
-    .not('vinculo_id', 'is', null);
-
-  if (error) throw error;
-  if (!tasks?.length) return 0;
-
-  const byVinculo = new Map<string, Array<{ id: string; created_at: string }>>();
-  for (const t of tasks) {
-    const k = String(t.vinculo_id);
-    const group = byVinculo.get(k) || [];
-    group.push({ id: t.id, created_at: t.created_at });
-    byVinculo.set(k, group);
-  }
-
-  const toDelete: string[] = [];
-  for (const group of byVinculo.values()) {
-    if (group.length <= 1) continue;
-    group.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    toDelete.push(...group.slice(1).map((t) => t.id));
-  }
-
-  if (!toDelete.length) return 0;
-
-  for (const part of chunk(toDelete, 100)) {
-    const { error: delErr } = await supabase.from('tarefas').delete().in('id', part);
-    if (delErr) throw delErr;
-  }
-
-  console.log('[agendaIntegrations] dedupeContaTasksByVinculo: removed', toDelete.length);
-  return toDelete.length;
-}
-
-function pickPrimaryLinkedTask(
-  rows: Array<Pick<Tarefa, 'id' | 'vinculo_id' | 'created_at'>>
-): Map<string, Pick<Tarefa, 'id' | 'vinculo_id' | 'created_at'>> {
-  const byVinculo = new Map<string, Pick<Tarefa, 'id' | 'vinculo_id' | 'created_at'>>();
-  for (const row of rows) {
-    const k = String(row.vinculo_id);
-    const prev = byVinculo.get(k);
-    if (!prev || new Date(row.created_at || 0) > new Date(prev.created_at || 0)) {
-      byVinculo.set(k, row);
-    }
-  }
-  return byVinculo;
-}
-
-/* ------------------------------------------------------------------ */
-/* SYNC: Contas a Pagar -> Agenda                                      */
-/* ------------------------------------------------------------------ */
-
-async function syncContasAsAgendaTasks(input: { listaFinanceiroId: string; cfg: NotificacaoConfig | null }) {
-  const hoje = todayYmd();
-
-  // Janela: atrasadas recentes (ate -90d) + futuras (ate +45d)
-  const start = new Date(`${hoje}T00:00:00`);
-  start.setDate(start.getDate() - 90);
-  const end = new Date(`${hoje}T00:00:00`);
-  end.setDate(end.getDate() + 45);
-
-  const startYmd = start.toISOString().slice(0, 10);
-  const endYmd = end.toISOString().slice(0, 10);
-
-  console.log('[agendaIntegrations] syncContas: window', startYmd, '->', endYmd, 'listaId:', input.listaFinanceiroId);
-
-  const { data, error } = await supabase
-    .from('contas_pagar')
-    .select('id,descricao,unidade,valor,data_vencimento,status,data_pagamento,metodo_pagamento,plano_conta:plano_contas(codigo,nome),centro_custo:centros_custo(nome)')
-    .neq('status', 'cancelado')
-    .gte('data_vencimento', startYmd)
-    .lte('data_vencimento', endYmd)
-    .order('data_vencimento', { ascending: true });
-
-  if (error) {
-    console.warn('[agendaIntegrations] syncContas fetch error:', error.message);
-    throw error;
-  }
-
-  const contas = (data || []) as ContaPagarRow[];
-  console.log('[agendaIntegrations] syncContas: found', contas.length, 'contas in window');
-  if (!contas.length) {
-    await cleanupOrphanContaTasks(input.listaFinanceiroId);
-    await dedupeContaTasksByVinculo(input.listaFinanceiroId);
-    return;
-  }
-
-  const contaIds = contas.map((c) => c.id);
-  const existing = await fetchExistingLinkedTasks({ vinculo_tipo: 'conta_pagar', vinculo_ids: contaIds });
-  const byVinculo = pickPrimaryLinkedTask(existing);
-  console.log('[agendaIntegrations] syncContas: existing linked tasks:', existing.length);
-
-  const inserts: Record<string, any>[] = [];
-  const updates: Array<Record<string, any> & { id: string }> = [];
-
-  for (const c of contas) {
-    const due = c.data_vencimento;
-    const d = diffDays(hoje, due);
-
-    const prioridade: Tarefa['prioridade'] =
-      c.status === 'pago' ? 'baixa' : d < 0 ? 'urgente' : d === 0 ? 'alta' : d <= 3 ? 'media' : 'baixa';
-
-    const status: Tarefa['status'] = c.status === 'pago' ? 'concluida' : 'pendente';
-    const dataConclusao = c.status === 'pago' ? (c.data_pagamento ? toDueISO(c.data_pagamento.slice(0, 10), '12:00') : new Date().toISOString()) : null;
-
-    const titulo = `Pagar: ${c.descricao}`;
-    const planoLabel = c.plano_conta?.codigo && c.plano_conta?.nome ? `${c.plano_conta.codigo} ${c.plano_conta.nome}` : null;
-    const descParts = [
-      planoLabel ? `Plano: ${planoLabel}` : null,
-      `Valor: ${brl(Number(c.valor) || 0)}`,
-      c.centro_custo?.nome ? `Centro de custo: ${c.centro_custo.nome}` : c.unidade ? `Centro de custo: ${String(c.unidade).toUpperCase()}` : null,
-      c.metodo_pagamento ? `Metodo: ${c.metodo_pagamento}` : null,
-      '',
-      'Origem: Contas a Pagar (tarefa automatica)',
-    ].filter(Boolean);
-
-    const patch: Record<string, any> = {
-      titulo,
-      descricao: descParts.join('\n'),
-      lista_id: input.listaFinanceiroId,
-      categoria: 'financeiro',
-      prioridade,
-      tags: ['contas-a-pagar', 'auto'],
-      unidade: (c.unidade as any) || null,
-      vencimento_em: toDueISO(due, '09:00'),
-      dia_inteiro: true,
-      status,
-      data_conclusao: dataConclusao,
-      vinculo_tipo: 'conta_pagar',
-      vinculo_id: c.id,
-      lembrete_minutos: [30],
-      is_recorrente: false,
-      recorrencia: null,
-      recorrencia_pai_id: null,
-    };
-
-    const found = byVinculo.get(c.id);
-    if (!found) {
-      inserts.push({ ...patch, ordem: 10 });
-    } else {
-      updates.push({ id: found.id, ...patch });
-    }
-  }
-
-  console.log('[agendaIntegrations] syncContas: inserts:', inserts.length, 'updates:', updates.length);
-
-  if (inserts.length) {
-    const { error: insErr } = await supabase.from('tarefas').insert(inserts);
-    if (insErr) {
-      console.error('[agendaIntegrations] syncContas INSERT error:', insErr.message, insErr.details, insErr.hint);
-      throw insErr;
-    }
-    console.log('[agendaIntegrations] syncContas: inserted', inserts.length, 'tasks');
-  }
-
-  if (updates.length) {
-    const { error: upErr } = await supabase.from('tarefas').upsert(updates, { onConflict: 'id' });
-    if (upErr) {
-      console.error('[agendaIntegrations] syncContas UPSERT error:', upErr.message, upErr.details, upErr.hint);
-      throw upErr;
-    }
-    console.log('[agendaIntegrations] syncContas: updated', updates.length, 'tasks');
-  }
-
-  await cleanupOrphanContaTasks(input.listaFinanceiroId);
-  await dedupeContaTasksByVinculo(input.listaFinanceiroId);
 }
 
 /* ------------------------------------------------------------------ */
@@ -497,7 +251,7 @@ export async function syncAgendaIntegrations(): Promise<void> {
     return;
   }
 
-  console.log('[agendaIntegrations] Starting sync...');
+  console.log('[agendaIntegrations] Starting sync (Folha; contas a pagar sao espelhadas pelo cron agenda-sync-contas-10min)...');
 
   const cfg = await fetchNotificacaoConfigSafe();
 
@@ -513,31 +267,12 @@ export async function syncAgendaIntegrations(): Promise<void> {
 
   const listas = (listasData || []) as TarefaLista[];
 
-  const financeiro = await ensureListByName({
-    listas,
-    nome: 'Financeiro',
-    icone: '💰',
-    cor: '#8b5cf6',
-  });
-
-  const listas2 =
-    financeiro.created
-      ? (((await supabase.from('tarefas_listas').select('*').order('ordem')).data || []) as TarefaLista[])
-      : listas;
-
   const rh = await ensureListByName({
-    listas: listas2,
+    listas,
     nome: 'RH',
     icone: '👩‍💼',
     cor: '#a78bfa',
   });
-
-  // Sync contas (nao deixa folha derrubar financeiro)
-  try {
-    await syncContasAsAgendaTasks({ listaFinanceiroId: financeiro.id, cfg });
-  } catch (e: any) {
-    console.error('[agendaIntegrations] syncContas FAILED:', e?.message || e);
-  }
 
   try {
     await syncFolhaAsAgendaTasks({ listaRhId: rh.id, cfg });
