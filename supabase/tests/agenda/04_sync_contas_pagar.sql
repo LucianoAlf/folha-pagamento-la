@@ -47,12 +47,15 @@ begin
   select count(*) into v_n from public.tarefas where vinculo_tipo='conta_pagar' and vinculo_id = v_c1;
   assert v_n = 1, 'espelho duplicado: ' || v_n;
 
-  -- achado 1: data_pagamento e timestamptz na meia-noite UTC; sem normalizar, o espelho volta um dia
-  -- no fuso -03. data_conclusao tem que ser 12:00 SP da data SP do pagamento (como o cliente legado).
+  -- achado 1 (R13): data_pagamento guarda meia-noite UTC da data escolhida, entao a data de calendario
+  -- UTC e a data do pagamento; a data SP do mesmo instante e o dia anterior. Com 2026-07-01 00:00+00,
+  -- a data SP seria 2026-06-30 — esta assercao discrimina a v2 (falha) da v3 (passa).
+  update public.contas_pagar set status = 'pago', data_pagamento = timestamptz '2026-07-01 00:00:00+00' where id = v_c1;
+  v_r := public.agenda_sync_contas_pagar();
+  assert ((select data_conclusao from public.tarefas where id = v_t1) at time zone 'America/Sao_Paulo')::date = date '2026-07-01',
+    'data_conclusao deveria ser a data UTC do pagamento (2026-07-01), nao a data SP (2026-06-30)';
   assert ((select data_conclusao from public.tarefas where id = v_t1) at time zone 'America/Sao_Paulo')::time = time '12:00',
-    'data_conclusao deveria ser 12:00 SP da data SP do pagamento';
-  assert ((select data_conclusao from public.tarefas where id = v_t1) at time zone 'America/Sao_Paulo')::date = (now() at time zone 'America/Sao_Paulo')::date,
-    'data_conclusao deveria ser 12:00 SP da data SP do pagamento';
+    'data_conclusao deveria ser 12:00 SP';
 
   -- achado 2: orfa com filha ativa nao pode derrubar o sync (tarefas_guard_delete levanta P0001).
   insert into public.contas_pagar (descricao, unidade, valor, data_lancamento, data_vencimento, competencia, status, tipo_lancamento)
