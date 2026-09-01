@@ -40,7 +40,7 @@ repositório; a Maria copia pro dela ao receber. **Nada é escrito em `maria-bac
 | **Chave da recorrência = `(rotina_id, competencia)`**, único, sem filtro de status. Cancelada ocupa a chave. | `remarcar` nunca muda competência; `cancelar` é o soft-delete de instância |
 | **C — materializador e sync em plpgsql**, `pg_cron` + chamada de dentro das RPCs. | `rotina_criar` já devolve o mês corrente materializado |
 | **Fuso:** "hoje", competência e `vencimento_em` em `America/Sao_Paulo`. | Entradas `date` são calendário SP; sai `data_local` pronto |
-| **Pai não auto-conclui.** Dia próprio = etapa de fechamento. | `concluir` no pai recusa enquanto houver filha pendente |
+| **Pai não auto-conclui.** Dia próprio = etapa de fechamento. **Vencimento do pai em pacote = max(nominal do pai, nominal das filhas)** — o `dia_mes` do pai é piso. | `concluir` no pai recusa enquanto houver filha pendente; o pai nunca aparece atrasado antes da última filha |
 | **Canal padrão da agenda = grupo Financeiro** (decisão do Alf, como o TOM). Lembrete individual é **opt-in** pela tela de Notificações. | `notificacao_config` sem linha da Rose é estado normal, não falha |
 | **Digest do grupo sai pela Maria.** | Slot **08:00 no Financeiro Grupo LA Music** (§8); a Maria grava `message_id → tarefa_ids` |
 
@@ -81,7 +81,7 @@ caro da semana.
 1. **Porta grossa (papel):** `maria_assert_actor` existente, inalterado.
    - Escrita: `owner_full`, `finance_ops_write_safe`, `finance_assistant_write_safe`.
    - Leitura: os três + `strategic_read_prepare`.
-   - `gov_agent_tecnico`: **não incluído** — me digam se deve ter leitura.
+   - `gov_agent_tecnico`: **leitura** (as 3 L) — audita a agenda como audita contas.
 2. **Porta fina (lista):** `owner_full` passa. Os demais exigem
    `ator.user_id ∈ tarefas_listas_membros(lista_id)`. `listar` sem lista devolve só as listas do
    ator.
@@ -257,7 +257,9 @@ LA"**. No **"Financeiro Grupo LA Music"** (Rose · Ana) o envio está **desligad
 | **08:00** | **Maria** | **Digest de agenda → Financeiro Grupo LA Music** — lê `maria_agenda_listar(dia)`, envia, grava `message_id → tarefa_ids` |
 | horário de cada uma | app | Resumo individual **opt-in** (`whatsapp_ativo` na tela de Notificações) — completo, rotinas uma a uma, "Pagar:" agregadas numa linha |
 
-Se o laudo for ligado no Financeiro Grupo LA Music, já está em 09:00 — sem colisão.
+O laudo de contas do app **não** será ligado no Financeiro Grupo LA Music por ora (decisão do Alf):
+dois relatórios de contas com formatos diferentes na mesma conversa. Reavaliar após a fase B — se
+contas do dia entram no digest, com uma voz só.
 
 **Janela de silêncio: nenhum envio proativo fora de 07:30–21:00 SP**; o que cair fora adia pro
 início da próxima janela. Regra da casa — **vale também pro digest e pra qualquer proativo da
@@ -337,7 +339,7 @@ maria_agenda_detalhar
 maria_agenda_rotinas_listar
 ```
 
-`gov_agent_tecnico` → nenhuma (me digam se deve ter leitura).
+`gov_agent_tecnico` → as mesmas 3 de leitura.
 
 ---
 
@@ -346,26 +348,29 @@ maria_agenda_rotinas_listar
 **Migration idempotente** (`insert … where not exists` por título + lista + pai): roda de novo em
 branch e restore sem virar 22 pacotes.
 
-- **11 moldes**, lista Financeiro, `vigencia_inicio = 2026-09-01`, `hora 09:00`, dia-inteiro,
-  prioridade média, `responsavel_id` nulo (grupo). **Nunca instâncias** — o cron de 07:30
-  materializa set + out.
+- **10 moldes ativos** (+ 4 registros `encerrada`), lista Financeiro, `vigencia_inicio = 2026-09-01`,
+  `hora 09:00`, dia-inteiro, prioridade média, `responsavel_id` nulo (grupo). **Nunca instâncias** — o
+  cron de 07:30 materializa set + out.
+- **Vencimento do pai em pacote = max(nominal do pai, nominal das filhas)**; o `dia_mes` do pai é piso.
+  Com o seed: Conciliação fica 30, Depósito vai a 21, Pedir fatura a 29, Cashbacks a 3 — o pai nunca
+  aparece atrasado antes da última filha.
 - **Regras de fim de semana** (proposta por natureza; Rose ajusta por `rotina_editar`):
   `proximo_dia_util` → Depósito de Cheques, Repasses de Cartões, Dar baixa prolabore/poupança/lucros,
-  Cashbacks · `dia_util_anterior` → Conferir débito Light · `manter` → Pedir fatura, Conciliação de
-  Cartões, Relatório Mensal, Faturamento, Previsão de cheques, Repasses Bistrô.
-- **"Conferir débito automático Light (Recreio)" nasce `pausada`** — confirmar com a Rose antes de
-  reativar.
-- **As 3 encerradas do Organizer** entram como `status = 'encerrada'` (registro; ninguém recria por
-  engano).
+  Cashbacks · `manter` → Pedir fatura, Conciliação de Cartões, Relatório Mensal, Faturamento,
+  Previsão de cheques, Repasses Bistrô.
+- **"Conferir débito automático Light (Recreio)" não entra ativa:** Rose confirmou em 01/09 17:28 —
+  "pode sair" (passou a débito automático). Vira registro `encerrada` com essa observação.
+- **As 4 encerradas** (3 do Organizer + Light) entram como `status = 'encerrada'` (registro; ninguém
+  recria por engano).
 - `tarefas_listas_membros`: Financeiro ← Rose, Ana; RH ← Ana. `atores.user_id`: mapa do §3.
 
 ---
 
-## 13. Inputs pendentes
+## 13. Inputs — todos fechados em 01/09
 
-1. **Veredito da Rose** sobre "Light (Recreio)" — até lá, `pausada`.
-2. **`gov_agent_tecnico`** tem leitura? (default: não).
-3. **Laudo de contas** deve ligar também no Financeiro Grupo LA Music? (hoje só o SUPORTE recebe).
+1. **Light (Recreio):** Rose — "pode sair". Registro `encerrada`, não ativa (§12).
+2. **`gov_agent_tecnico`:** leitura, sim — as 3 RPCs L (§3, §11).
+3. **Laudo de contas no Financeiro Grupo LA Music:** não agora (§8).
 
 Não há gate de cadastro da Rose: canal padrão é o grupo; o individual é opt-in dela.
 

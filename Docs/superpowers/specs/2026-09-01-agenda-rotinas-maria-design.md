@@ -117,6 +117,9 @@ grossa; escrita recusa nomeando o problema.
 
 Política `auth_config` (`authenticated ALL`) → `user_id = auth.uid()` em select/insert/update/delete.
 `service_role` continua vendo todas (jobs iteram). `fetchNotificacaoConfig` fica como está.
+`upsertNotificacaoConfig` **já envia `user_id` no insert** (`agendaService.ts`) — o `with_check` exige
+isso; sem `user_id` a tela de Configurações daria 42501 pra quem ainda não tem linha (a Rose). A fase A
+testa o insert de usuário sem linha passando a política.
 
 ### 4.6 `agenda_materializacoes` — resultado de cada rodada
 
@@ -162,17 +165,19 @@ index (parent_id), index (responsavel_id), index (competencia), index (mensagem_
 
 ```
 para cada molde PAI com status='ativa'  (bloco exception por pai → raise warning + erros[])
-  nominal = agenda_resolve_dia(competencia, dia_mes, ultimo_dia)
-  se nominal < vigencia_inicio → pula                          -- compara NOMINAL, não ajustada
-  data = agenda_ajustar_data(nominal, se_cair_fim_de_semana)   -- pode sair do mês; competência fica
+  nominal_pai = agenda_resolve_dia(competencia, dia_mes, ultimo_dia)
+  se nominal_pai < vigencia_inicio → pula                      -- compara NOMINAL, não ajustada
+  filhas = moldes FILHA do pai com status='ativa'
+           e nominal_f = agenda_resolve_dia(competencia, filha.dia_mes, filha.ultimo_dia) >= filha.vigencia_inicio
+  nominal_pai = max(nominal_pai, max(nominal_f das filhas))    -- dia_mes do pai é PISO, não data fixa
+  data = agenda_ajustar_data(nominal_pai, se_cair_fim_de_semana)  -- pode sair do mês; competência fica
   vencimento_em = (data + hora) at time zone 'America/Sao_Paulo'
   INSERT tarefa-pai … ON CONFLICT (rotina_id, competencia) DO NOTHING
-  pai_id = id existente-ou-novo
-  para cada molde FILHA do pai com status='ativa'
-     nominal_f = agenda_resolve_dia(competencia, filha.dia_mes, filha.ultimo_dia)
-     se nominal_f < filha.vigencia_inicio → pula                -- vigência por linha
+  pai = linha existente-ou-nova
+  se pai.status in (concluida, cancelada) → filhas novas pulam (pulados += n)   -- pai fechado não ganha filha
+  senão, para cada filha:
      data_f = agenda_ajustar_data(nominal_f, filha.regra)
-     INSERT tarefa-filha (parent_id = pai_id, rotina_id = filha.id, competencia) ON CONFLICT DO NOTHING
+     INSERT tarefa-filha (parent_id = pai.id, rotina_id = filha.id, competencia) ON CONFLICT DO NOTHING
 grava agenda_materializacoes; retorna {pais_criados, filhas_criadas, pulados, erros}
 ```
 
@@ -182,6 +187,15 @@ grava agenda_materializacoes; retorna {pais_criados, filhas_criadas, pulados, er
   mês — honesto; `concluir` no pai só exige as filhas que existem.
 - `pausada`: pula, existentes intocadas. `encerrada`: pula, histórico fica. Cancelada ocupa a chave.
 - Remarcar o pai não move filha; o materializador também não.
+- **Vencimento do pai em pacote = `max(nominal do pai, nominal das filhas)`** da competência; o `dia_mes`
+  do pai é **piso**, não data fixa. Sem isso, Pedir fatura (pai 1, filhas até 29), Depósito (6, filha 21)
+  e Cashbacks (1, filhas 3) ficariam atrasados do dia seguinte até a última filha — pai que não pode
+  ser concluído e aparece vencido o mês inteiro é ruído permanente. Com o max: Conciliação fica 30,
+  Depósito vai a 21, Pedir fatura a 29, Cashbacks a 3. O max é sobre as **nominais**; a regra de FDS
+  do pai aplica depois. Instância de pai já existente **não** se move quando uma filha é adicionada
+  no meio do mês (molde muda o futuro) — o mês corrente é `remarcar`.
+- **Pai da competência já `concluida`/`cancelada` não ganha filha nova** (filha-molde adicionada dia 25
+  com pai fechado dia 20): pula e conta em `pulados`.
 - **Cron:** 07:30 SP (`30 10 * * *` UTC), mês corrente **e** próximo, competência calculada em SP.
   **RPCs** `rotina_criar` / `rotina_editar` / `rotina_filha_adicionar` / `rotina_reativar` chamam pra
   corrente + próximo na hora.
@@ -260,8 +274,10 @@ lista às 08:00.
 | **08:00** | **Maria** | **digest de agenda → Financeiro Grupo LA Music** (slot livre lá) |
 | hora de cada uma | app | resumo individual (opt-in) |
 
-Se o Alf ligar o laudo no Financeiro Grupo LA Music, ele já está configurado pra 09:00 — sem
-colisão com o digest das 08:00.
+O laudo de contas do app **não** será ligado no Financeiro Grupo LA Music por ora (decisão do Alf):
+hoje a Rose pede "contas a pagar hoje" e a Maria responde no formato que ela validou; dois relatórios
+de contas com formatos diferentes na mesma conversa é ruído. Reavaliar após a fase B — se contas do
+dia entram no digest, com uma voz só.
 
 ## 7. Contrato das RPCs `maria_agenda_*`
 
@@ -273,8 +289,8 @@ Molde: `maria_contas_dar_baixa` — `security definer`, `set search_path = publi
 
 **Autorização — `maria_agenda_assert(ator, papel, lista_id, escrita)`:**
 1. Porta grossa: `maria_assert_actor` inalterado. Escrita: `owner_full, finance_ops_write_safe,
-   finance_assistant_write_safe`; leitura: + `strategic_read_prepare`. `gov_agent_tecnico` fora
-   (decisão pendente).
+   finance_assistant_write_safe`; leitura: + `strategic_read_prepare`, `gov_agent_tecnico`
+   (audita a agenda como audita contas).
 2. Porta fina: `owner_full` passa; demais exigem `ator.user_id ∈ membros(lista)`. `listar` sem lista
    devolve só as listas do ator.
 
@@ -316,9 +332,9 @@ ACL tem `EXECUTE` pra `PUBLIC`). Query de verificação e catálogo de erros/hin
 ## 8. Seed (fase B, migration **idempotente**)
 
 `insert … where not exists (mesmo titulo + lista_id + parent_rotina_id)`. Migration roda uma vez em
-prod mas de novo em branch e restore — 11 moldes duplicados viram 22 pacotes no dia 1.
+prod mas de novo em branch e restore — 10 moldes duplicados viram 20 pacotes no dia 1.
 
-**11 moldes**, lista Financeiro, `vigencia_inicio = 2026-09-01`, `hora 09:00`, dia-inteiro,
+**10 moldes ativos** (+ 4 registros `encerrada`), lista Financeiro, `vigencia_inicio = 2026-09-01`, `hora 09:00`, dia-inteiro,
 prioridade média, `responsavel_id` nulo. **Nunca instâncias.**
 
 | Rotina | Pai | Filhas (dia) | FDS |
@@ -328,7 +344,6 @@ prioridade média, `responsavel_id` nulo. **Nunca instâncias.**
 | Depósito de Cheques | 6 | Venc 05→06 (6) · Venc 08→09 (9) · Venc 10→11 (11) · Venc 20→21 (21) | proximo_dia_util |
 | Repasses de Cartões – Maquininha | último | Recreio · Barra · CG (último dia) | proximo_dia_util |
 | Cashbacks do mês aplicados | 1 | Barra · CG · Recreio (3) | proximo_dia_util |
-| Conferir débito automático Light (Recreio) | 1 | dia 3 · dia 15 (LJ 172, LJ 168) | dia_util_anterior · **nasce `pausada`** |
 | Dar baixa prolabore/poupança/lucros – conta cheques | 1 | — | proximo_dia_util |
 | Fazer relação de previsão de cheques das escolas | 2 | — | manter |
 | Listar valores repassados para Bistrô | 3 | — | manter |
@@ -339,7 +354,9 @@ Regra de FDS do pai vale pras filhas do pacote (proposta do chat da Maria; Rose 
 `rotina_editar`/`rotina_filha_editar`).
 
 **Registro (status `encerrada`, não migradas):** Conciliação Bancária mês anterior (1), Enviar
-faturamento pro Geraldo/contador (5), Planilha do financeiro por unidade (5).
+faturamento pro Geraldo/contador (5), Planilha do financeiro por unidade (5), e **Conferir débito
+automático Light (Recreio)** — Rose confirmou em 01/09 17:28: "pode sair" (passou a débito automático);
+observação com esse texto.
 
 **Membros:** Financeiro ← Rose, Ana; RH ← Ana.
 
@@ -368,7 +385,9 @@ faturamento pro Geraldo/contador (5), Planilha do financeiro por unidade (5).
 - Materializador: idempotente (2ª rodada = 0); as 3 regras de FDS; **vigência nominal vs ajustada**
   (domingo dia 1 + `dia_util_anterior`); clamp de fev; pausada/encerrada pulam; cancelada ocupa a
   chave; filhas parciais no 1º mês; `encerrar` cancela só competência futura; `agenda_materializacoes`
-  gravada com erro simulado.
+  gravada com erro simulado; **vencimento do pai = max(nominal pai, filhas)** — Depósito 6→21, Pedir
+  fatura 1→29, Cashbacks 1→3, Conciliação fica 30; filha-molde nova sob pai da competência
+  concluído/cancelado → pulada e contada em `pulados`.
 - Sync: preserva `responsavel_id` e `parent_id`; órfã só por conta cancelada/finalizada/inexistente
   (paga há 100 d **fica**); índice único absorve execução dupla.
 - Triggers: filha de filha recusada; delete de pai com filha ativa recusado.
@@ -387,7 +406,7 @@ resumo sem truncar.
 **Front:** `npm run typecheck`; Agenda carrega sem o sync de contas.
 
 **Produção, após cada fase:** 0 duplicatas em `(rotina_id, competencia)` e `(vinculo_tipo,
-vinculo_id)`; set + out materializados = pais + filhas esperados (com Light pausada);
+vinculo_id)`; set + out materializados = pais + filhas esperados (10 moldes ativos; Light encerrada não materializa);
 `agenda_materializacoes` sem erros; **Financeiro Grupo LA Music recebeu o digest de agenda em
 02/09** (verificação da fase — não "Rose recebeu no privado").
 
@@ -402,6 +421,10 @@ Cada fase: branch → testes → deploy → verificação em produção → merg
 (finishing-a-development-branch). **B só começa com A verificada** — o `concluir` que recusa
 `conta_pagar` depende do espelho fechar pelo sync.
 
+**Ordem de deploy da fase A:** migration + `agenda_sync_contas_pagar` + cron sobem e **rodam** (1ª
+execução verificada) **antes** de o cliente perder `syncContasAsAgendaTasks` — na ordem inversa há
+janela sem espelho de conta nova.
+
 ## 12. Fronteiras e handoff
 
 | Super Folha | Maria |
@@ -412,11 +435,11 @@ Cada fase: branch → testes → deploy → verificação em produção → merg
 Handoff: `Docs/handoffs/2026-09-01-agenda-maria.md` **neste repo** (versão contrato agora; status
 `PRONTO` na fase B). A Maria copia pro dela. Nada é escrito em `maria-backup`.
 
-## 13. Inputs pendentes (não bloqueiam a fase A)
+## 13. Inputs — todos fechados em 01/09
 
-1. **Veredito da Rose** sobre "Light (Recreio)" — até lá, `pausada`.
-2. **`gov_agent_tecnico`** tem leitura? (default: não)
-3. **Laudo de contas** deve ligar também no Financeiro Grupo LA Music? (hoje só SUPORTE)
+1. **Light (Recreio):** Rose — "pode sair". Registro `encerrada`, não ativa (§8).
+2. **`gov_agent_tecnico`:** leitura, sim — as 3 RPCs L (§7).
+3. **Laudo de contas no Financeiro Grupo LA Music:** não agora (§6.6).
 
 ## 14. Follow-ups (fora desta spec)
 
