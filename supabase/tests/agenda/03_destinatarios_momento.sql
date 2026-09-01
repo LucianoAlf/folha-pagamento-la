@@ -8,6 +8,9 @@ do $t$
 declare
   v_fin uuid; v_t1 uuid; v_t2 uuid; v_t3 uuid; v_t4 uuid; v_n int; v_m timestamptz; v_r jsonb;
   v_meio_dia timestamptz := (date_trunc('day', now() at time zone 'America/Sao_Paulo') + interval '12 hours') at time zone 'America/Sao_Paulo';
+  -- Vencimento da 8b: alem do horizonte de p_ate (now+2h), dentro dele depois do alargamento
+  -- pelos 1440 min. Discrimina o predicado antigo em qualquer hora do dia.
+  v4_venc timestamptz := now() + interval '3 hours';
   c_rose constant uuid := 'cf0e4bf0-d056-4b55-83c1-92b81f6be9c4';
   c_ana  constant uuid := '81305959-dc68-4f8e-b54f-dd055dabcfd4';
 begin
@@ -49,15 +52,15 @@ begin
   select count(*) into v_n from public.agenda_lembretes_devidos(now() + interval '30 hours') where tarefa_id = v_t2;
   assert v_n = 1, 'T rose deveria render 1 linha, veio ' || v_n;
 
-  -- 8b) horizonte por momento: offset de 1440 min poe o momento 24 h antes do vencimento.
-  -- Com o filtro antigo (vencimento <= p_ate) essa linha sumia silenciosamente; agora o corte
-  -- alarga pelo offset efetivo da linha.
+  -- 8b) horizonte por momento: vencimento em now()+3h fica ALEM de p_ate (now()+2h), entao o
+  -- predicado antigo (vencimento <= p_ate) tornava a linha invisivel em qualquer hora do dia.
+  -- Com o alargamento pelo offset efetivo (1440 min) ela entra. Guarda de regressao do achado #1.
   insert into public.tarefas (titulo, status, lista_id, vencimento_em, dia_inteiro, lembrete_minutos)
-  values ('T offset 1440', 'pendente', v_fin, v_meio_dia, false, array[1440]) returning id into v_t4;
+  values ('T offset 1440', 'pendente', v_fin, v4_venc, false, array[1440]) returning id into v_t4;
   select count(*) into v_n from public.agenda_lembretes_devidos(now() + interval '2 hours') where tarefa_id = v_t4;
   assert v_n = 2, 'T offset 1440 deveria render 2 linhas (Rose e Ana), veio ' || v_n;
-  select distinct momento into v_m from public.agenda_lembretes_devidos(now() + interval '2 hours') where tarefa_id = v_t4;
-  assert v_m = v_meio_dia - interval '1440 minutes', 'momento com offset 1440 deveria ser 24h antes do vencimento, veio ' || v_m;
+  -- momento tem de vir do offset efetivo da linha, sem depender de onde a janela de silencio cai
+  assert (select min(momento) from public.agenda_lembretes_devidos(now() + interval '2 hours') where tarefa_id = v_t4) = public.agenda_momento_lembrete(v4_venc, false, 1440), 'momento da tarefa de offset 1440 nao bate com agenda_momento_lembrete';
 
   -- 9) resumo da Rose no dia de hoje (SP) inclui T grupo e T rose, nao inclui T avulsa (da Ana)
   v_r := public.agenda_resumo_usuario(c_rose, (now() at time zone 'America/Sao_Paulo')::date, 1);
