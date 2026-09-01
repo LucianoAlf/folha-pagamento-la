@@ -26,6 +26,8 @@
 
 **Desvio deliberado da spec (§6.4):** a chave de idempotência dos lembretes usa o índice **já existente** `lembretes_log_idempotency_uq (canal, tipo, coalesce(tarefa_id), coalesce(conta_pagar_id), scheduled_for, coalesce(destinatario))` — que já inclui `destinatario` — com `scheduled_for` **determinístico** (calculado do vencimento, não de `now()`), em vez de `date_trunc('hour', scheduled_for)` num índice: `date_trunc` sobre `timestamptz` é STABLE e não pode ir em expressão de índice. O efeito pedido ("dois jobs a 5 min não mandam duas vezes") vale igual, porque runs diferentes calculam o mesmo `scheduled_for`. O que **sai** é `unique_lembrete_envio (tarefa_id, canal, tipo, scheduled_for)` — sem `destinatario`, dedupicaria a segunda pessoa pela primeira.
 
+**Execução (decisão do Alf, 01/09):** Subagent-Driven. **Tasks 1–4** (escrevem no banco de produção) com **Opus**; Tasks 5–7 podem ser Sonnet; **nunca Haiku**. **A primeira execução real de `agenda_sync_contas_pagar()` (Task 4 Step 6) e o gate da Task 5 Step 1 são rodados e lidos pelo orquestrador desta sessão, não delegados** — é o único momento da fase A que toca os 532 espelhos de produção de uma vez. O subagente da Task 4 entrega a função aplicada e testada em rollback (Steps 1–5) e **para**; o orquestrador roda o Step 6.
+
 ---
 
 ## Mapa de arquivos
@@ -104,6 +106,14 @@ test('schema: triggers de profundidade e de delete', () => {
   assert.match(schema, /pai com filha ativa nao pode ser excluido\./);
 });
 
+test('schema: membros — leitura pra logados, escrita so admin (fonte de autorizacao da Maria)', () => {
+  assert.match(schema, /create policy listas_membros_select on public\.tarefas_listas_membros\s+for select using \(\(select auth\.role\(\)\) = 'authenticated'\)/i);
+  assert.match(schema, /create policy listas_membros_insert_admin on public\.tarefas_listas_membros\s+for insert with check \(public\.financeiro_cartoes_is_admin\(\)\)/i);
+  assert.match(schema, /create policy listas_membros_update_admin on public\.tarefas_listas_membros\s+for update using \(public\.financeiro_cartoes_is_admin\(\)\)/i);
+  assert.match(schema, /create policy listas_membros_delete_admin on public\.tarefas_listas_membros\s+for delete using \(public\.financeiro_cartoes_is_admin\(\)\)/i);
+  assert.doesNotMatch(schema, /tarefas_listas_membros\s+for all using/i);
+});
+
 test('schema: seed de membros e atores sem telefone', () => {
   assert.match(schema, /cf0e4bf0-d056-4b55-83c1-92b81f6be9c4/); // Rose
   assert.match(schema, /81305959-dc68-4f8e-b54f-dd055dabcfd4/); // Ana
@@ -135,6 +145,8 @@ test('funcoes: destinatarios, momento (janela 07:30-21:00), devidos, resumo_usua
 
 test('sync: funcao, cron *\\/10, colunas de dono, orfa so por conta invalida, grants fechados', () => {
   assert.match(sync, /function public\.agenda_sync_contas_pagar\(\)/i);
+  assert.match(sync, /function public\.agenda_brl\(p numeric\)\s+returns text language sql stable/i);
+  assert.doesNotMatch(sync, /agenda_brl\(p numeric\)\s+returns text language sql immutable/i);
   assert.match(sync, /on conflict \(vinculo_tipo, vinculo_id\) do update set/i);
   assert.doesNotMatch(sync, /do update set[\s\S]*?responsavel_id\s*=/i);
   assert.doesNotMatch(sync, /do update set[\s\S]*?parent_id\s*=/i);
@@ -191,9 +203,22 @@ create table if not exists public.tarefas_listas_membros (
   primary key (lista_id, user_id)
 );
 alter table public.tarefas_listas_membros enable row level security;
+-- Fonte de autorizacao da Maria (porta fina, fase B): leitura livre pra logados, escrita so admin.
+-- Com `for all authenticated`, qualquer logado se adicionaria a qualquer lista e passaria a opera-la.
+-- financeiro_cartoes_is_admin() e a checagem de admin da casa (user_profiles.role = 'admin').
 drop policy if exists auth_listas_membros on public.tarefas_listas_membros;
-create policy auth_listas_membros on public.tarefas_listas_membros
-  for all using ((select auth.role()) = 'authenticated');
+drop policy if exists listas_membros_select on public.tarefas_listas_membros;
+drop policy if exists listas_membros_insert_admin on public.tarefas_listas_membros;
+drop policy if exists listas_membros_update_admin on public.tarefas_listas_membros;
+drop policy if exists listas_membros_delete_admin on public.tarefas_listas_membros;
+create policy listas_membros_select on public.tarefas_listas_membros
+  for select using ((select auth.role()) = 'authenticated');
+create policy listas_membros_insert_admin on public.tarefas_listas_membros
+  for insert with check (public.financeiro_cartoes_is_admin());
+create policy listas_membros_update_admin on public.tarefas_listas_membros
+  for update using (public.financeiro_cartoes_is_admin()) with check (public.financeiro_cartoes_is_admin());
+create policy listas_membros_delete_admin on public.tarefas_listas_membros
+  for delete using (public.financeiro_cartoes_is_admin());
 
 -- Ator da Maria -> usuario do app (autorizacao por lista na fase B).
 alter table public.maria_whatsapp_atores add column if not exists user_id uuid null references public.user_profiles(id);
@@ -302,10 +327,11 @@ select
   (select count(*) from pg_indexes where indexname='tarefas_vinculo_uniq' and indexdef not ilike '%where%') as idx_vinculo_nao_parcial_1,
   (select count(*) from pg_trigger where tgname in ('tarefas_guard_parent','tarefas_guard_delete')) as triggers_2,
   (select count(*) from tarefas_listas_membros) as membros_3,
+  (select count(*) from pg_policies where tablename='tarefas_listas_membros') as politicas_membros_4,
   (select count(*) from maria_whatsapp_atores where user_id is not null) as atores_com_user_3;
 ```
 
-Expected: `4, 1, 2, 3, 3`.
+Expected: `4, 1, 2, 3, 4, 3`.
 
 - [ ] **Step 8: Teste comportamental das guardas (rollback)**
 
@@ -755,8 +781,10 @@ Criar `supabase/migrations/20260901200300_agenda_sync_contas_pagar.sql`:
 -- syncContasAsAgendaTasks. Uma implementacao; o cliente deixa de sincronizar contas (Task 5).
 
 -- 'R$ 1.234,56' — pattern com separadores literais (',' e '.'), independente de lc_numeric.
+-- stable, nao immutable: to_char(numeric, text) depende de lc_numeric (immutable seria mentira pequena
+-- que so doi se um dia entrar em indice).
 create or replace function public.agenda_brl(p numeric)
-returns text language sql immutable as $$
+returns text language sql stable as $$
   select 'R$ ' || replace(replace(replace(
            to_char(coalesce(p, 0), 'FM999,999,999,990.00'), ',', '#'), '.', ','), '#', '.');
 $$;
@@ -946,7 +974,7 @@ select 'PASS: 04_sync_contas_pagar' as resultado;
 Run: via MCP `execute_sql`.
 Expected: `PASS: 04_sync_contas_pagar`. Se o `insert into contas_pagar` falhar por coluna `not null` não listada, adicionar a coluna ao insert do teste com um valor neutro e reportar qual era (o fixture da casa `supabase/tests/run_contas_pagar_ajuste_pago_fixture.mjs` lista `descricao, valor, competencia, status` como obrigatórias).
 
-- [ ] **Step 6: Primeira execução real + cron ativo (gate da Task 5)**
+- [ ] **Step 6: Primeira execução real + cron ativo (gate da Task 5) — ORQUESTRADOR, não subagente**
 
 ```sql
 select public.agenda_sync_contas_pagar() as primeira_execucao;
@@ -1783,6 +1811,8 @@ select tipo, destinatario is not null as tem_destinatario, status, scheduled_for
 ```
 
 Expected: 1 linha `resumo_diario` com `status = 'enviado'`, `truncou = 0`. Zero linhas `lembrete` pra tarefas dia-inteiro (só tarefas com hora geram ping). A Ana confirma que recebeu a lista completa (rotinas uma a uma, "CONTAS: N contas hoje — R$ X (detalhe no laudo)").
+
+**Avisar a Ana — mudança de comportamento:** com o sync no servidor, marcar um "Pagar:" como concluído na tela **volta a pendente em ≤ 10 min** se a conta não foi baixada — o espelho segue a conta, por desenho (a fase B formaliza isso com `concluir` recusando espelho). "Pagar:" se fecha **dando baixa na conta**, não riscando a tarefa. Antes isso só acontecia quando ela reabria a Agenda; agora é a cada 10 min, sempre.
 
 - [ ] **Step 6: Integridade final da fase A (§10)**
 
