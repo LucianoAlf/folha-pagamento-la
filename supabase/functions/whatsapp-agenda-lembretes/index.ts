@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { planejarEnvios, type LinhaDevida } from "../_shared/agendaLembretes.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -37,49 +38,6 @@ async function getSecret(
   throw new Error(`${name} não configurado (Secrets ou Vault).`);
 }
 
-const prioridadeEmoji: Record<string, string> = {
-  baixa: "⬇️",
-  media: "➡️",
-  alta: "⚠️",
-  urgente: "🔴",
-};
-
-const categoriaEmoji: Record<string, string> = {
-  financeiro: "💵",
-  rh: "👩‍💼",
-  administrativo: "📋",
-  pessoal: "🏠",
-  geral: "📌",
-};
-
-function formatHoraPtBR(iso?: string | null) {
-  if (!iso) return "";
-  try {
-    return new Date(iso).toLocaleTimeString("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  } catch {
-    return "";
-  }
-}
-
-function formatLembrete(tarefa: any) {
-  const p = String(tarefa?.prioridade || "media");
-  const c = String(tarefa?.categoria || "geral");
-  const emoji = prioridadeEmoji[p] || "📋";
-  const cat = categoriaEmoji[c] || "📌";
-  const hora = tarefa?.vencimento_em ? formatHoraPtBR(tarefa.vencimento_em) : "";
-
-  let msg = `🔔 *LEMBRETE*\n\n${emoji} *${tarefa?.titulo || "Tarefa"}*\n\n`;
-  msg += `${cat} ${(c || "geral").toUpperCase()}\n`;
-  msg += `⏰ ${hora ? `Vence às ${hora}` : "Hoje"}\n`;
-  if (tarefa?.descricao) msg += `\n📝 ${tarefa.descricao}\n`;
-  msg += `\n_LA Music - Agenda_`;
-  return msg;
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
 
@@ -105,130 +63,74 @@ Deno.serve(async (req: Request) => {
     const uazapiUrl = await getSecret(supabase, "UAZAPI_URL");
     const uazapiToken = await getSecret(supabase, "UAZAPI_TOKEN");
 
-    // Somente Ana (primeira config ativa)
-    const { data: cfg, error: cfgErr } = await supabase
-      .from("notificacao_config")
-      .select(
-        "user_id, whatsapp_numero, whatsapp_ativo, lembrete_padrao_minutos, agenda_lembrete_tarefas_ativo",
-      )
-      .eq("whatsapp_ativo", true)
-      .not("whatsapp_numero", "is", null)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (cfgErr) throw cfgErr;
-    if (!cfg?.whatsapp_numero) {
-      return json({ success: true, message: "WhatsApp não configurado.", enviados: 0, erros: 0 }, 200);
-    }
-    if ((cfg as any)?.agenda_lembrete_tarefas_ativo === false) {
-      return json({ success: true, message: "Lembretes da Agenda desativados.", enviados: 0, erros: 0 }, 200);
-    }
-    const numeroWhatsApp = String(cfg.whatsapp_numero).replace(/\D/g, "");
-    const userId = cfg.user_id || null;
-    const defaultMin = Number(cfg.lembrete_padrao_minutos ?? 30) || 30;
-
+    // Multiusuario: uma linha por (tarefa com hora, destinatario). Cascata e janela de silencio
+    // vivem no banco (agenda_destinatarios / agenda_momento_lembrete) — aqui so entrega.
     const agora = new Date();
-    const agoraISO = agora.toISOString();
     const horizonMs = force ? 24 * 60 * 60 * 1000 : 2 * 60 * 60 * 1000;
-    const limiteISO = new Date(agora.getTime() + horizonMs).toISOString();
+    const ate = new Date(agora.getTime() + horizonMs).toISOString();
 
-    const { data: tarefas, error: tarefasErr } = await supabase
-      .from("tarefas")
-      .select("id,titulo,descricao,prioridade,categoria,vencimento_em,lembrete_minutos,status")
-      .not("vencimento_em", "is", null)
-      .in("status", ["pendente", "em_andamento"])
-      .gte("vencimento_em", agoraISO)
-      .lte("vencimento_em", limiteISO)
-      .order("vencimento_em", { ascending: true });
-    if (tarefasErr) throw tarefasErr;
+    const { data: linhas, error: linhasErr } = await supabase.rpc("agenda_lembretes_devidos", { p_ate: ate });
+    if (linhasErr) throw linhasErr;
+
+    const { envios, skipped: skippedPlano } = planejarEnvios((linhas || []) as LinhaDevida[], agora, force);
 
     let enviados = 0;
     let erros = 0;
-    let skipped = 0;
+    let skipped = skippedPlano;
 
-    for (const tarefa of tarefas || []) {
+    for (const envio of envios) {
       try {
-        const venc = new Date(tarefa.vencimento_em);
-        const mins = Array.isArray(tarefa.lembrete_minutos) && tarefa.lembrete_minutos.length
-          ? Number(tarefa.lembrete_minutos[0]) || defaultMin
-          : defaultMin;
-        const momento = new Date(venc.getTime() - mins * 60 * 1000);
-        if (!force && agora < momento) {
-          skipped++;
-          continue;
-        }
-
-        const scheduledFor = momento.toISOString();
-        const mensagem = formatLembrete(tarefa);
-
-        // log + idempotência
+        // log + idempotencia por (canal, tipo, tarefa, scheduled_for, destinatario)
         const { data: logEntry, error: logErr } = await supabase
           .from("lembretes_log")
           .insert({
-            user_id: userId,
-            tarefa_id: tarefa.id,
+            user_id: envio.user_id,
+            tarefa_id: envio.tarefa_id,
             canal: "whatsapp",
             tipo: "lembrete",
-            scheduled_for: scheduledFor,
-            destinatario: numeroWhatsApp,
-            mensagem,
+            scheduled_for: envio.scheduled_for,
+            destinatario: envio.numero,
+            mensagem: envio.mensagem,
             status: "pendente",
           })
           .select("id")
           .single();
 
         if (logErr) {
-          // 23505: unique violation (já enviado/agendado)
-          if ((logErr as any).code === "23505") {
-            skipped++;
-            continue;
-          }
+          if ((logErr as any).code === "23505") { skipped++; continue; }   // ja enviado a este destinatario
           throw logErr;
         }
 
         const res = await fetch(`${uazapiUrl.replace(/\/$/, "")}/send/text`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            token: uazapiToken,
-          },
-          body: JSON.stringify({ number: numeroWhatsApp, text: mensagem }),
+          headers: { "Content-Type": "application/json", token: uazapiToken },
+          body: JSON.stringify({ number: envio.numero, text: envio.mensagem }),
         });
-
         const raw = await res.text();
         let parsed: any = null;
-        try {
-          parsed = raw ? JSON.parse(raw) : null;
-        } catch {
-          parsed = { raw };
-        }
+        try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = { raw }; }
 
         if (res.ok) {
-          await supabase
-            .from("lembretes_log")
-            .update({
-              status: "enviado",
-              enviado_em: new Date().toISOString(),
-              provider_message_id: parsed?.message_id || parsed?.id || null,
-            })
-            .eq("id", logEntry.id);
+          await supabase.from("lembretes_log").update({
+            status: "enviado",
+            enviado_em: new Date().toISOString(),
+            provider_message_id: parsed?.message_id || parsed?.id || null,
+          }).eq("id", logEntry.id);
           enviados++;
         } else {
-          await supabase
-            .from("lembretes_log")
-            .update({
-              status: "falhou",
-              erro: parsed?.message || `Erro UAZAPI (${res.status})`,
-            })
-            .eq("id", logEntry.id);
+          await supabase.from("lembretes_log").update({
+            status: "falhou",
+            erro: parsed?.message || `Erro UAZAPI (${res.status})`,
+          }).eq("id", logEntry.id);
           erros++;
         }
       } catch (e: any) {
+        console.error("whatsapp-agenda-lembretes: envio", envio.tarefa_id, envio.user_id, e?.message || e);
         erros++;
       }
     }
 
-    return json({ success: true, enviados, erros, skipped, total: (tarefas || []).length }, 200);
+    return json({ success: true, enviados, erros, skipped, candidatos: (linhas || []).length }, 200);
   } catch (e: any) {
     console.error("❌ whatsapp-agenda-lembretes:", e?.message || e);
     return json({ success: false, error: e?.message || "Erro inesperado." }, 500);
