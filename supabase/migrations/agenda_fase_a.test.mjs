@@ -13,7 +13,8 @@ const rls = readBySuffix('_notificacao_config_rls_por_usuario.sql');
 const dest = readBySuffix('_agenda_destinatarios_lembretes.sql');
 const devidosFix = readBySuffix('_agenda_lembretes_devidos_horizonte_por_momento.sql');
 const sync = readBySuffix('_agenda_sync_contas_pagar.sql');
-const todos = [schema, rls, dest, devidosFix, sync].join('\n');
+const syncV2 = readBySuffix('_agenda_sync_contas_pagar_v2.sql');
+const todos = [schema, rls, dest, devidosFix, sync, syncV2].join('\n');
 
 test('schema: colunas, membros, ator.user_id, indice unico de vinculo nao-parcial', () => {
   assert.match(schema, /add column if not exists parent_id uuid null references public\.tarefas\(id\) on delete set null/i);
@@ -87,6 +88,12 @@ test('sync: funcao, cron *\\/10, colunas de dono, orfa so por conta invalida, gr
   assert.match(sync, /'\*\/10 \* \* \* \*'/);
   assert.match(sync, /revoke all on function public\.agenda_sync_contas_pagar\(\) from public, anon, authenticated/i);
   assert.match(sync, /grant execute on function public\.agenda_sync_contas_pagar\(\) to service_role/i);
+  // v2 (revisao): data_conclusao ao meio-dia SP, orfa com filha ativa preservada, cron preserva estado.
+  assert.match(syncV2, /at time zone 'America\/Sao_Paulo'\)::date::timestamp \+ time '12:00'\) at time zone 'America\/Sao_Paulo'/i);
+  assert.match(syncV2, /and not exists \(select 1 from public\.tarefas f where f\.parent_id = t\.id and f\.status in \('pendente','em_andamento','adiada'\)\)/i);
+  assert.match(syncV2, /cron\.alter_job\(job_id := jid, active := coalesce\(v_ativo_antes, false\)\)/i);
+  assert.doesNotMatch(syncV2, /do update set[\s\S]*?responsavel_id\s*=/i);
+  assert.match(syncV2, /revoke all on function public\.agenda_sync_contas_pagar\(\) from public, anon, authenticated/i);
 });
 
 test('fuso: nenhuma funcao agenda_% usa current_date ou now()::date', () => {

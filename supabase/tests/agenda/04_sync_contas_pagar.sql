@@ -3,7 +3,7 @@ begin;
 do $t$
 declare
   v_hoje date := (now() at time zone 'America/Sao_Paulo')::date;
-  v_c1 uuid; v_c2 uuid; v_c3 uuid; v_t1 uuid; v_r jsonb; v_n int;
+  v_c1 uuid; v_c2 uuid; v_c3 uuid; v_c4 uuid; v_t1 uuid; v_t4 uuid; v_f1 uuid; v_r jsonb; v_n int;
   c_rose constant uuid := 'cf0e4bf0-d056-4b55-83c1-92b81f6be9c4';
 begin
   -- c1: pendente, vence em 2 dias -> espelho 'media'
@@ -46,6 +46,32 @@ begin
   v_r := public.agenda_sync_contas_pagar();
   select count(*) into v_n from public.tarefas where vinculo_tipo='conta_pagar' and vinculo_id = v_c1;
   assert v_n = 1, 'espelho duplicado: ' || v_n;
+
+  -- achado 1: data_pagamento e timestamptz na meia-noite UTC; sem normalizar, o espelho volta um dia
+  -- no fuso -03. data_conclusao tem que ser 12:00 SP da data SP do pagamento (como o cliente legado).
+  assert ((select data_conclusao from public.tarefas where id = v_t1) at time zone 'America/Sao_Paulo')::time = time '12:00',
+    'data_conclusao deveria ser 12:00 SP da data SP do pagamento';
+  assert ((select data_conclusao from public.tarefas where id = v_t1) at time zone 'America/Sao_Paulo')::date = (now() at time zone 'America/Sao_Paulo')::date,
+    'data_conclusao deveria ser 12:00 SP da data SP do pagamento';
+
+  -- achado 2: orfa com filha ativa nao pode derrubar o sync (tarefas_guard_delete levanta P0001).
+  insert into public.contas_pagar (descricao, unidade, valor, data_lancamento, data_vencimento, competencia, status, tipo_lancamento)
+  values ('TESTE SYNC c4', 'cg', 77, v_hoje, v_hoje + 1, date_trunc('month', v_hoje)::date, 'pendente', 'unica')
+  returning id into v_c4;
+  v_r := public.agenda_sync_contas_pagar();
+  select id into v_t4 from public.tarefas where vinculo_tipo = 'conta_pagar' and vinculo_id = v_c4;
+  assert v_t4 is not null, 'espelho de c4 nao foi criado';
+  insert into public.tarefas (titulo, status, parent_id)
+  values ('T filha do espelho', 'pendente', v_t4)
+  returning id into v_f1;
+  update public.contas_pagar set status = 'cancelado' where id = v_c4;
+  -- se o sync levantasse P0001 aqui, o bloco inteiro abortaria e nao chegariamos ao assert.
+  v_r := public.agenda_sync_contas_pagar();
+  assert exists (select 1 from public.tarefas where id = v_t4), 'orfa com filha ativa deveria ser preservada';
+  -- filha fechada -> o espelho e colhido no ciclo seguinte
+  update public.tarefas set status = 'concluida' where id = v_f1;
+  v_r := public.agenda_sync_contas_pagar();
+  assert not exists (select 1 from public.tarefas where id = v_t4), 'orfa sem filha ativa deveria ser removida';
 end $t$;
 rollback;
 select 'PASS: 04_sync_contas_pagar' as resultado;
