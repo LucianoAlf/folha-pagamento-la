@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { montarResumo, type ResumoPayload } from "../_shared/agendaResumo.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -87,12 +88,82 @@ function withinWindow(now: Date, targetIso: string, minutesWindow = 10) {
   return n >= t0 && n <= t1;
 }
 
-function formatMoneyBRL(value: number) {
-  try {
-    return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  } catch {
-    return `R$ ${value.toFixed(2)}`;
+type Cfg = {
+  user_id: string;
+  whatsapp_numero: string | null;
+  whatsapp_ativo: boolean | null;
+  resumo_diario_ativo: boolean | null;
+  resumo_diario_hora: string | null;
+  resumo_semanal_ativo: boolean | null;
+  resumo_semanal_dia: string | null;
+  resumo_semanal_hora: string | null;
+};
+
+async function enviarResumo(
+  supabase: ReturnType<typeof createClient>,
+  uazapi: { url: string; token: string },
+  args: { cfg: Cfg; numero: string; tipo: "resumo_diario" | "resumo_semanal"; scheduledFor: string; dateStr: string; dias: number; dataLabel: string },
+): Promise<boolean> {
+  const { data: existing, error: exErr } = await supabase
+    .from("lembretes_log")
+    .select("id")
+    .eq("canal", "whatsapp")
+    .eq("tipo", args.tipo)
+    .eq("scheduled_for", args.scheduledFor)
+    .eq("destinatario", args.numero)
+    .maybeSingle();
+  if (exErr) throw exErr;
+  if (existing?.id) return false;
+
+  const { data: payload, error: pErr } = await supabase.rpc("agenda_resumo_usuario", {
+    p_user_id: args.cfg.user_id,
+    p_data: args.dateStr,
+    p_dias: args.dias,
+  });
+  if (pErr) throw pErr;
+
+  const msg = montarResumo(payload as ResumoPayload, { tipo: args.tipo === "resumo_diario" ? "diario" : "semanal", dataLabel: args.dataLabel });
+
+  const { data: logEntry, error: logErr } = await supabase
+    .from("lembretes_log")
+    .insert({
+      user_id: args.cfg.user_id,
+      canal: "whatsapp",
+      tipo: args.tipo,
+      scheduled_for: args.scheduledFor,
+      destinatario: args.numero,
+      mensagem: msg,
+      status: "pendente",
+    })
+    .select("id")
+    .single();
+  if (logErr) {
+    if ((logErr as any).code === "23505") return false;   // race: outro run ja pegou
+    throw logErr;
   }
+
+  const res = await fetch(`${uazapi.url.replace(/\/$/, "")}/send/text`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token: uazapi.token },
+    body: JSON.stringify({ number: args.numero, text: msg }),
+  });
+  const raw = await res.text();
+  let parsed: any = null;
+  try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = { raw }; }
+
+  if (res.ok) {
+    await supabase.from("lembretes_log").update({
+      status: "enviado",
+      enviado_em: new Date().toISOString(),
+      provider_message_id: parsed?.message_id || parsed?.id || null,
+    }).eq("id", logEntry.id);
+    return true;
+  }
+  await supabase.from("lembretes_log").update({
+    status: "falhou",
+    erro: parsed?.message || `Erro UAZAPI (${res.status})`,
+  }).eq("id", logEntry.id);
+  return false;
 }
 
 Deno.serve(async (req: Request) => {
@@ -104,9 +175,7 @@ Deno.serve(async (req: Request) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       return json({ success: false, error: "Supabase env vars ausentes." }, 500);
     }
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false },
-    });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
     const cronSecret = await getSecret(supabase, "WHATSAPP_CRON_SECRET");
     const headerSecret = req.headers.get("x-cron-secret") || "";
@@ -117,352 +186,69 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const force = !!body?.force;
 
-    const uazapiUrl = await getSecret(supabase, "UAZAPI_URL");
-    const uazapiToken = await getSecret(supabase, "UAZAPI_TOKEN");
+    const uazapi = { url: await getSecret(supabase, "UAZAPI_URL"), token: await getSecret(supabase, "UAZAPI_TOKEN") };
 
-    // Somente Ana (primeira config ativa)
-    const { data: cfg, error: cfgErr } = await supabase
+    // Multiusuario: todas as configs ativas (service_role ve todas). Sem config = opt-out normal.
+    const { data: cfgs, error: cfgErr } = await supabase
       .from("notificacao_config")
-      .select(
-        "user_id, whatsapp_numero, whatsapp_ativo, resumo_diario_ativo, resumo_diario_hora, resumo_semanal_ativo, resumo_semanal_dia, resumo_semanal_hora",
-      )
+      .select("user_id, whatsapp_numero, whatsapp_ativo, resumo_diario_ativo, resumo_diario_hora, resumo_semanal_ativo, resumo_semanal_dia, resumo_semanal_hora")
       .eq("whatsapp_ativo", true)
       .not("whatsapp_numero", "is", null)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .not("user_id", "is", null);
     if (cfgErr) throw cfgErr;
-    if (!cfg?.whatsapp_numero) {
-      return json({ success: true, message: "Nenhum resumo configurado.", enviados: 0 }, 200);
-    }
-    const numeroWhatsApp = String(cfg.whatsapp_numero).replace(/\D/g, "");
-    const userId = cfg.user_id || null;
 
     const now = new Date();
-    const dateStr = spDateString(now); // yyyy-mm-dd SP
+    const dateStr = spDateString(now);
     const weekdayShort = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(now);
-    const weekdayKey: Record<string, string> = {
-      Mon: "segunda",
-      Tue: "terca",
-      Wed: "quarta",
-      Thu: "quinta",
-      Fri: "sexta",
-      Sat: "sabado",
-      Sun: "domingo",
-    };
+    const weekdayKey: Record<string, string> = { Mon: "segunda", Tue: "terca", Wed: "quarta", Thu: "quinta", Fri: "sexta", Sat: "sabado", Sun: "domingo" };
     const todayKey = weekdayKey[weekdayShort] || "segunda";
-
-    const dailyActive = !!(cfg as any)?.resumo_diario_ativo;
-    const { hh: dhh, mm: dmm } = parseTimeToHHMM((cfg as any)?.resumo_diario_hora || "08:00");
-    const scheduledDaily = scheduledForIsoSp(dateStr, dhh, dmm);
-
-    const weeklyActive = !!(cfg as any)?.resumo_semanal_ativo;
-    const weeklyDay = String((cfg as any)?.resumo_semanal_dia || "domingo");
-    const { hh: whh, mm: wmm } = parseTimeToHHMM((cfg as any)?.resumo_semanal_hora || "20:00");
-    const scheduledWeekly = scheduledForIsoSp(dateStr, whh, wmm);
-
-    const shouldSendDaily = dailyActive && (force || withinWindow(now, scheduledDaily, 12));
-    const shouldSendWeekly =
-      weeklyActive && (force || (todayKey === weeklyDay && withinWindow(now, scheduledWeekly, 12)));
-
-    if (!shouldSendDaily && !shouldSendWeekly) {
-      return json({ success: true, message: "Fora da janela do envio.", enviados: 0 }, 200);
-    }
-
-    // Range do dia SP (00:00 -03 até 00:00 do dia seguinte)
-    const startIso = new Date(`${dateStr}T00:00:00-03:00`).toISOString();
-    const next = new Date(`${dateStr}T00:00:00-03:00`);
-    next.setDate(next.getDate() + 1);
-    const endIso = next.toISOString();
-
-    const diaSemana = new Intl.DateTimeFormat("pt-BR", {
-      timeZone: TZ,
-      weekday: "long",
-    }).format(now);
-    const dataFormatada = new Intl.DateTimeFormat("pt-BR", {
-      timeZone: TZ,
-      day: "2-digit",
-      month: "long",
-    }).format(now);
+    const diaSemana = new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, weekday: "long" }).format(now);
+    const dataFormatada = new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, day: "2-digit", month: "long" }).format(now);
+    const dataLabel = `${diaSemana}, ${dataFormatada}`;
 
     let enviados = 0;
+    let erros = 0;
+    let skipped = 0;
+    const detalhes: Array<Record<string, unknown>> = [];
 
-    // ===== Resumo diário =====
-    if (shouldSendDaily) {
-      const msgType = "resumo_diario";
-      const { data: existing, error: exErr } = await supabase
-        .from("lembretes_log")
-        .select("id")
-        .eq("canal", "whatsapp")
-        .eq("tipo", msgType)
-        .eq("scheduled_for", scheduledDaily)
-        .eq("destinatario", numeroWhatsApp)
-        .maybeSingle();
-      if (exErr) throw exErr;
+    for (const cfg of (cfgs || []) as Cfg[]) {
+      try {
+        const numero = String(cfg.whatsapp_numero || "").replace(/\D/g, "");
+        if (!numero) { skipped++; continue; }
 
-      if (!existing?.id) {
-        const { data: tarefasHoje, error: thErr } = await supabase
-          .from("tarefas")
-          .select("id,titulo,prioridade,vencimento_em,status")
-          .gte("vencimento_em", startIso)
-          .lt("vencimento_em", endIso)
-          .in("status", ["pendente", "em_andamento"])
-          .order("vencimento_em", { ascending: true });
-        if (thErr) throw thErr;
+        // Janela de silencio (07:30-21:00 SP) aplicada ao horario configurado — ponto unico no banco.
+        const { hh: dhh, mm: dmm } = parseTimeToHHMM(cfg.resumo_diario_hora || "08:00");
+        const { data: schedDaily, error: e1 } = await supabase.rpc("agenda_momento_lembrete", {
+          p_vencimento: scheduledForIsoSp(dateStr, dhh, dmm), p_dia_inteiro: false, p_minutos: 0,
+        });
+        if (e1) throw e1;
+        const { hh: whh, mm: wmm } = parseTimeToHHMM(cfg.resumo_semanal_hora || "20:00");
+        const { data: schedWeekly, error: e2 } = await supabase.rpc("agenda_momento_lembrete", {
+          p_vencimento: scheduledForIsoSp(dateStr, whh, wmm), p_dia_inteiro: false, p_minutos: 0,
+        });
+        if (e2) throw e2;
 
-        const { data: atrasadas, error: atErr } = await supabase
-          .from("tarefas")
-          .select("id,titulo,prioridade,vencimento_em,status")
-          .lt("vencimento_em", startIso)
-          .in("status", ["pendente", "em_andamento"]);
-        if (atErr) throw atErr;
+        const scheduledDaily = new Date(String(schedDaily)).toISOString();
+        const scheduledWeekly = new Date(String(schedWeekly)).toISOString();
+        const sendDaily = !!cfg.resumo_diario_ativo && (force || withinWindow(now, scheduledDaily, 12));
+        const sendWeekly = !!cfg.resumo_semanal_ativo && (force || (todayKey === String(cfg.resumo_semanal_dia || "domingo") && withinWindow(now, scheduledWeekly, 12)));
 
-        const { data: contasHoje, error: cErr } = await supabase
-          .from("contas_pagar")
-          .select("id,valor,status,data_vencimento")
-          .eq("data_vencimento", dateStr)
-          .eq("status", "pendente");
-        const contas = cErr ? [] : (contasHoje || []);
-
-        const totalContas = (contas as any[]).reduce(
-          (sum, c) => sum + (Number((c as any)?.valor) || 0),
-          0,
-        );
-
-        let msg = `☀️ *BOM DIA, ANA!*\n`;
-        msg += `📅 ${diaSemana}, ${dataFormatada}\n\n`;
-        msg += `📊 *SEU DIA:*\n`;
-        msg += `• ${(tarefasHoje || []).length} tarefas para hoje\n`;
-        msg += `• ${(atrasadas || []).length} atrasadas\n`;
-        msg += `• ${(contas as any[]).length} contas vencendo\n\n`;
-
-        if ((tarefasHoje || []).length) {
-          msg += `📋 *TAREFAS (HOJE):*\n`;
-          for (const t of (tarefasHoje || []).slice(0, 5)) {
-            const hora = t.vencimento_em
-              ? new Date(t.vencimento_em).toLocaleTimeString("pt-BR", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              })
-              : "";
-            const icon = t.prioridade === "urgente"
-              ? "🔴"
-              : t.prioridade === "alta"
-              ? "⚠️"
-              : "•";
-            msg += `${icon} ${hora ? `${hora} - ` : ""}${t.titulo}\n`;
-          }
-          if ((tarefasHoje || []).length > 5) {
-            msg += `_... e mais ${(tarefasHoje || []).length - 5}_\n`;
-          }
-          msg += `\n`;
+        if (sendDaily) {
+          const ok = await enviarResumo(supabase, uazapi, { cfg, numero, tipo: "resumo_diario", scheduledFor: scheduledDaily, dateStr, dias: 1, dataLabel });
+          if (ok) enviados++;
         }
-
-        if ((atrasadas || []).length) {
-          msg += `⚠️ *ATRASADAS:*\n`;
-          for (const t of (atrasadas || []).slice(0, 3)) {
-            msg += `• ${t.titulo}\n`;
-          }
-          msg += `\n`;
+        if (sendWeekly) {
+          const ok = await enviarResumo(supabase, uazapi, { cfg, numero, tipo: "resumo_semanal", scheduledFor: scheduledWeekly, dateStr, dias: 7, dataLabel });
+          if (ok) enviados++;
         }
-
-        if ((contas as any[]).length) {
-          msg += `💵 *CONTAS HOJE:* ${formatMoneyBRL(totalContas)}\n\n`;
-        }
-
-        msg += `_LA Music - Agenda_`;
-
-        const { data: logEntry, error: logErr } = await supabase
-          .from("lembretes_log")
-          .insert({
-            user_id: userId,
-            canal: "whatsapp",
-            tipo: msgType,
-            scheduled_for: scheduledDaily,
-            destinatario: numeroWhatsApp,
-            mensagem: msg,
-            status: "pendente",
-          })
-          .select("id")
-          .single();
-        if (logErr) {
-          if ((logErr as any).code === "23505") {
-            // race: alguém enviou
-          } else {
-            throw logErr;
-          }
-        } else {
-          const res = await fetch(`${uazapiUrl.replace(/\/$/, "")}/send/text`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", token: uazapiToken },
-            body: JSON.stringify({ number: numeroWhatsApp, text: msg }),
-          });
-
-          const raw = await res.text();
-          let parsed: any = null;
-          try {
-            parsed = raw ? JSON.parse(raw) : null;
-          } catch {
-            parsed = { raw };
-          }
-
-          if (res.ok) {
-            await supabase
-              .from("lembretes_log")
-              .update({
-                status: "enviado",
-                enviado_em: new Date().toISOString(),
-                provider_message_id: parsed?.message_id || parsed?.id || null,
-              })
-              .eq("id", logEntry.id);
-            enviados++;
-          } else {
-            await supabase
-              .from("lembretes_log")
-              .update({
-                status: "falhou",
-                erro: parsed?.message || `Erro UAZAPI (${res.status})`,
-              })
-              .eq("id", logEntry.id);
-          }
-        }
+        detalhes.push({ user_id: cfg.user_id, sendDaily, sendWeekly, scheduledDaily, scheduledWeekly });
+      } catch (e: any) {
+        console.error("whatsapp-agenda-resumo: usuario", cfg.user_id, e?.message || e);
+        erros++;
       }
     }
 
-    // ===== Resumo semanal =====
-    if (shouldSendWeekly) {
-      const msgType = "resumo_semanal";
-      const { data: existing, error: exErr } = await supabase
-        .from("lembretes_log")
-        .select("id")
-        .eq("canal", "whatsapp")
-        .eq("tipo", msgType)
-        .eq("scheduled_for", scheduledWeekly)
-        .eq("destinatario", numeroWhatsApp)
-        .maybeSingle();
-      if (exErr) throw exErr;
-
-      if (!existing?.id) {
-        const endDate = new Date(`${dateStr}T00:00:00-03:00`);
-        endDate.setDate(endDate.getDate() + 7);
-        const endStr = spDateString(endDate);
-        const start7Iso = new Date(`${dateStr}T00:00:00-03:00`).toISOString();
-        const end7Iso = new Date(`${endStr}T00:00:00-03:00`).toISOString();
-
-        const { data: tarefasSemana, error: tsErr } = await supabase
-          .from("tarefas")
-          .select("id,titulo,prioridade,vencimento_em,status")
-          .gte("vencimento_em", start7Iso)
-          .lt("vencimento_em", end7Iso)
-          .in("status", ["pendente", "em_andamento"])
-          .order("vencimento_em", { ascending: true });
-        if (tsErr) throw tsErr;
-
-        const { data: atrasadas, error: atErr } = await supabase
-          .from("tarefas")
-          .select("id,titulo,prioridade,vencimento_em,status")
-          .lt("vencimento_em", startIso)
-          .in("status", ["pendente", "em_andamento"]);
-        if (atErr) throw atErr;
-
-        const { data: contasSemana, error: cErr } = await supabase
-          .from("contas_pagar")
-          .select("id,valor,status,data_vencimento")
-          .eq("status", "pendente")
-          .gte("data_vencimento", dateStr)
-          .lte("data_vencimento", endStr);
-        const contas = cErr ? [] : (contasSemana || []);
-        const totalContas = (contas as any[]).reduce(
-          (sum, c) => sum + (Number((c as any)?.valor) || 0),
-          0,
-        );
-
-        let msg = `📊 *RESUMO SEMANAL — AGENDA*\n`;
-        msg += `📅 ${diaSemana}, ${dataFormatada}\n\n`;
-        msg += `• ${(tarefasSemana || []).length} tarefas (7 dias)\n`;
-        msg += `• ${(atrasadas || []).length} atrasadas\n`;
-        msg += `• ${(contas as any[]).length} contas vencendo — ${formatMoneyBRL(totalContas)}\n\n`;
-
-        if ((tarefasSemana || []).length) {
-          msg += `📋 *PRÓXIMAS TAREFAS:*\n`;
-          for (const t of (tarefasSemana || []).slice(0, 8)) {
-            const dt = t.vencimento_em
-              ? new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, day: "2-digit", month: "2-digit" }).format(new Date(t.vencimento_em))
-              : "";
-            const icon = t.prioridade === "urgente"
-              ? "🔴"
-              : t.prioridade === "alta"
-              ? "⚠️"
-              : "•";
-            msg += `${icon} ${dt ? `${dt} - ` : ""}${t.titulo}\n`;
-          }
-          if ((tarefasSemana || []).length > 8) {
-            msg += `_... e mais ${(tarefasSemana || []).length - 8}_\n`;
-          }
-          msg += `\n`;
-        }
-
-        msg += `_LA Music - Agenda_`;
-
-        const { data: logEntry, error: logErr } = await supabase
-          .from("lembretes_log")
-          .insert({
-            user_id: userId,
-            canal: "whatsapp",
-            tipo: msgType,
-            scheduled_for: scheduledWeekly,
-            destinatario: numeroWhatsApp,
-            mensagem: msg,
-            status: "pendente",
-          })
-          .select("id")
-          .single();
-        if (logErr) {
-          if ((logErr as any).code === "23505") {
-            // race
-          } else {
-            throw logErr;
-          }
-        } else {
-          const res = await fetch(`${uazapiUrl.replace(/\/$/, "")}/send/text`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", token: uazapiToken },
-            body: JSON.stringify({ number: numeroWhatsApp, text: msg }),
-          });
-
-          const raw = await res.text();
-          let parsed: any = null;
-          try {
-            parsed = raw ? JSON.parse(raw) : null;
-          } catch {
-            parsed = { raw };
-          }
-
-          if (res.ok) {
-            await supabase
-              .from("lembretes_log")
-              .update({
-                status: "enviado",
-                enviado_em: new Date().toISOString(),
-                provider_message_id: parsed?.message_id || parsed?.id || null,
-              })
-              .eq("id", logEntry.id);
-            enviados++;
-          } else {
-            await supabase
-              .from("lembretes_log")
-              .update({
-                status: "falhou",
-                erro: parsed?.message || `Erro UAZAPI (${res.status})`,
-              })
-              .eq("id", logEntry.id);
-          }
-        }
-      }
-    }
-
-    return json({ success: true, enviados, scheduled_daily: scheduledDaily, scheduled_weekly: scheduledWeekly }, 200);
+    return json({ success: true, enviados, erros, skipped, usuarios: (cfgs || []).length, detalhes }, 200);
   } catch (e: any) {
     console.error("❌ whatsapp-agenda-resumo:", e?.message || e);
     return json({ success: false, error: e?.message || "Erro inesperado." }, 500);
