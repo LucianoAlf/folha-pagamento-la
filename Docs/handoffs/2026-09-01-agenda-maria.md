@@ -1,9 +1,15 @@
 # HANDOFF — Agenda × Maria (contrato das RPCs `maria_agenda_*`)
 
-> **STATUS: CONTRATO PRÉ-IMPLEMENTAÇÃO — 01/09/2026.**
-> **Nada abaixo existe no banco ainda.** Este arquivo fixa nomes, grants, shapes de retorno e
-> semânticas **aprovados** no design (Super Folha, spec `Docs/superpowers/specs/2026-09-01-agenda-rotinas-maria-design.md`),
-> pra que o lado da Maria prepare tools, allowlist e o `maria_agenda_envios` em paralelo.
+> **STATUS: PRONTO — 02/09/2026.** As 19 RPCs `maria_agenda_*` (4 de leitura, 7 de tarefa, 8 de
+> rotina) **existem em produção** com os grants do §9 e estão inscritas na allowlist da Maria
+> (owner/rose/ana: todas; leitura/laudo: as 4 de leitura). Migrations `maria_agenda_rpcs_tarefas`
+> (`20260902015450`, commit `80aeff5`) e `maria_agenda_rpcs_rotinas` (commit `4f9ddf6`), ambas do lado da
+> Maria. Assinaturas reais e evidência em §9 e §14. Ordem dos parâmetros: **domínio primeiro, contexto do
+> ator por último** (`p_ator_numero, p_papel, p_canal[, p_texto_original, p_motivo, p_mensagem_origem_id,
+> p_canal_origem]`), sem defaults — a Maria chama por posição via MCP.
+>
+> Histórico: contrato pré-implementação fixado em 01/09/2026 (Super Folha, spec
+> `Docs/superpowers/specs/2026-09-01-agenda-rotinas-maria-design.md`).
 >
 > **Final aqui:** nomes das 18 RPCs, grant de cada uma, regras de negócio, shapes de retorno,
 > catálogo de erros, agenda da manhã, semântica de destinatários, seed.
@@ -287,13 +293,16 @@ select p.proname, p.proacl
  order by p.proname;
 ```
 
-**Saída esperada** (a real vai colada aqui na versão `PRONTO`):
+**Saída real em 02/09/2026 (33 funções, nenhuma sobrecarga, nenhum `proacl` nulo):**
 
-- Escrita (E): `{postgres=X/postgres,service_role=X/postgres,maria_operacional=X/postgres}`
-- Leitura (L): o mesmo **+** `maria_leitura=X/postgres`
-- **Nunca**: entrada `=X/…` sem nome (é `PUBLIC`), `anon=…`, `authenticated=…`.
-- **`proacl` NULO é FALHA**, não sucesso: função sem ACL explícita tem `EXECUTE` pra `PUBLIC` por
-  padrão.
+| Grupo | Funções | `proacl` |
+|---|---|---|
+| L (4) | `listas(p_ator_numero,p_papel,p_canal)` · `listar(p_escopo,p_data,p_data_fim,p_lista_id,p_responsavel_id,p_busca,p_incluir_concluidas,+ctx3)` · `detalhar(p_tarefa_id,+ctx3)` · `rotinas_listar(p_lista_id,p_status,+ctx3)` | `{postgres=X/postgres,service_role=X/postgres,maria_operacional=X/postgres,maria_leitura=X/postgres}` |
+| E tarefa (7) | `criar(p_titulo,p_lista_id,p_data,p_dia_inteiro,p_hora,p_prioridade,p_responsavel_id,p_descricao,p_parent_id,+ctx7)` · `editar(p_tarefa_id,p_titulo,p_descricao,p_prioridade,p_lista_id,p_responsavel_id,p_limpar_responsavel,+ctx7)` · `remarcar(p_tarefa_id,p_nova_data,p_hora,+ctx7)` · `concluir/reabrir/cancelar/excluir(p_tarefa_id,+ctx7)` | `{postgres=X/postgres,service_role=X/postgres,maria_operacional=X/postgres}` |
+| E rotina (8) | `rotina_criar(p_titulo,p_lista_id,p_dia_mes,p_ultimo_dia,p_se_cair_fim_de_semana,p_hora,p_dia_inteiro,p_prioridade,p_responsavel_id,p_descricao,p_vigencia_inicio,+ctx7)` · `rotina_editar(p_rotina_id,p_titulo,p_descricao,p_dia_mes,p_ultimo_dia,p_se_cair_fim_de_semana,p_hora,p_dia_inteiro,p_prioridade,p_responsavel_id,p_limpar_responsavel,+ctx7)` · `rotina_filha_adicionar(p_rotina_pai_id,p_titulo,p_dia_mes,p_ultimo_dia,p_se_cair_fim_de_semana,p_prioridade,p_responsavel_id,p_descricao,+ctx7)` · `rotina_filha_editar(p_rotina_filha_id,p_titulo,p_descricao,p_dia_mes,p_ultimo_dia,p_se_cair_fim_de_semana,p_prioridade,p_responsavel_id,p_limpar_responsavel,+ctx7)` · `rotina_filha_remover(p_rotina_filha_id,+ctx7)` · `rotina_pausar/rotina_reativar/rotina_encerrar(p_rotina_id,+ctx7)` | idem E |
+| helpers (14) | `assert`, `assert_tarefa`, `pode_ver`, `progresso_pai`, `montar_vencimento`, `categoria_da_lista`, `tarefa_json`, `resumo_linha`, `validar_rotina`, `rotina_proxima_data`, `rotina_json_base`, `rotina_json`, `rotina_resumo`, `rotina_encerrar_linha` | `{postgres=X/postgres,service_role=X/postgres}` (sem `maria_*`) |
+
+`ctx3` = `p_ator_numero text, p_papel text, p_canal text`; `ctx7` = `ctx3 + p_texto_original text, p_motivo text, p_mensagem_origem_id text, p_canal_origem text`. `p_hora` é `time`; `p_dia_mes` é `integer`. **Nunca**: entrada `=X/…` sem nome (é `PUBLIC`), `anon=…`, `authenticated=…`; `proacl` nulo é falha. Os testes de banco do lado da Maria falham se qualquer uma dessas condições mudar ou se aparecer sobrecarga em `maria_agenda_*`.
 
 ---
 
@@ -388,13 +397,15 @@ Não há gate de cadastro da Rose: canal padrão é o grupo; o individual é opt
 
 ## 14. O que muda quando a fase B pousar (checklist do `PRONTO`)
 
-- [ ] Status deste arquivo → `PRONTO — <data>`
-- [ ] Assinaturas finais (tipos e ordem exatos) de cada RPC
-- [ ] Saída real da query de `proacl` (§9) colada
-- [ ] Versões das migrations em `supabase_migrations.schema_migrations`
-- [ ] Evidência dos testes (SQL `begin…rollback` + `node --test`) resumida
-- [ ] Contagem em produção: 0 duplicatas em `(rotina_id, competencia)` e `(vinculo_tipo, vinculo_id)`; set + out materializados = pais + filhas esperados; `agenda_materializacoes` sem erros
-- [ ] **Financeiro Grupo LA Music recebeu o digest de agenda em 02/09** (verificação da fase)
+- [x] Status deste arquivo → `PRONTO — 02/09/2026`
+- [x] Assinaturas finais (tipos e ordem exatos) de cada RPC — §9
+- [x] Saída real da query de `proacl` (§9) colada
+- [x] Versões das migrations: `maria_agenda_rpcs_tarefas` = `20260902015450`; `maria_agenda_rpcs_rotinas` = aplicada 02/09 ~07:15 SP (arquivos `20260902020000_…` e `20260902110000_…` no repo; nunca `supabase db push` daqui)
+- [x] Evidência dos testes: banco — `tests/test_maria_agenda_rpcs.py` (11 blocos) e `tests/test_maria_agenda_rotinas.py` (10 blocos), ambos em transação desfeita, no workspace da Maria; estáticos — `maria_agenda_rpcs.test.mjs` + `maria_agenda_rotinas.test.mjs` no `npm test` (60/60). Ponta a ponta: Maria (agente `maria-rose`) listou agenda do dia, atrasadas e rotinas com filhas e datas pelas tools.
+- [x] Contagem em produção (B1, 02/09): 64 instâncias set+out, 0 duplicatas, 0 órfãs, `agenda_materializacoes` sem erros
+- [ ] **Financeiro Grupo LA Music recebeu o digest de agenda** — pendente do lado da Maria (digest 08:00 ainda não construído; primeira execução prevista para 03/09)
+
+**Fase B2 (RPCs, lado da Maria) entregue em 02/09/2026:** 10 RPCs de tarefa (`maria_agenda_rpcs_tarefas`) + 9 de rotina (`maria_agenda_rpcs_rotinas`), `maria_agenda_assert` (porta grossa `maria_assert_actor` + porta fina por `tarefas_listas_membros`), 19 tools no MCP da Maria e allowlist por agente, seção "Agenda" no AGENTS.md dela. Regras confirmadas em teste: espelho `conta_pagar` recusa concluir/remarcar/cancelar/excluir com hint `maria_contas_dar_baixa`/`alterar_vencimento`; pai com filha pendente não conclui; instância de rotina não se exclui (cancela); molde editado vale dos próximos meses; pausar não toca instâncias; encerrar/remover cancela só instâncias pendentes de competência futura e nunca apaga molde; idempotência por `(mensagem_origem_id, titulo[, pai])`. Fora do escopo original e ainda do lado da Maria: digest 08:00 no grupo, agenda na sonda/laudo/conformidade (inclui alerta de `agenda_materializacoes.erros`), `maria_agenda_envios`.
 
 **Fase A entregue em 01/09/2026:** `tarefas.parent_id/responsavel_id/concluida_por/mensagem_origem_id`, `tarefas_listas_membros` (Financeiro ← Rose, Ana; RH ← Ana), `maria_whatsapp_atores.user_id` (3 atores), `agenda_destinatarios`, `agenda_momento_lembrete`, `agenda_sync_contas_pagar` + cron. Migrations: `20260901211626`, `20260901213004`, `20260901214314`, `20260901215613`, `20260901230636`, `20260901232341`, `20260901233302`. Status geral continua **pré-implementação** até a fase B (RPCs).
 
