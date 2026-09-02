@@ -12,6 +12,41 @@ export type ResumoOpts = { tipo: 'diario' | 'semanal'; dataLabel: string };
 
 const TZ = 'America/Sao_Paulo';
 
+/* ------------------------------------------------------------------ */
+/* Decisao de envio (I-5): estava inline no edge, sem teste. Puro.     */
+/* ------------------------------------------------------------------ */
+
+export function parseTimeToHHMM(value: any) {
+  const s = String(value || "").trim();
+  // time columns may come as "08:00:00"
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return { hh: 8, mm: 0 };
+  return { hh: Number(m[1]), mm: Number(m[2]) };
+}
+
+export function scheduledForIsoSp(dateStr: string, hh: number, mm: number) {
+  // SP sem DST atualmente; usamos offset -03:00
+  const iso = `${dateStr}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00-03:00`;
+  return new Date(iso).toISOString();
+}
+
+export function withinWindow(now: Date, targetIso: string, minutesWindow = 10) {
+  const target = new Date(targetIso).getTime();
+  const t0 = target;
+  const t1 = target + minutesWindow * 60 * 1000;
+  const n = now.getTime();
+  return n >= t0 && n <= t1;
+}
+
+/** Escolhe o candidato (ISO) que está dentro da janela [t, t+janelaMin] agora; null se nenhum. */
+export function escolherDisparo(now: Date, candidatosIso: Array<string | null | undefined>, janelaMin = 12): string | null {
+  for (const c of candidatosIso) {
+    if (!c) continue;
+    if (withinWindow(now, c, janelaMin)) return new Date(c).toISOString();
+  }
+  return null;
+}
+
 export function brl(v: number): string {
   const n = Math.round((Number(v) || 0) * 100) / 100;
   const [i, d] = n.toFixed(2).split('.');

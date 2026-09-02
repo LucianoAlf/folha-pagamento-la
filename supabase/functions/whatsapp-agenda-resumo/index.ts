@@ -1,6 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { montarResumo, type ResumoPayload } from "../_shared/agendaResumo.ts";
+import {
+  escolherDisparo,
+  montarResumo,
+  parseTimeToHHMM,
+  scheduledForIsoSp,
+  type ResumoPayload,
+} from "../_shared/agendaResumo.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -66,26 +72,18 @@ function spDateString(now = new Date()) {
   return `${p.yyyy}-${p.mm}-${p.dd}`;
 }
 
-function parseTimeToHHMM(value: any) {
-  const s = String(value || "").trim();
-  // time columns may come as "08:00:00"
-  const m = s.match(/^(\d{1,2}):(\d{2})/);
-  if (!m) return { hh: 8, mm: 0 };
-  return { hh: Number(m[1]), mm: Number(m[2]) };
-}
+// parseTimeToHHMM / scheduledForIsoSp / withinWindow / escolherDisparo vivem em _shared/agendaResumo.ts (I-5).
 
-function scheduledForIsoSp(dateStr: string, hh: number, mm: number) {
-  // SP sem DST atualmente; usamos offset -03:00
-  const iso = `${dateStr}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00-03:00`;
-  return new Date(iso).toISOString();
-}
-
-function withinWindow(now: Date, targetIso: string, minutesWindow = 10) {
-  const target = new Date(targetIso).getTime();
-  const t0 = target;
-  const t1 = target + minutesWindow * 60 * 1000;
-  const n = now.getTime();
-  return n >= t0 && n <= t1;
+/** Aplica a janela de silencio (07:30-21:00 SP) no banco — ponto unico. Null se a RPC devolver null. */
+async function clampMomento(
+  supabase: ReturnType<typeof createClient>,
+  vencimentoIso: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc("agenda_momento_lembrete", {
+    p_vencimento: vencimentoIso, p_dia_inteiro: false, p_minutos: 0,
+  });
+  if (error) throw error;
+  return data ? new Date(String(data)).toISOString() : null;
 }
 
 type Cfg = {
@@ -199,9 +197,14 @@ Deno.serve(async (req: Request) => {
 
     const now = new Date();
     const dateStr = spDateString(now);
+    // Ontem entra como candidato: o clamp de um horario > 21:00 SP cai em "amanha 07:30", que so
+    // fica dentro da janela no dia seguinte — sem esse candidato o usuario nunca receberia (I-4).
+    const ontemDate = new Date(now.getTime() - 86400000);
+    const ontemStr = spDateString(ontemDate);
     const weekdayShort = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(now);
     const weekdayKey: Record<string, string> = { Mon: "segunda", Tue: "terca", Wed: "quarta", Thu: "quinta", Fri: "sexta", Sat: "sabado", Sun: "domingo" };
     const todayKey = weekdayKey[weekdayShort] || "segunda";
+    const ontemKey = weekdayKey[new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(ontemDate)] || "segunda";
     const diaSemana = new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, weekday: "long" }).format(now);
     const dataFormatada = new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, day: "2-digit", month: "long" }).format(now);
     const dataLabel = `${diaSemana}, ${dataFormatada}`;
@@ -217,31 +220,41 @@ Deno.serve(async (req: Request) => {
         if (!numero) { skipped++; continue; }
 
         // Janela de silencio (07:30-21:00 SP) aplicada ao horario configurado — ponto unico no banco.
-        const { hh: dhh, mm: dmm } = parseTimeToHHMM(cfg.resumo_diario_hora || "08:00");
-        const { data: schedDaily, error: e1 } = await supabase.rpc("agenda_momento_lembrete", {
-          p_vencimento: scheduledForIsoSp(dateStr, dhh, dmm), p_dia_inteiro: false, p_minutos: 0,
-        });
-        if (e1) throw e1;
-        const { hh: whh, mm: wmm } = parseTimeToHHMM(cfg.resumo_semanal_hora || "20:00");
-        const { data: schedWeekly, error: e2 } = await supabase.rpc("agenda_momento_lembrete", {
-          p_vencimento: scheduledForIsoSp(dateStr, whh, wmm), p_dia_inteiro: false, p_minutos: 0,
-        });
-        if (e2) throw e2;
+        // Candidatos: o clamp de hoje e o de ontem; o primeiro dentro da janela vence (I-4).
+        let scheduledDaily: string | null = null;
+        let clampDailyHoje: string | null = null;
+        if (cfg.resumo_diario_ativo) {
+          const { hh: dhh, mm: dmm } = parseTimeToHHMM(cfg.resumo_diario_hora || "08:00");
+          clampDailyHoje = await clampMomento(supabase, scheduledForIsoSp(dateStr, dhh, dmm));
+          const clampDailyOntem = await clampMomento(supabase, scheduledForIsoSp(ontemStr, dhh, dmm));
+          scheduledDaily = escolherDisparo(now, [clampDailyHoje, clampDailyOntem]);
+        }
+        const sendDailyIso = force ? clampDailyHoje : scheduledDaily;
 
-        const scheduledDaily = new Date(String(schedDaily)).toISOString();
-        const scheduledWeekly = new Date(String(schedWeekly)).toISOString();
-        const sendDaily = !!cfg.resumo_diario_ativo && (force || withinWindow(now, scheduledDaily, 12));
-        const sendWeekly = !!cfg.resumo_semanal_ativo && (force || (todayKey === String(cfg.resumo_semanal_dia || "domingo") && withinWindow(now, scheduledWeekly, 12)));
+        let scheduledWeekly: string | null = null;
+        let clampWeeklyHoje: string | null = null;
+        if (cfg.resumo_semanal_ativo) {
+          const diaSemanal = String(cfg.resumo_semanal_dia || "domingo");
+          const { hh: whh, mm: wmm } = parseTimeToHHMM(cfg.resumo_semanal_hora || "20:00");
+          if (force || todayKey === diaSemanal) {
+            clampWeeklyHoje = await clampMomento(supabase, scheduledForIsoSp(dateStr, whh, wmm));
+          }
+          const clampWeeklyOntem = ontemKey === diaSemanal
+            ? await clampMomento(supabase, scheduledForIsoSp(ontemStr, whh, wmm))
+            : null;
+          scheduledWeekly = escolherDisparo(now, [todayKey === diaSemanal ? clampWeeklyHoje : null, clampWeeklyOntem]);
+        }
+        const sendWeeklyIso = force ? clampWeeklyHoje : scheduledWeekly;
 
-        if (sendDaily) {
-          const ok = await enviarResumo(supabase, uazapi, { cfg, numero, tipo: "resumo_diario", scheduledFor: scheduledDaily, dateStr, dias: 1, dataLabel });
+        if (sendDailyIso) {
+          const ok = await enviarResumo(supabase, uazapi, { cfg, numero, tipo: "resumo_diario", scheduledFor: sendDailyIso, dateStr, dias: 1, dataLabel });
           if (ok) enviados++;
         }
-        if (sendWeekly) {
-          const ok = await enviarResumo(supabase, uazapi, { cfg, numero, tipo: "resumo_semanal", scheduledFor: scheduledWeekly, dateStr, dias: 7, dataLabel });
+        if (sendWeeklyIso) {
+          const ok = await enviarResumo(supabase, uazapi, { cfg, numero, tipo: "resumo_semanal", scheduledFor: sendWeeklyIso, dateStr, dias: 7, dataLabel });
           if (ok) enviados++;
         }
-        detalhes.push({ user_id: cfg.user_id, sendDaily, sendWeekly, scheduledDaily, scheduledWeekly });
+        detalhes.push({ user_id: cfg.user_id, sendDaily: !!sendDailyIso, sendWeekly: !!sendWeeklyIso, scheduledDaily: sendDailyIso, scheduledWeekly: sendWeeklyIso });
       } catch (e: any) {
         console.error("whatsapp-agenda-resumo: usuario", cfg.user_id, e?.message || e);
         erros++;
