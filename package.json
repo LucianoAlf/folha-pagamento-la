@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types supabase/migrations/agenda_fase_a.test.mjs supabase/migrations/agenda_fase_b1.test.mjs supabase/migrations/maria_agenda_rpcs.test.mjs supabase/migrations/maria_agenda_rotinas.test.mjs supabase/functions/_shared/agendaLembretes.test.mjs supabase/functions/_shared/agendaResumo.test.mjs supabase/functions/_shared/recorrentesMes.test.mjs supabase/functions/_shared/relatorioContasDia.test.mjs services/agendaFolhaEspelhos.test.mjs services/contasPagarService.test.ts",
+    "test": "node --test --experimental-strip-types supabase/migrations/agenda_fase_a.test.mjs supabase/migrations/agenda_fase_b1.test.mjs supabase/migrations/maria_agenda_rpcs.test.mjs supabase/migrations/maria_agenda_rotinas.test.mjs supabase/migrations/maria_debito_automatico_fase2.test.mjs supabase/functions/_shared/agendaLembretes.test.mjs supabase/functions/_shared/agendaResumo.test.mjs supabase/functions/_shared/recorrentesMes.test.mjs supabase/functions/_shared/relatorioContasDia.test.mjs services/agendaFolhaEspelhos.test.mjs services/contasPagarService.test.ts",
     "test:contas-memoria": "node --test --experimental-strip-types shared/contasVariationMemory.test.ts",
     "test:e2e:contas-memoria": "node scripts/contas-variacoes-e2e.mjs",
     "deploy:comparativo": "npx supabase functions deploy ai-contas-comparativo --project-ref ubdvtjbitozhkuvvqkxj --no-verify-jwt"

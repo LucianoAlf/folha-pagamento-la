@@ -37,3 +37,19 @@ select column_name from information_schema.columns
 ## 3. Fronteira
 
 Coluna, backfill, app, edges e materializador são do Super Folha (feitos). Views `vw_maria_*`, RPCs `maria_contas_*`, allowlist e tools são do lado da Maria. Nenhum objeto `maria_*` nem `vw_maria_*` foi criado, alterado ou concedido por este repo nesta entrega (as duas views têm owner `postgres` e nasceram fora das migrations deste repo — são do lado da Maria). O que este repo tocou no banco: `contas_pagar` (coluna, backfill, índice) e `agenda_sync_contas_pagar` (v6).
+
+## 4. Fase 2 — ENTREGUE (02/09/2026, lado da Maria)
+
+Migration `supabase/migrations/20260902125047_maria_debito_automatico_fase2.sql` (aplicada por MCP; teste estático `maria_debito_automatico_fase2.test.mjs`, no `npm test`). Nada `agenda_*` tocado.
+
+| Item do §1 | O que foi feito |
+|---|---|
+| 1. Ler a flag | `vw_maria_contas_pagar` ganhou `debito_automatico` (24ª coluna; acl preservado). `vw_maria_contas_eventuais` não mudou (eventual nunca é flagada). `maria_conta_pagar_public_json` e `maria_contas_situacao_mes` (item ganhou `debito_automatico`) já a expõem. |
+| 2. Criar com a flag | `p_debito_automatico boolean default false` no fim de `maria_contas_unica_criar`, `_recorrente_criar` (vale no modelo) e `_parcelada_criar` (nas N parcelas). Assinatura mudou → drop + create, sem overload. `eventual_criar` **não** ganhou o parâmetro (o app força `false`). |
+| 3. Ligar/desligar | `maria_contas_definir_debito_automatico(p_conta_id, p_debito_automatico, p_ator_numero, p_papel, p_canal, p_texto_original, p_motivo, p_aplicar_futuros default true)`. Recorrente: modelo + instâncias pendentes da competência em diante; parcelada: parcelas pendentes seguintes. Eventual e cancelada recusam. Auditada (`ligar_/desligar_debito_automatico`). Grant `service_role, maria_operacional`. |
+| 4. Baixa | `maria_contas_dar_baixa` (e a `_com_comprovante`, que repassa): método vazio em conta flagada assume `Débito Automático`; `Debito Automatico` sem acento vira a grafia canônica. |
+| 5. Código do mês | `maria_contas_codigo_mes_registrar` e `_marcar_indisponivel` recusam conta flagada (`conta em débito automático: não há código do mês para coletar.`, `P0001`). |
+| 6. MCP/allowlist | Tools de criar aceitam `debito_automatico`; `metodo_pagamento` saiu do obrigatório na baixa; tool `maria_contas_definir_debito_automatico` para owner/rose/ana. |
+| 7. Lista/digest da Maria | `maria_agenda_digest_grupo` devolve `contas_debito_automatico {n,total,itens, sem_baixa{n,total,itens}}` lido direto de `contas_pagar` (sem espelho, a conta sumiria do digest do SUPORTE). O bridge mostra o bloco 🔁 "Em débito automático hoje/na semana/até o fim do mês" e "Débito automático sem baixa" junto das atrasadas, sem pedir pagamento manual. |
+
+Verificação: `tests/test_maria_debito_automatico.py` (workspace da Maria, transação desfeita) — 20 asserções; bridge 42/42.
