@@ -15,7 +15,8 @@ const mat = readBySuffix('_agenda_rotinas_materializar.sql');
 const matV2 = readBySuffix('_agenda_rotinas_materializar_v2.sql');
 const seed = readBySuffix('_agenda_seed_rotinas_financeiro.sql');
 const syncV5 = readBySuffix('_agenda_sync_contas_pagar_v5.sql');
-const todos = [schema, guardLista, cal, mat, matV2, seed, syncV5].join('\n');
+const posReview = readBySuffix('_agenda_rotinas_policy_maria_categoria_check.sql');
+const todos = [schema, guardLista, cal, mat, matV2, seed, syncV5, posReview].join('\n');
 
 test('schema: agenda_rotinas auto-referente com CHECKs da spec', () => {
   assert.match(schema, /create table if not exists public\.agenda_rotinas/i);
@@ -135,11 +136,25 @@ test('sync v5: grava agenda_materializacoes com origem sync', () => {
   assert.match(syncV5, /revoke all on function public\.agenda_sync_contas_pagar\(\) from public, anon, authenticated/i);
 });
 
+// Pos-review final: o grant de select em agenda_rotinas pros papeis da Maria era inerte sem policy
+// (nenhum dos dois papeis tem BYPASSRLS); a categoria da rotina nao tinha o CHECK que tarefas tem.
+test('pos-review: policy de leitura Maria, CHECK de categoria e search_path em resolve_dia', () => {
+  assert.match(
+    posReview,
+    /create policy agenda_rotinas_select_maria on public\.agenda_rotinas\s+for select to maria_leitura, maria_operacional using \(true\)/i,
+  );
+  assert.match(
+    posReview,
+    /add constraint agenda_rotinas_categoria_check\s+check \(categoria in \('financeiro','rh','administrativo','pessoal','geral'\)\)/i,
+  );
+  assert.match(posReview, /alter function public\.agenda_resolve_dia\(date, integer, boolean\) set search_path = public/i);
+});
+
 test('fuso: nenhum SQL da B1 usa current_date ou now()::date', () => {
   assert.doesNotMatch(todos, /\bcurrent_date\b/i);
   assert.doesNotMatch(todos, /now\(\)::date/i);
 });
 
 test('arquivos existem', () => {
-  for (const [nome, txt] of Object.entries({ schema, cal, mat, seed, syncV5 })) assert.ok(txt.length > 0, `${nome} vazio/ausente`);
+  for (const [nome, txt] of Object.entries({ schema, cal, mat, seed, syncV5, posReview })) assert.ok(txt.length > 0, `${nome} vazio/ausente`);
 });

@@ -48,6 +48,13 @@ begin
   exception when others then v_ok := sqlstate = '23514'; end;
   assert v_ok, 'rotina sem dia deveria violar o CHECK';
 
+  -- categoria fora do CHECK (alinhado a tarefas_categoria_check) -> 23514
+  v_ok := false;
+  begin
+    insert into public.agenda_rotinas (titulo, lista_id, dia_mes, categoria) values ('R categoria', v_fin, 7, 'xyz');
+  exception when others then v_ok := sqlstate = '23514'; end;
+  assert v_ok, 'categoria fora da lista deveria violar o CHECK';
+
   -- frequencia semanal barrada
   v_ok := false;
   begin

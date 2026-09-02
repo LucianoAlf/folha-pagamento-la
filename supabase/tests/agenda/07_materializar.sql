@@ -1,5 +1,9 @@
 -- Rodar via MCP execute_sql. Cria moldes sinteticos, materializa set/2026 em rollback. Esperado: 'PASS: 07_materializar'.
 begin;
+-- Injecao de falha local a transacao: faz a SEGUNDA filha do pacote 'X Falha' estourar no insert.
+-- NOT VALID nao varre as linhas existentes (so vale pros inserts novos) e o constraint some no rollback.
+-- Mantenha a transacao curta: ele segura lock em public.tarefas ate o rollback (o cron do sync roda de 10 em 10 min).
+alter table public.tarefas add constraint zz_b1_teste_falha check (titulo <> 'X Falha filha B') not valid;
 do $t$
 declare
   v_fin uuid; v_pac uuid; v_f12 uuid; v_f21 uuid; v_simples uuid; v_dom uuid; v_paus uuid; v_r jsonb;
@@ -66,10 +70,10 @@ begin
   assert exists (select 1 from public.tarefas t join public.agenda_rotinas r on r.id = t.rotina_id where r.titulo = 'X filha tardia' and t.competencia = date '2026-10-01'), 'filha tardia em out';
 
   -- (a) falha dentro de um pacote: o handler por pai desfaz as LINHAS; os contadores tem que voltar junto.
-  -- 'X Falha filha B' tem categoria fora do CHECK de tarefas -> estoura DEPOIS de 'X Falha filha A' entrar.
+  -- 'X Falha filha B' bate no constraint zz_b1_teste_falha (topo do arquivo) -> estoura DEPOIS de 'X Falha filha A' entrar.
   insert into public.agenda_rotinas (titulo, lista_id, dia_mes, vigencia_inicio) values ('X Falha', v_fin, 3, date '2026-01-01') returning id into v_falha;
   insert into public.agenda_rotinas (titulo, lista_id, dia_mes, parent_rotina_id, vigencia_inicio) values ('X Falha filha A', v_fin, 5, v_falha, date '2026-01-01') returning id into v_falha_a;
-  insert into public.agenda_rotinas (titulo, lista_id, dia_mes, categoria, parent_rotina_id, vigencia_inicio) values ('X Falha filha B', v_fin, 10, 'invalida', v_falha, date '2026-01-01') returning id into v_falha_b;
+  insert into public.agenda_rotinas (titulo, lista_id, dia_mes, parent_rotina_id, vigencia_inicio) values ('X Falha filha B', v_fin, 10, v_falha, date '2026-01-01') returning id into v_falha_b;
 
   select count(*) into v_antes from public.tarefas where competencia = date '2026-12-01';
   v_r := public.agenda_rotinas_materializar(date '2026-12-01', 'manual');
