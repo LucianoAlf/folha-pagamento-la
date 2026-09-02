@@ -354,6 +354,10 @@ maria_agenda_rotinas_listar
 **Migration idempotente** (`insert … where not exists` por título + lista + pai): roda de novo em
 branch e restore sem virar 22 pacotes.
 
+> **Cuidado no replay:** a idempotência é por **título** — depois de qualquer renomeação de rotina, um
+> replay do seed em branch/restore cria o pacote de novo, duplicado. Antes de confiar numa branch,
+> confira `select count(*) from agenda_rotinas` = 36.
+
 - **10 moldes ativos** (+ 4 registros `encerrada`), lista Financeiro, `vigencia_inicio = 2026-09-01`,
   `hora 09:00`, dia-inteiro, prioridade média, `responsavel_id` nulo (grupo). **Nunca instâncias** — o
   cron de 07:30 materializa set + out.
@@ -400,5 +404,5 @@ As RPCs `maria_agenda_*` (10 de tarefa já em produção via `maria_agenda_rpcs_
 
 Fases no Super Folha: **A — Fundação** (sync no servidor, `parent_id` + triggers, responsável,
 membros, jobs multiusuário; ~3 dias) → **B — Rotinas + Maria** (`agenda_rotinas`, materializador,
-seed, as 18 RPCs, grants, handoff `PRONTO`; ~6–8 dias). A B só começa com a A verificada em
-produção.
+seed, handoff `PRONTO`; ~6–8 dias) (as RPCs passaram pro lado da Maria em 02/09). A B só começa com
+a A verificada em produção.
