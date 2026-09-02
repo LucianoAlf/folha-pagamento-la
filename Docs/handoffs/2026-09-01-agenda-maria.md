@@ -69,7 +69,7 @@ repositório; a Maria copia pro dela ao receber. **Nada é escrito em `maria-bac
 (`manter | proximo_dia_util | dia_util_anterior`), `hora`, `dia_inteiro`, `prioridade`,
 `responsavel_id`, `status` (`ativa | pausada | encerrada`), `vigencia_inicio`, `encerrada_em`.
 
-**`tarefas_listas_membros (lista_id, user_id)`** — quem é do grupo. Seed: Financeiro ← Rose, Ana;
+**`tarefas_listas_membros (lista_id, user_id)`** — quem é do grupo. Estado em 02/09/2026: Financeiro ← Rose (Ana saiu por decisão do Alf: nada de Financeiro no privado dela);
 RH ← Ana.
 
 **`agenda_materializacoes`** — resultado de cada rodada do materializador (`competencia`,
