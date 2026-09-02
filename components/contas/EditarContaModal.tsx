@@ -155,7 +155,8 @@ export const EditarContaModal: React.FC<{
       credencial_id: credencialId || null,
       pix_chave_fixa: pixChaveFixa.trim() || null,
       email_pagamento: emailPagamento.trim() || null,
-      debito_automatico: debitoAutomatico,
+      // Eventual nao entra em debito automatico (mesma regra do NovaContaModal).
+      debito_automatico: conta.tipo_lancamento === 'eventual' ? false : debitoAutomatico,
       ...(launchType === 'parcelada' && !isContaGeradaSemPlano ? { parcela_atual: parcelaAtual, total_parcelas: totalParcelas } : {}),
     };
 
@@ -182,7 +183,8 @@ export const EditarContaModal: React.FC<{
         patch.valor !== conta.valor ||
         patch.plano_conta_id !== conta.plano_conta_id ||
         patch.centro_custo_id !== conta.centro_custo_id ||
-        patch.unidade !== conta.unidade;
+        patch.unidade !== conta.unidade ||
+        !!patch.debito_automatico !== !!conta.debito_automatico;
 
       if (mudouRelevante) {
         setPendingPatch(patch);
@@ -551,6 +553,7 @@ export const EditarContaModal: React.FC<{
               </div>
             ) : (
             <div className="grid grid-cols-1 gap-5 md:gap-6">
+          {conta?.tipo_lancamento !== 'eventual' && (
           <label className="flex items-start gap-3 rounded-2xl border border-line bg-bg px-5 py-4 cursor-pointer">
             <input
               type="checkbox"
@@ -563,6 +566,7 @@ export const EditarContaModal: React.FC<{
               <span className="block text-[10px] text-muted font-bold mt-1">Cai sozinha na conta pagadora: sem código do mês, a lista do dia avisa “não pagar manualmente” e a baixa já sugere o método.</span>
             </span>
           </label>
+          )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Tipo de fonte</label>

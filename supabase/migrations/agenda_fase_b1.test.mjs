@@ -15,8 +15,9 @@ const mat = readBySuffix('_agenda_rotinas_materializar.sql');
 const matV2 = readBySuffix('_agenda_rotinas_materializar_v2.sql');
 const seed = readBySuffix('_agenda_seed_rotinas_financeiro.sql');
 const syncV5 = readBySuffix('_agenda_sync_contas_pagar_v5.sql');
+const syncV6 = readBySuffix('_agenda_sync_contas_pagar_v6_debito_automatico.sql');
 const posReview = readBySuffix('_agenda_rotinas_policy_maria_categoria_check.sql');
-const todos = [schema, guardLista, cal, mat, matV2, seed, syncV5, posReview].join('\n');
+const todos = [schema, guardLista, cal, mat, matV2, seed, syncV5, posReview, syncV6].join('\n');
 
 test('schema: agenda_rotinas auto-referente com CHECKs da spec', () => {
   assert.match(schema, /create table if not exists public\.agenda_rotinas/i);
@@ -157,4 +158,12 @@ test('fuso: nenhum SQL da B1 usa current_date ou now()::date', () => {
 
 test('arquivos existem', () => {
   for (const [nome, txt] of Object.entries({ schema, cal, mat, seed, syncV5, posReview })) assert.ok(txt.length > 0, `${nome} vazio/ausente`);
+});
+
+test('sync v6: conta em debito automatico nao ganha espelho e o espelho existente vira orfa', () => {
+  assert.ok(syncV6.length > 0, 'migration v6 ausente');
+  assert.equal((syncV6.match(/not c\.debito_automatico/g) || []).length, 2, 'filtro do CTE e predicado de orfa');
+  assert.match(syncV6, /and i\.status = 'pendente'/);
+  assert.match(syncV6, /revoke all on function public\.agenda_sync_contas_pagar\(\) from public, anon, authenticated/i);
+  assert.match(syncV6, /grant execute on function public\.agenda_sync_contas_pagar\(\) to service_role/i);
 });

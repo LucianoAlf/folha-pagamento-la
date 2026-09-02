@@ -3,7 +3,7 @@ begin;
 do $t$
 declare
   v_hoje date := (now() at time zone 'America/Sao_Paulo')::date;
-  v_c1 uuid; v_c2 uuid; v_c3 uuid; v_c4 uuid; v_t1 uuid; v_t4 uuid; v_f1 uuid; v_r jsonb; v_n int;
+  v_c1 uuid; v_c2 uuid; v_c3 uuid; v_c4 uuid; v_c5 uuid; v_t1 uuid; v_t4 uuid; v_f1 uuid; v_r jsonb; v_n int;
   c_rose constant uuid := 'cf0e4bf0-d056-4b55-83c1-92b81f6be9c4';
 begin
   -- c1: pendente, vence em 2 dias -> espelho 'media'
@@ -82,6 +82,22 @@ begin
   update public.tarefas set status = 'concluida' where id = v_f1;
   v_r := public.agenda_sync_contas_pagar();
   assert not exists (select 1 from public.tarefas where id = v_t4), 'orfa sem filha ativa deveria ser removida';
+
+  -- v6: conta em debito automatico nao ganha espelho "Pagar:"; espelho existente vira orfa e sai.
+  insert into public.contas_pagar (descricao, unidade, valor, data_lancamento, data_vencimento, competencia, status, tipo_lancamento, debito_automatico)
+  values ('TESTE SYNC c5', 'rec', 88, v_hoje, v_hoje + 1, date_trunc('month', v_hoje)::date, 'pendente', 'unica', true)
+  returning id into v_c5;
+  v_r := public.agenda_sync_contas_pagar();
+  assert not exists (select 1 from public.tarefas where vinculo_tipo = 'conta_pagar' and vinculo_id = v_c5),
+    'conta em debito automatico nao deveria ganhar espelho';
+  update public.contas_pagar set debito_automatico = false where id = v_c5;
+  v_r := public.agenda_sync_contas_pagar();
+  assert exists (select 1 from public.tarefas where vinculo_tipo = 'conta_pagar' and vinculo_id = v_c5),
+    'sem a flag o espelho deveria nascer';
+  update public.contas_pagar set debito_automatico = true where id = v_c5;
+  v_r := public.agenda_sync_contas_pagar();
+  assert not exists (select 1 from public.tarefas where vinculo_tipo = 'conta_pagar' and vinculo_id = v_c5),
+    'ao ligar a flag o espelho deveria sair como orfa';
 end $t$;
 rollback;
 select 'PASS: 04_sync_contas_pagar' as resultado;

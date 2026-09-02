@@ -493,6 +493,7 @@ export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch:
 
 export async function updateFuturasParceladas(contaOriginal: ContaPagar, patch: Partial<ContaPagar>): Promise<void> {
   const fieldsToUpdate: any = {};
+  if (patch.debito_automatico !== undefined) fieldsToUpdate.debito_automatico = patch.debito_automatico;
   if (patch.valor !== undefined) fieldsToUpdate.valor = patch.valor;
   if (patch.plano_conta_id !== undefined) fieldsToUpdate.plano_conta_id = patch.plano_conta_id;
   if (patch.observacoes !== undefined) fieldsToUpdate.observacoes = patch.observacoes;
