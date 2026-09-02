@@ -305,6 +305,49 @@ export function filtrarContasRelatorioDia(
   });
 }
 
+const LABEL_PARA_CHAVE_SALDO: Record<string, keyof RelatorioSaldos> = {
+  Recreio: 'rec',
+  Barra: 'bar',
+  'Kids CG': 'kids_cg',
+  'EMLA CG': 'emla_cg',
+};
+
+/**
+ * Busca o saldo de hoje por unidade (Open Finance / Pluggy). Nunca lança: se a sincronização
+ * falhou ou ainda não rodou, retorna {} e o relatório sai com o rodapé em branco (fallback já
+ * existente em linhaSaldo) em vez de deixar de ser gerado.
+ *
+ * Mora aqui, e não no index.ts de cada Edge Function, de propósito: as duas funções que enviam a
+ * lista do dia (contas-pagar-dia-gerar e whatsapp-grupo-dispatcher) importam este módulo, então o
+ * saldo vale para as duas. Nasceu no branch feat/openfinance-pluggy (a3cb7ce, 14/08) e nunca foi
+ * mergeado no main: o deploy de 15/08 subiu o código do branch e o primeiro deploy feito a partir
+ * do main devolveu "SALDO EM CONTAS" vazio por 4 dias (30/08 a 02/09), sem teste nenhum reclamar.
+ */
+export async function buscarSaldosDoDia(
+  supabaseAdmin: SupabaseAdminLike,
+  dataRef: string
+): Promise<RelatorioSaldos> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('financeiro_conta_saldos_diarios')
+      .select('saldo, financeiro_contas_bancarias(financeiro_empresas(label_operacional))')
+      .eq('data_referencia', dataRef);
+
+    if (error) throw error;
+
+    const saldos: RelatorioSaldos = {};
+    for (const linha of (data || []) as any[]) {
+      const label = linha?.financeiro_contas_bancarias?.financeiro_empresas?.label_operacional;
+      const chave = label ? LABEL_PARA_CHAVE_SALDO[label] : undefined;
+      if (chave && typeof linha.saldo === 'number') saldos[chave] = linha.saldo;
+    }
+    return saldos;
+  } catch (e) {
+    console.error('buscarSaldosDoDia:', (e as any)?.message || e);
+    return {};
+  }
+}
+
 function monthBounds(dataRef: string) {
   const [yyyyStr, mmStr] = toDateOnly(dataRef).split('-');
   const yyyy = Number(yyyyStr);
@@ -352,9 +395,12 @@ export async function gerarRelatorioContasDia(
     if (codigo.conta_pagar_id) codigosPorConta[codigo.conta_pagar_id] = codigo;
   }
 
+  const saldos = await buscarSaldosDoDia(supabaseAdmin, dataRef);
+
   return {
     mensagem: montarRelatorioMensagem(filtradas, dataRef, {
       codigosPorConta,
+      saldos,
       unidadeFiltro,
     }),
     conta_ids: filtradas.map((conta) => conta.id),

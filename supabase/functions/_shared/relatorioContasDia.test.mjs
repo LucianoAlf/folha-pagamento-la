@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { montarRelatorioMensagem, dedupeRecorrentesVisao } from './relatorioContasDia.ts';
+import { montarRelatorioMensagem, dedupeRecorrentesVisao, buscarSaldosDoDia, gerarRelatorioContasDia } from './relatorioContasDia.ts';
 
 test('dedupeRecorrentesVisao: modelo semanal (1a ocorrencia) nao e escondido pelas instancias do mes', () => {
   const modelo = { id: 'm1', tipo_lancamento: 'recorrente', recorrente_modelo_id: null,
@@ -246,4 +246,115 @@ test('montarRelatorioMensagem: conta em debito automatico vai por ultimo, sem co
       'EMLA CG: R$',
     ].join('\n')
   );
+});
+
+// ---------------------------------------------------------------------------
+// SALDO EM CONTAS (Open Finance / Pluggy). Estes testes voltaram do branch
+// feat/openfinance-pluggy, que nunca foi mergeado no main: entre 30/08 e 02/09 a
+// mensagem das 08:00 saiu com o rodape vazio porque o deploy passou a vir do main,
+// e nao havia teste tocando esse caminho. O ultimo aqui e a trava que faltava —
+// ele exercita gerarRelatorioContasDia, que e o que as duas Edge Functions chamam.
+function fakeSupabaseAdmin({ data = null, error = null } = {}) {
+  return {
+    from(table) {
+      return {
+        table,
+        select() {
+          return {
+            eq(_col, _val) {
+              return Promise.resolve({ data, error });
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+test('buscarSaldosDoDia mapeia label_operacional para as chaves de RelatorioSaldos', async () => {
+  const supabaseAdmin = fakeSupabaseAdmin({
+    data: [
+      { saldo: 38303.61, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Recreio' } } },
+      { saldo: 18806.86, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Barra' } } },
+      { saldo: 5106.69, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Kids CG' } } },
+      { saldo: 3608.1, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'EMLA CG' } } },
+    ],
+  });
+  assert.deepEqual(await buscarSaldosDoDia(supabaseAdmin, '2026-09-02'), {
+    rec: 38303.61, bar: 18806.86, kids_cg: 5106.69, emla_cg: 3608.1,
+  });
+});
+
+test('buscarSaldosDoDia ignora linha com label_operacional desconhecido', async () => {
+  const supabaseAdmin = fakeSupabaseAdmin({
+    data: [
+      { saldo: 100, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Bistrô' } } },
+      { saldo: 200, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Recreio' } } },
+    ],
+  });
+  assert.deepEqual(await buscarSaldosDoDia(supabaseAdmin, '2026-09-02'), { rec: 200 });
+});
+
+test('buscarSaldosDoDia retorna {} sem lançar quando a sincronização ainda não rodou', async () => {
+  assert.deepEqual(await buscarSaldosDoDia(fakeSupabaseAdmin({ data: [] }), '2026-09-02'), {});
+});
+
+test('buscarSaldosDoDia retorna {} sem lançar quando a query falha (nunca derruba o relatório)', async () => {
+  assert.deepEqual(await buscarSaldosDoDia(fakeSupabaseAdmin({ error: new Error('conexao falhou') }), '2026-09-02'), {});
+});
+
+// Fake por TABELA: reproduz o encadeamento real do gerador (contas_pagar termina em .order(),
+// as outras duas em .eq()), para o teste morder o caminho que as Edge Functions executam.
+function fakeAdminPorTabela(porTabela) {
+  const resposta = (table) => Promise.resolve({ data: porTabela[table] ?? [], error: null });
+  return {
+    from(table) {
+      const chain = {
+        select: () => chain,
+        eq: () => chain,
+        neq: () => chain,
+        gte: () => chain,
+        lte: () => chain,
+        order: () => resposta(table),
+        then: (resolve, reject) => resposta(table).then(resolve, reject),
+      };
+      return chain;
+    },
+  };
+}
+
+test('gerarRelatorioContasDia preenche SALDO EM CONTAS (regressão de 30/08 a 02/09: rodapé em branco)', async () => {
+  const admin = fakeAdminPorTabela({
+    contas_pagar: [
+      { id: 'c1', descricao: 'PG Light Loja 170 - (Recreio)', unidade: 'rec', valor: 258.33,
+        data_vencimento: '2026-09-02', competencia: '2026-09-01', status: 'pendente', tipo_lancamento: 'unica' },
+    ],
+    contas_pagar_codigo_mes: [],
+    financeiro_conta_saldos_diarios: [
+      { saldo: 6481.53, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Recreio' } } },
+      { saldo: 8345.3, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Barra' } } },
+      { saldo: 2184.6, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'Kids CG' } } },
+      { saldo: 7113.91, financeiro_contas_bancarias: { financeiro_empresas: { label_operacional: 'EMLA CG' } } },
+    ],
+  });
+
+  const { mensagem, count } = await gerarRelatorioContasDia(admin, { dataRef: '2026-09-02' });
+
+  assert.equal(count, 1);
+  assert.match(mensagem, /\*SALDO EM CONTAS\*\nRecreio: R\$ 6\.481,53\nBarra: R\$ 8\.345,30\nKids CG: R\$ 2\.184,60\nEMLA CG: R\$ 7\.113,91/);
+  assert.doesNotMatch(mensagem, /Recreio: R\$ *\n/); // rodapé vazio nunca mais passa calado
+});
+
+test('gerarRelatorioContasDia sem sincronização de saldo ainda gera a mensagem (rodapé em branco, sem quebrar)', async () => {
+  const admin = fakeAdminPorTabela({
+    contas_pagar: [
+      { id: 'c1', descricao: 'PG Light Loja 170 - (Recreio)', unidade: 'rec', valor: 258.33,
+        data_vencimento: '2026-09-02', competencia: '2026-09-01', status: 'pendente', tipo_lancamento: 'unica' },
+    ],
+    contas_pagar_codigo_mes: [],
+    financeiro_conta_saldos_diarios: [],
+  });
+
+  const { mensagem } = await gerarRelatorioContasDia(admin, { dataRef: '2026-09-02' });
+  assert.match(mensagem, /\*SALDO EM CONTAS\*\nRecreio: R\$ \nBarra: R\$ /);
 });
