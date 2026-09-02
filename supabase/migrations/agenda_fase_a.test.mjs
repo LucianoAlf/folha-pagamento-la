@@ -15,7 +15,8 @@ const devidosFix = readBySuffix('_agenda_lembretes_devidos_horizonte_por_momento
 const sync = readBySuffix('_agenda_sync_contas_pagar.sql');
 const syncV2 = readBySuffix('_agenda_sync_contas_pagar_v2.sql');
 const syncV3 = readBySuffix('_agenda_sync_contas_pagar_v3.sql');
-const todos = [schema, rls, dest, devidosFix, sync, syncV2, syncV3].join('\n');
+const resumoV2 = readBySuffix('_agenda_resumo_usuario_v2.sql');
+const todos = [schema, rls, dest, devidosFix, sync, syncV2, syncV3, resumoV2].join('\n');
 
 test('schema: colunas, membros, ator.user_id, indice unico de vinculo nao-parcial', () => {
   assert.match(schema, /add column if not exists parent_id uuid null references public\.tarefas\(id\) on delete set null/i);
@@ -98,6 +99,14 @@ test('sync: funcao, cron *\\/10, colunas de dono, orfa so por conta invalida, gr
   assert.match(syncV3, /coalesce\(\(data_pagamento at time zone 'UTC'\)::date,\s*\(now\(\) at time zone 'America\/Sao_Paulo'\)::date\)::timestamp \+ time '12:00'\) at time zone 'America\/Sao_Paulo'/i);
   assert.match(syncV3, /and not exists \(select 1 from public\.tarefas f where f\.parent_id = t\.id and f\.status in \('pendente','em_andamento','adiada'\)\)/i);
   assert.match(syncV3, /revoke all on function public\.agenda_sync_contas_pagar\(\) from public, anon, authenticated/i);
+});
+
+test('resumo v2 (I-1): atrasadas com piso de 30 dias + atrasadas_total sem piso', () => {
+  assert.match(resumoV2, /function public\.agenda_resumo_usuario\(p_user_id uuid, p_data date, p_dias integer/i);
+  assert.match(resumoV2, /interval '30 days'/);
+  assert.match(resumoV2, /'atrasadas_total', v_atr_total/);
+  assert.match(resumoV2, /revoke all on function public\.agenda_resumo_usuario\(uuid, date, integer\) from public, anon, authenticated/i);
+  assert.match(resumoV2, /grant execute on function public\.agenda_resumo_usuario\(uuid, date, integer\) to service_role/i);
 });
 
 test('fuso: nenhuma funcao agenda_% usa current_date ou now()::date', () => {

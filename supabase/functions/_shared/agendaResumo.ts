@@ -5,6 +5,8 @@ export type ResumoPayload = {
   nome: string | null;
   itens: ResumoItem[];
   atrasadas: ResumoItem[];
+  /** Total de atrasadas sem o piso de 30 dias (R19); ausente = payload antigo. */
+  atrasadas_total?: number;
   pagar: { n: number; total: number };
   pagar_atrasadas: { n: number; total: number };
 };
@@ -88,7 +90,8 @@ export function montarResumo(p: ResumoPayload, opts: ResumoOpts): string {
   msg += `📅 ${opts.dataLabel}\n\n`;
   msg += semanal ? `📊 *SUA SEMANA:*\n` : `📊 *SEU DIA:*\n`;
   msg += `• ${p.itens.length} tarefas ${semanal ? 'nos próximos 7 dias' : 'para hoje'}\n`;
-  msg += `• ${p.atrasadas.length} atrasadas\n`;
+  const atrasadasTotal = p.atrasadas_total ?? p.atrasadas.length;
+  msg += `• ${atrasadasTotal} atrasadas\n`;
   if (p.pagar.n > 0) msg += `• ${p.pagar.n} contas vencendo\n`;
   msg += `\n`;
 
@@ -102,7 +105,9 @@ export function montarResumo(p: ResumoPayload, opts: ResumoOpts): string {
   }
 
   if (p.atrasadas.length) {
-    msg += `⚠️ *ATRASADAS:*\n`;
+    msg += atrasadasTotal > p.atrasadas.length
+      ? `⚠️ *ATRASADAS (${p.atrasadas.length} mais recentes de ${atrasadasTotal}):*\n`
+      : `⚠️ *ATRASADAS:*\n`;
     for (const t of p.atrasadas) msg += `• ${diaSp(t.vencimento_em)} - ${t.titulo}\n`;
     msg += `\n`;
   }

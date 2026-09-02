@@ -42,6 +42,19 @@ test('sem contas -> sem linha de contas; semanal usa cabecalho proprio', () => {
   assert.match(msg, /PRÓXIMAS TAREFAS/);
 });
 
+test('atrasadas_total: cabecalho conta o total e a secao diz "N mais recentes de M" (I-1)', () => {
+  const msg = montarResumo({ ...payload, atrasadas_total: 34 }, { tipo: 'diario', dataLabel: 'x' });
+  assert.match(msg, /ATRASADAS \(2 mais recentes de 34\):/);
+  assert.match(msg, /• 34 atrasadas/);
+});
+
+test('sem atrasadas_total (payload antigo) o cabecalho de ATRASADAS nao muda', () => {
+  const msg = montarResumo(payload, { tipo: 'diario', dataLabel: 'x' });
+  assert.match(msg, /⚠️ \*ATRASADAS:\*/);
+  assert.doesNotMatch(msg, /mais recentes de/);
+  assert.match(msg, /• 2 atrasadas/);
+});
+
 /* ---------------- decisao de envio (I-4/I-5) ---------------- */
 
 test('escolherDisparo: hora > 21:00 SP dispara no dia seguinte pelo candidato de ontem (I-4)', () => {

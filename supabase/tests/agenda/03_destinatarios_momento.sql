@@ -6,7 +6,7 @@
 begin;
 do $t$
 declare
-  v_fin uuid; v_t1 uuid; v_t2 uuid; v_t3 uuid; v_t4 uuid; v_n int; v_m timestamptz; v_r jsonb;
+  v_fin uuid; v_t1 uuid; v_t2 uuid; v_t3 uuid; v_t4 uuid; v_t5 uuid; v_t6 uuid; v_n int; v_m timestamptz; v_r jsonb;
   v_meio_dia timestamptz := (date_trunc('day', now() at time zone 'America/Sao_Paulo') + interval '12 hours') at time zone 'America/Sao_Paulo';
   -- Vencimento da 8b: alem do horizonte de p_ate (now+2h), dentro dele depois do alargamento
   -- pelos 1440 min. Discrimina o predicado antigo em qualquer hora do dia.
@@ -68,6 +68,16 @@ begin
   assert (v_r->'itens') @> jsonb_build_array(jsonb_build_object('titulo', 'T rose')), 'resumo da Rose sem T rose';
   assert not ((v_r->'itens') @> jsonb_build_array(jsonb_build_object('titulo', 'T avulsa'))), 'resumo da Rose nao deveria ter T avulsa';
   assert (v_r->>'nome') is not null, 'nome ausente no resumo';
+
+  -- 10) atrasadas com piso de 30 dias (R19/I-1): a de 45 dias sai da lista mas entra no total.
+  insert into public.tarefas (titulo, status, lista_id, vencimento_em, dia_inteiro)
+  values ('T atrasada 45d', 'pendente', v_fin, v_meio_dia - interval '45 days', false) returning id into v_t5;
+  insert into public.tarefas (titulo, status, lista_id, vencimento_em, dia_inteiro)
+  values ('T atrasada 10d', 'pendente', v_fin, v_meio_dia - interval '10 days', false) returning id into v_t6;
+  v_r := public.agenda_resumo_usuario(c_rose, (now() at time zone 'America/Sao_Paulo')::date, 1);
+  assert (v_r->>'atrasadas_total')::int >= 2, 'atrasadas_total deveria contar as duas atrasadas, veio ' || coalesce(v_r->>'atrasadas_total', 'null');
+  assert (v_r->'atrasadas') @> jsonb_build_array(jsonb_build_object('titulo', 'T atrasada 10d')), 'atrasada de 10 dias deveria estar na lista';
+  assert not ((v_r->'atrasadas') @> jsonb_build_array(jsonb_build_object('titulo', 'T atrasada 45d'))), 'atrasada de 45 dias deveria ficar fora do piso de 30 dias';
 end $t$;
 rollback;
 select 'PASS: 03_destinatarios_momento' as resultado;
