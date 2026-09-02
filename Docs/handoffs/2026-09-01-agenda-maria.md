@@ -400,7 +400,7 @@ Não há gate de cadastro da Rose: canal padrão é o grupo; o individual é opt
 - [x] Status deste arquivo → `PRONTO — 02/09/2026`
 - [x] Assinaturas finais (tipos e ordem exatos) de cada RPC — §9
 - [x] Saída real da query de `proacl` (§9) colada
-- [x] Versões das migrations: `maria_agenda_rpcs_tarefas` = `20260902015450`; `maria_agenda_rpcs_rotinas` = aplicada 02/09 ~07:15 SP (arquivos `20260902020000_…` e `20260902110000_…` no repo; nunca `supabase db push` daqui)
+- [x] Versões das migrations: `maria_agenda_rpcs_tarefas` = `20260902015450`; `maria_agenda_rpcs_rotinas` = `20260902101838`; `maria_agenda_digest_grupo` = `20260902103911` (arquivos no repo com o MESMO número do servidor: `20260902015450_maria_agenda_rpcs_tarefas.sql`, `20260902101838_maria_agenda_rpcs_rotinas.sql`, `20260902103911_maria_agenda_digest_grupo.sql`; nunca `supabase db push` daqui)
 - [x] Evidência dos testes: banco — `tests/test_maria_agenda_rpcs.py` (11 blocos) e `tests/test_maria_agenda_rotinas.py` (10 blocos), ambos em transação desfeita, no workspace da Maria; estáticos — `maria_agenda_rpcs.test.mjs` + `maria_agenda_rotinas.test.mjs` no `npm test` (60/60). Ponta a ponta: Maria (agente `maria-rose`) listou agenda do dia, atrasadas e rotinas com filhas e datas pelas tools.
 - [x] Contagem em produção (B1, 02/09): 64 instâncias set+out, 0 duplicatas, 0 órfãs, `agenda_materializacoes` sem erros
 - [ ] **Financeiro Grupo LA Music recebeu o digest de agenda** — pendente do lado da Maria (digest 08:00 ainda não construído; primeira execução prevista para 03/09)
