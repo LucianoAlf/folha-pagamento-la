@@ -325,7 +325,7 @@ export async function upsertNotificacaoConfig(config: Partial<NotificacaoConfig>
 
   const { data, error } = await supabase
     .from('notificacao_config')
-    .upsert([{ ...config, user_id: user.user.id }])
+    .upsert([{ ...config, user_id: user.user.id }], { onConflict: 'user_id' })
     .select()
     .single();
   if (error) throw error;

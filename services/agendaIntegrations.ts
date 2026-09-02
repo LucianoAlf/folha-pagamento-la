@@ -204,7 +204,8 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
       categoria: 'rh',
       prioridade: 'urgente',
       tags: ['folha', 'auto'],
-      vencimento_em: new Date().toISOString(),
+      // vencimento_em NAO entra no patch: so no insert. Se entrasse, todo load da Agenda reescrevia
+      // o vencimento pra "agora", e com lembrete de 30 min a folha pendente virava ping por load (I-3).
       dia_inteiro: false,
       status: f.status === 'aprovada' ? 'concluida' : 'pendente',
       data_conclusao: f.status === 'aprovada' ? new Date().toISOString() : null,
@@ -214,16 +215,19 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
       is_recorrente: false,
       recorrencia: null,
       recorrencia_pai_id: null,
-      ordem: 10,
     };
 
     const found = byVinculo.get(String(folhaVinculoId));
-    if (!found) inserts.push(patch);
+    if (!found) inserts.push({ ...patch, vencimento_em: new Date().toISOString(), ordem: 10 });
     else updates.push({ id: found.id, ...patch });
   }
 
   if (inserts.length) {
-    const { error: insErr } = await supabase.from('tarefas').insert(inserts);
+    // upsert idempotente: dois loads simultaneos da Agenda corriam pro 23505 do tarefas_vinculo_uniq
+    // (indice nao-parcial, o PostgREST infere o arbitro pelas colunas).
+    const { error: insErr } = await supabase
+      .from('tarefas')
+      .upsert(inserts, { onConflict: 'vinculo_tipo,vinculo_id', ignoreDuplicates: true });
     if (insErr) {
       console.error('[agendaIntegrations] syncFolha INSERT error:', insErr.message);
       throw insErr;
