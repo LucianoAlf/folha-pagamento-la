@@ -1,5 +1,7 @@
 # Agenda × Maria — Fase B2 (18 RPCs `maria_agenda_*`) Implementation Plan
 
+> **CANCELADO em 2026-09-02.** Todas as RPCs `maria_agenda_*` (as 10 de tarefa e as 9 de rotina) ficaram com o chat da Maria — as 10 de tarefa já estão em produção (migration `maria_agenda_rpcs_tarefas`, commit `80aeff5`, arquivo `supabase/migrations/20260902020000_maria_agenda_rpcs_tarefas.sql`) e ligadas no MCP dela. Este repositório não cria nem redefine nada com prefixo `maria_agenda_`. O plano fica só como referência do contrato que foi desenhado; a fase B1 (rotinas) segue.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Dar à Maria paridade com o app sobre a Agenda, por WhatsApp, auditada: 18 RPCs `maria_agenda_*` (3 de leitura, 7 de tarefa, 8 de rotina) com autorização em duas portas (papel × lista), idempotência por mensagem, retornos com `{id, nome}` e `resumo` legível, erros em português com `hint`, grants fechados e `proacl` verificado — e o handoff virando **PRONTO**.
