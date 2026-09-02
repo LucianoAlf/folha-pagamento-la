@@ -69,7 +69,9 @@ caro da semana.
 
 **Dois campos que decidem a ação da Maria** (por isso vêm em toda listagem):
 - `vinculo_tipo = 'conta_pagar'` → a ação real é **na conta** (`maria_contas_dar_baixa`). A tarefa
-  é espelho; fecha sozinha pelo sync (≤ 10 min).
+  é espelho; fecha sozinha pelo sync (≤ 10 min). Qualquer status manual no espelho (`concluida`,
+  `em_andamento`, `adiada`, `cancelada`) **volta a `pendente` em ≤ 10 min** enquanto a conta estiver
+  pendente — o espelho segue a conta, por desenho.
 - `rotina_id` não nulo → instância de rotina: **`cancelar`**, nunca `excluir`.
 
 ---
