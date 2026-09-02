@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { createLista } from './agendaService';
+import { planejarFechamentoEspelhosFolha } from './agendaFolhaEspelhos';
 import type { NotificacaoConfig, Tarefa, TarefaLista } from '../types/agenda';
 
 /* ------------------------------------------------------------------ */
@@ -139,8 +140,10 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
     .from('folhas_mensais')
     .select('id,ano,mes,status,updated_at')
     .order('ano', { ascending: false })
-    .order('mes', { ascending: false })
-    .limit(6);
+    .order('mes', { ascending: false });
+  // Sem limite: a tabela e pequena e os espelhos de folhas FORA do conjunto ativo (latest + pendentes)
+  // precisam ser reconciliados — era o buraco que deixava "Aprovar Folha" aberto quando a folha saia de
+  // pendente sem ser a mais recente (fantasma Mai/2026).
 
   if (error) {
     console.warn('[agendaIntegrations] syncFolha fetch error:', error.message);
@@ -153,9 +156,12 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
   const latest = folhas[0];
   const pending = folhas.filter((f) => f.status === 'pendente');
 
-  const vinculos: string[] = [];
-  if (latest?.id) vinculos.push(stableUuidFromString(`folha:${latest.id}`));
-  for (const f of pending) vinculos.push(stableUuidFromString(`folha:${f.id}`));
+  const vinculoDe = (f: FolhaRow) => stableUuidFromString(`folha:${f.id}`);
+  const vinculos = folhas.map(vinculoDe);
+  // Conjunto ativo: espelhos que o fluxo abaixo mantem (Fechar da latest, Aprovar das pendentes).
+  const ativos = new Set<string>();
+  if (fechamentoAtivo && latest?.id) ativos.add(vinculoDe(latest));
+  for (const f of pending) ativos.add(vinculoDe(f));
   const existing = await fetchExistingLinkedTasks({ vinculo_tipo: 'folha_pagamento', vinculo_ids: vinculos });
   const byVinculo = new Map(existing.map((t) => [String(t.vinculo_id), t]));
 
@@ -251,6 +257,31 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
     if (upErr) {
       console.error('[agendaIntegrations] syncFolha UPSERT (aprovar) error:', upErr.message);
       throw upErr;
+    }
+  }
+
+  // Espelhos orfaos: folha saiu de pendente (concluida) ou voltou a rascunho (cancelada) sem ser a latest.
+  // `update().in('id')`, nao upsert: nao ressuscita linha apagada entre o fetch e o write.
+  const fechamento = planejarFechamentoEspelhosFolha({
+    folhas: folhas.map((f) => ({ id: f.id, status: String(f.status), vinculo: vinculoDe(f) })),
+    ativos,
+    existentes: existing.map((t) => ({ id: t.id, vinculo_id: t.vinculo_id ? String(t.vinculo_id) : null, status: String(t.status) })),
+  });
+  if (fechamento.concluir.length) {
+    const { error } = await supabase
+      .from('tarefas')
+      .update({ status: 'concluida', data_conclusao: new Date().toISOString() })
+      .in('id', fechamento.concluir);
+    if (error) {
+      console.error('[agendaIntegrations] syncFolha fechar espelhos (concluir) error:', error.message);
+      throw error;
+    }
+  }
+  if (fechamento.cancelar.length) {
+    const { error } = await supabase.from('tarefas').update({ status: 'cancelada' }).in('id', fechamento.cancelar);
+    if (error) {
+      console.error('[agendaIntegrations] syncFolha fechar espelhos (cancelar) error:', error.message);
+      throw error;
     }
   }
 }
