@@ -64,6 +64,7 @@ export const EditarContaModal: React.FC<{
   const [chavePix, setChavePix] = useState('');
   const [qrPixPayload, setQrPixPayload] = useState('');
   const [codigoStatus, setCodigoStatus] = useState<StatusColetaCodigo>('pendente');
+  const [debitoAutomatico, setDebitoAutomatico] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [showConfirmFuturos, setShowConfirmFuturos] = useState(false);
@@ -99,6 +100,7 @@ export const EditarContaModal: React.FC<{
     setChavePix(codigoMes?.chave_pix || '');
     setQrPixPayload(codigoMes?.qr_pix_payload || '');
     setCodigoStatus(codigoMes?.status_coleta || 'pendente');
+    setDebitoAutomatico(!!conta.debito_automatico);
   }, [isOpen, conta, codigoMes, centrosCusto]);
 
   const valorNum = useMemo(() => parseBRL(valor), [valor]);
@@ -153,6 +155,7 @@ export const EditarContaModal: React.FC<{
       credencial_id: credencialId || null,
       pix_chave_fixa: pixChaveFixa.trim() || null,
       email_pagamento: emailPagamento.trim() || null,
+      debito_automatico: debitoAutomatico,
       ...(launchType === 'parcelada' && !isContaGeradaSemPlano ? { parcela_atual: parcelaAtual, total_parcelas: totalParcelas } : {}),
     };
 
@@ -163,7 +166,8 @@ export const EditarContaModal: React.FC<{
         patch.valor !== conta.valor ||
         patch.plano_conta_id !== conta.plano_conta_id ||
         patch.centro_custo_id !== conta.centro_custo_id ||
-        patch.unidade !== conta.unidade;
+        patch.unidade !== conta.unidade ||
+        !!patch.debito_automatico !== !!conta.debito_automatico;
 
       if (mudouModelo) {
         setPendingPatch(patch);
@@ -196,7 +200,7 @@ export const EditarContaModal: React.FC<{
         { pix_chave_fixa: pixChaveFixa },
         { codigo_barras: codigoBarras, chave_pix: chavePix, qr_pix_payload: qrPixPayload }
       );
-      if (comp && (temCodigo || codigoMes)) {
+      if (comp && !debitoAutomatico && (temCodigo || codigoMes)) {
         await upsertCodigoMes({
           conta_pagar_id: conta.id,
           competencia: comp.slice(0, 7) + '-01',
@@ -547,6 +551,18 @@ export const EditarContaModal: React.FC<{
               </div>
             ) : (
             <div className="grid grid-cols-1 gap-5 md:gap-6">
+          <label className="flex items-start gap-3 rounded-2xl border border-line bg-bg px-5 py-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={debitoAutomatico}
+              onChange={(e) => setDebitoAutomatico(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-accent"
+            />
+            <span className="min-w-0">
+              <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-primary">Débito automático</span>
+              <span className="block text-[10px] text-muted font-bold mt-1">Cai sozinha na conta pagadora: sem código do mês, a lista do dia avisa “não pagar manualmente” e a baixa já sugere o método.</span>
+            </span>
+          </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-muted mb-2.5 px-1">Tipo de fonte</label>

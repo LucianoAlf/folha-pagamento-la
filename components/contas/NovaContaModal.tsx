@@ -81,6 +81,7 @@ export const NovaContaModal: React.FC<{
   const [chavePix, setChavePix] = useState('');
   const [qrPixPayload, setQrPixPayload] = useState('');
   const [codigoStatus, setCodigoStatus] = useState<StatusColetaCodigo>('pendente');
+  const [debitoAutomatico, setDebitoAutomatico] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
@@ -120,6 +121,7 @@ export const NovaContaModal: React.FC<{
     setChavePix('');
     setQrPixPayload('');
     setCodigoStatus('pendente');
+    setDebitoAutomatico(false);
     setError(null);
     setTried(false);
   }, [isOpen, defaultVencimento, defaultUnidade, centrosCusto]);
@@ -304,10 +306,12 @@ export const NovaContaModal: React.FC<{
                     credencial_id: isEventual ? null : credencialId || null,
                     pix_chave_fixa: isEventual ? null : pixChaveFixa.trim() || null,
                     email_pagamento: isEventual ? null : emailPagamento.trim() || null,
+                    debito_automatico: isEventual ? false : debitoAutomatico,
                   };
 
                   const temCodigo = codigoBarras.trim() || chavePix.trim() || qrPixPayload.trim();
-                  const registrarCodigoMes = temCodigo || codigoStatus === 'indisponivel';
+                  // Débito automático não tem código do mês pra coletar.
+                  const registrarCodigoMes = !debitoAutomatico && (temCodigo || codigoStatus === 'indisponivel');
                   const options: NovaContaOptions = {
                     ...(launchType === 'parcelada' ? { valorPorParcela: valorMode === 'por_parcela' } : {}),
                     ...(registrarCodigoMes
@@ -655,6 +659,19 @@ export const NovaContaModal: React.FC<{
             Origem / Fonte
           </div>
           <p className="text-[10px] text-muted font-bold mb-6 px-1">Opcional — onde buscar o boleto ou qual portal usar.</p>
+
+          <label className="mb-6 flex items-start gap-3 rounded-2xl border border-line bg-bg px-5 py-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={debitoAutomatico}
+              onChange={(e) => setDebitoAutomatico(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-accent"
+            />
+            <span className="min-w-0">
+              <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-primary">Débito automático</span>
+              <span className="block text-[10px] text-muted font-bold mt-1">Cai sozinha na conta pagadora: sem código do mês, a lista do dia avisa “não pagar manualmente” e a baixa já sugere o método.</span>
+            </span>
+          </label>
 
           <div className="grid grid-cols-1 gap-5 md:gap-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">

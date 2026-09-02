@@ -101,6 +101,13 @@ export const ContasTable: React.FC<{
       </div>
     );
 
+    if (badge === 'debito_automatico') {
+      return wrap(
+        <Tooltip content="Cai em débito automático na conta pagadora — não precisa de código do mês nem de pagamento manual.">
+          <span className="inline-flex px-2 py-0.5 rounded-lg bg-accent/10 text-accent text-[9px] font-black uppercase">Débito automático</span>
+        </Tooltip>
+      );
+    }
     if (badge === 'coletado') {
       return wrap(<span className="inline-flex px-2 py-0.5 rounded-lg bg-success/10 text-success text-[9px] font-black uppercase">Coletado</span>);
     }

@@ -58,7 +58,7 @@ export type StatusColetaCodigo = 'pendente' | 'coletado' | 'indisponivel';
 
 export type StatusEnvioRelatorio = 'rascunho' | 'copiado' | 'enviado' | 'erro';
 
-export type CodigoMesBadge = 'sem_codigo' | 'coletado' | 'indisponivel' | 'atualizar';
+export type CodigoMesBadge = 'sem_codigo' | 'coletado' | 'indisponivel' | 'atualizar' | 'debito_automatico';
 
 export interface ContaCredencial {
   id: string;
@@ -181,6 +181,8 @@ export interface ContaPagar {
   created_by?: string | null;
   recorrente_modelo_id?: string | null;
   recorrente_frequencia?: 'mensal' | 'semanal' | null;
+  /** Paga por débito automático na conta pagadora: sem código do mês; lista do dia marca “não pagar manualmente”; baixa sugere o método. */
+  debito_automatico?: boolean;
 }
 
 // 'hoje' = vence exatamente hoje (diffDias === 0); 'urgente' = vence em 1–7 dias.

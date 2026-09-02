@@ -149,3 +149,29 @@ test('paid account adjustments use the audited RPC instead of a direct update', 
   assert.match(source, /conta_id/);
   assert.match(source, /motivo/);
 });
+
+test('resolveCodigoMesBadge: conta em debito automatico nunca pede codigo do mes', () => {
+  assert.equal(
+    resolveCodigoMesBadge({ status: 'pendente', pix_chave_fixa: null, debito_automatico: true }, null, 'hoje'),
+    'debito_automatico'
+  );
+  assert.equal(
+    resolveCodigoMesBadge(
+      { status: 'pendente', pix_chave_fixa: null, debito_automatico: true },
+      { codigo_barras: null, chave_pix: null, qr_pix_payload: null, status_coleta: 'indisponivel' },
+      'vencida'
+    ),
+    'debito_automatico'
+  );
+  assert.equal(
+    resolveCodigoMesBadge({ status: 'pendente', pix_chave_fixa: null, debito_automatico: false }, null, 'hoje'),
+    'atualizar'
+  );
+});
+
+test('relatorio do dia (cliente) marca debito automatico e nao imprime codigo nessas contas', () => {
+  const src = serviceSource();
+  assert.match(src, /DÉBITO AUTOMÁTICO — não pagar manualmente/);
+  assert.match(src, /Em débito automático/);
+  assert.match(src, /conta\.debito_automatico/);
+});

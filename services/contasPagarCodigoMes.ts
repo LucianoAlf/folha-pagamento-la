@@ -45,10 +45,12 @@ export function hasCodigoPagamento(
 }
 
 export function resolveCodigoMesBadge(
-  conta: Pick<ContaPagar, 'status' | 'pix_chave_fixa'>,
+  conta: Pick<ContaPagar, 'status' | 'pix_chave_fixa' | 'debito_automatico'>,
   codigo?: Pick<ContaPagarCodigoMes, 'codigo_barras' | 'chave_pix' | 'qr_pix_payload' | 'status_coleta'> | null,
   statusVisual?: StatusVisual
 ): CodigoMesBadge {
+  // Débito automático se paga sozinho: nunca pede código do mês, nem alerta "Coletar".
+  if (conta.debito_automatico) return 'debito_automatico';
   if (hasCodigoPagamento(conta, codigo)) return 'coletado';
   if (codigo?.status_coleta === 'indisponivel') return 'indisponivel';
   if (conta.status === 'pendente' && statusVisual && ['vencida', 'hoje', 'urgente'].includes(statusVisual)) {

@@ -174,3 +174,76 @@ test('montarRelatorioMensagem adds resumo by unit, approved order and short rate
     ].join('\n')
   );
 });
+
+test('montarRelatorioMensagem: conta em debito automatico vai por ultimo, sem codigo, com marcador e subtotal', () => {
+  const mensagem = montarRelatorioMensagem(
+    [
+      {
+        id: 'conta-da',
+        descricao: 'Aluguel Loja 171 - (Recreio)',
+        unidade: 'rec',
+        valor: 200,
+        data_vencimento: '2026-09-03',
+        competencia: '2026-09-01',
+        status: 'pendente',
+        tipo_lancamento: 'recorrente',
+        recorrente_modelo_id: 'm1',
+        plano_conta: null,
+        centro_custo: { nome: 'Recreio' },
+        pix_chave_fixa: null,
+        debito_automatico: true,
+      },
+      {
+        id: 'conta-1',
+        descricao: 'Light Loja 170 - (Recreio)',
+        unidade: 'rec',
+        valor: 300,
+        data_vencimento: '2026-09-03',
+        competencia: '2026-09-01',
+        status: 'pendente',
+        tipo_lancamento: 'unica',
+        recorrente_modelo_id: null,
+        plano_conta: null,
+        centro_custo: { nome: 'Recreio' },
+        pix_chave_fixa: null,
+        debito_automatico: false,
+      },
+    ],
+    '2026-09-03',
+    {
+      codigosPorConta: {
+        'conta-1': { conta_pagar_id: 'conta-1', competencia: '2026-09-01', codigo_barras: '83650000003044960048100000000000000000000000', chave_pix: null, qr_pix_payload: null },
+        'conta-da': { conta_pagar_id: 'conta-da', competencia: '2026-09-01', codigo_barras: '83650000002000000000000000000000000000000000', chave_pix: null, qr_pix_payload: null },
+      },
+      unidadeFiltro: 'todas',
+    }
+  );
+
+  assert.equal(
+    mensagem,
+    [
+      '*CONTAS A PAGAR HOJE 03/09* 🧾',
+      '',
+      '💸 *Total Geral:* R$ 500,00',
+      '🔁 *Em débito automático:* R$ 200,00',
+      '',
+      '*Resumo por unidade*',
+      '• Recreio: R$ 500,00',
+      '',
+      '_______________',
+      '*RECREIO*',
+      '',
+      '*PG Light Loja 170 - (Recreio) 09/2026 R$ 300,00*',
+      '83650000003044960048100000000000000000000000',
+      '',
+      '*PG Aluguel Loja 171 - (Recreio) 09/2026 R$ 200,00*',
+      '🔁 DÉBITO AUTOMÁTICO — não pagar manualmente',
+      '',
+      '*SALDO EM CONTAS*',
+      'Recreio: R$ ',
+      'Barra: R$ ',
+      'Kids CG: R$ ',
+      'EMLA CG: R$',
+    ].join('\n')
+  );
+});

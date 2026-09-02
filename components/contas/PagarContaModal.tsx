@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { DollarSign, X } from 'lucide-react';
 import { Card, CustomSelect, DatePicker, Modal } from '../UI';
 import { ContaPagar, METODOS_PAGAMENTO } from '../../types/contasPagar';
@@ -28,6 +28,12 @@ export const PagarContaModal: React.FC<{
   const [metodo, setMetodo] = useState<string>('PIX');
   const [obs, setObs] = useState<string>('');
   const [saving, setSaving] = useState(false);
+
+  // Conta em débito automático: a baixa já sugere o método certo (a Rose só confirma).
+  useEffect(() => {
+    if (!isOpen) return;
+    setMetodo(conta?.debito_automatico ? 'Débito Automático' : 'PIX');
+  }, [isOpen, conta?.id, conta?.debito_automatico]);
 
   const vencidaLabel = useMemo(() => {
     if (!conta) return '';

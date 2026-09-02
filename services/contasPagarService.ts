@@ -466,6 +466,7 @@ export async function updateFuturasRecorrentes(contaOriginal: ContaPagar, patch:
   if (patch.centro_custo_id) fieldsToUpdate.centro_custo_id = patch.centro_custo_id;
   if (patch.unidade) fieldsToUpdate.unidade = patch.unidade;
   if (patch.tipo_lancamento) fieldsToUpdate.tipo_lancamento = patch.tipo_lancamento;
+  if (patch.debito_automatico !== undefined) fieldsToUpdate.debito_automatico = patch.debito_automatico;
 
   if (Object.keys(fieldsToUpdate).length === 0) return;
 
@@ -994,6 +995,8 @@ function linhaCodigoPagamento(
   return null;
 }
 
+const MARCADOR_DEBITO_AUTOMATICO = '🔁 DÉBITO AUTOMÁTICO — não pagar manualmente';
+
 function blocoContaRelatorio(
   conta: ContaPagar,
   codigo?: ContaPagarCodigoMes | null
@@ -1002,8 +1005,13 @@ function blocoContaRelatorio(
   const comp = formatCompetenciaMY(conta.competencia, conta.data_vencimento);
   const valor = formatMoneyWhatsApp(Number(conta.valor) || 0);
   const linhas = [`*PG ${titulo} ${comp} ${valor}*`];
-  const cod = linhaCodigoPagamento(conta, codigo);
-  if (cod) linhas.push(cod);
+  if (conta.debito_automatico) {
+    // Se paga sozinha: o marcador substitui a linha de código (mesmo que exista um código coletado).
+    linhas.push(MARCADOR_DEBITO_AUTOMATICO);
+  } else {
+    const cod = linhaCodigoPagamento(conta, codigo);
+    if (cod) linhas.push(cod);
+  }
   return linhas.join('\n');
 }
 
@@ -1043,6 +1051,11 @@ export function montarRelatorioMensagem(
   const totalGeral = Array.from(porGrupo.values()).reduce((acc, lista) => acc + somarValores(lista), 0);
   const partes: string[] = [`*CONTAS A PAGAR HOJE ${formatDateDDMM(dataRef)}* 🧾`, ''];
   partes.push(`💸 *Total Geral:* ${formatMoneyWhatsApp(totalGeral)}`);
+  const totalDebitoAutomatico = Array.from(porGrupo.values()).reduce(
+    (acc, lista) => acc + somarValores(lista.filter((c) => !!c.debito_automatico)),
+    0
+  );
+  if (totalDebitoAutomatico > 0) partes.push(`🔁 *Em débito automático:* ${formatMoneyWhatsApp(totalDebitoAutomatico)}`);
   partes.push('');
   partes.push('*Resumo por unidade*');
   for (const unidade of UNIDADES_RELATORIO) {
@@ -1057,7 +1070,9 @@ export function montarRelatorioMensagem(
     partes.push('_Nenhuma conta pendente para esta data._');
   } else {
     unidadesComContas.forEach((unidade) => {
-      const lista = unidade.grupos.flatMap((grupo) => porGrupo.get(grupo) || []).sort(compararContasRelatorio);
+      const ordenada = unidade.grupos.flatMap((grupo) => porGrupo.get(grupo) || []).sort(compararContasRelatorio);
+      // Débito automático por último: o que se paga sozinho não compete com o que precisa de ação.
+      const lista = [...ordenada.filter((c) => !c.debito_automatico), ...ordenada.filter((c) => !!c.debito_automatico)];
       partes.push('');
       partes.push('_______________');
       partes.push(`*${unidade.titulo}*`);
