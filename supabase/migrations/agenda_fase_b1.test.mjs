@@ -12,9 +12,10 @@ const schema = readBySuffix('_agenda_rotinas_schema.sql');
 const guardLista = readBySuffix('_agenda_rotinas_guard_lista_pai.sql');
 const cal = readBySuffix('_agenda_calendario.sql');
 const mat = readBySuffix('_agenda_rotinas_materializar.sql');
+const matV2 = readBySuffix('_agenda_rotinas_materializar_v2.sql');
 const seed = readBySuffix('_agenda_seed_rotinas_financeiro.sql');
 const syncV5 = readBySuffix('_agenda_sync_contas_pagar_v5.sql');
-const todos = [schema, guardLista, cal, mat, seed, syncV5].join('\n');
+const todos = [schema, guardLista, cal, mat, matV2, seed, syncV5].join('\n');
 
 test('schema: agenda_rotinas auto-referente com CHECKs da spec', () => {
   assert.match(schema, /create table if not exists public\.agenda_rotinas/i);
@@ -92,6 +93,21 @@ test('materializador: max(nominal), vigencia por linha, pai fechado, exception p
     assert.match(mat, new RegExp(`revoke all on function public\\.${esc} from public, anon, authenticated`, 'i'), fn);
     assert.match(mat, new RegExp(`grant execute on function public\\.${esc} to service_role`, 'i'), fn);
   }
+});
+
+test('materializador v2: contadores restaurados no exception por pai; origem validada com 22023', () => {
+  assert.match(matV2, /function public\.agenda_rotinas_materializar\(p_competencia date, p_origem text default 'rpc'\)/i);
+  // o exception por pai desfaz as linhas, nao as variaveis: retrato antes + restauracao no handler
+  assert.match(matV2, /v_pais_ret := v_pais; v_filhas_ret := v_filhas; v_pulados_ret := v_pulados;/);
+  assert.match(
+    matV2,
+    /exception when others then[\s\S]*?v_pais := v_pais_ret; v_filhas := v_filhas_ret; v_pulados := v_pulados_ret;/i,
+  );
+  // origem invalida barrada na entrada, em portugues, com o errcode de parametro
+  assert.match(matV2, /not in \('cron','rpc','sync','manual'\)/i);
+  assert.match(matV2, /raise exception 'origem invalida: %\.', p_origem using errcode = '22023'/i);
+  assert.match(matV2, /revoke all on function public\.agenda_rotinas_materializar\(date, text\) from public, anon, authenticated/i);
+  assert.match(matV2, /grant execute on function public\.agenda_rotinas_materializar\(date, text\) to service_role/i);
 });
 
 test('seed: idempotente, 10 ativas + 4 encerradas, Light encerrada, sem instancias, FDS por natureza', () => {

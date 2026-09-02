@@ -3,7 +3,8 @@ begin;
 do $t$
 declare
   v_fin uuid; v_pac uuid; v_f12 uuid; v_f21 uuid; v_simples uuid; v_dom uuid; v_paus uuid; v_r jsonb;
-  v_pai_t uuid; v_n int;
+  v_pai_t uuid; v_n int; v_antes int; v_mat_p int; v_mat_f int;
+  v_falha uuid; v_falha_a uuid; v_falha_b uuid;
 begin
   select id into v_fin from public.tarefas_listas where lower(nome)='financeiro' and coalesce(is_smart,false)=false order by ordem limit 1;
 
@@ -63,6 +64,38 @@ begin
   -- (X Simples virou pai ao ganhar filha; seu vencimento em out = max(30, 12) = 30)
   v_r := public.agenda_rotinas_materializar(date '2026-10-01', 'manual');
   assert exists (select 1 from public.tarefas t join public.agenda_rotinas r on r.id = t.rotina_id where r.titulo = 'X filha tardia' and t.competencia = date '2026-10-01'), 'filha tardia em out';
+
+  -- (a) falha dentro de um pacote: o handler por pai desfaz as LINHAS; os contadores tem que voltar junto.
+  -- 'X Falha filha B' tem categoria fora do CHECK de tarefas -> estoura DEPOIS de 'X Falha filha A' entrar.
+  insert into public.agenda_rotinas (titulo, lista_id, dia_mes, vigencia_inicio) values ('X Falha', v_fin, 3, date '2026-01-01') returning id into v_falha;
+  insert into public.agenda_rotinas (titulo, lista_id, dia_mes, parent_rotina_id, vigencia_inicio) values ('X Falha filha A', v_fin, 5, v_falha, date '2026-01-01') returning id into v_falha_a;
+  insert into public.agenda_rotinas (titulo, lista_id, dia_mes, categoria, parent_rotina_id, vigencia_inicio) values ('X Falha filha B', v_fin, 10, 'invalida', v_falha, date '2026-01-01') returning id into v_falha_b;
+
+  select count(*) into v_antes from public.tarefas where competencia = date '2026-12-01';
+  v_r := public.agenda_rotinas_materializar(date '2026-12-01', 'manual');
+  select count(*) into v_n from public.tarefas where competencia = date '2026-12-01';
+  assert (v_r->>'pais_criados')::int + (v_r->>'filhas_criadas')::int = v_n - v_antes,
+    'contadores devem contar so linhas que existem: retorno ' || ((v_r->>'pais_criados')::int + (v_r->>'filhas_criadas')::int) || ', linhas ' || (v_n - v_antes);
+  assert jsonb_array_length(v_r->'erros') = 1, 'esperava 1 erro, veio ' || (v_r->'erros')::text;
+  assert (v_r->'erros'->0->>'rotina_id')::uuid = v_falha, 'o erro deveria apontar o pai X Falha';
+  assert v_r->'erros'->0->>'titulo' = 'X Falha', 'o erro deveria trazer o titulo do pai';
+  assert coalesce(v_r->'erros'->0->>'erro','') <> '' and coalesce(v_r->'erros'->0->>'sqlstate','') <> '', 'o erro deveria trazer sqlerrm e sqlstate';
+  assert not exists (select 1 from public.tarefas where competencia = date '2026-12-01' and rotina_id in (v_falha, v_falha_a, v_falha_b)), 'pacote que falhou nao deveria deixar linha';
+  assert exists (select 1 from public.tarefas where competencia = date '2026-12-01' and rotina_id = v_pac), 'os outros pais da mesma rodada continuam materializando';
+  select pais_criados, filhas_criadas into v_mat_p, v_mat_f from public.agenda_materializacoes where competencia = date '2026-12-01' order by executado_em desc limit 1;
+  assert v_mat_p = (v_r->>'pais_criados')::int and v_mat_f = (v_r->>'filhas_criadas')::int, 'a linha gravada deve bater com o retorno';
+
+  -- (b) origem invalida: 22023 em portugues, antes de qualquer escrita
+  begin
+    v_r := public.agenda_rotinas_materializar(date '2026-12-01', 'xyz');
+    assert false, 'origem invalida deveria levantar 22023';
+  exception when sqlstate '22023' then
+    assert sqlerrm like 'origem invalida%', 'mensagem deveria comecar com "origem invalida", veio: ' || sqlerrm;
+  end;
+  -- e a rodada seguinte, com origem valida, continua funcionando
+  v_r := public.agenda_rotinas_materializar(date '2026-12-01', 'manual');
+  assert (v_r->>'pais_criados')::int = 0 and (v_r->>'filhas_criadas')::int = 0, 'rodada apos o 22023 deveria ser idempotente';
+  assert jsonb_array_length(v_r->'erros') = 1, 'X Falha continua falhando isolado, sem derrubar a rodada';
 
   -- registro da rodada
   select count(*) into v_n from public.agenda_materializacoes where origem = 'manual' and competencia = date '2026-09-01';
