@@ -160,7 +160,11 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
   const byVinculo = new Map(existing.map((t) => [String(t.vinculo_id), t]));
 
   const inserts: Record<string, any>[] = [];
-  const updates: Array<Record<string, any> & { id: string }> = [];
+  // Um lote de update por FORMA: o postgrest-js manda a UNIAO das chaves do array no parametro
+  // `columns` e preenche com NULL a chave que faltar, entao misturar Fechar (tem vencimento_em e
+  // ordem) com Aprovar (nao tem, por R21) zeraria essas duas colunas nas linhas de Aprovar (R25).
+  const updatesFechar: Array<Record<string, any> & { id: string }> = [];
+  const updatesAprovar: Array<Record<string, any> & { id: string }> = [];
 
   if (fechamentoAtivo && latest?.id) {
     const folhaVinculoId = stableUuidFromString(`folha:${latest.id}`);
@@ -191,7 +195,7 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
 
     const found = byVinculo.get(String(folhaVinculoId));
     if (!found) inserts.push(patch);
-    else updates.push({ id: found.id, ...patch });
+    else updatesFechar.push({ id: found.id, ...patch });
   }
 
   for (const f of pending) {
@@ -219,7 +223,7 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
 
     const found = byVinculo.get(String(folhaVinculoId));
     if (!found) inserts.push({ ...patch, vencimento_em: new Date().toISOString(), ordem: 10 });
-    else updates.push({ id: found.id, ...patch });
+    else updatesAprovar.push({ id: found.id, ...patch });
   }
 
   if (inserts.length) {
@@ -234,10 +238,18 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
     }
   }
 
-  if (updates.length) {
-    const { error: upErr } = await supabase.from('tarefas').upsert(updates, { onConflict: 'id' });
+  if (updatesFechar.length) {
+    const { error: upErr } = await supabase.from('tarefas').upsert(updatesFechar, { onConflict: 'id' });
     if (upErr) {
-      console.error('[agendaIntegrations] syncFolha UPSERT error:', upErr.message);
+      console.error('[agendaIntegrations] syncFolha UPSERT (fechar) error:', upErr.message);
+      throw upErr;
+    }
+  }
+
+  if (updatesAprovar.length) {
+    const { error: upErr } = await supabase.from('tarefas').upsert(updatesAprovar, { onConflict: 'id' });
+    if (upErr) {
+      console.error('[agendaIntegrations] syncFolha UPSERT (aprovar) error:', upErr.message);
       throw upErr;
     }
   }
