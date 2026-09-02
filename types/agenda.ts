@@ -67,6 +67,10 @@ export interface Tarefa {
   concluida_por?: string | null;
   mensagem_origem_id?: string | null;  // idempotência das RPCs da Maria
 
+  // Fase B1 (spec §4.1/§4.2)
+  rotina_id?: string | null;           // instância → molde (agenda_rotinas)
+  competencia?: string | null;         // 'YYYY-MM-01' (SP); NOT NULL quando rotina_id não é
+
   created_by?: string | null;
   created_at: string;
   updated_at: string;
@@ -83,6 +87,34 @@ export interface TarefaSubtarefa {
   concluida: boolean;
   ordem: number;
   created_at: string;
+}
+
+// Molde da rotina mensal (spec §4.2). As instâncias vivem em `tarefas`,
+// uma por (rotina_id, competencia).
+export interface AgendaRotina {
+  id: string;
+  parent_rotina_id?: string | null;    // null = pai
+  titulo: string;
+  descricao?: string | null;
+  lista_id: string;
+  categoria: string;
+  prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
+  responsavel_id?: string | null;
+  frequencia: 'mensal';
+  dia_mes?: number | null;
+  ultimo_dia: boolean;
+  se_cair_fim_de_semana: 'manter' | 'proximo_dia_util' | 'dia_util_anterior';
+  hora: string;                        // 'HH:MM:SS'
+  dia_inteiro: boolean;
+  status: 'ativa' | 'pausada' | 'encerrada';
+  vigencia_inicio: string;             // 'YYYY-MM-DD'
+  encerrada_em?: string | null;
+  observacao?: string | null;
+  ordem: number;
+  mensagem_origem_id?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TarefaTemplate {
