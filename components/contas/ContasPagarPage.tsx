@@ -3455,7 +3455,6 @@ export const ContasPagarPage: React.FC<{
 
       <RelatorioDoDiaPanel
         contas={contas}
-        codigosPorConta={codigosCarregados ? codigosPorConta : undefined}
         unidade={unidadeFiltro}
         unidadeLabel={unidadeLabelAtual}
         geradoPor={operadorNome}

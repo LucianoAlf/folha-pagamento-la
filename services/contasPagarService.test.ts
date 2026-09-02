@@ -133,7 +133,6 @@ test('upsertCodigoMes clears Maria stamp by default for human edits', () => {
 
   assert.match(source, /const humanInput/);
   assert.match(source, /assertCodigoBarrasValido\(input\.codigo_barras\)/);
-  assert.match(source, /isCodigoBarrasValido\(codigoBarras\)/);
   assert.match(source, /registrado_por_agente:\s*false/);
   assert.match(source, /agente_nome:\s*null/);
   assert.match(source, /confirmado_por_nome:\s*null/);
@@ -169,9 +168,12 @@ test('resolveCodigoMesBadge: conta em debito automatico nunca pede codigo do mes
   );
 });
 
-test('relatorio do dia (cliente) marca debito automatico e nao imprime codigo nessas contas', () => {
+test('relatorio do dia tem fonte unica: o cliente nao remonta a mensagem (regressao do rodape vazio)', () => {
   const src = serviceSource();
-  assert.match(src, /DÉBITO AUTOMÁTICO — não pagar manualmente/);
-  assert.match(src, /Em débito automático/);
-  assert.match(src, /conta\.debito_automatico/);
+  // O molde mora em supabase/functions/_shared/relatorioContasDia.ts. Uma segunda copia aqui
+  // divergiu em silencio e deixou o preview da tela sem "SALDO EM CONTAS" (30/08 a 02/09).
+  assert.doesNotMatch(src, /\*SALDO EM CONTAS\*/);
+  assert.doesNotMatch(src, /montarRelatorioMensagem/);
+  assert.doesNotMatch(src, /DÉBITO AUTOMÁTICO — não pagar manualmente/);
+  assert.match(src, /supabase\.functions\.invoke\('contas-pagar-dia-gerar'/);
 });

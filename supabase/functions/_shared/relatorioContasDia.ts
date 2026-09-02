@@ -176,11 +176,25 @@ export function contaPassaFiltroUnidade(conta: ContaPagar, unidadeFiltro: string
   return false;
 }
 
+// Mesma regra de services/contasPagarCodigoMes.ts: so linha digitavel / codigo de barras
+// (44, 47 ou 48 digitos), nunca texto livre. Sem isso um "codigo" digitado a mao vai pro WhatsApp
+// como se fosse pagavel. A copia do renderizador que existia no cliente tinha esta guarda e esta
+// aqui nao tinha; ao consolidar num molde unico a versao que fica nao pode ser a mais frouxa.
+const CODIGO_BARRAS_CHARS_RE = /^[\d\s.\-]+$/;
+const CODIGO_BARRAS_DIGIT_LENGTHS = new Set([44, 47, 48]);
+
+export function isCodigoBarrasValido(valor?: string | null): boolean {
+  const codigo = String(valor || '').trim();
+  if (!codigo || /\r|\n/.test(codigo)) return false;
+  if (!CODIGO_BARRAS_CHARS_RE.test(codigo)) return false;
+  return CODIGO_BARRAS_DIGIT_LENGTHS.has(codigo.replace(/\D/g, '').length);
+}
+
 export function linhaCodigoPagamento(
   conta: ContaPagar,
   codigo?: ContaPagarCodigoMes | null
 ): string | null {
-  if (codigo?.codigo_barras?.trim()) return codigo.codigo_barras.trim();
+  if (isCodigoBarrasValido(codigo?.codigo_barras)) return String(codigo?.codigo_barras).trim();
   if (codigo?.qr_pix_payload?.trim()) return codigo.qr_pix_payload.trim();
   if (codigo?.chave_pix?.trim()) return codigo.chave_pix.trim();
   if (conta.pix_chave_fixa?.trim()) return conta.pix_chave_fixa.trim();

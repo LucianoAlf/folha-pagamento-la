@@ -358,3 +358,37 @@ test('gerarRelatorioContasDia sem sincronização de saldo ainda gera a mensagem
   const { mensagem } = await gerarRelatorioContasDia(admin, { dataRef: '2026-09-02' });
   assert.match(mensagem, /\*SALDO EM CONTAS\*\nRecreio: R\$ \nBarra: R\$ /);
 });
+
+test('linhaCodigoPagamento so aceita codigo de barras/linha digitavel, nunca texto livre', async () => {
+  const { linhaCodigoPagamento, isCodigoBarrasValido } = await import('./relatorioContasDia.ts');
+  const conta = { id: 'c', descricao: 'x', valor: 1, data_vencimento: '2026-09-03', status: 'pendente' };
+
+  // 44 digitos (codigo de barras) e 47 (linha digitavel) passam
+  assert.equal(isCodigoBarrasValido('83650000003044960048100000000000000000000000'), true);
+  assert.equal(isCodigoBarrasValido('23793.38128 60007.827136 95000.063305 4 99150000021000'), true);
+
+  // texto livre nao vira linha de pagamento — cairia no WhatsApp como se fosse pagavel
+  assert.equal(isCodigoBarrasValido('Ja existem no Super Folha - precisam de baixa'), false);
+  assert.equal(
+    linhaCodigoPagamento(conta, {
+      conta_pagar_id: 'c',
+      competencia: '2026-09-01',
+      codigo_barras: 'Ja existem no Super Folha - precisam de baixa',
+      chave_pix: null,
+      qr_pix_payload: null,
+    }),
+    null
+  );
+
+  // com codigo invalido mas PIX presente, o PIX prevalece
+  assert.equal(
+    linhaCodigoPagamento(conta, {
+      conta_pagar_id: 'c',
+      competencia: '2026-09-01',
+      codigo_barras: 'texto livre',
+      chave_pix: 'chave@pix.com',
+      qr_pix_payload: null,
+    }),
+    'chave@pix.com'
+  );
+});

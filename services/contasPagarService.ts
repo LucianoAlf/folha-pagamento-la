@@ -867,104 +867,16 @@ export function getCodigoMesBadge(conta: ContaPagar, codigo?: ContaPagarCodigoMe
 // =============================================
 // RELATÓRIO DO DIA (molde WhatsApp das meninas)
 // =============================================
-
-export type RelatorioSaldos = {
-  rec?: number | null;
-  bar?: number | null;
-  kids_cg?: number | null;
-  emla_cg?: number | null;
-};
+//
+// A mensagem NÃO é montada aqui. Fonte única: supabase/functions/_shared/relatorioContasDia.ts,
+// pela Edge Function contas-pagar-dia-gerar — a mesma que o dispatcher das 08:00 usa. Existia uma
+// segunda cópia do renderizador neste arquivo e ela divergiu em silêncio: o rodapé "SALDO EM CONTAS"
+// só foi implementado do lado da edge (buscarSaldosDoDia), então o preview da tela saía sem saldo.
+// E o saldo não pode ser lido do cliente por desenho: financeiro_conta_saldos_diarios está fechada
+// (RLS sem policy, só service_role) desde a migration fix_anon_leak_financeiro_conta_saldos_diarios.
+// Aqui ficam só o filtro do dia (contador da tela) e a chamada da edge.
 
 type GrupoRelatorioId = 'emla_cg' | 'kids_cg' | 'bar' | 'rec';
-type UnidadeRelatorioId = 'rec' | 'bar' | 'cg';
-
-const GRUPOS_RELATORIO: { id: GrupoRelatorioId; saldoLabel: string }[] = [
-  { id: 'rec', saldoLabel: 'Recreio' },
-  { id: 'bar', saldoLabel: 'Barra' },
-  { id: 'kids_cg', saldoLabel: 'Kids CG' },
-  { id: 'emla_cg', saldoLabel: 'EMLA CG' },
-];
-
-const UNIDADES_RELATORIO: { id: UnidadeRelatorioId; titulo: string; resumoLabel: string; grupos: GrupoRelatorioId[] }[] = [
-  { id: 'rec', titulo: 'RECREIO', resumoLabel: 'Recreio', grupos: ['rec'] },
-  { id: 'bar', titulo: 'BARRA', resumoLabel: 'Barra', grupos: ['bar'] },
-  { id: 'cg', titulo: 'CAMPO GRANDE', resumoLabel: 'Campo Grande', grupos: ['emla_cg', 'kids_cg'] },
-];
-
-function formatDateDDMM(isoDate: string) {
-  if (!isoDate) return '—';
-  const [, month, day] = isoDate.split('-');
-  return `${day}/${month}`;
-}
-
-function formatCompetenciaMY(competencia: string | null | undefined, fallbackVencimento?: string) {
-  const src = competencia || (fallbackVencimento ? `${fallbackVencimento.slice(0, 7)}-01` : '');
-  const [yyyy, mm] = src.split('-');
-  if (!yyyy || !mm) return '';
-  return `${mm}/${yyyy}`;
-}
-
-/** R$ 1.674,33 — padrão WhatsApp aprovado para o financeiro */
-function formatMoneyWhatsApp(value: number): string {
-  const n = Math.round((Number(value) || 0) * 100) / 100;
-  const [intPart, decPart] = n.toFixed(2).split('.');
-  const intFmt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `R$ ${intFmt},${decPart}`;
-}
-
-function linhaSaldo(label: string, valor?: number | null): string {
-  if (valor == null || Number.isNaN(Number(valor))) return `${label}: R$ `;
-  return `${label}: ${formatMoneyWhatsApp(Number(valor))}`;
-}
-
-function limparTituloPG(descricao: string): string {
-  let d = descricao.trim();
-  // Remove prefixo legado "1 - PG " sem cortar a unidade no final, ex.: "Light Loja 170 - (Recreio)"
-  d = d.replace(/^\d+\s*-\s*PG\s*/i, '');
-  d = d.replace(/^PG\s+/i, '');
-  return d.trim();
-}
-
-function ordemContaRelatorio(conta: ContaPagar): number {
-  const d = (conta.descricao || '').toLowerCase();
-  if (d.includes('simples nacional')) return 0;
-  if (d.includes('cheirinho')) return 1;
-  return 2;
-}
-
-function compararContasRelatorio(a: ContaPagar, b: ContaPagar): number {
-  const oa = ordemContaRelatorio(a);
-  const ob = ordemContaRelatorio(b);
-  if (oa !== ob) return oa - ob;
-  return a.descricao.localeCompare(b.descricao, 'pt-BR');
-}
-
-function somarValores(contas: ContaPagar[]): number {
-  return contas.reduce((acc, c) => acc + (Number(c.valor) || 0), 0);
-}
-
-function totalUnidadePorGrupos(porGrupo: Map<GrupoRelatorioId, ContaPagar[]>, unidade: UnidadeRelatorioId): number {
-  const config = UNIDADES_RELATORIO.find((u) => u.id === unidade);
-  if (!config) return 0;
-  return config.grupos.reduce((acc, grupo) => acc + somarValores(porGrupo.get(grupo) || []), 0);
-}
-
-function temPossivelNecessidadeRateio(
-  porGrupo: Map<GrupoRelatorioId, ContaPagar[]>,
-  saldos: RelatorioSaldos
-): boolean {
-  const totalRec = totalUnidadePorGrupos(porGrupo, 'rec');
-  const totalBar = totalUnidadePorGrupos(porGrupo, 'bar');
-  const totalCg = totalUnidadePorGrupos(porGrupo, 'cg');
-
-  if (saldos.rec != null && totalRec > Number(saldos.rec)) return true;
-  if (saldos.bar != null && totalBar > Number(saldos.bar)) return true;
-  // Regra operacional: Campo Grande paga primeiro pela EMLA CG; se EMLA não cobre,
-  // pode precisar de transferência interna Kids CG -> EMLA CG ou apoio de outra unidade.
-  if (saldos.emla_cg != null && totalCg > Number(saldos.emla_cg)) return true;
-
-  return false;
-}
 
 function classificarGrupoRelatorio(conta: ContaPagar): GrupoRelatorioId {
   const desc = (conta.descricao || '').toLowerCase();
@@ -984,121 +896,21 @@ function contaPassaFiltroUnidade(conta: ContaPagar, unidadeFiltro: string): bool
   return false;
 }
 
-function linhaCodigoPagamento(
-  conta: ContaPagar,
-  codigo?: ContaPagarCodigoMes | null
-): string | null {
-  const codigoBarras = normalizarCodigoBarras(codigo?.codigo_barras);
-  if (codigoBarras && isCodigoBarrasValido(codigoBarras)) return codigoBarras;
-  if (codigo?.qr_pix_payload?.trim()) return codigo.qr_pix_payload.trim();
-  if (codigo?.chave_pix?.trim()) return codigo.chave_pix.trim();
-  if (conta.pix_chave_fixa?.trim()) return conta.pix_chave_fixa.trim();
-  return null;
-}
-
-const MARCADOR_DEBITO_AUTOMATICO = '🔁 DÉBITO AUTOMÁTICO — não pagar manualmente';
-
-function blocoContaRelatorio(
-  conta: ContaPagar,
-  codigo?: ContaPagarCodigoMes | null
-): string {
-  const titulo = limparTituloPG(conta.descricao || 'Conta');
-  const comp = formatCompetenciaMY(conta.competencia, conta.data_vencimento);
-  const valor = formatMoneyWhatsApp(Number(conta.valor) || 0);
-  const linhas = [`*PG ${titulo} ${comp} ${valor}*`];
-  if (conta.debito_automatico) {
-    // Se paga sozinha: o marcador substitui a linha de código (mesmo que exista um código coletado).
-    linhas.push(MARCADOR_DEBITO_AUTOMATICO);
-  } else {
-    const cod = linhaCodigoPagamento(conta, codigo);
-    if (cod) linhas.push(cod);
-  }
-  return linhas.join('\n');
-}
-
 /**
- * Monta mensagem no molde operacional das meninas (WhatsApp):
- * - Cabeçalho *CONTAS A PAGAR HOJE DD/MM* 🧾
- * - Total geral + resumo por unidade
- * - Blocos Recreio → Barra → Campo Grande separados por _________
- * - Cada conta: *PG … MM/AAAA R$…* + linha de código (barras/PIX quando houver)
- * - Rodapé *SALDO EM CONTAS* (Pluggy preenche na Fatia D)
- * - Alerta curto de rateio quando houver possível insuficiência de saldo
+ * Gera a mensagem do dia pela Edge Function (molde único, com saldo do Open Finance e marcador de
+ * débito automático). A edge materializa as recorrentes do mês antes de montar — o mesmo que
+ * fetchContasPagar já faz ao carregar a tela, então não há escrita nova por clique.
  */
-export function montarRelatorioMensagem(
-  contas: ContaPagar[],
+export async function gerarRelatorioDiaViaEdge(
   dataRef: string,
-  options?: {
-    codigosPorConta?: Record<string, ContaPagarCodigoMes>;
-    saldos?: RelatorioSaldos;
-    unidadeFiltro?: string;
-  }
-): string {
-  const { codigosPorConta = {}, saldos = {}, unidadeFiltro = 'todas' } = options || {};
-
-  const porGrupo = new Map<GrupoRelatorioId, ContaPagar[]>();
-  for (const g of GRUPOS_RELATORIO) porGrupo.set(g.id, []);
-
-  for (const c of contas) {
-    if (!contaPassaFiltroUnidade(c, unidadeFiltro)) continue;
-    const grupo = classificarGrupoRelatorio(c);
-    porGrupo.get(grupo)!.push(c);
-  }
-
-  for (const g of GRUPOS_RELATORIO) {
-    porGrupo.get(g.id)!.sort(compararContasRelatorio);
-  }
-
-  const totalGeral = Array.from(porGrupo.values()).reduce((acc, lista) => acc + somarValores(lista), 0);
-  const partes: string[] = [`*CONTAS A PAGAR HOJE ${formatDateDDMM(dataRef)}* 🧾`, ''];
-  partes.push(`💸 *Total Geral:* ${formatMoneyWhatsApp(totalGeral)}`);
-  const totalDebitoAutomatico = Array.from(porGrupo.values()).reduce(
-    (acc, lista) => acc + somarValores(lista.filter((c) => !!c.debito_automatico)),
-    0
-  );
-  if (totalDebitoAutomatico > 0) partes.push(`🔁 *Em débito automático:* ${formatMoneyWhatsApp(totalDebitoAutomatico)}`);
-  partes.push('');
-  partes.push('*Resumo por unidade*');
-  for (const unidade of UNIDADES_RELATORIO) {
-    const total = totalUnidadePorGrupos(porGrupo, unidade.id);
-    if (total > 0) partes.push(`• ${unidade.resumoLabel}: ${formatMoneyWhatsApp(total)}`);
-  }
-
-  const unidadesComContas = UNIDADES_RELATORIO.filter((u) => u.grupos.some((g) => (porGrupo.get(g)?.length || 0) > 0));
-
-  if (unidadesComContas.length === 0) {
-    partes.push('');
-    partes.push('_Nenhuma conta pendente para esta data._');
-  } else {
-    unidadesComContas.forEach((unidade) => {
-      const ordenada = unidade.grupos.flatMap((grupo) => porGrupo.get(grupo) || []).sort(compararContasRelatorio);
-      // Débito automático por último: o que se paga sozinho não compete com o que precisa de ação.
-      const lista = [...ordenada.filter((c) => !c.debito_automatico), ...ordenada.filter((c) => !!c.debito_automatico)];
-      partes.push('');
-      partes.push('_______________');
-      partes.push(`*${unidade.titulo}*`);
-      partes.push('');
-      lista.forEach((c, idxConta) => {
-        partes.push(blocoContaRelatorio(c, codigosPorConta[c.id]));
-        if (idxConta < lista.length - 1) partes.push('');
-      });
-    });
-  }
-
-  partes.push('');
-  partes.push('*SALDO EM CONTAS*');
-  partes.push(linhaSaldo('Recreio', saldos.rec));
-  partes.push(linhaSaldo('Barra', saldos.bar));
-  partes.push(linhaSaldo('Kids CG', saldos.kids_cg));
-  partes.push(linhaSaldo('EMLA CG', saldos.emla_cg));
-
-  if (temPossivelNecessidadeRateio(porGrupo, saldos)) {
-    partes.push('');
-    partes.push('⚠️ Há possível necessidade de rateio hoje.');
-    partes.push('Se quiserem, peçam: “Maria, calcular rateio.”');
-  }
-
-  return partes.join('\n').trimEnd();
+  unidadeFiltro: string
+): Promise<{ mensagem: string; conta_ids: string[]; count: number }> {
+  const { data, error } = await supabase.functions.invoke('contas-pagar-dia-gerar', {
+    body: { dataRef, unidadeFiltro },
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error ?? 'Não foi possível gerar o relatório do dia.');
+  return { mensagem: data.mensagem, conta_ids: data.conta_ids ?? [], count: data.count ?? 0 };
 }
 
 /** Filtra contas pendentes com vencimento exatamente na data de referência */

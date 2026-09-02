@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Calendar, Copy, FileText, MessageSquare, RefreshCw } from 'lucide-react';
 import { Badge, Card, DatePicker } from '../UI';
-import { ContaPagar, ContaPagarCodigoMes, ContaPagarRelatorioDia } from '../../types/contasPagar';
+import { ContaPagar, ContaPagarRelatorioDia } from '../../types/contasPagar';
 import {
   fetchRelatoriosDia,
   filtrarContasRelatorioDia,
+  gerarRelatorioDiaViaEdge,
   marcarRelatorioCopiado,
-  montarRelatorioMensagem,
   salvarRelatorioDia,
 } from '../../services/contasPagarService';
 import { cn } from '../CollaboratorComponents';
@@ -14,14 +14,13 @@ import { formatDateBR } from '../../utils/dateOnly';
 
 export const RelatorioDoDiaPanel: React.FC<{
   contas: ContaPagar[];
-  codigosPorConta: Record<string, ContaPagarCodigoMes>;
   unidade: string;
   unidadeLabel: string;
   geradoPor: string;
   dataRef?: string;
   onDataRefChange?: (next: string) => void;
   onCopied?: () => void;
-}> = ({ contas, codigosPorConta, unidade, unidadeLabel, geradoPor, dataRef: dataRefControlled, onDataRefChange, onCopied }) => {
+}> = ({ contas, unidade, unidadeLabel, geradoPor, dataRef: dataRefControlled, onDataRefChange, onCopied }) => {
   const hoje = new Date().toISOString().split('T')[0];
   const [dataRefInternal, setDataRefInternal] = useState(hoje);
   const dataRef = dataRefControlled || dataRefInternal;
@@ -31,6 +30,10 @@ export const RelatorioDoDiaPanel: React.FC<{
   const [historico, setHistorico] = useState<ContaPagarRelatorioDia[]>([]);
   const [loading, setLoading] = useState(false);
   const [copiando, setCopiando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  // Contagem autoritativa da mensagem gerada (a edge relê as contas do banco). Antes de gerar,
+  // o contador é a estimativa local sobre as contas já carregadas na tela.
+  const [contagemGerada, setContagemGerada] = useState<number | null>(null);
 
   const contasFiltradas = useMemo(
     () => filtrarContasRelatorioDia(contas, dataRef, unidade),
@@ -49,26 +52,31 @@ export const RelatorioDoDiaPanel: React.FC<{
     loadHistorico();
     setMensagem('');
     setRelatorioId(null);
+    setErro(null);
+    setContagemGerada(null);
   }, [loadHistorico, dataRef, unidade]);
 
   const gerar = async () => {
     setLoading(true);
+    setErro(null);
     try {
-      const texto = montarRelatorioMensagem(contasFiltradas, dataRef, {
-        codigosPorConta,
-        unidadeFiltro: unidade,
-      });
+      const { mensagem: texto, conta_ids } = await gerarRelatorioDiaViaEdge(dataRef, unidade);
       setMensagem(texto);
+      setContagemGerada(conta_ids.length);
       const row = await salvarRelatorioDia({
         data_referencia: dataRef,
         unidade,
         mensagem_texto: texto,
         gerado_por: geradoPor,
         status_envio: 'rascunho',
-        payload_json: { conta_ids: contasFiltradas.map((c) => c.id) },
+        payload_json: { conta_ids },
       });
       setRelatorioId(row.id);
       await loadHistorico();
+    } catch (e: any) {
+      setMensagem('');
+      setRelatorioId(null);
+      setErro(e?.message || 'Não foi possível gerar o relatório do dia.');
     } finally {
       setLoading(false);
     }
@@ -103,7 +111,7 @@ export const RelatorioDoDiaPanel: React.FC<{
           <p className="text-sm text-secondary font-medium mt-2 max-w-2xl leading-relaxed">
             Monta a mensagem no novo modelo aprovado: total geral, resumo por unidade e blocos na ordem Recreio → Barra → Campo Grande,
             com código de barras ou PIX quando cadastrado. Inclui apenas contas que vencem na <strong className="text-primary font-bold">data de referência</strong>.
-            Rose gera, revisa e copia — saldos entram na Fatia D (Pluggy) e o alerta curto de rateio aparece só quando necessário.
+            Rose gera, revisa e copia — o saldo em contas vem do Open Finance e o alerta curto de rateio aparece só quando necessário.
           </p>
         </div>
         {ultimoStatus && (
@@ -120,7 +128,7 @@ export const RelatorioDoDiaPanel: React.FC<{
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/10 text-accent text-[10px] font-black uppercase tracking-wider">
                 <MessageSquare size={12} />
-                {contasFiltradas.length} conta(s)
+                {contagemGerada ?? contasFiltradas.length} conta(s)
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-2 text-secondary text-[10px] font-black uppercase tracking-wider">
                 {unidadeLabel}
@@ -177,6 +185,12 @@ export const RelatorioDoDiaPanel: React.FC<{
               <MessageSquare size={12} className="text-accent" />
               Preview da mensagem
             </div>
+
+            {erro && (
+              <div className="mb-3 rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-xs font-bold text-danger">
+                {erro}
+              </div>
+            )}
 
             {mensagem ? (
               <div className="flex-1 rounded-2xl border border-line/70 bg-surface/50 p-4 shadow-inner">
