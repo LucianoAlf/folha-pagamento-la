@@ -22,7 +22,11 @@ repositório; a Maria copia pro dela ao receber. **Nada é escrito em `maria-bac
 
 - **É:** o contrato entre o banco (Super Folha é dono do schema e das RPCs) e a Maria (dona das
   tools, da allowlist, do digest do grupo e do `maria_agenda_envios`).
-- **Não é:** SQL pra aplicar. As migrations saem do repo do Super Folha, na fase B.
+- **Não é:** SQL pra aplicar. O schema (`agenda_rotinas`, `tarefas.rotina_id/competencia`,
+  `agenda_materializacoes`), o materializador (`agenda_resolve_dia`/`agenda_ajustar_data`,
+  `agenda_rotinas_materializar`/`agenda_materializar_corrente_e_proximo`) e o seed já saíram
+  deste repo (fase B1, entregue 02/09/2026); as migrations das 18 RPCs `maria_agenda_*` saem
+  do lado da Maria.
 - **Princípio (do Alf):** a Maria é *agent-first* — **paridade com o app**. Tudo que a Rose faz
   na tela, a Maria faz por RPC, auditada. Agent-first não é sem rastro; é sem porteiro.
 - **Domínio-agnóstico desde o dia 1:** as RPCs operam em `tarefas` e `agenda_rotinas` por
@@ -297,7 +301,7 @@ select p.proname, p.proacl
 
 | Super Folha (este repo) | Maria (vocês) |
 |---|---|
-| Schema, triggers, índices, materializador, sync, as 18 RPCs, grants, testes, seed | Tools no MCP (uma por RPC), allowlist por agente, **`maria_agenda_envios`** (`message_id → tarefa_ids`), digest das 08:00, regra no AGENTS.md |
+| Schema, triggers, índices, materializador, sync, seed, testes | As 18 RPCs, grants (migrations e MCP tools são do lado da Maria), Tools no MCP (uma por RPC), allowlist por agente, **`maria_agenda_envios`** (`message_id → tarefa_ids`), digest das 08:00, regra no AGENTS.md |
 | Lembrete e resumo individual (opt-in) | Resolver "isso já foi feito, dá baixa" **por citação**; sem citação e >1 candidata → pergunta, nunca chuta |
 | `agenda_destinatarios`, `agenda_materializacoes` | Distinguir "dá baixa" (conta → `maria_contas_dar_baixa`) de "conclui" (tarefa avulsa → `maria_agenda_concluir`) usando `vinculo_tipo` |
 
@@ -389,6 +393,10 @@ Não há gate de cadastro da Rose: canal padrão é o grupo; o individual é opt
 - [ ] **Financeiro Grupo LA Music recebeu o digest de agenda em 02/09** (verificação da fase)
 
 **Fase A entregue em 01/09/2026:** `tarefas.parent_id/responsavel_id/concluida_por/mensagem_origem_id`, `tarefas_listas_membros` (Financeiro ← Rose, Ana; RH ← Ana), `maria_whatsapp_atores.user_id` (3 atores), `agenda_destinatarios`, `agenda_momento_lembrete`, `agenda_sync_contas_pagar` + cron. Migrations: `20260901211626`, `20260901213004`, `20260901214314`, `20260901215613`, `20260901230636`, `20260901232341`, `20260901233302`. Status geral continua **pré-implementação** até a fase B (RPCs).
+
+**Fase B1 entregue em 02/09/2026:** `agenda_rotinas` (pai/filhas auto-referente, profundidade máx. 1, guards de lista e de profundidade em trigger), `tarefas.rotina_id/competencia` + índice único não-parcial `tarefas_rotina_competencia_uniq`, `agenda_materializacoes` (registra também as rodadas do sync, `origem='sync'`), `agenda_resolve_dia`/`agenda_ajustar_data` (ponto único de feriados/fim de semana), `agenda_rotinas_materializar` + `agenda_materializar_corrente_e_proximo` (mês corrente + próximo, idempotente, exceção isolada por pai), cron 19 `agenda-rotinas-materializar-diario` 07:30 SP **ativo**, seed em produção (10 pais `ativa` + 22 filhas + 4 registros `encerrada`, todos na lista Financeiro), sync v5 gravando em `agenda_materializacoes`. Migrations: `20260902030925`, `20260902032011`, `20260902032719`, `20260902033620`, `20260902035319`, `20260902041210`, `20260902042802`. Evidência da primeira materialização real (02/09/2026, origem `manual`, pelo orquestrador): set/2026 `{pais_criados 10, filhas_criadas 22, pulados 0, erros []}` (213 ms); out/2026 idem (13 ms); 64 instâncias no total (32 + 32); 0 duplicatas em `(rotina_id, competencia)`; 0 filhas sem pai ou com pai/competência errados; reexecução manual deu 0/0 nos dois meses (idempotente).
+
+As RPCs `maria_agenda_*` (10 de tarefa já em produção via `maria_agenda_rpcs_tarefas`; 9 de rotina a escrever) são do lado da Maria, sobre `agenda_rotinas` e `agenda_materializar_corrente_e_proximo('rpc')` daqui; a fase B2 deste repo foi cancelada em 02/09. O status `PRONTO` deste contrato passa a ser marcado pelo lado da Maria quando as 9 de rotina pousarem.
 
 Fases no Super Folha: **A — Fundação** (sync no servidor, `parent_id` + triggers, responsável,
 membros, jobs multiusuário; ~3 dias) → **B — Rotinas + Maria** (`agenda_rotinas`, materializador,
