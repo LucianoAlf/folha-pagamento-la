@@ -9,11 +9,12 @@ function readBySuffix(suffix) {
   return f ? readFileSync(new URL(`./${f}`, import.meta.url), 'utf8') : '';
 }
 const schema = readBySuffix('_agenda_rotinas_schema.sql');
+const guardLista = readBySuffix('_agenda_rotinas_guard_lista_pai.sql');
 const cal = readBySuffix('_agenda_calendario.sql');
 const mat = readBySuffix('_agenda_rotinas_materializar.sql');
 const seed = readBySuffix('_agenda_seed_rotinas_financeiro.sql');
 const syncV5 = readBySuffix('_agenda_sync_contas_pagar_v5.sql');
-const todos = [schema, cal, mat, seed, syncV5].join('\n');
+const todos = [schema, guardLista, cal, mat, seed, syncV5].join('\n');
 
 test('schema: agenda_rotinas auto-referente com CHECKs da spec', () => {
   assert.match(schema, /create table if not exists public\.agenda_rotinas/i);
@@ -39,6 +40,17 @@ test('schema: guarda de profundidade e mesma lista em trigger', () => {
   assert.match(schema, /create trigger agenda_rotinas_guard_parent before insert or update of parent_rotina_id, lista_id on public\.agenda_rotinas/i);
   assert.match(schema, /profundidade maxima 1: filha nao pode ter filha\./);
   assert.match(schema, /filha deve estar na mesma lista do pai\./);
+});
+
+// R-B1-4: a guarda do banco e a unica barreira do invariante (as RPCs de rotina
+// serao de outro time). Mover o pai de lista quebraria "filha na mesma lista do pai".
+test('guard lista (R-B1-4): pai com filhas nao muda de lista, guardas antigas de pe', () => {
+  assert.match(guardLista, /create or replace function public\.agenda_rotinas_guard_parent\(\)/i);
+  assert.match(guardLista, /tg_op = 'UPDATE' and new\.lista_id is distinct from old\.lista_id/i);
+  assert.match(guardLista, /exists \(select 1 from public\.agenda_rotinas f where f\.parent_rotina_id = new\.id\)/i);
+  assert.match(guardLista, /rotina com filhas nao muda de lista: encerre e crie outra\./);
+  assert.match(guardLista, /profundidade maxima 1: filha nao pode ter filha\./);
+  assert.match(guardLista, /filha deve estar na mesma lista do pai\./);
 });
 
 test('schema: RLS — leitura pra logados, escrita so admin; materializacoes legivel pela Maria', () => {

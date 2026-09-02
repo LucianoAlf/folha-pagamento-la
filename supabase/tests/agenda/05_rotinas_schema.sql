@@ -1,7 +1,7 @@
 -- Rodar via MCP execute_sql. Esperado: sem erro e ultima linha 'PASS: 05_rotinas_schema'.
 begin;
 do $t$
-declare v_fin uuid; v_rh uuid; v_pai uuid; v_filha uuid; v_ok boolean; v_t uuid;
+declare v_fin uuid; v_rh uuid; v_pai uuid; v_filha uuid; v_solo uuid; v_ok boolean; v_t uuid; v_lista_depois uuid;
 begin
   select id into v_fin from public.tarefas_listas where lower(nome)='financeiro' and coalesce(is_smart,false)=false order by ordem limit 1;
   select id into v_rh  from public.tarefas_listas where lower(nome)='rh' and coalesce(is_smart,false)=false order by ordem limit 1;
@@ -23,6 +23,23 @@ begin
     insert into public.agenda_rotinas (titulo, lista_id, dia_mes, parent_rotina_id) values ('R filha rh', v_rh, 13, v_pai);
   exception when others then v_ok := sqlerrm like 'filha deve estar na mesma lista%'; end;
   assert v_ok, 'filha em outra lista deveria ser recusada';
+
+  -- R-B1-4: mover o PAI de lista quebraria o invariante pelas costas -> recusa
+  v_ok := false;
+  begin
+    update public.agenda_rotinas set lista_id = v_rh where id = v_pai;
+  exception when others then
+    v_ok := sqlstate = 'P0001' and sqlerrm like 'rotina com filhas nao muda de lista%';
+  end;
+  assert v_ok, 'pai com filhas nao deveria poder mudar de lista';
+  select lista_id into v_lista_depois from public.agenda_rotinas where id = v_pai;
+  assert v_lista_depois = v_fin, 'a lista do pai deveria ter ficado intacta';
+
+  -- ... mas a guarda nao pode bloquear demais: rotina SEM filhas muda de lista normalmente
+  insert into public.agenda_rotinas (titulo, lista_id, dia_mes) values ('R solo', v_fin, 5) returning id into v_solo;
+  update public.agenda_rotinas set lista_id = v_rh where id = v_solo;
+  select lista_id into v_lista_depois from public.agenda_rotinas where id = v_solo;
+  assert v_lista_depois = v_rh, 'rotina sem filhas deveria poder mudar de lista';
 
   -- sem dia_mes e sem ultimo_dia -> CHECK
   v_ok := false;
