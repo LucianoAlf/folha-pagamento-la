@@ -15,8 +15,9 @@ const devidosFix = readBySuffix('_agenda_lembretes_devidos_horizonte_por_momento
 const sync = readBySuffix('_agenda_sync_contas_pagar.sql');
 const syncV2 = readBySuffix('_agenda_sync_contas_pagar_v2.sql');
 const syncV3 = readBySuffix('_agenda_sync_contas_pagar_v3.sql');
+const syncV4 = readBySuffix('_agenda_sync_contas_pagar_v4.sql');
 const resumoV2 = readBySuffix('_agenda_resumo_usuario_v2.sql');
-const todos = [schema, rls, dest, devidosFix, sync, syncV2, syncV3, resumoV2].join('\n');
+const todos = [schema, rls, dest, devidosFix, sync, syncV2, syncV3, syncV4, resumoV2].join('\n');
 
 test('schema: colunas, membros, ator.user_id, indice unico de vinculo nao-parcial', () => {
   assert.match(schema, /add column if not exists parent_id uuid null references public\.tarefas\(id\) on delete set null/i);
@@ -99,6 +100,13 @@ test('sync: funcao, cron *\\/10, colunas de dono, orfa so por conta invalida, gr
   assert.match(syncV3, /coalesce\(\(data_pagamento at time zone 'UTC'\)::date,\s*\(now\(\) at time zone 'America\/Sao_Paulo'\)::date\)::timestamp \+ time '12:00'\) at time zone 'America\/Sao_Paulo'/i);
   assert.match(syncV3, /and not exists \(select 1 from public\.tarefas f where f\.parent_id = t\.id and f\.status in \('pendente','em_andamento','adiada'\)\)/i);
   assert.match(syncV3, /revoke all on function public\.agenda_sync_contas_pagar\(\) from public, anon, authenticated/i);
+  // v4 (I-2): DO UPDATE so quando muda, guarda de recorrencia_pai_id, coalesce no status.
+  assert.match(syncV4, /is distinct from/i);
+  assert.match(syncV4, /r\.recorrencia_pai_id = t\.id/i);
+  assert.match(syncV4, /coalesce\(c\.status,''\) not in \('cancelado','finalizado'\)/i);
+  assert.doesNotMatch(syncV4, /do update set[\s\S]*?responsavel_id\s*=/i);
+  assert.match(syncV4, /revoke all on function public\.agenda_sync_contas_pagar\(\) from public, anon, authenticated/i);
+  assert.match(syncV4, /grant execute on function public\.agenda_sync_contas_pagar\(\) to service_role/i);
 });
 
 test('resumo v2 (I-1): atrasadas com piso de 30 dias + atrasadas_total sem piso', () => {

@@ -47,6 +47,13 @@ begin
   select count(*) into v_n from public.tarefas where vinculo_tipo='conta_pagar' and vinculo_id = v_c1;
   assert v_n = 1, 'espelho duplicado: ' || v_n;
 
+  -- I-2: tick sem mudanca nenhuma nao pode reescrever espelho (o DO UPDATE tem WHERE ... is distinct from).
+  v_r := public.agenda_sync_contas_pagar();
+  assert (v_r->>'atualizadas')::int = 0, 'sync sem mudanca deveria reportar atualizadas = 0, veio ' || (v_r->>'atualizadas');
+  update public.contas_pagar set valor = valor + 1 where id = v_c1;
+  v_r := public.agenda_sync_contas_pagar();
+  assert (v_r->>'atualizadas')::int >= 1, 'sync com valor alterado deveria reportar atualizadas >= 1, veio ' || (v_r->>'atualizadas');
+
   -- achado 1 (R13): data_pagamento guarda meia-noite UTC da data escolhida, entao a data de calendario
   -- UTC e a data do pagamento; a data SP do mesmo instante e o dia anterior. Com 2026-07-01 00:00+00,
   -- a data SP seria 2026-06-30 — esta assercao discrimina a v2 (falha) da v3 (passa).
