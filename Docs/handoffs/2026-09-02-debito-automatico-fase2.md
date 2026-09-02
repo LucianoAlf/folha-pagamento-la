@@ -52,4 +52,6 @@ Migration `supabase/migrations/20260902125047_maria_debito_automatico_fase2.sql`
 | 6. MCP/allowlist | Tools de criar aceitam `debito_automatico`; `metodo_pagamento` saiu do obrigatório na baixa; tool `maria_contas_definir_debito_automatico` para owner/rose/ana. |
 | 7. Lista/digest da Maria | `maria_agenda_digest_grupo` devolve `contas_debito_automatico {n,total,itens, sem_baixa{n,total,itens}}` lido direto de `contas_pagar` (sem espelho, a conta sumiria do digest do SUPORTE). O bridge mostra o bloco 🔁 "Em débito automático hoje/na semana/até o fim do mês" e "Débito automático sem baixa" junto das atrasadas, sem pedir pagamento manual. |
 
-Verificação: `tests/test_maria_debito_automatico.py` (workspace da Maria, transação desfeita) — 20 asserções; bridge 42/42.
+Governança: `20260902131111_maria_agenda_saude_v2_digest_tipos_e_debito_automatico.sql` — `maria_agenda_saude` passa a contar o digest v2 (tipo `manha`) como enviado e devolve `debito_automatico {pendentes, total, sem_baixa_vencidas, sem_baixa_total, espelhos_vivos}`; espelho "Pagar:" vivo em conta flagada (>30 min após a flag) vira alerta. Sonda (`assercoes.agenda`) e laudo (§10) leem essa mesma função.
+
+Verificação: `tests/test_maria_debito_automatico.py` (workspace da Maria, transação desfeita) — 27 asserções; bridge 42/42.
