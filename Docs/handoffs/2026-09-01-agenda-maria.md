@@ -386,6 +386,8 @@ Não há gate de cadastro da Rose: canal padrão é o grupo; o individual é opt
 - [ ] Contagem em produção: 0 duplicatas em `(rotina_id, competencia)` e `(vinculo_tipo, vinculo_id)`; set + out materializados = pais + filhas esperados; `agenda_materializacoes` sem erros
 - [ ] **Financeiro Grupo LA Music recebeu o digest de agenda em 02/09** (verificação da fase)
 
+**Fase A entregue em 01/09/2026:** `tarefas.parent_id/responsavel_id/concluida_por/mensagem_origem_id`, `tarefas_listas_membros` (Financeiro ← Rose, Ana; RH ← Ana), `maria_whatsapp_atores.user_id` (3 atores), `agenda_destinatarios`, `agenda_momento_lembrete`, `agenda_sync_contas_pagar` + cron. Migrations: `20260901211626`, `20260901213004`, `20260901214314`, `20260901215613`, `20260901230636`, `20260901232341`, `20260901233302`. Status geral continua **pré-implementação** até a fase B (RPCs).
+
 Fases no Super Folha: **A — Fundação** (sync no servidor, `parent_id` + triggers, responsável,
 membros, jobs multiusuário; ~3 dias) → **B — Rotinas + Maria** (`agenda_rotinas`, materializador,
 seed, as 18 RPCs, grants, handoff `PRONTO`; ~6–8 dias). A B só começa com a A verificada em
