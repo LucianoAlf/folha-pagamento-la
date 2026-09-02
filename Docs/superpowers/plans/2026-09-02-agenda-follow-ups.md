@@ -11,6 +11,8 @@
 - **`agenda_brl(numeric)` sem `set search_path`** — função pura da fase A; uniformidade.
 - **Arquivo `supabase/migrations/20260902020000_maria_agenda_rpcs_tarefas.sql` tem versão local ≠ servidor (`20260902015450`)** — nunca `supabase db push` deste repo.
 - **`pulados` mistura dois significados** (pai pulado por vigência = 1; filhas sob pai fechado = N) e o log tem dois vocabulários de contadores (materializador × sync) — documentar ou separar.
+- **Sync de folha: "Fechar Folha" e "Aprovar Folha" da mesma folha compartilham o `vinculo_id`** (`folha:<id>`), então quando a folha mais recente também está `pendente` os dois blocos escrevem na mesma linha (último vence: Aprovar). Pré-existente; inofensivo hoje, mas o título do espelho oscila entre os dois nomes. Distinguir por vínculo (`folha:<id>:fechar` / `:aprovar`) exige migrar os espelhos existentes.
+- **Sync de folha: com `folha_alerta_fechamento_ativo = false`, o espelho "Fechar Folha" da folha mais recente passa a ser fechado** (concluída/cancelada conforme a folha) em vez de ficar congelado — comportamento novo do fix de 02/09, intencional.
 - **Seed: replay após renomear um pai duplica o pacote** (casamento por título) — conferir `count(*) = 36` em branch/restore (nota já no handoff §12).
 
 ## Fase A — deferidos e parkeados (ledger de 01/09)

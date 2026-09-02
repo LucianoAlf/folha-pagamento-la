@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { createLista } from './agendaService';
-import { planejarFechamentoEspelhosFolha } from './agendaFolhaEspelhos';
+import { planejarCancelamentoEspelhosSemFolha, planejarFechamentoEspelhosFolha } from './agendaFolhaEspelhos';
 import type { NotificacaoConfig, Tarefa, TarefaLista } from '../types/agenda';
 
 /* ------------------------------------------------------------------ */
@@ -281,6 +281,33 @@ async function syncFolhaAsAgendaTasks(input: { listaRhId: string; cfg: Notificac
     const { error } = await supabase.from('tarefas').update({ status: 'cancelada' }).in('id', fechamento.cancelar);
     if (error) {
       console.error('[agendaIntegrations] syncFolha fechar espelhos (cancelar) error:', error.message);
+      throw error;
+    }
+  }
+
+  // Folha apagada: o espelho nao entra em `existing` (busca por vinculo das folhas existentes). Busca os
+  // espelhos de folha ainda abertos e cancela os que nao correspondem a nenhuma folha conhecida.
+  const { data: abertos, error: abertosErr } = await supabase
+    .from('tarefas')
+    .select('id,vinculo_id,status')
+    .eq('vinculo_tipo', 'folha_pagamento')
+    .in('status', ['pendente', 'em_andamento', 'adiada']);
+  if (abertosErr) {
+    console.warn('[agendaIntegrations] syncFolha espelhos abertos fetch error:', abertosErr.message);
+    throw abertosErr;
+  }
+  const semFolha = planejarCancelamentoEspelhosSemFolha({
+    vinculosConhecidos: new Set(vinculos),
+    abertos: ((abertos || []) as Array<{ id: string; vinculo_id: string | null; status: string }>).map((t) => ({
+      id: t.id,
+      vinculo_id: t.vinculo_id ? String(t.vinculo_id) : null,
+      status: String(t.status),
+    })),
+  });
+  if (semFolha.length) {
+    const { error } = await supabase.from('tarefas').update({ status: 'cancelada' }).in('id', semFolha);
+    if (error) {
+      console.error('[agendaIntegrations] syncFolha cancelar espelhos sem folha error:', error.message);
       throw error;
     }
   }

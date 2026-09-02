@@ -70,3 +70,17 @@ test('varios espelhos: classifica cada um e mantem a ordem de entrada', () => {
   });
   assert.deepEqual(plano, { concluir: ['t15', 't17'], cancelar: ['t13'] });
 });
+
+test('folha apagada: espelho aberto sem folha conhecida -> cancelar; conhecido ou ja fechado -> ignorar', async () => {
+  const { planejarCancelamentoEspelhosSemFolha } = await import('./agendaFolhaEspelhos.ts');
+  const ids = planejarCancelamentoEspelhosSemFolha({
+    vinculosConhecidos: new Set(['v31', 'v15']),
+    abertos: [
+      { id: 'tApagada', vinculo_id: 'v999', status: 'pendente' },
+      { id: 'tConhecida', vinculo_id: 'v15', status: 'pendente' },
+      { id: 'tFechada', vinculo_id: 'v888', status: 'concluida' },
+      { id: 'tSemVinculo', vinculo_id: null, status: 'pendente' },
+    ],
+  });
+  assert.deepEqual(ids, ['tApagada']);
+});

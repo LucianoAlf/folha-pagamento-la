@@ -50,3 +50,16 @@ export function planejarFechamentoEspelhosFolha(input: {
   }
   return plano;
 }
+
+/**
+ * Folha apagada: o espelho some da busca por vinculo (que parte das folhas existentes) e ficaria aberto pra
+ * sempre. Recebe os espelhos de folha ainda abertos e devolve os que nao correspondem a nenhuma folha conhecida.
+ */
+export function planejarCancelamentoEspelhosSemFolha(input: {
+  vinculosConhecidos: ReadonlySet<string>;
+  abertos: EspelhoFolha[];
+}): string[] {
+  return input.abertos
+    .filter((t) => !!t.vinculo_id && !input.vinculosConhecidos.has(t.vinculo_id) && STATUS_ESPELHO_ABERTO.has(t.status))
+    .map((t) => t.id);
+}
