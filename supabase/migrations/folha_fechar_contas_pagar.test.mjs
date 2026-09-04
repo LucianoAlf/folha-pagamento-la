@@ -3,10 +3,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const migration = readFileSync(
-  new URL('./20260715_1_folha_fechar_contas_pagar.sql', import.meta.url),
+  new URL('./_arquivo/20260715_1_folha_fechar_contas_pagar.sql', import.meta.url),
   'utf8'
 );
-const vencimentoMigrationUrl = new URL('./20260715_2_folha_vencimento_dia_10.sql', import.meta.url);
+const vencimentoMigrationUrl = new URL('./_arquivo/20260715_2_folha_vencimento_dia_10.sql', import.meta.url);
 const vencimentoMigration = existsSync(vencimentoMigrationUrl)
   ? readFileSync(vencimentoMigrationUrl, 'utf8')
   : '';

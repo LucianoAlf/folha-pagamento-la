@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-const sql = readFileSync(new URL('./20260627_maria_fluxo_caixa_eventos.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260627_maria_fluxo_caixa_eventos.sql', import.meta.url), 'utf8');
 
 test('migration creates Maria cash-flow ledger and RPCs', () => {
   assert.match(sql, /create table if not exists public\.maria_fluxo_caixa_eventos/i);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260628_6_maria_contas_dar_baixa_owner_full.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260628_6_maria_contas_dar_baixa_owner_full.sql', import.meta.url), 'utf8');
 
 test('replaces Maria baixa RPC with owner_full allowlisted', () => {
   assert.match(sql, /create or replace function public\.maria_contas_dar_baixa/i);

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 // Teste estatico da migration; o comportamento roda no banco (tests/test_maria_debito_automatico.py no workspace da Maria,
 // transacao desfeita). A migration foi aplicada por MCP e carrega a versao do servidor no nome.
 const dir = fileURLToPath(new URL('./', import.meta.url));
-const f = readdirSync(dir).find((n) => n.endsWith('_maria_debito_automatico_fase2.sql'));
+const f = [...readdirSync(dir), ...readdirSync(dir + '/_arquivo').map((n) => '_arquivo/' + n)].find((n) => n.endsWith('_maria_debito_automatico_fase2.sql'));
 const sql = f ? readFileSync(new URL(`./${f}`, import.meta.url), 'utf8') : '';
 const codigo = sql.replace(/--.*$/gm, '');
 

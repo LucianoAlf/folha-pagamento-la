@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migrationUrl = new URL('./20260805_4_rh_agenda_ferias_estabilidade.sql', import.meta.url);
+const migrationUrl = new URL('./_arquivo/20260805_4_rh_agenda_ferias_estabilidade.sql', import.meta.url);
 const migration = existsSync(migrationUrl) ? readFileSync(migrationUrl, 'utf8') : '';
 
 test('limpeza remove somente espelhos RH sem pai', () => {

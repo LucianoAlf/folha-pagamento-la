@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260630_18_financeiro_cartao_crud.sql', import.meta.url), 'utf8');
-const m19 = readFileSync(new URL('./20260630_19_financeiro_cartao_salvar_ativo_guard.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260630_18_financeiro_cartao_crud.sql', import.meta.url), 'utf8');
+const m19 = readFileSync(new URL('./_arquivo/20260630_19_financeiro_cartao_salvar_ativo_guard.sql', import.meta.url), 'utf8');
 
 test('M18 creates card save and archive RPCs as secure definer functions', () => {
   assert.match(sql, /create or replace function public\.financeiro_cartao_salvar\(p_payload jsonb, p_ator jsonb/i);

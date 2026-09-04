@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260724_2_maria_email_ledger_fase3a.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260724_2_maria_email_ledger_fase3a.sql', import.meta.url), 'utf8');
 
 function functionBody(name) {
   const re = new RegExp(`create or replace function public\\.${name}\\([\\s\\S]*?\\n\\$\\$;`, 'i');
@@ -42,7 +42,7 @@ test('versionamento marca antigo substituido e forca novo pendente_conferencia c
 });
 
 test('quality fix exige dedupe_group_quality recalculada junto da chave', () => {
-  const fixSql = readFileSync(new URL('./20260724_3_maria_email_ledger_fase3a_quality_fix.sql', import.meta.url), 'utf8');
+  const fixSql = readFileSync(new URL('./_arquivo/20260724_3_maria_email_ledger_fase3a_quality_fix.sql', import.meta.url), 'utf8');
   assert.match(fixSql, /versionamento exige dedupe_group_quality recalculada no runtime/i);
   assert.match(fixSql, /p_payload_novo \? 'dedupe_group_quality'/i);
   assert.match(fixSql, /dedupe_group_quality invalida no versionamento/i);

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const sql = fs.readFileSync(new URL('./20260626_maria_contas_dar_baixa.sql', import.meta.url), 'utf8');
+const sql = fs.readFileSync(new URL('./_arquivo/20260626_maria_contas_dar_baixa.sql', import.meta.url), 'utf8');
 
 test('Maria baixa RPC records paid status with payment date/method and sanitized payload', () => {
   assert.match(sql, /create or replace function public\.maria_contas_dar_baixa/i);

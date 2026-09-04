@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260626_maria_contas_codigo_mes_carimbo.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260626_maria_contas_codigo_mes_carimbo.sql', import.meta.url), 'utf8');
 
 test('Maria code-month stamp migration adds visible metadata and sanitized status RPC', () => {
   assert.match(sql, /add column if not exists registrado_por_agente boolean/);

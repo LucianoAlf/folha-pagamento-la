@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260724_4_maria_email_match_sugerir_auto.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260724_4_maria_email_match_sugerir_auto.sql', import.meta.url), 'utf8');
 
 function functionBody(name) {
   const re = new RegExp(`create or replace function public\\.${name}\\([\\s\\S]*?\\n\\$\\$;`, 'i');

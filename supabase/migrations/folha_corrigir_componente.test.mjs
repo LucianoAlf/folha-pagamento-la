@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const correction = readFileSync(
-  new URL('./20260711_1_folha_corrigir_componente.sql', import.meta.url),
+  new URL('./_arquivo/20260711_1_folha_corrigir_componente.sql', import.meta.url),
   'utf8'
 );
 

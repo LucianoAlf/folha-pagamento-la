@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const dir = fileURLToPath(new URL('./', import.meta.url));
 function readBySuffix(suffix) {
-  const f = readdirSync(dir).find((n) => n.endsWith(suffix));
+  const f = [...readdirSync(dir), ...readdirSync(dir + '/_arquivo').map((n) => '_arquivo/' + n)].find((n) => n.endsWith(suffix));
   return f ? readFileSync(new URL(`./${f}`, import.meta.url), 'utf8') : '';
 }
 const schema = readBySuffix('_agenda_rotinas_schema.sql');

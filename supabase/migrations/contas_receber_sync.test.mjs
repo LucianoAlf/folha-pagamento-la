@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migrationPath = new URL('./20260717_1_contas_receber_sync.sql', import.meta.url);
-const freshnessMigrationPath = new URL('./20260718_1_contas_receber_frescor.sql', import.meta.url);
+const migrationPath = new URL('./_arquivo/20260717_1_contas_receber_sync.sql', import.meta.url);
+const freshnessMigrationPath = new URL('./_arquivo/20260718_1_contas_receber_frescor.sql', import.meta.url);
 
 function sql() {
   assert.equal(existsSync(migrationPath), true, 'migration de contas a receber deve existir');

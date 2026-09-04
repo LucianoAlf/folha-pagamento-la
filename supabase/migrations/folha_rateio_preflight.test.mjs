@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const preflight = readFileSync(
-  new URL('./20260710_3_folha_rateio_preflight.sql', import.meta.url),
+  new URL('./_arquivo/20260710_3_folha_rateio_preflight.sql', import.meta.url),
   'utf8'
 );
 

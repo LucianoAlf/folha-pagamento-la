@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const triggerSql = readFileSync(new URL('./20260628_8_contas_pagar_trigger_empresa_centro.sql', import.meta.url), 'utf8');
-const triadeSql = readFileSync(new URL('./20260628_9_contas_pagar_trigger_conta_pagadora.sql', import.meta.url), 'utf8');
-const unidadeTextSql = readFileSync(new URL('./20260628_10_contas_pagar_trigger_unidade_text.sql', import.meta.url), 'utf8');
+const triggerSql = readFileSync(new URL('./_arquivo/20260628_8_contas_pagar_trigger_empresa_centro.sql', import.meta.url), 'utf8');
+const triadeSql = readFileSync(new URL('./_arquivo/20260628_9_contas_pagar_trigger_conta_pagadora.sql', import.meta.url), 'utf8');
+const unidadeTextSql = readFileSync(new URL('./_arquivo/20260628_10_contas_pagar_trigger_unidade_text.sql', import.meta.url), 'utf8');
 
 test('creates contas_pagar trigger to enforce company and cost-center invariant', () => {
   assert.match(triggerSql, /create trigger trg_contas_pagar_valida_empresa_centro/i);

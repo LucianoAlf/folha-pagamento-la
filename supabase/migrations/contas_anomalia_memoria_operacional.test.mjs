@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260806213000_contas_anomalia_memoria_operacional.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260806213000_contas_anomalia_memoria_operacional.sql', import.meta.url), 'utf8');
 
 test('migration preserva legado e cria identidade recorrente', () => {
   assert.match(sql, /add column if not exists recorrente_modelo_id uuid/i);

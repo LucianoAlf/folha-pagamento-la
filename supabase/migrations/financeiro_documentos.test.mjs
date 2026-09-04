@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260628_4_financeiro_documentos.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260628_4_financeiro_documentos.sql', import.meta.url), 'utf8');
 
 test('creates sanitized financial documents table', () => {
   assert.match(sql, /create table if not exists public\.financeiro_documentos/i);

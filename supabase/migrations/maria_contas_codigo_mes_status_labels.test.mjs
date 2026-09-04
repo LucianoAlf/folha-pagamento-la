@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migrationUrl = new URL('./20260626_maria_contas_codigo_mes_status_labels.sql', import.meta.url);
+const migrationUrl = new URL('./_arquivo/20260626_maria_contas_codigo_mes_status_labels.sql', import.meta.url);
 
 test('Maria document status RPC uses Contas a Pagar status labels', () => {
   assert.equal(existsSync(migrationUrl), true, 'missing status-label alignment migration');

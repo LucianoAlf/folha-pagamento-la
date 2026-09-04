@@ -3,15 +3,15 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const sql = readFileSync(
-  new URL('./20260716_2_folha_dre_analitico_v4.sql', import.meta.url),
+  new URL('./_arquivo/20260716_2_folha_dre_analitico_v4.sql', import.meta.url),
   'utf8'
 );
 const normalizationFixSql = readFileSync(
-  new URL('./20260716_3_folha_dre_normaliza_texto_ascii.sql', import.meta.url),
+  new URL('./_arquivo/20260716_3_folha_dre_normaliza_texto_ascii.sql', import.meta.url),
   'utf8'
 );
 const repairSql = readFileSync(
-  new URL('./20260716_4_folha_dre_repair_backfill_17.sql', import.meta.url),
+  new URL('./_arquivo/20260716_4_folha_dre_repair_backfill_17.sql', import.meta.url),
   'utf8'
 );
 

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const migration = readFileSync(
-  new URL('./20260719_2_folha_alocacao_dre.sql', import.meta.url),
+  new URL('./_arquivo/20260719_2_folha_alocacao_dre.sql', import.meta.url),
   'utf8'
 );
 

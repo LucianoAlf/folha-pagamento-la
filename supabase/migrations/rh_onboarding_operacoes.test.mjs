@@ -6,8 +6,8 @@ function readMaybe(url) {
   return existsSync(url) ? readFileSync(url, 'utf8') : '';
 }
 
-const operations = readMaybe(new URL('./20260805_2_rh_onboarding_operacoes.sql', import.meta.url));
-const uniqueness = readMaybe(new URL('./20260805_3_colaboradores_cpf_unico.sql', import.meta.url));
+const operations = readMaybe(new URL('./_arquivo/20260805_2_rh_onboarding_operacoes.sql', import.meta.url));
+const uniqueness = readMaybe(new URL('./_arquivo/20260805_3_colaboradores_cpf_unico.sql', import.meta.url));
 const reconcile = readMaybe(new URL('../../scripts/sql/20260805_rh_reconciliar_colaboradores_duplicados.sql', import.meta.url));
 
 test('exclusao definitiva e atomica e remove espelhos da agenda', () => {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migrationUrl = new URL('./20260805_1_rh_jornada_operacional.sql', import.meta.url);
+const migrationUrl = new URL('./_arquivo/20260805_1_rh_jornada_operacional.sql', import.meta.url);
 
 function migrationSql() {
   return readFileSync(migrationUrl, 'utf8');

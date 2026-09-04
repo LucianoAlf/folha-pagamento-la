@@ -3,15 +3,15 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const legacy = readFileSync(
-  new URL('./20260710_1_colaboradores_conta_pagadora.sql', import.meta.url),
+  new URL('./_arquivo/20260710_1_colaboradores_conta_pagadora.sql', import.meta.url),
   'utf8'
 );
 const model = readFileSync(
-  new URL('./20260710_2_folha_rateio_conta_pagadora_model.sql', import.meta.url),
+  new URL('./_arquivo/20260710_2_folha_rateio_conta_pagadora_model.sql', import.meta.url),
   'utf8'
 );
 const fkIndex = readFileSync(
-  new URL('./20260710_5_folha_rateio_conta_pagadora_fk_index.sql', import.meta.url),
+  new URL('./_arquivo/20260710_5_folha_rateio_conta_pagadora_fk_index.sql', import.meta.url),
   'utf8'
 );
 

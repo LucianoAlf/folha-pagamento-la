@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const migrationUrl = new URL('./20260716_1_maria_contas_cancelar_parcelada.sql', import.meta.url);
+const migrationUrl = new URL('./_arquivo/20260716_1_maria_contas_cancelar_parcelada.sql', import.meta.url);
 const sql = existsSync(migrationUrl) ? readFileSync(migrationUrl, 'utf8') : '';
-const separatorFixUrl = new URL('./20260716_2_maria_contas_parcelada_separador.sql', import.meta.url);
+const separatorFixUrl = new URL('./_arquivo/20260716_2_maria_contas_parcelada_separador.sql', import.meta.url);
 const separatorFixSql = existsSync(separatorFixUrl) ? readFileSync(separatorFixUrl, 'utf8') : '';
-const separatorSpacingUrl = new URL('./20260716_3_maria_contas_parcelada_separador_espaco.sql', import.meta.url);
+const separatorSpacingUrl = new URL('./_arquivo/20260716_3_maria_contas_parcelada_separador_espaco.sql', import.meta.url);
 const separatorSpacingSql = existsSync(separatorSpacingUrl) ? readFileSync(separatorSpacingUrl, 'utf8') : '';
 
 test('closes the legacy generic cancellation path', () => {

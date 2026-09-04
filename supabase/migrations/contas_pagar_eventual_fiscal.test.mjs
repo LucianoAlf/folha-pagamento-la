@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260628_3_contas_pagar_eventual_fiscal.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260628_3_contas_pagar_eventual_fiscal.sql', import.meta.url), 'utf8');
 
 test('adds nullable fiscal references to contas_pagar', () => {
   assert.match(sql, /add column if not exists empresa_id\s+uuid null/i);

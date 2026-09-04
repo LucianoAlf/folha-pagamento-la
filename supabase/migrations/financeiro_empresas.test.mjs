@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260628_1_financeiro_empresas.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260628_1_financeiro_empresas.sql', import.meta.url), 'utf8');
 
 test('creates fiscal companies table with operational labels and cost-center FK', () => {
   assert.match(sql, /create table if not exists public\.financeiro_empresas/i);

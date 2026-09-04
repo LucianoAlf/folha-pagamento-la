@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-const migrationUrl = new URL('./20260720_2_dre_filtro_unidade.sql', import.meta.url);
+const migrationUrl = new URL('./_arquivo/20260720_2_dre_filtro_unidade.sql', import.meta.url);
 const migrationPath = fileURLToPath(migrationUrl);
 const migrationExists = existsSync(migrationPath);
 

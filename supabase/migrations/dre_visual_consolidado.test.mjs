@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const sql = readFileSync(
-  new URL('./20260719_1_dre_visual_consolidado.sql', import.meta.url),
+  new URL('./_arquivo/20260719_1_dre_visual_consolidado.sql', import.meta.url),
   'utf8',
 );
 

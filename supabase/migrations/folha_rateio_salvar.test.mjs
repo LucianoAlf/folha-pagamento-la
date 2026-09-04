@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const save = readFileSync(
-  new URL('./20260710_4_folha_rateio_salvar.sql', import.meta.url),
+  new URL('./_arquivo/20260710_4_folha_rateio_salvar.sql', import.meta.url),
   'utf8'
 );
 

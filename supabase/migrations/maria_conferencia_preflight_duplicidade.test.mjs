@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const sql = readFileSync(new URL('./20260707_1_maria_conferencia_preflight_duplicidade_forte.sql', import.meta.url), 'utf8');
+const sql = readFileSync(new URL('./_arquivo/20260707_1_maria_conferencia_preflight_duplicidade_forte.sql', import.meta.url), 'utf8');
 
 test('Maria conference preflight uses strong duplicate criteria instead of value-only matches', () => {
   assert.match(sql, /create or replace function public\.maria_conferencia_lancamento_preflight/i);

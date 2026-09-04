@@ -3,17 +3,17 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const sql = readFileSync(
-  new URL('./20260716_5_bistro_folha_automatica.sql', import.meta.url),
+  new URL('./_arquivo/20260716_5_bistro_folha_automatica.sql', import.meta.url),
   'utf8',
 );
 
 const directPaymentFixSql = readFileSync(
-  new URL('./20260716_6_bistro_pagamento_direto_historico.sql', import.meta.url),
+  new URL('./_arquivo/20260716_6_bistro_pagamento_direto_historico.sql', import.meta.url),
   'utf8',
 );
 
 const legacySnapshotFixSql = readFileSync(
-  new URL('./20260716_7_bistro_snapshot_legado_reconciliado.sql', import.meta.url),
+  new URL('./_arquivo/20260716_7_bistro_snapshot_legado_reconciliado.sql', import.meta.url),
   'utf8',
 );
 

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 // Fase B parte 2 (02/09/2026): 9 RPCs de ROTINA da Maria sobre agenda_rotinas (B1). Teste estatico;
 // o comportamento roda no banco (tests/test_maria_agenda_rotinas.py no workspace da Maria, transacao desfeita).
 const dir = fileURLToPath(new URL('./', import.meta.url));
-const f = readdirSync(dir).find((n) => n.endsWith('_maria_agenda_rpcs_rotinas.sql'));
+const f = [...readdirSync(dir), ...readdirSync(dir + '/_arquivo').map((n) => '_arquivo/' + n)].find((n) => n.endsWith('_maria_agenda_rpcs_rotinas.sql'));
 const sql = f ? readFileSync(new URL(`./${f}`, import.meta.url), 'utf8') : '';
 const codigo = sql.replace(/--.*$/gm, '');
 

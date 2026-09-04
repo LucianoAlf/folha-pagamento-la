@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 // Fase B parte 1 (02/09/2026): RPCs de TAREFA da Maria. Teste estatico da migration; o teste de
 // comportamento roda no banco (tests/test_maria_agenda_rpcs.py no workspace da Maria, transacao desfeita).
 const dir = fileURLToPath(new URL('./', import.meta.url));
-const f = readdirSync(dir).find((n) => n.endsWith('_maria_agenda_rpcs_tarefas.sql'));
+const f = [...readdirSync(dir), ...readdirSync(dir + '/_arquivo').map((n) => '_arquivo/' + n)].find((n) => n.endsWith('_maria_agenda_rpcs_tarefas.sql'));
 const sql = f ? readFileSync(new URL(`./${f}`, import.meta.url), 'utf8') : '';
 
 const RPCS_L = ['maria_agenda_listas', 'maria_agenda_listar', 'maria_agenda_detalhar'];
